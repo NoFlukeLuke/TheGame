@@ -1,4 +1,4 @@
-const BUILD = "2026-11-04 · r730 · STACKED: the whole deck dealt into a 5x5 as stacks, nothing falls, the card beneath comes up; timed or untimed; no Focus";
+const BUILD = "2026-11-04 · r731 · STACKED: the pull. The cards under a selected cell join the hand when that makes a better hand";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

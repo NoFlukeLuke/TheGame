@@ -335,7 +335,11 @@ function _withTagalongs(res) {
 // detectHand (the primary hand) and handMatchesFor (every hand these cards are
 // at once) must never disagree about what the cards ARE, so both read this.
 function _handShape(cells) {
-  const cards = cells.map(([r,c]) => gridData[r][c]);
+  // r731 (Stacked): the cards pulled in from under the selected cells join the
+  // shape as cards of their own (js/stack-mode.js, stkInCells): one more rank
+  // each to a set, one more slot each to a run, one more card to the size.
+  const _pulled = (typeof stkInCells === 'function') ? stkInCells(cells) : [];
+  const cards = cells.map(([r,c]) => gridData[r][c]).concat(_pulled);
   const n = cells.length;
   const isSeq = os => { for(let i=1;i<os.length;i++) if(os[i]-os[i-1]!==1) return false; return true; };
 
@@ -347,6 +351,7 @@ function _handShape(cells) {
   // rankCounts: combined cards contribute both ranks
   const rankCounts = {};
   cards.forEach(c => {
+    if (!c) return;   // r731: a cell read after its card left (the unlock counter)
     if (wilds && isWildCard(c)) return;
     if (isWarehouseCard(c)) return;
     rankCounts[c.rank] = (rankCounts[c.rank]||0) + 1;
@@ -356,7 +361,7 @@ function _handShape(cells) {
   });
   // The group's VIRTUAL size: one per card, two for a dual-rank card. Every
   // shape test below is sized by this, so a dual 7/8 beside a 9 is a Run of 3.
-  const vn = n + cards.filter(c => c && c.rank2 && !isWarehouseCard(c)).length;
+  const vn = n + _pulled.length + cards.filter(c => c && c.rank2 && !isWarehouseCard(c)).length;
   const counts = Object.values(rankCounts).sort((a,b)=>b-a);
 
   // Flush check: combined cards count as both suits - check if all cards share a common suit
@@ -369,12 +374,12 @@ function _handShape(cells) {
   // ACTIVE_SUITS, so `cards.every` would already fail today - but r164 leaned on
   // absence alone for white and r165 had to unpick it, so the rule is stated
   // rather than inherited from a list that a mode could change.
-  const _anyWhite = cards.some(c => isWhiteCard(c));
+  const _anyWhite = cards.some(c => c && isWhiteCard(c));
   const _anyWild  = wilds > 0;
   // r578: the Wild Cards event (wildsFlushOn) lets a wild stand in for any suit.
   const _wildSuit = _anyWild && typeof wildsFlushOn === 'function' && wildsFlushOn();
   const allSameSuitStrict = !_anyWhite && (!_anyWild || _wildSuit) && (typeof flushSuits === 'function' ? flushSuits() : ACTIVE_SUITS).some(s =>   // r709: Crowns / Crescents flush too
-    cards.every(c => isWarehouseCard(c) || (_wildSuit && isWildCard(c)) || c.suit === s || c.suit2 === s)
+    cards.every(c => !c || isWarehouseCard(c) || (_wildSuit && isWildCard(c)) || c.suit === s || c.suit2 === s)
   );
 
   // Run check: combined cards can use either rank value - try all combos
@@ -385,7 +390,7 @@ function _handShape(cells) {
   // fills one; a dual-rank card fills BOTH its ranks at once (two slots of the
   // run), so its options are the pairs of its two ranks' run values.
   const rankOptions = cards.map(c => {
-    if (isWarehouseCard(c)) return [];
+    if (!c || isWarehouseCard(c)) return [];
     const a = rankRunVals(c.rank);
     if (!c.rank2) return a.map(v => [v]);
     const b = rankRunVals(c.rank2), out = [];
@@ -512,7 +517,10 @@ function _wildFitsPattern(naturalCounts, w, pattern) {
 // ── TRACK 1: the best ACTIVE set/run this exact group of cards is, or null ──
 // Strict: n is exact for every shape, so a component never claims a spare card.
 function rankHandForGroup(cells) {
-  if (cells.length < 2 || cells.length > HAND_MAX_CARDS) return null;
+  // r731 (Stacked): one cell with cards pulled from under it is a group of its own
+  // (four 9s in one stack are a Four of a Kind, the cell beside it the kicker).
+  if (cells.length > HAND_MAX_CARDS) return null;
+  if (cells.length < 2 && !(typeof stkInCells === 'function' && stkInCells(cells).length)) return null;
   // r392: n is the VIRTUAL size - a dual-rank card counts as two cards.
   const { n, counts, allSameSuitStrict, isStr, wilds } = _handShape(cells);
   if (n > HAND_MAX_CARDS) return null;
@@ -564,8 +572,12 @@ function flushOverlayFor(cells) {
     // and a DOUBLE suit (two hearts) is pushed twice - it counts as two cards of
     // the flush. Coverage is judged on distinct cells, size on entries.
     const push = s => { if (s) (bySuit[s] = bySuit[s] || []).push([r, c]); };
-    push(card.suit);
-    if (card.suit2) push(card.suit2);
+    // r731 (Stacked): a pulled card is a card of the flush only if it shares the
+    // suit; a cell with a pulled card of another suit is not in that suit's flush.
+    const _ex = (typeof stkInAt === 'function') ? stkInAt(r, c) : [];
+    const _exOK = s => _ex.every(u => u && (u.suit === s || u.suit2 === s));
+    const _own = [card.suit, card.suit2].filter(Boolean);
+    _own.forEach(s => { if (_exOK(s)) { push(s); _ex.forEach(() => push(s)); } });
   });
   let best = null;
   Object.keys(bySuit).forEach(s => {
@@ -684,7 +696,8 @@ const _kickerOver = new Map();
 let lastKickerRefusal = null;
 function kickerOverflowFor(cells) { return (cells && cells.length) ? (_kickerOver.get(_compKey(cells)) || null) : null; }
 function _compKey(cells) {
-  return cells.map(([r, c]) => { const k = gridData[r] && gridData[r][c]; return k ? r + ',' + c + ':' + k.rank + k.suit + (k.rank2 || '') + (k.suit2 || '') + (k._id || '') : r + ',' + c + ':-'; }).join('|');
+  const _sk = (typeof stkKeyPart === 'function') ? stkKeyPart : null;   // r731: the stack under the cell and the cards pulled from it
+  return cells.map(([r, c]) => { const k = gridData[r] && gridData[r][c]; return (k ? r + ',' + c + ':' + k.rank + k.suit + (k.rank2 || '') + (k.suit2 || '') + (k._id || '') : r + ',' + c + ':-') + (_sk ? _sk(r, c) : ''); }).join('|');
 }
 // r339: "an N-card hand" is a REAL hand of exactly N cards - one component the
 // recognition names (a Straight, a Flush, a Full House, a Set of 3...), never N
@@ -715,6 +728,9 @@ function realHandOfSize(cells, n) {
 }
 
 function handComponentsFor(cells) {
+  // r731 (Stacked): which cards under the selected cells join the hand is a
+  // search over this function (js/stack-mode.js); it re-enters with the pull set.
+  if (typeof stkPullSearch === 'function' && !_stkSearching && stkPullOn()) return stkPullSearch(cells);
   // POKER SQUARES NAMES ITS OWN HANDS AND LAYERS NOTHING. A line there is five
   // cards scored as one real poker hand, kickers included, so a component list
   // would both pay for the same cards twice (the flush overlay ignores

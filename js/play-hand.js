@@ -570,6 +570,7 @@ function playHand() {
   // committed, so the buff lands on the NEXT hand of that type, not this one.
   if (typeof recordNaturalScale === 'function') recordNaturalScale(hand, handCells);
   handsPlayed++;
+  if (typeof stkCommit === 'function') stkCommit(handCells);   // r731 (Stacked): the pulled cards leave their stacks, scored
   // Record the hand for the SCORE-box hand log. Written here, not in the dance:
   // the dance is a presentation that can be interrupted or cut, whereas this is
   // the point the hand becomes a fact. handCells is read for card faces before

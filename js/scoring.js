@@ -480,8 +480,12 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // owns none of the card itself: no base pips, no permanent buffs, no
   // position Tricks, no replay bookkeeping - it replays exactly as often as the
   // real card, and its events land in the same card beat, right behind it.
-  const _scoreOne = ([r, c], _ci, _ghost, _pend) => {
-    const card = _ghost || _wildProxy[r + '-' + c] || gridData[r][c];
+  // r731 (Stacked): `_over` is a card PULLED from under the cell (js/stack-mode.js):
+  // it scores as a real card at that cell (its own pips and buffs, the cell's
+  // position Tricks), its events land in the cell's beat, and it writes no ledger
+  // card of its own (the dance aligns ledger cards to the hand's cells).
+  const _scoreOne = ([r, c], _ci, _ghost, _pend, _over) => {
+    const card = _ghost || _over || _wildProxy[r + '-' + c] || gridData[r][c];
     const _G = !!_ghost;
     // ── A WILD CONTRIBUTES NOTHING (r325) ──
     // No pips and none of its per-card Tricks, which is the whole of the card's
@@ -667,7 +671,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     // The ghost replays exactly as often as its real card (read back, not re-rolled).
     if (_G) _retrig = retrigByKey[r + '-' + c] || 1;
     retrigByKey[r + '-' + c] = _retrig;
-    if (_ledgerCells && !_G) {
+    if (_ledgerCells && !_G && !_over) {
       // Per-card pip-trick single-iteration deltas = the change in _cp during THIS card's
       // pre-replay body (excludes replay bookkeeping, which the dance shows by repeating the beat).
       const _pipT = {};
@@ -910,6 +914,18 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     _scoreOne(cell, ci, null, _pend);
     if (_gh) _scoreOne(cell, ci, _gh, _pend);
     _bankCell(_pend);
+    // r731 (Stacked): the cards pulled from under this cell, each a pass of its own.
+    const _ex = (typeof stkInAt === 'function') ? stkInAt(cell[0], cell[1]) : [];
+    if (_ex.length) {
+      const _k = cell[0] + '-' + cell[1], _keep = retrigByKey[_k];
+      _ex.forEach(u => {
+        const _rcE = hasTrick('club_double') && _scores(u) && u.suit === '♣' ? 1 : 0;
+        const _pe = { k0: clubsScoredRound + _clubHits, stride: _rcE, rc: _rcE, xp: 1, rr: 1 };
+        _scoreOne(cell, ci, null, _pe, u);
+        _bankCell(_pe);
+      });
+      retrigByKey[_k] = _keep;
+    }
   });
   _tlCard = -1;   // back to hand level - everything past here is a whole-hand event
   _lastHandProcs = _procs;         // snapshot for the Rider penalty (read in playHand)

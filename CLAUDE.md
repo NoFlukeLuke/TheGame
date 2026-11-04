@@ -4103,7 +4103,45 @@ different thing. The carousel card's PLAY opens a one-question start screen on t
   stock ended the run; the untimed clock at 0 ended nothing; a long press fanned on touch and a tap
   on a face surfaced it. Known: the DECK AUDIT transient right after `discardToPlayed` (the card is
   still in gridData) is pre-existing and prints in Classic too.
-- **Open (owner):** in-stack multi-select (several cards of one stack in one hand) waits for a
-  selection model that carries depth; the daily (one seeded grid, two non-resource Tricks, a score
-  against the best possible); Focus as a streak counter; whether an untimed boss should keep its
-  window; a "cards left" readout.
+- **Open (owner):** the daily (one seeded grid, two non-resource Tricks, a score against the best
+  possible); Focus as a streak counter; whether an untimed boss should keep its window; a "cards
+  left" readout. (In-stack multi-select became the pull, r731.)
+
+## r731 - STACKED: the pull (owner)
+The cards under a selected cell join the hand when that makes a better hand. You still pick cells
+(two at least); the hand finder tries every set of cards under them and keeps the set with the
+highest total hand value (`handWorth` over the components: a Full House over a Two Pair, under a
+Four of a Kind), fewest pulled on a tie, never past the Selection Size, and only when it beats the
+surface cards alone. Built on the dual-rank machinery: a pulled card counts like a second rank in
+the shape and scores as a pass of its own, where a dual card's ghost pays no pips.
+- **The search** (`stkPullSearch`, js/stack-mode.js) is `handComponentsFor`'s front in this mode
+  (`_stkSearching` guards the re-entry): per cell the subsets of its relevant under-cards (a rank in
+  the hand, within two of one, or the suit every surface card shares; `_stkRelevant`), odometer over
+  the cells, at most `STK_PULL_MAX_COMBOS` (160) combos (past that, one card a cell), the choice
+  cached per selection and stacks (`_stkChoice`) and left in **`stkIn`** (cell key -> cards) for
+  everything downstream. `_compKey` carries the stack and the pull (`stkKeyPart`), so the memo is
+  honest. Readers: `_handShape` appends `stkInCells(cells)` to the cards (one more rank each, one
+  more run slot, size +1), `flushOverlayFor` counts a pulled card of the suit and keeps a cell with a
+  pulled card of another suit out of that suit's flush, and `rankHandForGroup` lets ONE cell be a
+  group when it has pulled cards (four 9s in a stack are a Four of a Kind, the cell beside it the
+  kicker).
+- **Scoring:** `_scoreOne(cell, ci, ghost, pend, over)`: a pulled card is `over`, a real pass at the
+  cell (its own pips and buffs, the cell's position Tricks, its events in the cell's beat, its clubs
+  on the Hard Labour ladder), banked by its own `_bankCell`; it writes no ledger card (the dance
+  aligns ledger cards to the hand's cells) and the cell's replay count is restored after it. Plates
+  for a pulled card land on the surface card's preview copy. Hand-level Tricks that read the hand's
+  cards by cell do not see pulled cards (TBD).
+- **Commit:** `stkCommit(handCells)` at `handsPlayed++`: the pulled cards leave their stacks to the
+  played pile; the surface leaves as before. **Look:** the surface card's list lights the pulled
+  chips (`.stk-list b.in`, gold) and their faces lift a step with a gold edge (`.stk-peek.stk-in`);
+  off the board only the lit chips show, so the preview copy of the card names what it brought.
+- **The end check** counts the pull: a pair inside one stack beside any live cell, a run of 3 from
+  the union of two touching stacks or a cell and two neighbours.
+- `_handShape` skips a null card (the unlock counter re-reads a hand's cells after a fully pulled
+  stack has emptied them; a crash the one-card board never showed because a cell always refilled).
+Measured in headless Chromium at 1440x820 on crafted stacks (dev mode on): 5♠/5♥ beside 10♣/10♦ read
+TWO PAIR with both under-cards lit and lifted, played for 180 (the preview's figure), both stacks
+emptied, the four cards in the played pile, audit 56/56, no timeline drift; 7♠/7♥/7♦ beside K♣/K♦
+FULL HOUSE (3 pulled); 9♠/9♥/9♦/9♣ beside 2♣/2♦ FOUR OF A KIND with the 2 a kicker (670 against the
+Full House's 380); 2♠/J♠, 9♠/Q♠/3♥, K♠ a FLUSH with the 3♥ left down; 4♣/J♦ beside 8♥/Q♣ no hand.
+The golden test's 838 cases match (Classic scoring untouched).
