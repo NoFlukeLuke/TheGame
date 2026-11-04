@@ -1677,7 +1677,8 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   // `defer` returns the apply-the-number function instead of wiring it to this
   // particle's own landing, so a whole beat can launch together and still apply
   // its values in emission order (see the beat loop below).
-  const fireEvent = (ev, fallbackEl, subRef, awaitIt, inBeat, dur, defer) => {
+  // `plate` (r738): false = no plate of its own (it rides another plate's label); a string = that label.
+  const fireEvent = (ev, fallbackEl, subRef, awaitIt, inBeat, dur, defer, plate) => {
     const el = dncEntEl(ev);
     if(el) dncReleaseReal(el);
     const src = el || fallbackEl;
@@ -1693,7 +1694,8 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
       // r670: likewise a hand played out at the skip speed in front of a winning hand.
       if(typeof sfxParticleStep==='function' && !((dncQueue.length >= 2 || dncFF) && subRef._sfx)){ subRef._sfx = true; sfxParticleStep((ev.op==='pip+'||ev.op==='pip*')?'pip':'mult'); }
     };
-    const p = dncFly(src, box, evLabel(ev), evColor(ev), defer ? null : land, dur, evKind(ev));
+    if(plate === false) return defer ? land : null;
+    const p = dncFly(src, box, typeof plate === 'string' ? plate : evLabel(ev), evColor(ev), defer ? null : land, dur, evKind(ev));
     return defer ? land : (awaitIt ? p : null);
   };
 
@@ -1771,7 +1773,22 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
       // `replay` (Chorus, r637) is the reverse of `once`: replays only, never rep 0.
       const beatEvents = (rep === 0 ? step.events.filter(ev => !ev.replay) : step.events.filter(ev => !ev.once))
         .map(ev => ev.vals ? Object.assign({}, ev, { value: ev.vals[rep] }) : ev);
-      const applies = beatEvents.map(ev => fireEvent(ev, cardEl, subRef, false, true, beatDur, true));
+      // ONE PLATE PER CHIP FROM THE CARD (r738). Everything a card adds that has no tray
+      // tile of its own (the card's pips, a +pips buff, double scaling's +1, a mult buff)
+      // flies from the card on the same frames, so the plates sat exactly on top of each
+      // other and the last one drawn (often "+1") hid the card's real figure. Adds from
+      // the card now share one plate reading their sum, up to the next multiply on that
+      // chip. The values still apply one by one, in emission order.
+      const plan = [], open = {};
+      beatEvents.forEach(ev => {
+        const chip = (ev.op==='pip+'||ev.op==='pip*') ? 'p' : 'm';
+        if(!(ev.op==='pip+'||ev.op==='mult+')){ open[chip] = null; plan.push({ ev }); return; }
+        const fromCard = !dncEntEl(ev);
+        if(fromCard && open[chip]){ open[chip].sum += ev.value; plan.push({ ev, ride: true }); return; }
+        const g = { ev, sum: ev.value, chip }; if(fromCard) open[chip] = g; plan.push(g);
+      });
+      const applies = plan.map(g => fireEvent(g.ev, cardEl, subRef, false, true, beatDur, true,
+        g.ride ? false : (g.sum !== undefined && g.sum !== g.ev.value) ? '+' + (g.chip === 'p' ? Math.round(g.sum) : fmtM(g.sum)) : undefined));
       await dncWait(beatDur);
       if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
       applies.forEach(fn => { if(fn) fn(); });

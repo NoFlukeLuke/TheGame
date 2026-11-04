@@ -1,0 +1,154 @@
+/* ══ THE PAYOUT AND CONTRIBUTIONS IN CONSOLE MODE (r738, owner) ══════════════
+   js/interlude.js builds the tiled payout (css/payout-grid.css); in console mode it
+   takes the board screens' amber glass (css/board-screen.css): VT323, a "> " header,
+   each money line a wireframe box with its name on the border, TOTAL in the double
+   box, VALUED. lit solid like a screen's primary key. Contributions is the same
+   glass: a double box of rows with dotted leaders, figures in their phosphors.
+   Flow's breakdown on the pick (#sv-pick-contrib) wears the same rows.
+   Loads after css/boss.css and css/screen-skip.css, whose landscape rules carry
+   !important, so these do too. font-size-adjust is off here: sizes are as set. */
+
+html.skin-machine #payout-overlay.po-tiled,
+html.skin-machine #sv-pick-contrib {
+  --am: #ffb02e; --am-hi: #ffd98a; --am-dim: #9a6f2a; --am-ink: #0a0d06;
+  --po-pip: #7fd0ff; --po-mult: #ff8a66; --po-coin: #ffd24a; --po-fx: #a6e07a;
+  font-family: 'VT323 Local', 'VT323', monospace !important;
+  font-size-adjust: none !important;
+  color: var(--am); text-shadow: 0 0 6px rgba(255,176,46,.55);
+}
+html.skin-machine #payout-overlay.po-tiled * { font-size-adjust: none !important; }
+
+/* The glass: the whole board box is one screen. */
+html.skin-machine #grid > #payout-overlay.po-tiled {
+  background: radial-gradient(ellipse at center, #17240f 0%, #0a0d06 82%);
+  border-radius: 6px;
+  box-shadow: inset 0 0 24px rgba(0,0,0,.8), inset 0 0 0 1px rgba(76,107,47,.46);
+}
+
+/* Every tile is a wireframe box on the glass. */
+html.skin-machine #payout-overlay.po-tiled .po-tile {
+  background: transparent !important;
+  border: 1px solid var(--am-dim) !important; border-radius: 2px !important;
+  box-shadow: none !important;
+}
+
+/* Header: "> PAYOUT" over the statement line, no box. */
+html.skin-machine #payout-overlay.po-tiled .po-tile-title { border-color: transparent !important; padding-left: 4px !important; }
+html.skin-machine #payout-overlay.po-tiled .payout-title {
+  font-family: inherit !important; font-weight: normal !important;
+  font-size: 19px !important; line-height: 1 !important; letter-spacing: 2px !important;
+  color: var(--am-hi) !important; text-shadow: 0 0 6px rgba(255,176,46,.55) !important; margin: 0 !important;
+}
+html.skin-machine #payout-overlay.po-tiled .payout-title::before { content: '> '; }
+html.skin-machine #payout-overlay.po-tiled .payout-title::after {
+  content: 'REMITTANCE ADVICE · LETHE CORP'; display: block; margin-top: 3px;
+  font-family: inherit !important; font-size: 12px; letter-spacing: 1px; color: var(--am-dim);
+  text-shadow: none;
+}
+html.skin-machine #payout-overlay #po-ff.scr-skip { --sk: #ffb02e; --sk-rgb: 255, 176, 46; }
+
+/* Tabs: keys on the glass; the open one lit solid. */
+html.skin-machine #payout-overlay.po-tiled .po-tile-tab { padding: 0 !important; }
+html.skin-machine #payout-overlay.po-tiled .po-tile-tab .payout-tab {
+  font-family: inherit !important; font-size: 16px !important; letter-spacing: 1px !important;
+  border: 0 !important; border-radius: 0 !important; background: transparent !important;
+  color: var(--am) !important; text-shadow: inherit;
+}
+html.skin-machine #payout-overlay.po-tiled .po-tile-tab:has(.payout-tab.active) { border-color: var(--am-hi) !important; }
+html.skin-machine #payout-overlay.po-tiled .po-tile-tab .payout-tab.active {
+  background: var(--am) !important; color: var(--am-ink) !important; text-shadow: none;
+}
+@media (hover: hover) {
+  html.skin-machine #payout-overlay.po-tiled .po-tile-tab .payout-tab:not(.active):hover { background: rgba(255,176,46,.14) !important; }
+}
+
+/* A money line: its name on the top border, the rule under it, the figure right. */
+html.skin-machine #payout-overlay.po-tiled .payout-line { overflow: visible; padding: 6px 9px 3px !important; border-bottom: 1px solid var(--am-dim) !important; margin: 0 !important; }
+html.skin-machine #payout-overlay.po-tiled .pl-left { min-width: 0; gap: 0; }
+html.skin-machine #payout-overlay.po-tiled .pl-name {
+  position: absolute; left: 6px; top: -8px; padding: 0 3px; line-height: 1;
+  font-family: inherit !important; font-style: normal !important; font-weight: normal !important;
+  font-size: 14px !important; letter-spacing: 1px !important; text-transform: uppercase;
+  color: var(--am-hi) !important; background: #0e150a;
+}
+html.skin-machine #payout-overlay.po-tiled .pl-desc {
+  font-family: inherit !important; font-size: 13px !important; line-height: 1.05 !important;
+  letter-spacing: 0 !important; color: var(--am-dim) !important;
+}
+html.skin-machine #payout-overlay.po-tiled .pl-desc * { color: var(--am) !important; }
+html.skin-machine #payout-overlay.po-tiled .pl-right { gap: 4px; align-items: baseline; }
+html.skin-machine #payout-overlay.po-tiled .pl-sym { font-family: inherit !important; font-size: 16px !important; color: var(--am-dim) !important; text-shadow: none; }
+html.skin-machine #payout-overlay.po-tiled .pl-coins {
+  font-family: inherit !important; font-weight: normal !important; font-size: 26px !important;
+  color: var(--am-hi) !important; text-shadow: 0 0 8px rgba(255,176,46,.6);
+}
+html.skin-machine #payout-overlay.po-tiled .pl-clock { font-family: inherit !important; font-size: 15px !important; color: var(--am-dim) !important; }
+
+/* TOTAL: the double box. */
+html.skin-machine #payout-overlay.po-tiled .payout-total { border: 3px double var(--am-dim) !important; }
+html.skin-machine #payout-overlay.po-tiled .pt-label {
+  font-family: inherit !important; font-size: 16px !important; letter-spacing: 2px !important; color: var(--am) !important;
+}
+html.skin-machine #payout-overlay.po-tiled .pt-coins {
+  font-family: inherit !important; font-weight: normal !important; font-size: 30px !important;
+  color: var(--am-hi) !important; text-shadow: 0 0 10px rgba(255,176,46,.65) !important;
+}
+
+/* VALUED.: the screen's primary key. */
+html.skin-machine #payout-overlay.po-tiled .payout-valued-btn {
+  font-family: inherit !important; font-weight: normal !important; font-style: normal !important;
+  font-size: 20px !important; letter-spacing: 2px !important; text-transform: uppercase;
+  color: var(--am-ink) !important; text-shadow: none !important;
+  background: var(--am) !important; border: 1px solid var(--am-hi) !important; border-radius: 2px !important;
+  box-shadow: 0 0 10px rgba(255,176,46,.4) !important;
+}
+@media (hover: hover) { html.skin-machine #payout-overlay.po-tiled .payout-valued-btn:hover { filter: brightness(1.1); } }
+
+/* ── Contributions ── */
+html.skin-machine #payout-overlay.po-tiled .po-tile-contrib { border: 3px double var(--am-dim) !important; padding: 6px 9px !important; }
+html.skin-machine #payout-overlay .contrib-head {
+  font-family: inherit !important; font-size: 15px !important; letter-spacing: 1px !important;
+  text-transform: uppercase; text-align: left !important; color: var(--am-hi) !important; margin: 0 0 6px !important;
+}
+html.skin-machine #payout-overlay .contrib-head::before { content: '> '; }
+html.skin-machine :is(#payout-overlay, #sv-pick-contrib) .contrib-scroll { scrollbar-width: thin; scrollbar-color: var(--am-dim) transparent; }
+html.skin-machine :is(#payout-overlay, #sv-pick-contrib) .contrib-group-title {
+  display: flex; align-items: center; gap: 6px;
+  font-family: inherit !important; font-size: 13px !important; letter-spacing: 2px !important;
+  text-transform: uppercase; color: var(--am-dim) !important; margin: 8px 0 1px !important;
+}
+html.skin-machine :is(#payout-overlay, #sv-pick-contrib) .contrib-group-title::after { content: ''; flex: 1; border-top: 1px dashed var(--am-dim); opacity: .6; }
+html.skin-machine :is(#payout-overlay, #sv-pick-contrib) .contrib-group-title:first-child { margin-top: 0 !important; }
+html.skin-machine :is(#payout-overlay, #sv-pick-contrib) .contrib-row {
+  display: flex; align-items: baseline; gap: 4px; padding: 1px 0 !important; border: 0 !important;
+  font-family: inherit !important; font-size: 15px !important; line-height: 1.15 !important; color: var(--am) !important;
+}
+/* the dotted leader between a name and its figure */
+html.skin-machine :is(#payout-overlay, #sv-pick-contrib) .contrib-row::after {
+  content: ''; order: 1; flex: 1 1 8px; min-width: 8px; align-self: flex-end; margin-bottom: 4px;
+  border-bottom: 1px dotted var(--am-dim); opacity: .7;
+}
+html.skin-machine :is(#payout-overlay, #sv-pick-contrib) .contrib-label {
+  order: 0; min-width: 0; font-family: inherit !important; font-size: 15px !important; color: var(--am) !important;
+  display: inline-flex; align-items: baseline; gap: 5px;
+}
+html.skin-machine :is(#payout-overlay, #sv-pick-contrib) .contrib-count {
+  font-family: inherit !important; font-size: 12px !important; color: var(--am-dim) !important; opacity: 1 !important; margin: 0 !important;
+}
+html.skin-machine :is(#payout-overlay, #sv-pick-contrib) .contrib-val {
+  order: 2; font-family: inherit !important; font-weight: normal !important; font-size: 16px !important; white-space: nowrap;
+}
+html.skin-machine :is(#payout-overlay, #sv-pick-contrib) .contrib-pip  { color: var(--po-pip) !important;  text-shadow: 0 0 6px rgba(127,208,255,.5); }
+html.skin-machine :is(#payout-overlay, #sv-pick-contrib) .contrib-mult { color: var(--po-mult) !important; text-shadow: 0 0 6px rgba(255,138,102,.5); }
+html.skin-machine :is(#payout-overlay, #sv-pick-contrib) .contrib-coin { color: var(--po-coin) !important; text-shadow: 0 0 6px rgba(255,210,74,.5); }
+html.skin-machine :is(#payout-overlay, #sv-pick-contrib) .contrib-fx   { color: var(--po-fx) !important;   text-shadow: 0 0 6px rgba(166,224,122,.5); }
+html.skin-machine :is(#payout-overlay, #sv-pick-contrib) .contrib-empty {
+  font-family: inherit !important; font-size: 15px !important; color: var(--am-dim) !important; text-align: left !important; padding: 6px 0 !important;
+}
+
+/* Flow's breakdown on the pick: the same glass. */
+html.skin-machine #sv-pick-contrib.show {
+  background: radial-gradient(ellipse at center, #17240f 0%, #0a0d06 82%) !important;
+  border: 3px double var(--am-dim) !important; border-radius: 2px !important;
+  box-shadow: inset 0 0 18px rgba(0,0,0,.8);
+}

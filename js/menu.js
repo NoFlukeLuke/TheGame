@@ -1,4 +1,4 @@
-const BUILD = "2026-11-04 · r737 · STACKED: a pulled card is a cell of the hand: Tricks read it, it flies into the preview on its own";
+const BUILD = "2026-11-04 · r738 · one pip plate per card; the payout and contributions in console; L and Q on the phone; drags over falling cards";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

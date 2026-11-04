@@ -267,6 +267,7 @@ function updateRunProgressUI() {
     rp.classList.toggle('boss-sigil', bossOn);
     rp.classList.toggle('rp-lvl', lvlOn);
     const lv = rp.querySelector('.rp-lv'); if (lv) lv.textContent = level;
+    const ln = rp.querySelector('.rp-lnum'); if (ln) ln.textContent = 'L' + level;   // r738: the phone's level, left of Q1
     const act = rp.querySelector('.rp-act');
     // Outside the quarter structure (Survival) "Qn" is meaningless, but a boss
     // still needs a name over its mark.

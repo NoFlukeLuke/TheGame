@@ -584,6 +584,26 @@ function onCardTap(r, c) {
 // ── Pointer event handlers on the grid ──
 const gridEl2 = document.getElementById('grid');
 
+// r738: THE CELL UNDER A FINGER WHILE CARDS FALL. A card still in the air is drawn
+// above its cell, so the cell it is falling into has no element under the finger and
+// cardAt(elementFromPoint) found nothing: a drag started or carried over landing cards
+// selected nothing and the hand never played (measured on a phone: 2 drags in 11).
+// While a fall runs, a miss is read from the board's cell layout instead (a drag
+// reads the layout first, below).
+function cellAtPoint(x, y) {
+  if (!falling || !(typeof ctlLiveBoard === 'function' && ctlLiveBoard())) return null;
+  const g = gridEl2; if (!g || !g.offsetWidth) return null;
+  const rc = g.getBoundingClientRect(), k = rc.width / g.offsetWidth;
+  const lx = (x - rc.left) / k - g.clientLeft, ly = (y - rc.top) / k - g.clientTop;
+  for (let r = 0; r < gridRows; r++) {
+    if (ly < cellTop(r) || ly > cellTop(r) + CARD_H) continue;
+    for (let c = 0; c < gridCols; c++)
+      if (lx >= cellLeft(c) && lx <= cellLeft(c) + CARD_W) return gridData[r]?.[c] ? [r, c] : null;
+  }
+  return null;
+}
+function cellUnder(el, x, y) { return cardAt(el) || cellAtPoint(x, y); }
+
 // THE PICK OWNS THE BOARD OUTRIGHT WHILE IT IS OPEN, so it is exempt from BOTH
 // flags here (r356). `onCardTap` already intercepts above its own `animating`
 // check, but that was never reached: this is the guard that decides, and
@@ -595,7 +615,7 @@ gridEl2.addEventListener('pointerdown', e => {
   const _pick = typeof pickOwnsBoard === 'function' && pickOwnsBoard();
   if (typeof bossJumpRunning === 'function' && bossJumpRunning()) return;   // r606: no input while the clock runs out
   if (!_pick && (animating || roundEnded)) { dbgEvent('warn', 'grid input blocked', { animating, roundEnded, falling, dance: !!danceAbortController }); return; }
-  const cell = cardAt(e.target);
+  const cell = cellUnder(e.target, e.clientX, e.clientY);
   if (!cell) { dbgEvent('warn', 'tap missed a card (overlay covering grid?)', { tgt: String(e.target?.id || e.target?.className || e.target?.tagName || '?').slice(0,48) }); return; }
   gridEl2.setPointerCapture(e.pointerId);
   isSwiping = false;
@@ -616,7 +636,9 @@ gridEl2.addEventListener('pointermove', e => {
   if (animating || roundEnded || !gridEl2._pointerStart) return;
   // Dealer's Choice: a drag carries the held cards, it does not select.
   if (typeof dealerActive === 'function' && dealerActive()) return;
-  const cell = cardAt(document.elementFromPoint(e.clientX, e.clientY));
+  // A drag reads the cell layout first while cards fall: a card passing under the
+  // finger on its way down belongs to a cell further down, and stopped the swipe there.
+  const cell = cellAtPoint(e.clientX, e.clientY) || cardAt(document.elementFromPoint(e.clientX, e.clientY));
   if (!cell) return;
   const [r, c] = cell;
   const ps = gridEl2._pointerStart;

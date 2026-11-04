@@ -4302,3 +4302,25 @@ On the Edge paid each card at the edge cell (1,090), Encore replayed all four 9s
 Full House (two from the grid, three from the peeks, seen rising from under the 7♠ and K♣); two
 hands queued with pulls built 5-slot strips; a goal hand with pulls ended the round; audit 56/56
 throughout, no timeline drift, no page errors. Golden: 838 cases match.
+
+## r738 - one plate per card; the payout in console; the phone's level; drags over landing cards (owner)
+- **The pip plate read "+1"** (js/score-dance.js): every event in a card's beat flies from the
+  card on the same frames, so the card's pips, a +pips buff (billed as `sapling`, no tray tile)
+  and double scaling's `_nsPips` (+1 a card per 15 family plays) sat on top of each other and the
+  last one drawn hid the rest. Adds with no tray tile of their own now share ONE plate per chip
+  reading their sum, up to the next multiply on that chip; the values still apply one by one
+  (`plan` in the beat, `fireEvent`'s `plate` argument). Measured: Q with +5 and +4 scaling flies
+  "+19" (was "+10" under "+5" under "+4"); mult "+9" for ladder + scaling. No drift; golden matches.
+- **Payout and Contributions in console mode** (`css/payout-console.css`, loads after
+  css/screen-skip.css): the board box is the amber glass, "> PAYOUT" over the statement line,
+  tabs as keys (the open one lit), each money line a wireframe box with its name on the border,
+  TOTAL in the double box, VALUED. lit solid, the SKIP key amber. Contributions is a double box of
+  rows with dotted leaders, figures in phosphors (pips sky, mult coral, credits gold, effects
+  green); Flow's breakdown on the pick (`#sv-pick-contrib`) wears the same rows. Pit look unchanged.
+- **Phone: L and Q** (`#run-progress-pt .rp-top`): `L<level>` on the left, the quarter
+  right-justified (`.rp-lnum`, written by `updateRunProgressUI`).
+- **Drag to play over falling cards** (js/input.js `cellAtPoint`): a card in the air is drawn
+  above its cell, so a drag started or carried over landing cards found no element under the
+  finger and selected nothing. While a fall runs, the pointerdown falls back to the cell layout
+  and the drag reads the layout first. Measured on a 420x900 touch page, drags timed to start
+  mid-fall: 6 of 8 played before, 17 of 18 after (the miss was the five-hands-scoring cap).

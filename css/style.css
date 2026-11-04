@@ -4709,6 +4709,10 @@
     flex-shrink: 0; min-width: 62px;
   }
   #stage:not(.landscape) #run-progress-pt .rp-act { font-size: 9px; }
+  /* r738 (owner): the level reads left of the quarter, the quarter right-justified. */
+  #run-progress-pt .rp-top { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; align-self: stretch; }
+  #run-progress-pt .rp-lnum { font-family: inherit; font-size: 9px; line-height: 1; letter-spacing: 1px; color: var(--cream, #f0e6c8); opacity: .85; }
+  #run-progress-pt .rp-top .rp-act { text-align: right; }
   #stage:not(.landscape) #game-timer-stat.rp-yielded { display: none; }
   #stage.landscape #run-progress-pt { display: none !important; }
 
