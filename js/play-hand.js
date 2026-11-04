@@ -29,8 +29,8 @@ function generateHandFocus(hand, handCells, vultureSec) {
     // once per time it SCORES, so a card that replays twice pays three times.
     // _lastRetrigByCell is this hand's: captureRoundContrib ran the real calcScore
     // just before this, and nothing re-scores in between.
-    const _rp = (r, c) => (_lastRetrigByCell && _lastRetrigByCell[r + '-' + c]) || 1;
-    const _rsum = (pred) => handCells.reduce((n, [r, c]) => n + (!pred || pred(gridData[r]?.[c], r, c) ? _rp(r, c) : 0), 0);
+    const _rp = (r, c, x) => (_lastRetrigByCell && _lastRetrigByCell[cellKey([r, c, x])]) || 1;   // r732: a pulled cell's own key
+    const _rsum = (pred) => handCells.reduce((n, cl) => n + (!pred || pred(cellCard(cl), cl[0], cl[1]) ? _rp(cl[0], cl[1], cl[2]) : 0), 0);
     const _isRunHand = ['Run of 3','Run of 4','Straight','Straight Flush'].includes(hand);
     if (_isRunHand) totalFocus += _rsum() * BAL.river_run.focus_per_card * trickFires('river_run');
     // Rogue Wave asks for its fire count only once the predicate holds (r296 - a
@@ -42,7 +42,7 @@ function generateHandFocus(hand, handCells, vultureSec) {
       totalFocus += BAL.correct_run.focus * trickFires('correct_run');
     // Resonance (r624): any hand with a pair in it (Pair, Two Pair, Full House, a
     // pair layered under anything) that holds a 2 or a 4 adds Focus per card.
-    if (hasTrick('high_pair') && handCells.some(([r,c]) => gridData[r]?.[c] && rkHas('high_pair', gridData[r][c].rank))) {
+    if (hasTrick('high_pair') && handCells.some(cl => cellCard(cl) && rkHas('high_pair', cellCard(cl).rank))) {
       const _hpComps = (typeof handComponentsFor === 'function' && handComponentsFor(handCells)?.components) || [];
       const _hpPair = ['Pair', 'Two Pair', 'Full House'].includes(hand) || _hpComps.some(c => ['Pair', 'Two Pair', 'Full House'].includes(c.name));
       if (_hpPair) totalFocus += _rsum() * BAL.high_pair.focus_per_card * trickFires('high_pair');
@@ -51,13 +51,13 @@ function generateHandFocus(hand, handCells, vultureSec) {
     {
       // r625: ranks at or under BAL.before_the_tide.max_rank (improvements raise it); Ace is 1.
       const _rvOf = rk => { const v = rk === 'A' ? 1 : (RANK_ORDER[rk] || 0); return v >= 1 && v <= BAL.before_the_tide.max_rank ? v : 0; };
-      const _btl = handCells.reduce((s,[r,c]) => s + _rvOf(gridData[r]?.[c]?.rank) * _rp(r, c), 0);
+      const _btl = handCells.reduce((s, cl) => s + _rvOf(cellCard(cl)?.rank) * _rp(cl[0], cl[1], cl[2]), 0);
       if (_btl) totalFocus += _btl * trickFires('before_the_tide');
     }
     // Lucky Sevens: +3 Focus per 7 scored
     { const _sv = _rsum(cd => rkHas('lucky_sevens', cd?.rank)); if (_sv) totalFocus += _sv * BAL.lucky_sevens.focus * trickFires('lucky_sevens'); }
     // Threepeat: hand pip-sum divisible by 3 → one of rewind / mult / Focus
-    { const _ps = handCells.reduce((s,[r,c]) => s + (gridData[r]?.[c] ? cardPips(gridData[r][c].rank) : 0), 0); if (_ps % 3 === 0 && hasTrick('ninesong') && ninesongPays(2, handCells)) totalFocus += BAL.ninesong.focus * trickFires('ninesong'); }
+    { const _ps = handCells.reduce((s, cl) => s + (cellCard(cl) ? cardPips(cellCard(cl).rank) : 0), 0); if (_ps % 3 === 0 && hasTrick('ninesong') && ninesongPays(2, handCells)) totalFocus += BAL.ninesong.focus * trickFires('ninesong'); }
     // Wildfire: reaching a same-hand streak of 3 adds Focus
     if (hasTrick('wildfire') && lastHandType === hand && streakCount + 1 === 3) totalFocus += TB('wildfire').focus * trickFires('wildfire');
     // The Falcon: hands played while the clock is paused add +10 Focus
@@ -127,7 +127,7 @@ function generateHandFocus(hand, handCells, vultureSec) {
       // The under-cap test runs BEFORE trickFires so a prime is never spent on a gain
       // that cannot land (r296's "ask only when about to pay").
       if (hasTrick('little_guys') && (focusCapGains['little_guys'] || 0) < BAL.little_guys.cap
-          && !handCells.some(([r,c]) => ['J','Q','K'].includes(gridData[r]?.[c]?.rank))) {
+          && !handCells.some(cl => ['J','Q','K'].includes(cellCard(cl)?.rank))) {
         const _lgf = gainFocusCap('little_guys', BAL.little_guys.cap_gain * trickFires('little_guys'), BAL.little_guys.cap);
         if (_lgf > 0) showMessage('the little guys! +' + _lgf + ' Focus limit', '#a25cd8');
       }
@@ -388,7 +388,7 @@ function playHand() {
   if (typeof _lastHandProcs !== 'undefined' && typeof _trickFiredThisHand !== 'undefined') Object.keys(_lastHandProcs).forEach(id => { if (_lastHandProcs[id] > 0 && hasTrick(id)) _trickFiredThisHand.add(id); });
   // QRL (r484): say so when this hand ran into a quarter resource limit.
   if (_lastHandQrlReplayCut) qrlNotice('replay');
-  if (_scoredCells.some(([r, c]) => qrlActiveKinds(gridData[r]?.[c]))) qrlNotice('buff');
+  if (_scoredCells.some(cl => qrlActiveKinds(cellCard(cl)))) qrlNotice('buff');
   // Snapshot this hand's replay counts NOW (a later calcScore elsewhere could overwrite the global).
   const _handRetrigByCell = { ..._lastRetrigByCell };
   // Card Market time cards: seconds carried by the individual cards in this hand.
@@ -397,8 +397,8 @@ function playHand() {
   // "Every rewind now goes through rewindTime()").
   if (typeof permTime !== 'undefined') {
     let _cardSecs = 0;
-    _scoredCells.forEach(([r, c]) => {
-      const _cd = gridData[r]?.[c];
+    _scoredCells.forEach(cl => {
+      const _cd = cellCard(cl);
       if (_cd && _cd.rank && qrlBuffOn(_cd, 'time')) _cardSecs += (permTime[cardId(_cd)] || 0);
     });
     if (_cardSecs > 0) rewindTime(_cardSecs, `⏪ Your cards - rewound ${_cardSecs}s`);
@@ -408,11 +408,11 @@ function playHand() {
   // its credits three times - that is the owner's spec for the card state.
   if (typeof permCoins !== 'undefined') {
     let _cardCoins = 0;
-    _scoredCells.forEach(([r, c]) => {
-      const _cd = gridData[r]?.[c];
+    _scoredCells.forEach(cl => {
+      const _cd = cellCard(cl);
       if (_cd && _cd.rank) {
         const per = qrlBuffOn(_cd, 'coins') ? (permCoins[cardId(_cd)] || 0) : 0;
-        if (per) _cardCoins += per * (_handRetrigByCell[r + '-' + c] || 1);
+        if (per) _cardCoins += per * (_handRetrigByCell[cellKey(cl)] || 1);
       }
     });
     if (_cardCoins > 0) { coins += _cardCoins; updateCoinsUI(); try { sfxCoin?.(); } catch (e) {} }
@@ -421,8 +421,8 @@ function playHand() {
   // hand. Flat per scored card, like permTime - not replay-weighted.
   if (typeof permFocus !== 'undefined') {
     let _cardFocus = 0;
-    _scoredCells.forEach(([r, c]) => {
-      const _cd = gridData[r]?.[c];
+    _scoredCells.forEach(cl => {
+      const _cd = cellCard(cl);
       if (_cd && _cd.rank && qrlBuffOn(_cd, 'focus')) _cardFocus += (permFocus[cardId(_cd)] || 0);
     });
     if (_cardFocus > 0 && typeof addFocus === 'function') addFocus(_cardFocus);
@@ -539,18 +539,18 @@ function playHand() {
   // charge is spent. Every played card is touched, not just the scored ones -
   // a penalty card was still committed and consumed.
   if (typeof cardStatesTouch === 'function') cardStatesTouch(playedCells.map(([r, c]) => gridData[r]?.[c]));
-  if (typeof cardStatesOnUse === 'function') cardStatesOnUse(_scoredCells.map(([r, c]) => gridData[r]?.[c]), _scoredCells);
-  if (typeof hallmarkResolve === 'function') hallmarkResolve(_scoredCells.map(([r, c]) => gridData[r]?.[c]));
+  if (typeof cardStatesOnUse === 'function') cardStatesOnUse(_scoredCells.map(cellCard), _scoredCells);
+  if (typeof hallmarkResolve === 'function') hallmarkResolve(_scoredCells.map(cellCard));
   // Buried Treasure (r359): every scored diamond, replays included, rolls
   // (Luck / 2)% to multiply your credits by 1.1. The chance IS a share of Luck,
   // so it is not scaled by Luck a second time.
   if (hasTrick('buried_treasure') && coins > 0) {
     const _bt = BAL.buried_treasure, _p = Math.max(0, luckTotal() * _bt.luck_share / 100);
     let _hits = 0;
-    _scoredCells.forEach(([r, c]) => {
-      const cd = gridData[r]?.[c];
+    _scoredCells.forEach(cl => {
+      const cd = cellCard(cl);
       if (!cd || cd.suit !== '♦' || isWildCard(cd)) return;
-      const reps = (_lastRetrigByCell && _lastRetrigByCell[`${r}-${c}`]) || 1;
+      const reps = (_lastRetrigByCell && _lastRetrigByCell[cellKey(cl)]) || 1;
       for (let k = 0; k < reps; k++) if (Math.random() < _p) _hits++;
     });
     if (_hits) {
@@ -715,7 +715,7 @@ function playHand() {
   { const _rt = _scoredCells.reduce((n,[r,c]) => n + (cellHasRowColBonus(r, c, 'right_time') ? (_handRetrigByCell[r + '-' + c] || 1) : 0), 0); if (_rt > 0) pauseRound(TB('right_time').pause_seconds * _rt * trickFires('right_time'), 'right_time', 'trick'); }
   // Threepeat: hand pip-sum divisible by 3 → rewind (r183)
   {
-    const _ps = handCells.reduce((s,[r,c]) => s + (gridData[r]?.[c] ? cardPips(gridData[r][c].rank) : 0), 0);
+    const _ps = handCells.reduce((s, cl) => s + (cellCard(cl) ? cardPips(cellCard(cl).rank) : 0), 0);
     if (_ps % 3 === 0 && hasTrick('ninesong') && ninesongPays(0, handCells)) {
       const _ns = BAL.ninesong.seconds * trickFires('ninesong');
       if (_ns > 0) rewindTime(_ns, `🔁 Threepeat - rewound ${_ns}s`);
@@ -725,7 +725,7 @@ function playHand() {
   // of the two, at least one of each - grants +5 credits but COSTS 10 seconds. Wilds
   // have no suit, so a wild in the hand breaks "exclusively", which reads right.
   if (hasTrick('monochrome')) {
-    const _bdc = handCells.map(([r,c]) => gridData[r]?.[c]).filter(Boolean);
+    const _bdc = handCells.map(cellCard).filter(Boolean);
     const _bdOk = _bdc.length > 0 && _bdc.every(c => c.suit === '♥' || c.suit === '♦')
       && _bdc.some(c => c.suit === '♥') && _bdc.some(c => c.suit === '♦');
     if (_bdOk) {
@@ -827,7 +827,7 @@ function playHand() {
 
   // Déjà Vu knack: playing the same ranks in two hands in a row rewinds the clock.
   {
-    const _ranks = handCells.map(([r,c]) => gridData[r]?.[c]).filter(cc => cc && cc.rank && !cc._isSleight).map(cc => cc.rank).sort();
+    const _ranks = handCells.map(cellCard).filter(cc => cc && cc.rank && !cc._isSleight).map(cc => cc.rank).sort();
     const _rankKey = _ranks.join(',');
     if (hasKnack('deja_vu') && lastHandRankKey !== null && _rankKey !== '' && _rankKey === lastHandRankKey) {
       rewindTime(BAL.deja_vu.seconds, `🔁 Déjà Vu - rewound ${BAL.deja_vu.seconds}s`);
@@ -845,8 +845,8 @@ function playHand() {
   if (isSetHand(hand)) {
     setsPlayedRound++;
     // Undue Influence: a Set with a face card grants credits = Sets played this round (incl. this one)
-    if (handCells.some(([r,c]) => rkHas('undue_influence', gridData[r]?.[c]?.rank))) {
-      const _uiFaces = BAL.undue_influence.faces ? handCells.filter(([r,c]) => rkHas('undue_influence', gridData[r]?.[c]?.rank)).length : 0;   // r625: improved once, the face cards pay too
+    if (handCells.some(cl => rkHas('undue_influence', cellCard(cl)?.rank))) {
+      const _uiFaces = BAL.undue_influence.faces ? handCells.filter(cl => rkHas('undue_influence', cellCard(cl)?.rank)).length : 0;   // r625: improved once, the face cards pay too
       const _ui = (setsPlayedRound + _uiFaces) * trickFires('undue_influence');
       if (_ui > 0) { grantEntityCoins(_ui, 'trick', 'undue_influence'); noteMessage('Undue Influence +' + _ui + ' credits', 'var(--gold)'); }
     }
@@ -866,8 +866,8 @@ function playHand() {
 
   // ── Card curses: apply per-score effects and work them off ──
   // Each scored cursed card ticks its curse down; at 0 the curse lifts.
-  result.handCells.forEach(([r, c]) => {
-    const card = gridData[r]?.[c];
+  result.handCells.forEach(cl => {
+    const card = cellCard(cl);
     if (!card || !card.rank || card._isSleight || card._isStone) return;
     const k = cardId(card);
     const curse = cardCurses[k];
@@ -892,15 +892,15 @@ function playHand() {
 
   // Bedrock: Four of a Kind permanently buffs its 4 cards
   if (hand === 'Four of a Kind' && hasTrick('rare_bloom')) {
-    result.handCells.forEach(([r,c]) => { const card = gridData[r]?.[c]; if (!card || !card.rank) return; const k = cardId(card); permPips[k] = (permPips[k]||0) + yokeGain('pips', BAL.rare_bloom.perm_pips); });
+    result.handCells.forEach(cl => { const card = cellCard(cl); if (!card || !card.rank) return; const k = cardId(card); permPips[k] = (permPips[k]||0) + yokeGain('pips', BAL.rare_bloom.perm_pips); });
     showMessage('Bedrock! +' + BAL.rare_bloom.perm_pips + ' pips to those cards', '#e8c56b');
   }
 
   // First Fruits (r624): the first `hands` hands of a round (handsPlayedRound already
   // counts this hand here). Head Start's Focus fires in generateHandFocus, before scoring.
   if (hasTrick('first_fruits') && handsPlayedRound <= BAL.first_fruits.hands) {
-    handCells.forEach(([r,c]) => {
-      const k = cardId(gridData[r][c]);
+    handCells.forEach(cl => {
+      const k = cardId(cellCard(cl));
       permPips[k] = (permPips[k]||0) + yokeGain('pips', BAL.first_fruits.pips);
     });
   }
@@ -916,7 +916,7 @@ function playHand() {
   });
 
   // ── Suit effects (applied per scoring card) ──
-  const scoringCards = _scoredCells.map(([r,c]) => gridData[r][c]);
+  const scoringCards = _scoredCells.map(cellCard);
 
   // Suits are neutral - suit effects come only from Tricks.
   // (♥ and ♣ Tricks handled in calcScore; ♦/♠ base effects removed with neutral suits)
@@ -938,8 +938,8 @@ function playHand() {
 
   // King post-score: shift adjacent non-scored cards' ranks down
   const scoredSet = new Set(result.handCells.map(([r,c]) => `${r}-${c}`));
-  if (hasTrick('kings_downgrade')) result.handCells.forEach(([r,c]) => {
-    const card = gridData[r][c];
+  if (hasTrick('kings_downgrade')) result.handCells.forEach(([r, c, _x]) => {
+    const card = _x || gridData[r][c];
     const isKing  = card.rank === 'K' || card.rank2 === 'K';
     if (isKing) {
       getNeighbors(r, c).forEach(([nr, nc]) => {
@@ -956,8 +956,8 @@ function playHand() {
   // Royal Favour (r350): every scored card that sits beside a Queen goes up a
   // rank AFTER it scores - the change is stamped on its way into the pile
   // (recycleCard), so this hand, its preview and its dance all see the old rank.
-  if (hasTrick('queens_upgrade')) result.handCells.forEach(([r, c]) => {
-    const card = gridData[r][c];
+  if (hasTrick('queens_upgrade')) result.handCells.forEach(([r, c, _x]) => {
+    const card = _x || gridData[r][c];
     if (!card || !card.rank || isWildCard(card) || ACTIVE_RANKS.indexOf(card.rank) === -1) return;
     const byQueen = getNeighbors(r, c).some(([nr, nc]) => { const q = gridData[nr]?.[nc]; return q && (rkHas('queens_upgrade', q.rank) || rkHas('queens_upgrade', q.rank2)); });
     if (byQueen) queenUpgradePending.add(cardId(card));
@@ -966,9 +966,9 @@ function playHand() {
   // Ace Absorb: when an Ace scores, one random adjacent non-scored card is forgotten and its bonuses added to the Ace.
   // Monopoly (Spectrum) is the same effect on a 15 or a 20 - Spectrum has no Aces, so it gets its own trigger rank set.
   const _absorbCell = hasTrick('aces_absorb') && scoringRanks.some(rk => rkHas('aces_absorb', rk))
-        ? result.handCells.find(([r,c]) => rkHas('aces_absorb', gridData[r][c].rank))
+        ? result.handCells.find(cl => rkHas('aces_absorb', cellCard(cl).rank))
         : hasTrick('monopoly') && scoringRanks.some(rk => MONOPOLY_RANKS.includes(rk))
-        ? result.handCells.find(([r,c]) => MONOPOLY_RANKS.includes(gridData[r][c].rank))
+        ? result.handCells.find(cl => MONOPOLY_RANKS.includes(cellCard(cl).rank))
         : null;
   // Ace Absorb (r350) reaches any card off the hand, on a 50% (Luck-scaled)
   // roll; Monopoly keeps its adjacent-only, every-time rule.
@@ -1090,8 +1090,8 @@ function cloudNineCheck() {
 function scalingCount(hand, handCells, reps) {
   // r706: the unlock counters read the hand here, once, board intact (js/unlocks.js).
   if (typeof unlockNoteHand === 'function') { try { unlockNoteHand(hand, handCells, reps); } catch (e) { console.error('[UNLOCK]', e); } }
-  const _n = (r, c) => (reps && reps[r + '-' + c]) || 1;
-  const _cells = handCells.map(([r, c]) => ({ r, c, card: gridData[r]?.[c], n: _n(r, c) }))
+  const _n = (r, c, x) => (reps && reps[cellKey([r, c, x])]) || 1;
+  const _cells = handCells.map(cl => ({ r: cl[0], c: cl[1], card: cellCard(cl), n: _n(cl[0], cl[1], cl[2]) }))
     .filter(x => x.card);
   // Scaling card buffs (permPipsGrow / permMultGrow): grow once per time scored.
   if (typeof growCardScaling === 'function') growCardScaling(_cells.map(x => x.card), _cells.map(x => x.n));
@@ -1220,7 +1220,7 @@ function runHandPriming(hand, handCells, bankedContrib) {
   // r625: `primes` per hit, and rolled extra ranks (on the Trick, _heartRanks) count as Aces.
   if (hasTrick('wild_heart') && trickTray.length) {
     const _whT = ownedTrickObj('wild_heart'), _whRanks = [...rkSet('wild_heart'), ...((_whT && _whT._heartRanks) || [])];
-    if (handCells.some(([r,c]) => _whRanks.includes(gridData[r]?.[c]?.rank))) {
+    if (handCells.some(cl => _whRanks.includes(cellCard(cl)?.rank))) {
       primeTrick(trickTray[0], BAL.wild_heart.primes, { src: 'wild_heart' });
       const _last = trickTray[trickTray.length - 1];
       if (_last !== trickTray[0]) primeTrick(_last, BAL.wild_heart.primes, { src: 'wild_heart' });
@@ -1228,7 +1228,7 @@ function runHandPriming(hand, handCells, bankedContrib) {
   }
   // Prime Times (r349): a hand that scores a prime rank primes your leftmost
   // Trick (itself excluded - priming Prime Times would do nothing).
-  if (hasTrick('prime_times') && handCells.some(([r,c]) => ['A','2','3','5','7'].includes(gridData[r]?.[c]?.rank))) {
+  if (hasTrick('prime_times') && handCells.some(cl => ['A','2','3','5','7'].includes(cellCard(cl)?.rank))) {
     const _tt = trickTray.find(t => t.id !== 'prime_times' && !(t.acts && t.acts.includes('prime_times')));   // r651: nor the fused OmegaPrime
     if (_tt) primeTrick(_tt, 1, { src: 'prime_times' });
   }

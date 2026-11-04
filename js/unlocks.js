@@ -170,7 +170,7 @@ function unlockRoundCleared() {
 }
 function unlockNoteHand(hand, cells, reps) {
   if (unlockPaused() || !cells || !cells.length) return;
-  const n = (r, c) => (reps && reps[r + '-' + c]) || 1;
+  const n = (r, c, x) => (reps && reps[cellKey([r, c, x])]) || 1;
   ulBump('hands');
   // the hand and its layers (a same-suit run is a run AND a flush)
   const layers = (typeof handLayersFor === 'function') ? (handLayersFor(hand, cells) || [hand]) : [hand];
@@ -185,8 +185,9 @@ function unlockNoteHand(hand, cells, reps) {
   // the cards
   let replays = 0, corners = 0, crosses = 0;
   const suits = new Set();
-  cells.forEach(([r, c]) => {
-    const card = gridData[r] && gridData[r][c];
+  cells.forEach(cl => {
+    const [r, c] = cl;
+    const card = cellCard(cl);   // r732: a pulled cell (Stacked) carries its own card
     if (!card) return;
     const k = n(r, c);
     replays += k - 1;

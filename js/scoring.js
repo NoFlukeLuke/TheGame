@@ -127,8 +127,8 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   let _handOnly = cells;
   if (_comp) {
     const _cl = new Set();
-    _comp.components.forEach(k => k.cells.forEach(([r, c]) => _cl.add(r + '-' + c)));
-    const _hc = cells.filter(([r, c]) => _cl.has(r + '-' + c));
+    _comp.components.forEach(k => k.cells.forEach(cl => _cl.add(cellKey(cl))));
+    const _hc = cells.filter(cl => _cl.has(cellKey(cl)));
     if (_hc.length && _hc.length < cells.length) _handOnly = _hc;
   }
   if (_handOnly !== cells && !(typeof kickersScore === 'function' && kickersScore())) cells = _handOnly;
@@ -139,7 +139,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     ? nsHandGrowth(_comp ? _comp.components.map(k => k.name) : [handName]) : { step: 0, pips: 0 };
   let _nsPipsTot = 0, _nsMultTot = 0;
   const _scoreCells = scoringOrderCells(cells);
-  const cards = _scoreCells.map(([r,c]) => gridData[r][c]);
+  const cards = _scoreCells.map(cellCard);   // r732: a pulled cell (Stacked) carries its own card
   // ── THE WILD IS INVISIBLE TO EVERY RANK AND SUIT COUNT (r325) ──
   // A wild has no rank and no suit, so it is not an even card, not a club, not
   // the lowest rank in the hand, and not a distinct colour for Rainbow to count.
@@ -151,7 +151,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // is documented as aligned to `cards`, and the old exaltCorruptTotals(cards, reps)
   // pairs them by index, so dropping an entry here would silently shift every
   // exalt payout onto the wrong card.
-  const _handCards = (_handOnly === cells) ? cards : _handOnly.map(([r,c]) => gridData[r][c]);
+  const _handCards = (_handOnly === cells) ? cards : _handOnly.map(cellCard);
   const _natCards = (typeof naturalCards === 'function') ? naturalCards(_handCards) : _handCards;
   // Stand-In (r578): with the knack a wild scores as the card it stands in for,
   // through the ordinary per-card loop (pips, buffs, per-card Tricks, a ladder
@@ -277,13 +277,13 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
 
   // Process cards sequentially so Knave Power can multiply running total
   const _handTopRankVal = hasTrick('summit')
-    ? Math.max(...cells.map(([_r,_c]) => { const _k = gridData[_r][_c]?.rank; return _k === 'A' ? 14 : (RANK_ORDER[_k] || 0); })) : -1;
+    ? Math.max(...cells.map(cl => { const _k = cellCard(cl)?.rank; return _k === 'A' ? 14 : (RANK_ORDER[_k] || 0); })) : -1;
   // Eye of the Storm (r708 owner): every hand, the cards between the first and the last
   // (in scoring order, kickers left out) replay 2x: card 2 of 3, cards 2-3 of 4, 2-4 of 5.
   const _eyeMid = new Set();
   if (hasTrick('eye_of_storm')) {
-    const _hk = new Set(_handOnly.map(([r, c]) => r + '-' + c));
-    const _ord = _scoreCells.map(([r, c]) => r + '-' + c).filter(k => _hk.has(k));
+    const _hk = new Set(_handOnly.map(cellKey));
+    const _ord = _scoreCells.map(cellKey).filter(k => _hk.has(k));
     _ord.slice(1, -1).forEach(k => _eyeMid.add(k));
   }
   const _rankHigh = rk => rk === 'A' ? 14 : (RANK_ORDER[rk] || 0);
@@ -296,9 +296,9 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   const _rippleReady = hasTrick('ripple');
   const _rippleSet = new Set();
   if (_rippleReady) {
-    _scoreCells.forEach(([_rr,_cc]) => {
-      const _c0 = gridData[_rr][_cc]; if (!_c0) return;
-      if (_scoreCells.some(([_r2,_c2]) => (_r2!==_rr||_c2!==_cc) && gridData[_r2][_c2] && _withinOneRank(_c0.rank, gridData[_r2][_c2].rank))) _rippleSet.add(`${_rr}-${_cc}`);
+    _scoreCells.forEach(_cl => {
+      const _c0 = cellCard(_cl); if (!_c0) return;
+      if (_scoreCells.some(_c2 => _c2 !== _cl && cellCard(_c2) && _withinOneRank(_c0.rank, cellCard(_c2).rank))) _rippleSet.add(cellKey(_cl));
     });
   }
   // Per-card MULT, accumulated in the loop (r197). These used to be post-loop
@@ -409,7 +409,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   const _eightCount = hasTrick('eights_retrigger') ? _natCards.filter(c => rkHas('eights_retrigger', c.rank)).length : 0;
   // Set of scored cells. Assembly Line: running mark counter
   // (starts from this round's persistent count; simulated locally so calcScore stays pure).
-  const _cellSet = new Set(_scoreCells.map(([_hr,_hc]) => _hr + '-' + _hc));
+  const _cellSet = new Set(_scoreCells.map(cellKey));
   const _asmOn = hasTrick('assembly_line');
   let _asmCards = 0;                                 // r646: cards scored from its line(s) this hand, replays included
   const _asmPer = _asmOn ? asmLinePerCard() : 0;     // mult per line card: last round's count x the rate
@@ -420,7 +420,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   const _fiveCard = hasTrick('five_stack') && _handN === 5;
   let _fsMult = 0;
   // 3rd Time's a Charm: the 3rd card (scoring order) of any hand gets +2 replays.
-  const _3rdKey = (hasTrick('third_charm') && _scoreCells.length >= 3 && _scoreCells[2]) ? _scoreCells[2][0] + '-' + _scoreCells[2][1] : null;
+  const _3rdKey = (hasTrick('third_charm') && _scoreCells.length >= 3 && _scoreCells[2]) ? cellKey(_scoreCells[2]) : null;
   // Straight Shot: capture the modified pip value of the line's first & last card
   let _slSumPips = 0, _slSumBase = 0;   // Straight Shot: buffed and bare pip sums (r625: buffs count from tier 3)
   const _crMins = hasTrick('corner_retrigger') ? Math.floor(roundSeconds / 60) : 0;
@@ -429,7 +429,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // component count, so an odd card in a run layered on the set does not.
   const _encoreCells = !hasTrick('encore') ? null : new Set((_comp
     ? _comp.components.filter(k => handHasFamily([k.name], 'set')).flatMap(k => k.cells)
-    : (handHasFamily([handName], 'set') ? cells : [])).map(([_r, _c]) => _r + '-' + _c));
+    : (handHasFamily([handName], 'set') ? cells : [])).map(cellKey));
   // Wait For Iiiit: per-card replay chance = 2% per negative reward tile taken this run (same for every card).
   // Wait For Iiiit (r625, a Knack): negative tiles taken elsewhere; in Flow the
   // single-reward level-ups, and Luck stays out of that roll.
@@ -480,12 +480,13 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // owns none of the card itself: no base pips, no permanent buffs, no
   // position Tricks, no replay bookkeeping - it replays exactly as often as the
   // real card, and its events land in the same card beat, right behind it.
-  // r731 (Stacked): `_over` is a card PULLED from under the cell (js/stack-mode.js):
-  // it scores as a real card at that cell (its own pips and buffs, the cell's
-  // position Tricks), its events land in the cell's beat, and it writes no ledger
-  // card of its own (the dance aligns ledger cards to the hand's cells).
-  const _scoreOne = ([r, c], _ci, _ghost, _pend, _over) => {
-    const card = _ghost || _over || _wildProxy[r + '-' + c] || gridData[r][c];
+  // r732 (Stacked): a card pulled from under a cell is a cell of its own in the
+  // list ([r, c, card], js/hand-detect.js cellCard / cellKey): it scores at the
+  // cell's position with its own card, and keys its own per-cell entries.
+  const _scoreOne = (_cell, _ci, _ghost, _pend) => {
+    const [r, c] = _cell;
+    const _cKey = cellKey(_cell);   // r732: a pulled cell's own key for every per-cell map
+    const card = _ghost || _wildProxy[r + '-' + c] || cellCard(_cell);
     const _G = !!_ghost;
     // ── A WILD CONTRIBUTES NOTHING (r325) ──
     // No pips and none of its per-card Tricks, which is the whole of the card's
@@ -576,7 +577,6 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     // Leaden curse: this card contributes no pips at all (applied last so it wins)
     if (!_G && cardCurses[_eKey]?.id === 'leaden') { if (cp) _ev('leaden', 'pip*', 0, 'curse'); cp = 0; }
     // Straight Shot: sum every card's modified pips (post-buff, post-curse, pre-replay)
-    const _cKey = r + '-' + c;
     _slSumPips += cp * _xp; _slSumBase += _origPips;
     // Retrigger / replay: certain conditions score this card's pips an extra time
     let _retrig = 1;
@@ -596,8 +596,8 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     // r632 (owner): the second chance belongs to the Trick's own line; the 5th improvement's second line replays once.
     const _ptMain = _pt && markedLineKind(r, c, 'perfect_timing') === 'main';
     let _ptN = _pt ? 1 + (_ptMain && TB('perfect_timing').chance2 > 0 ? luckRollDet(TB('perfect_timing').chance2, (card._id || 0) + 7939, handsPlayedRound) : 0) : 0;
-    let _res = _eyeMid.has(`${r}-${c}`);   // Eye of the Storm: a middle card
-    let _rip = (_rippleReady && _rippleSet.has(`${r}-${c}`))
+    let _res = _eyeMid.has(_cKey);   // Eye of the Storm: a middle card
+    let _rip = (_rippleReady && _rippleSet.has(_cKey))
       ? luckRollDet(BAL.ripple.chance, (card._id || 0) + 7717, handsPlayedRound) : 0;
     if (_rip && BAL.ripple.chance2 > 0) _rip += luckRollDet(BAL.ripple.chance2, (card._id || 0) + 7727, handsPlayedRound);   // r624: the second chance
     let _refl = reflectAimsAt(r, c);
@@ -669,9 +669,9 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
       _retrig = _kept;
     }
     // The ghost replays exactly as often as its real card (read back, not re-rolled).
-    if (_G) _retrig = retrigByKey[r + '-' + c] || 1;
-    retrigByKey[r + '-' + c] = _retrig;
-    if (_ledgerCells && !_G && !_over) {
+    if (_G) _retrig = retrigByKey[_cKey] || 1;
+    retrigByKey[_cKey] = _retrig;
+    if (_ledgerCells && !_G) {
       // Per-card pip-trick single-iteration deltas = the change in _cp during THIS card's
       // pre-replay body (excludes replay bookkeeping, which the dance shows by repeating the beat).
       const _pipT = {};
@@ -770,7 +770,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     // Card ladder scoring model (r547): card n of the hand adds n mult every time it
     // scores. r554: plus the family's double-scaling step on every numbered card
     // (under the other models the step alone).
-    const _lp = _G ? 0 : (_ladPos[r + '-' + c] || 0);
+    const _lp = _G ? 0 : (_ladPos[_cKey] || 0);
     const _ld = _lp ? handCardLadder(_lp) + _ns2.step : 0;
     if (_ld) { _cmAdd += _ld; _ladMult += _ld * _retrig; _ev('_ladder', 'mult+', _ld, 'card'); }
     if (_lp && _ns2.step) _nsMultTot += _ns2.step * _retrig;
@@ -901,12 +901,12 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // numbered card, and handCardLadder is 0 outside the card ladder.
   const _ladPos = {};
   {
-    const _hk = new Set(_handOnly.map(([r, c]) => r + '-' + c));
+    const _hk = new Set(_handOnly.map(cellKey));
     let _ln = 0;
-    _scoreCells.forEach(([r, c]) => { if (_hk.has(r + '-' + c) && (_scores(gridData[r]?.[c]) || _wildProxy[r + '-' + c])) _ladPos[r + '-' + c] = ++_ln; });
+    _scoreCells.forEach(cl => { const k = cellKey(cl); if (_hk.has(k) && (_scores(cellCard(cl)) || _wildProxy[cl[0] + '-' + cl[1]])) _ladPos[k] = ++_ln; });
   }
   _scoreCells.forEach((cell, ci) => {
-    const _real = gridData[cell[0]]?.[cell[1]];
+    const _real = cellCard(cell);
     const _gh = (typeof cardGhostFor === 'function') ? cardGhostFor(_real) : null;
     const rc = hasTrick('club_double') && _scores(_real) && _real.suit === '♣' ? 1 : 0;
     const gc = hasTrick('club_double') && _scores(_gh) && _gh.suit === '♣' ? 1 : 0;
@@ -914,18 +914,6 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     _scoreOne(cell, ci, null, _pend);
     if (_gh) _scoreOne(cell, ci, _gh, _pend);
     _bankCell(_pend);
-    // r731 (Stacked): the cards pulled from under this cell, each a pass of its own.
-    const _ex = (typeof stkInAt === 'function') ? stkInAt(cell[0], cell[1]) : [];
-    if (_ex.length) {
-      const _k = cell[0] + '-' + cell[1], _keep = retrigByKey[_k];
-      _ex.forEach(u => {
-        const _rcE = hasTrick('club_double') && _scores(u) && u.suit === '♣' ? 1 : 0;
-        const _pe = { k0: clubsScoredRound + _clubHits, stride: _rcE, rc: _rcE, xp: 1, rr: 1 };
-        _scoreOne(cell, ci, null, _pe, u);
-        _bankCell(_pe);
-      });
-      retrigByKey[_k] = _keep;
-    }
   });
   _tlCard = -1;   // back to hand level - everything past here is a whole-hand event
   _lastHandProcs = _procs;         // snapshot for the Rider penalty (read in playHand)
@@ -939,7 +927,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // reps aligned to `cards`/`_scoreCells`. The replay-weighted per-card sweeps that
   // used to live here are accumulated in the loop instead (r197) - see the per-card
   // MULT block - so each one can animate on the card that earned it.
-  const _reps = _scoreCells.map(([r, c]) => retrigByKey[r + '-' + c] || 1);
+  const _reps = _scoreCells.map(cl => retrigByKey[cellKey(cl)] || 1);
 
   // Hidden pair trick
   const rankCounts = {};
@@ -1151,7 +1139,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   _ev('lighthouse', 'mult+', _lightM, 'sleight');
   // The Queen (r358): each one in the hand adds +pips and +mult on top of the
   // Queen's own 10 pips as a card.
-  const _queenN = cells.filter(([r, c]) => { const q = gridData[r]?.[c]; return q?._isSleight && q.sleightId === 'the_queen'; }).length;
+  const _queenN = cells.filter(cl => { const q = cellCard(cl); return q?._isSleight && q.sleightId === 'the_queen'; }).length;
   const _queenP = _queenN * BAL.the_queen.pips, _queenM = _queenN * BAL.the_queen.mult;
   totalPips += _queenP; mult += _queenM;
   _ev('the_queen', 'pip+',  _queenP, 'sleight');
@@ -1416,9 +1404,10 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // itself, or cannot be forced.
   if (hasTrick('temporal_rift') && typeof forceableTrickIds === 'function' && trickTray[2] && trickTray[2].id !== 'temporal_rift') {
     const _rt = trickTray[2].id;
-    if (forceableTrickIds().includes(_rt)) cells.forEach(([r, c], i) => {
+    if (forceableTrickIds().includes(_rt)) cells.forEach((cl, i) => {
+      const [r, c] = cl;
       if (!isEffectIntersection(r, c)) return;
-      const _reps = retrigByKey[r + '-' + c] || 1, _cid = (gridData[r]?.[c]?._id) || 0;
+      const _reps = retrigByKey[cellKey(cl)] || 1, _cid = (cellCard(cl)?._id) || 0;
       for (let k = 0; k < _reps; k++) _forceIds.push(_rt);
       if (BAL.temporal_rift.chance_extra > 0 && _detReplayRand(_cid + 7951, handsPlayedRound) < BAL.temporal_rift.chance_extra) _forceIds.push(_rt);
     });
@@ -1428,10 +1417,10 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // Deterministic per card, replay and hand, so the preview and the score agree.
   if (hasKnack('four_by_four') && typeof forceableTrickIds === 'function' && trickTray[3]) {
     const _ft = trickTray[3].id;
-    if (forceableTrickIds().includes(_ft)) _scoreCells.forEach(([r, c]) => {
-      const cd = gridData[r]?.[c];
+    if (forceableTrickIds().includes(_ft)) _scoreCells.forEach(cl => {
+      const cd = cellCard(cl);
       if (!cd || !rkFourByFourRanks().includes(cd.rank)) return;
-      const _reps = retrigByKey[r + '-' + c] || 1, _cid = cd._id || 0;
+      const _reps = retrigByKey[cellKey(cl)] || 1, _cid = cd._id || 0;
       for (let k = 0; k < _reps; k++) if (_detReplayRand(_cid + 4441 + k * 7919, handsPlayedRound) < BAL.four_by_four.chance) _forceIds.push(_ft);
     });
   }
@@ -1441,8 +1430,9 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // itself, or a Trick that cannot be forced. Deterministic, so the preview agrees.
   if (hasTrick('obligatory') && typeof forceableTrickIds === 'function') {
     const _fo = forceableTrickIds();
-    cells.forEach(([r, c]) => {
-      const _reps = retrigByKey[r + '-' + c] || 1, _cid = (gridData[r]?.[c]?._id) || 0;
+    cells.forEach(cl => {
+      const [r, c] = cl;
+      const _reps = retrigByKey[cellKey(cl)] || 1, _cid = (cellCard(cl)?._id) || 0;
       markedLinesAt(r, c, 'obligatory').forEach((b, bi) => {
         const _t = lineSlotTrick(b, 'obligatory'); if (!_t || !_fo.includes(_t.id)) return;
         const _ch = (b._extra || b._fixed) ? TB('obligatory').chance2 : TB('obligatory').chance;

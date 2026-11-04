@@ -44,9 +44,9 @@
 .card .stk-list b.in { background: #ffd86a; color: #1a1408; box-shadow: 0 0 0 1px #8a6a10, 0 0 6px rgba(255, 216, 106, 0.8); }
 #grid > .stk-peek.stk-in:not(.stk-out) { --stk-step: 3px; translate: calc(var(--stk-step) * var(--si, 1)) calc(var(--stk-step) * var(--si, 1) + 6px); filter: brightness(1); box-shadow: 0 0 0 2px #ffd86a, 0 0 8px rgba(255, 216, 106, 0.7); }
 /* off the board only the pulled cards' chips show (the preview's copy of the card) */
-body > .card .stk-list, .dnc-outer .stk-list, #dnc-queue .stk-list { display: none; }
-#selected-cards .stk-list:not(.stk-has-in) { display: none; }
-#selected-cards .stk-list b:not(.in) { display: none; }
+/* r732: off the board the list is not shown; a pulled card is a preview card of its own. */
+body > .card .stk-list, .dnc-outer .stk-list, #dnc-queue .stk-list, #selected-cards .stk-list { display: none; }
+#grid > .stk-peek.stk-flying { pointer-events: none; }
 /* an untimed run has no clock to show; a boss round brings it back */
 #stage.stk-noclock #clock-area:not(:has(#clock.boss-mode)) { visibility: hidden; }
 #stage.stk-noclock #run-progress-pt .rp-clock { visibility: hidden; }

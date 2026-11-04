@@ -4125,16 +4125,11 @@ the shape and scores as a pass of its own, where a dual card's ghost pays no pip
   pulled card of another suit out of that suit's flush, and `rankHandForGroup` lets ONE cell be a
   group when it has pulled cards (four 9s in a stack are a Four of a Kind, the cell beside it the
   kicker).
-- **Scoring:** `_scoreOne(cell, ci, ghost, pend, over)`: a pulled card is `over`, a real pass at the
-  cell (its own pips and buffs, the cell's position Tricks, its events in the cell's beat, its clubs
-  on the Hard Labour ladder), banked by its own `_bankCell`; it writes no ledger card (the dance
-  aligns ledger cards to the hand's cells) and the cell's replay count is restored after it. Plates
-  for a pulled card land on the surface card's preview copy. Hand-level Tricks that read the hand's
-  cards by cell do not see pulled cards (TBD).
+- **Scoring (superseded by r736):** a pulled card was an extra pass at the surface cell with no
+  ledger card of its own, invisible to hand-level Tricks and absent from the preview.
 - **Commit:** `stkCommit(handCells)` at `handsPlayed++`: the pulled cards leave their stacks to the
   played pile; the surface leaves as before. **Look:** the surface card's list lights the pulled
-  chips (`.stk-list b.in`, gold) and their faces lift a step with a gold edge (`.stk-peek.stk-in`);
-  off the board only the lit chips show, so the preview copy of the card names what it brought.
+  chips (`.stk-list b.in`, gold) and their faces lift a step with a gold edge (`.stk-peek.stk-in`).
 - **The end check** counts the pull: a pair inside one stack beside any live cell, a run of 3 from
   the union of two touching stacks or a cell and two neighbours.
 - `_handShape` skips a null card (the unlock counter re-reads a hand's cells after a fully pulled
@@ -4145,3 +4140,41 @@ emptied, the four cards in the played pile, audit 56/56, no timeline drift; 7♠
 FULL HOUSE (3 pulled); 9♠/9♥/9♦/9♣ beside 2♣/2♦ FOUR OF A KIND with the 2 a kicker (670 against the
 Full House's 380); 2♠/J♠, 9♠/Q♠/3♥, K♠ a FLUSH with the 3♥ left down; 4♣/J♦ beside 8♥/Q♣ no hand.
 The golden test's 838 cases match (Classic scoring untouched).
+
+## r736 - STACKED: a pulled card is a cell of the hand (owner)
+Owner: Tricks must read the pulled cards, and each pulled card is a card of its own in the preview.
+- **The pulled cell** (`js/hand-detect.js`): a card pulled from under a surface card rides in the
+  hand's cell list as `[r, c, card]`, the surface cell's position with the card as a third element.
+  `cellCard(cell)` is the one card read (`cell[2]`, else `gridData[r][c]`) and `cellKey(cell)` the
+  one per-cell key (`r-c~id` for a pulled cell), so a surface card and the card from under it never
+  collide in `retrigByKey`, `_ladPos`, `_lastRetrigByCell`, the Eye / Ripple / Encore sets or the
+  hand's claimed-cell sets. Position tests still read r and c, so the cell's position Tricks (On the
+  Edge, Lie Down, line marks, corners) apply to a pulled card as to the card above it. `[...cell]`
+  and `slice()` keep the third element; a rebuilt `[r, c]` drops it. **`cardAt` was taken** (js/input.js,
+  an element helper): one global scope, so the name is `cellCard`.
+- **The search** (`stkPullSearch`, js/stack-mode.js) builds the augmented list per choice
+  (`_stkAugment`: each pulled cell right after its surface cell) and runs `handComponentsFor` on
+  it; the front in `handComponentsFor` only searches a list with no pulled cell, and the answer
+  carries `cells`, which `findBestHand` plays as `handCells`. `selected` and `toRemove` stay the
+  surface cells; `stkIn` is the look only (the lit chips, written for the current selection).
+- **Every reader of a hand's cells goes through `cellCard`**: calcScore (`cards`, `_handCards`,
+  Summit, Ripple, the ladder numbering, the Queen count, the three forced-fire loops),
+  generateHandFocus and playHand's per-card payouts (time, credits, Focus, Buried Treasure, curses,
+  First Fruits, Rare Bloom, the King / Queen effects, Undue Influence, Nines), `scalingCount`'s
+  cells, `unlockNoteHand`, `crOnHand`, the flush overlay, `canBeOrderedRun`. The r731 over-pass in
+  the card loop is gone: a pulled cell is scored by the ordinary loop, with its own ledger card.
+- **The preview**: `previewCells` is `handCells`, so each pulled card has a slot, a beat and its
+  plates. `dncGridCardEl(gridEl, card)` finds the board element to fly from: the grid card, or the
+  pulled card's peek (`stkFlyEl`). `stkCommit` marks the peek `.stk-flying` (stkPaint leaves it
+  alone and drops it once flown, or after `STK_FLY_KEEP_MS`), so the copy rises from under the
+  surface card. A queued hand's strip and flights use the hand's cells too (`entry.shown`, `_q.cards`
+  keyed by `cellKey`). Off the board the surface card's list is hidden.
+Measured in headless Chromium at 1440x820 and 420x900 on crafted stacks (dev mode on): the same
+hands and scores as r731 (Two Pair 180, Full House 430, Four of a Kind 670 with the 2 a kicker,
+Flush 847 now read FLUSH OF 5 + RUN OF 3, since the pulled J Q and the K are a run); with three 9s
+pulled under a 9♠: Rainbow fired 4 times (670 -> 1,639), Lie Down paid the one-row hand (5,278),
+On the Edge paid each card at the edge cell (1,090), Encore replayed all four 9s (keys `2-0`,
+`2-0~31`...); a played Two Pair showed four preview cards (5 5 10 10) and five copies flew for the
+Full House (two from the grid, three from the peeks, seen rising from under the 7♠ and K♣); two
+hands queued with pulls built 5-slot strips; a goal hand with pulls ended the round; audit 56/56
+throughout, no timeline drift, no page errors. Golden: 838 cases match.

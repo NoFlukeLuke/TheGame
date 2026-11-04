@@ -1,4 +1,4 @@
-const BUILD = "2026-11-04 · r731 · STACKED: the pull. The cards under a selected cell join the hand when that makes a better hand";
+const BUILD = "2026-11-04 · r736 · STACKED: a pulled card is a cell of the hand: Tricks read it, it flies into the preview on its own";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

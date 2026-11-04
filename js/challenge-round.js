@@ -547,7 +547,7 @@ function crOnHand(hand, handCells, finalScore) {
   if (!crHandPlays) crHandPlays = {};   // a save from before r528
   if (hand) crHandPlays[hand] = (crHandPlays[hand] || 0) + 1;
   if (finalScore > 0) { crRecent.push(finalScore); if (crRecent.length > 12) crRecent.shift(); }
-  const cards = (handCells || []).map(([r, c]) => gridData[r]?.[c]).filter(Boolean);
+  const cards = (handCells || []).map(cellCard).filter(Boolean);   // r732: a pulled cell carries its own card
   const touches = (r0, c0) => (handCells || []).some(([r, c]) => Math.abs(r - r0) + Math.abs(c - c0) === 1);
   for (const [r, c, cd] of crCards()) {
     const q = cd.cr;

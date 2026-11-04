@@ -47,7 +47,7 @@ let stkTimed = false;   // SAVE_VARS: the start screen's answer for this run
 let stkCells = [];      // SAVE_VARS: stkCells[r][c] = the cards under the surface, nearest first
 let stkFanId = null;    // card id of the surface card whose stack is fanned open (hover / long press)
 let stkNoHandSaid = false;
-let stkIn = {};            // cell key -> the cards pulled from under it for the hand under evaluation
+let stkIn = {};            // cell key -> the cards pulled from under it by the current selection (the look only)
 let _stkSearching = false; // handComponentsFor re-enters with a pull set (js/hand-detect.js)
 const _stkChoice = new Map();   // the search's answer per selection + stacks
 const STK_PULL_MAX_COMBOS = 160;
@@ -65,16 +65,25 @@ function stkCellsConform() { for (let r = 0; r < gridRows; r++) { if (!stkCells[
 // The cell a surface card sits in, or null.
 function stkCellOfCard(card) { if (!card) return null; for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) if (gridData[r]?.[c] === card) return [r, c]; return null; }
 
-// ── The pull ────────────────────────────────────────────────────────────────
+// ── The pull (r731, r732) ───────────────────────────────────────────────────
+// The cards under a selected cell join the hand when that makes a better hand.
+// A pulled card is a CELL of the hand in its own right: `[r, c, card]`, the
+// surface cell's position with the card riding as a third element (cardAt /
+// cellKey in js/hand-detect.js). So every Trick reads it as a card of the hand,
+// it has its own ledger card and its own beat, and the dance flies it into the
+// preview from under its surface card (its .stk-peek element).
 function stkPullOn() { return stackedActive(); }
+function stkPullCell(r, c, card) { return [r, c, card]; }
+// For the look only (the lit chips on the surface card's list, the lifted
+// peek): the pulled cards of the CURRENT selection, written by the last search
+// over it. Cell key -> cards.
 function stkInAt(r, c) { if (!stackedActive()) return []; const v = stkIn[r + '-' + c]; return Array.isArray(v) ? v : []; }
-function stkInCells(cells) { if (!stackedActive()) return []; const out = []; cells.forEach(([r, c]) => stkInAt(r, c).forEach(u => out.push(u))); return out; }
-// The part of a hand's cache key that is the cell's stack and what is pulled from it.
+// The part of a surface cell's hand-cache key that is its stack: the pull
+// search's answer for a selection depends on what is under it.
 function stkKeyPart(r, c) {
   if (!stackedActive()) return '';
   const under = stkUnderAt(r, c);
-  if (!under.length) return '';
-  return '[' + under.map(u => u._id).join(',') + '>' + stkInAt(r, c).map(u => u._id).join(',') + ']';
+  return under.length ? '[' + under.map(u => u._id).join(',') + ']' : '';
 }
 function _stkWorthOf(res) {
   if (!res || !res.components) return -1;
@@ -100,29 +109,41 @@ function _stkSubsets(list) {
   list.forEach(u => { const n = out.length; for (let i = 0; i < n; i++) out.push(out[i].concat([u])); });
   return out;
 }
-// handComponentsFor's Stacked front: tries every pull, keeps the best, leaves
-// it set in `stkIn` for calcScore and the preview, and returns that answer.
+// The hand's cell list with a choice of pulled cards: each pulled cell right
+// after its surface cell, so the preview shows what a card brought beside it.
+function _stkAugment(cells, choice) {
+  const out = [];
+  cells.forEach(([r, c], i) => { out.push([r, c]); (choice[i] || []).forEach(u => out.push(stkPullCell(r, c, u))); });
+  return out;
+}
+// handComponentsFor's Stacked front for a plain selection: tries every pull,
+// keeps the best (highest total hand value; fewer cards pulled on a tie; never
+// past the Selection Size; only when it beats the surface cards alone), and
+// returns that answer with `cells`, the list the hand is played with.
 function stkPullSearch(cells) {
-  const keys = cells.map(([r, c]) => r + '-' + c);
-  const setIn = choice => keys.forEach((k, i) => { stkIn[k] = choice[i] || []; });
-  const run = () => { _stkSearching = true; try { return handComponentsFor(cells); } finally { _stkSearching = false; } };
+  const run = list => { _stkSearching = true; try { return handComponentsFor(list); } finally { _stkSearching = false; } };
+  const withCells = (res, list) => (res && list.length > cells.length) ? Object.assign({}, res, { cells: list }) : res;
+  const mine = typeof selected !== 'undefined' && selected && selected.length === cells.length
+    && cells.every(([r, c]) => selected.some(([sr, sc]) => sr === r && sc === c));
+  const noteIn = choice => { if (!mine) return; stkIn = {}; cells.forEach(([r, c], i) => { stkIn[r + '-' + c] = choice[i] || []; }); };
   const cap = (typeof limits !== 'undefined' && limits.selection) ? limits.selection.current : 5;
   const room = cap - cells.length;
   const none = cells.map(() => []);
-  setIn(none);
-  const base = run();
-  if (room <= 0) return base;
-  const kb = cells.map(([r, c]) => { const k = gridData[r]?.[c]; return r + ',' + c + ':' + (k ? k._id : '-') + stkKeyPart(r, c).split('>')[0]; }).join('|') + '#' + cap;
+  const base = run(cells);
+  if (room <= 0) { noteIn(none); return base; }
+  const kb = cells.map(([r, c]) => { const k = gridData[r]?.[c]; return r + ',' + c + ':' + (k ? k._id : '-') + stkKeyPart(r, c); }).join('|') + '#' + cap;
   if (_stkChoice.has(kb)) {
     const ids = _stkChoice.get(kb);
-    setIn(cells.map(([r, c]) => stkUnderAt(r, c).filter(u => ids.has(String(u._id)))));
-    return run();
+    const choice = cells.map(([r, c]) => stkUnderAt(r, c).filter(u => ids.has(String(u._id))));
+    noteIn(choice);
+    const list = _stkAugment(cells, choice);
+    return list.length > cells.length ? withCells(handComponentsFor(list), list) : base;   // an empty choice is the base, not a search again
   }
   const per = cells.map(([r, c]) => _stkSubsets(stkUnderAt(r, c).filter(u => _stkRelevant(cells, u))));
-  let combos = per.reduce((a, l) => a * l.length, 1);
+  const combos = per.reduce((a, l) => a * l.length, 1);
   // Too many: one card a cell at most.
   const lists = combos > STK_PULL_MAX_COMBOS ? per.map(l => l.filter(x => x.length <= 1)) : per;
-  let best = base, bestW = _stkWorthOf(base), bestN = 0, bestChoice = none;
+  let best = base, bestW = _stkWorthOf(base), bestN = 0, bestChoice = none, bestList = cells;
   const idx = lists.map(() => 0);
   let guard = 0;
   while (guard++ < STK_PULL_MAX_COMBOS * 2) {
@@ -133,27 +154,40 @@ function stkPullSearch(cells) {
     const choice = idx.map((x, j) => lists[j][x]);
     const n = choice.reduce((a, l) => a + l.length, 0);
     if (n === 0 || n > room) continue;
-    setIn(choice);
-    const res = run();
+    const list = _stkAugment(cells, choice);
+    const res = handComponentsFor(list);
     const w = _stkWorthOf(res);
-    if (w > bestW || (w === bestW && w > 0 && n < bestN && bestN > 0)) { best = res; bestW = w; bestN = n; bestChoice = choice; }
+    if (w > bestW || (w === bestW && w > 0 && n < bestN && bestN > 0)) { best = res; bestW = w; bestN = n; bestChoice = choice; bestList = list; }
   }
-  setIn(bestChoice);
+  noteIn(bestChoice);
   _stkChoice.set(kb, new Set(bestChoice.flat().map(u => String(u._id))));
   if (_stkChoice.size > 2000) _stkChoice.clear();
-  return bestN ? run() : base;
+  return bestN ? withCells(best, bestList) : base;
 }
-// The hand is a fact: the pulled cards leave their stacks, scored, to the played pile.
+// The hand is a fact: the pulled cards leave their stacks, scored, to the played
+// pile. Their peek elements stay on the board as `.stk-flying` (stkPaint leaves
+// them alone) so the dance can fly a copy of each into the preview; a flown
+// peek, or one older than STK_FLY_KEEP_MS, is dropped by the next paint.
+const STK_FLY_KEEP_MS = 6000;
 function stkCommit(cells) {
   if (!stackedActive()) return;
   let n = 0;
-  (cells || []).forEach(([r, c]) => {
-    const pulled = stkInAt(r, c); if (!pulled.length) return;
-    const under = stkUnderAt(r, c);
-    pulled.forEach(u => { const i = under.indexOf(u); if (i >= 0) { under.splice(i, 1); discardToPlayed(u); n++; } });
-    stkIn[r + '-' + c] = [];
+  const gridEl = document.getElementById('grid');
+  (cells || []).forEach(cl => {
+    const u = cl[2]; if (!u) return;
+    const under = stkUnderAt(cl[0], cl[1]);
+    const i = under.indexOf(u); if (i < 0) return;
+    under.splice(i, 1); discardToPlayed(u); n++;
+    const el = gridEl && gridEl.querySelector(`:scope > .stk-peek[data-stk-id="${u._id}"]`);
+    if (el) { el.classList.add('stk-flying'); el.classList.remove('stk-in', 'stk-out', 'stk-out-up'); el.dataset.stkT = String(performance.now()); }
   });
+  stkIn = {};
   if (n) { _stkChoice.clear(); if (typeof dbgEvent === 'function') dbgEvent('info', `stacked: ${n} card(s) pulled into the hand`); }
+}
+// The board element the dance flies a pulled card from (js/score-dance.js).
+function stkFlyEl(card) {
+  const gridEl = document.getElementById('grid');
+  return gridEl ? gridEl.querySelector(`:scope > .stk-peek[data-stk-id="${card._id}"]`) : null;
 }
 
 // ── The start screen: timed or not ─────────────────────────────────────────
@@ -329,7 +363,14 @@ function stkPaint() {
   const gridEl = document.getElementById('grid'); if (!gridEl) return;
   const seen = new Set();
   const have = {};
-  gridEl.querySelectorAll(':scope > .stk-peek').forEach(el => { have[el.dataset.stkId] = el; });
+  const now = performance.now();
+  gridEl.querySelectorAll(':scope > .stk-peek').forEach(el => {
+    if (el.classList.contains('stk-flying')) {   // r732: a pulled card's peek, kept for the dance's copy
+      if (el.style.opacity === '0' || now - (+el.dataset.stkT || 0) > STK_FLY_KEEP_MS) el.remove();
+      return;
+    }
+    have[el.dataset.stkId] = el;
+  });
   if (!(typeof dealPhase !== 'undefined' && dealPhase) && !(typeof mapScreenOpen !== 'undefined' && mapScreenOpen)
       && !(typeof rewardOnGrid !== 'undefined' && rewardOnGrid) && !(typeof shopGridActive !== 'undefined' && shopGridActive)
       && !(typeof gridPickState !== 'undefined' && gridPickState)) {
