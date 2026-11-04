@@ -249,6 +249,8 @@ const TRICK_POOL = [
   // ── Run add-ons (r124) ──
   { id:'dam_holding',    name:'Dam Holding…',        tier:'rare',      tags:['time','hand','run'],            desc:'Runs pause the clock for 3s' },
   { id:'wave_amp',       name:'Wave Amplification',  tier:'common',    tags:['pips','hand','run','streak','scores'],   desc:'Consecutively played Runs score +15 pips × the streak count' },
+  // r723: the horsemen's Trick (js/horsemen.js). Last in the list on purpose: the golden test seeds a case by its place here.
+  { id:'severance_package', name:'Severance Package', tier:'legendary', desc:'Double-tap a curse card or a stone: spend 1 swap and 1 discard to discard it.', tags:['board','other','swap','discard','cost'] },
 ];
 
 // ── Trick category → emoji ──
@@ -290,7 +292,7 @@ const TRICK_CATEGORIES = [
   { emoji:'4️⃣', ids:['four_eyes','four_horseman','wait_four_it'] }, // 4-card hands
   { emoji:'5️⃣', ids:['five_stack','five_fodder','five_second','little_guys'] }, // 5-card hands
   { emoji:'🪄', ids:['magician','scalper'] }, // Sleights
-  { emoji:'🗑️', ids:['landfill'] }, // Discards and swaps
+  { emoji:'🗑️', ids:['landfill','severance_package'] }, // Discards and swaps
   { emoji:'🦎', ids:['changeling'] }, // r676: changes every round (its tile shows the form's icon while it has one)
 ];
 const TRICK_EMOJI = {};

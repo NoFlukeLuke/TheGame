@@ -148,6 +148,8 @@ function startRoundTimer() {
     // came due. Hung off the ROUND tick rather than a clock of its own, so it
     // stops with the round, with the pause menu and with RECORDS for free.
     if (typeof cardStatesTick === 'function') cardStatesTick();
+    if (typeof anvilTick === 'function') anvilTick();   // r722: anvils drop a row every 15s (js/anvil.js)
+    if (typeof horsemenTick === 'function') horsemenTick();   // r723: Death, Famine, Pestilence (js/horsemen.js)
     if (typeof reflectTimeoutTick === 'function') reflectTimeoutTick();
     if (typeof fightPowerTick === 'function') fightPowerTick();
     if (typeof sleightLifeTick === 'function') sleightLifeTick();

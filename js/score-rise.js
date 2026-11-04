@@ -30,7 +30,17 @@ function scoreRiseOn() {
   return !!riseCfg.on && !document.body.classList.contains('reduced-motion');
 }
 
-const rise = { owns: false, cur: 0, target: 0, vel: 0, hands: 0, raf: 0, last: 0, ui: 0, n: 0, k: 1, w: 0.62, ink: 1, off: 0 };
+const rise = { owns: false, cur: 0, target: 0, vel: 0, hands: 0, raf: 0, last: 0, ui: 0, n: 0, k: 1, w: 0.62, ink: 1, off: 0, cap: null };
+// r729 (owner): a wheel only ever rests on a whole digit. A step of the units wheel
+// rolls in its last RISE_ROLL_MS and sits whole for the rest of it, so a slow roll
+// clicks from digit to digit instead of creeping with half of two digits showing;
+// a fast one (a step shorter than that) spins as before. Higher wheels turn only
+// with the carry (every wheel below them on 9), in that same short window.
+const RISE_ROLL_MS = 90, RISE_SPIN_MS = 33;
+// r729 (owner): the winning hand is not added until its own tally climbs to it.
+// While a cap is set the roll goes no higher than the total before that hand, and
+// holds there (owning the box) until the goal hand's climb takes over (scoreRiseYield).
+function riseGoal() { const t = rise.cap != null ? Math.min(score, rise.cap) : score; return Math.max(0, Math.round(t)); }
 function scoreRiseOwns() { return rise.owns; }
 function riseEl() { return document.getElementById('score-total-num'); }
 
@@ -43,14 +53,14 @@ function scoreRiseNote(from) {
   const el = riseEl(); if (!el || el.style.visibility === 'hidden') return;
   if (typeof scorePanelIsBetweenRounds === 'function' && scorePanelIsBetweenRounds()) return;
   if (!rise.owns) {
-    rise.owns = true; rise.hands = 0;
+    rise.owns = true; rise.hands = 0; rise.cap = null;
     // Start from what the box shows: the dance's number if one is live, else the total before this hand.
     rise.cur = (typeof dncShowScore !== 'undefined' && dncShowScore != null) ? dncShowScore : (typeof from === 'number' ? from : score);
     rise.cur = Math.max(0, Math.min(rise.cur, score));
     rise.n = 0; riseMeasure(el); el.classList.add('odo'); riseBuild(el, score);
   }
   rise.hands++;
-  rise.target = score;
+  rise.target = riseGoal();
   const dur = riseCfg.ms / risePace() / Math.pow(riseCfg.step, rise.hands - 1);
   rise.vel = Math.max(0, rise.target - rise.cur) / Math.max(60, dur);   // points per ms
   if (!rise.raf) { rise.last = performance.now(); rise.raf = requestAnimationFrame(riseFrame); }
@@ -63,14 +73,16 @@ function riseFrame(now) {
   if (!rise.owns || !el) return;
   // The total moved under the roll: more to climb (re-plan at the same pace), or a reset
   // (a level-up banked the round, a new run): snap home.
-  if (score > rise.target) { rise.target = score; rise.vel = Math.max(rise.vel, (rise.target - rise.cur) / Math.max(60, riseCfg.ms / risePace() / Math.pow(riseCfg.step, Math.max(0, rise.hands - 1)))); }
-  if (score < rise.target || (typeof scorePanelIsBetweenRounds === 'function' && scorePanelIsBetweenRounds())) { scoreRiseSnap(); return; }
+  const goal = riseGoal();
+  if (goal > rise.target) { rise.target = goal; rise.vel = Math.max(rise.vel, (rise.target - rise.cur) / Math.max(60, riseCfg.ms / risePace() / Math.pow(riseCfg.step, Math.max(0, rise.hands - 1)))); }
+  if (goal < rise.target || (typeof scorePanelIsBetweenRounds === 'function' && scorePanelIsBetweenRounds())) { scoreRiseSnap(); return; }
   const dt = Math.min(100, now - rise.last); rise.last = now;
+  const was = rise.cur;
   rise.cur = Math.min(rise.target, rise.cur + rise.vel * dt);
   if (typeof dncShowScore !== 'undefined') dncShowScore = Math.floor(rise.cur);
-  riseDraw(el);
+  if (rise.cur !== was || rise.cap == null) riseDraw(el);   // held at rest: nothing to redraw
   if (now - rise.ui > 80) { rise.ui = now; if (typeof updateScoreUI === 'function') updateScoreUI(); }   // the goal bar follows
-  if (rise.cur < rise.target) { rise.raf = requestAnimationFrame(riseFrame); return; }
+  if (rise.cur < rise.target || rise.cap != null) { rise.raf = requestAnimationFrame(riseFrame); return; }   // held: keep watching for a reset
   // Landed. With nothing scoring and nothing waiting the box goes back to plain text;
   // otherwise it stays owned, at rest, until the dance's end calls scoreRiseRelease.
   scoreRiseRelease();
@@ -78,7 +90,7 @@ function riseFrame(now) {
 
 // The dance's end: hand the box back if the roll has landed and no hand is left.
 function scoreRiseRelease() {
-  if (!rise.owns) return;
+  if (!rise.owns || rise.cap != null) return;   // held for the winning hand: its climb takes the box
   const scoring = (typeof danceAbortController !== 'undefined' && danceAbortController) || (typeof dncQueue !== 'undefined' && dncQueue.some(e => !e.dead));
   if (rise.cur < rise.target || scoring) return;
   riseHandBack();
@@ -86,15 +98,31 @@ function scoreRiseRelease() {
 // A cut dance, a reset or a screen between rounds: the wheels land on the total now.
 function scoreRiseSnap() {
   if (!rise.owns) return;
-  rise.cur = rise.target = score;
+  rise.cur = rise.target = score; rise.cap = null;
   riseHandBack();
 }
-function riseHandBack() {
+// The winning hand has been banked (playHand's goal branches): the roll stops at the
+// total before it. Nothing left to roll: the box goes back to plain text at once.
+function scoreRiseHold(before) {
+  if (!rise.owns) return;
+  rise.cap = Math.max(0, Math.round(before));
+  rise.target = Math.min(rise.target, riseGoal());
+  if (rise.cur >= rise.target) scoreRiseYield(rise.cap);
+}
+// The winning hand's climb starts: the wheels land on the total before it and the
+// dance writes the box from there.
+function scoreRiseYield(v) {
+  if (!rise.owns) return;
+  rise.cur = rise.target = Math.max(0, Math.round(v));
+  riseHandBack(rise.cur);
+}
+function riseHandBack(shown) {
   if (rise.raf) { cancelAnimationFrame(rise.raf); rise.raf = 0; }
-  rise.owns = false; rise.hands = 0;
-  if (typeof dncShowScore !== 'undefined') dncShowScore = null;
+  rise.owns = false; rise.hands = 0; rise.cap = null;
+  const held = typeof shown === 'number';
+  if (typeof dncShowScore !== 'undefined') dncShowScore = held ? shown : null;
   const el = riseEl();
-  if (el) { el.classList.remove('odo'); const s = score.toLocaleString(); el.textContent = s; el.dataset.displayVal = s; }
+  if (el) { el.classList.remove('odo'); const s = (held ? shown : score).toLocaleString(); el.textContent = s; el.dataset.displayVal = s; }
   if (typeof updateScoreUI === 'function') updateScoreUI();
 }
 
@@ -164,14 +192,22 @@ function riseDraw(el) {
   if (!el.classList.contains('odo')) el.classList.add('odo');
   if (String(Math.floor(rise.target)).length !== rise.n) riseBuild(el, rise.target);
   const v = Math.max(0, rise.cur);
+  const base = Math.floor(v), f = v - base;
+  // The units step's roll: the last RISE_ROLL_MS of the step (all of it when steps are faster).
+  const stepMs = rise.vel > 0 ? 1 / rise.vel : Infinity;
+  // Steps under RISE_SPIN_MS are a blur and spin; slower ones click, resting whole between clicks.
+  const rollMs = Math.min(Math.max(40, Math.min(180, RISE_ROLL_MS / risePace())), stepMs * 0.6);
+  const w = stepMs < RISE_SPIN_MS ? 1 : Math.min(1, rollMs / stepMs);
+  let part = f <= 1 - w ? 0 : (f - (1 - w)) / w;
+  if (w < 1) part = part * part * (3 - 2 * part);   // a click: eased in and out
   const cells = el.querySelectorAll('.odo-c'), seps = el.querySelectorAll('.odo-s');
   let lit = false;   // once a wheel shows anything, every wheel below it shows
   cells.forEach(c => {
     const k = +c.dataset.k, p = Math.pow(10, k);
-    const d = Math.floor(v / p) % 10;
-    const lower = k === 0 ? v % 1 : (v % p) / p;
-    const roll = k === 0 ? lower : Math.max(0, (lower - .9) * 10);
-    const show = lit || d > 0 || roll > 0 || k === 0 || v >= p;
+    const d = Math.floor(base / p) % 10;
+    // A higher wheel turns only on the carry: every wheel below it reads 9.
+    const roll = (k === 0 || base % p === p - 1) ? part : 0;
+    const show = lit || d > 0 || roll > 0 || k === 0 || base >= p;
     lit = lit || show;
     c.classList.toggle('odo-z', !show);
     const wheel = c.firstElementChild;

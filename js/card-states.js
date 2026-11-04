@@ -437,6 +437,7 @@ function curseCardTick() {
   for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
     const cd = gridData[r]?.[c];
     if (!cd || !cd._curseCard) continue;
+    if (typeof isHorseman === 'function' && isHorseman(cd)) continue;   // r723: the horsemen keep their own time (js/horsemen.js)
     const k = cardId(cd); live.add(k);
     curseCardSecs[k] = (curseCardSecs[k] || 0) + 1;
     if (curseCardSecs[k] >= CURSE_CARD_LIFE) due.push([r, c]);
@@ -544,9 +545,10 @@ function cardStateBillSelfDiscard(n) {
   if (!n) return;
   if (CARD_SELF_DISCARD_COSTS_STOCK && typeof discards !== 'undefined') discards = Math.max(0, discards - 1);
   if (typeof interactTimeCostsOn === 'function' && !interactTimeCostsOn()) return;
-  let per = (typeof BAL !== 'undefined' && BAL._resources) ? BAL._resources.discard_seconds_per_card : 3;
+  // r727: a flat discard cost, the difficulty tier's figure.
+  let per = (typeof discardSecondsBase === 'function') ? discardSecondsBase() : 0;
   if (typeof hasKnack === 'function' && hasKnack('free_discards')) per = 0;
-  const cost = Math.round(n * per * (typeof bossInteractMult === 'function' ? bossInteractMult() : 1));
+  const cost = Math.round(per * (typeof bossInteractMult === 'function' ? bossInteractMult() : 1));
   if (cost <= 0) return;
   roundSeconds = Math.max(1, roundSeconds - cost);
   if (typeof showTimeCost === 'function') showTimeCost(`-${cost}s`);

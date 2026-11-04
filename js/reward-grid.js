@@ -249,9 +249,9 @@ function _generateRewardContent() {
     { weight: 8, perm: false, icon: '💸', label: 'Pickpocket', tier: 'penalty',
       desc: `Lose 10 coins (${coins} → ${Math.max(0, coins - 10)}).`,
       apply: () => { coins = Math.max(0, coins - 10); updateCoinsUI(); noteMessage('-10 coins', 'var(--red)'); } },
-    { weight: 8, perm: true, icon: '🪨', label: 'Stones', tier: 'penalty',
-      desc: 'Two Stones are shuffled into your deck. They block cells until purged.',
-      apply: () => { injectStonesIntoDeck(2); noteMessage('2 Stones added to deck', 'var(--red)'); } },
+    { weight: 8, perm: true, icon: '🗡', label: 'War', tier: 'penalty',
+      desc: 'Two War cards are shuffled into your deck until the next boss is over.',
+      apply: () => { injectStonesIntoDeck(2); noteMessage('2 War cards added to deck', 'var(--red)'); } },
     { weight: 8, perm: false, icon: '⏳', label: 'Slow Start', tier: 'penalty',
       desc: 'Next round starts with 20 fewer seconds.',
       apply: () => { nextRoundSecondsDelta -= 20; noteMessage('-20s next round', 'var(--red)'); } },
@@ -354,17 +354,15 @@ function _generateRewardContent() {
   }
   // Cursed-card debuff: afflicts one specific shown card (weight 10; only if an
   // un-cursed identity exists). Card is pre-picked so the tile shows exactly it.
+  // r726 (owner): the curse tile is a HORSEMAN (js/horsemen.js), a curse card shuffled into
+  // the deck. The card curses (Leaden / Taxing / Snared) are no longer offered here.
   {
-    const _uncursed = everyDeckCard().filter(c => !cardCurses[cardId(c)]);
-    if (_uncursed.length) {
-      const _victim = _uncursed[Math.floor(Math.random() * _uncursed.length)];
-      const _cids = Object.keys(CURSE_DEFS);
-      const _cid  = _cids[Math.floor(Math.random() * _cids.length)];
-      debuffs.push({ weight: 10, perm: true, icon: CURSE_DEFS[_cid].icon, label: `${CURSE_DEFS[_cid].name} Curse`, tier: 'penalty',
-        cardFace: { rank: _victim.rank, suit: _victim.suit },
-        desc: `${_victim.rank}${_victim.suit} is cursed - ${CURSE_DEFS[_cid].desc}`,
-        apply: () => { const v = resolveDeckCard(_victim); if (!v) return;
-          cardCurses[cardId(v)] = { id: _cid, left: CURSE_DEFS[_cid].liftAfter }; showMessage(`${v.rank}${v.suit} cursed: ${CURSE_DEFS[_cid].name}`, '#9b59b6'); } });
+    const _kinds = (typeof curseCardKinds === 'function') ? curseCardKinds() : [];
+    if (_kinds.length) {
+      const _k = _kinds[Math.floor(Math.random() * _kinds.length)], _d = CURSE_CARD_DEFS[_k];
+      debuffs.push({ weight: 10, perm: true, icon: _d.icon, label: _d.name, tier: 'penalty',
+        desc: `A ${_d.name} card is shuffled into your deck. ${_d.desc}`,
+        apply: () => { addCurseCardsToDeck(1, _k); showMessage(`${_d.icon} ${_d.name} joins your deck`, 'var(--red)'); } });
     }
   }
   // Limit-drain debuff: -1 to a shown limit (weight 5; only if something is drainable).
@@ -698,11 +696,14 @@ function _generateRewardContent() {
       }
       case 'blessed': return makeBlessedPayload() || makeTrickPayload();
       case 'cleanse':
-        // Only meaningful if something is cursed; otherwise fall back to a Trick
-        if (!Object.keys(cardCurses).length) return makeTrickPayload();
+        // Only meaningful if something is cursed; otherwise fall back to a Trick.
+        // r726: a curse card in the deck (a horseman) counts; it takes one of those first.
+        if (!Object.keys(cardCurses).length && !(typeof curseCardsAll === 'function' && curseCardsAll().length)) return makeTrickPayload();
         return { icon: '🕊️', label: 'Cleanse', tier: 'rare',
-                 desc: 'Lift one random curse from your deck.',
-                 apply: () => { const _cl = cleanseRandomCurse(); showMessage(_cl ? `Curse lifted: ${_cl.face}` : 'No curses to lift', '#54af88'); } };
+                 desc: 'Remove one curse card from your deck, or lift one curse.',
+                 apply: () => {
+                   if (typeof clearOneCurseCard === 'function' && clearOneCurseCard()) { showMessage('Cleanse: a curse card removed', '#54af88'); return; }
+                   const _cl = cleanseRandomCurse(); showMessage(_cl ? `Curse lifted: ${_cl.face}` : 'No curses to lift', '#54af88'); } };
       case 'mystery': return { icon: '❓', label: 'Mystery', tier: 'mystery',
                                desc: 'Unknown until claimed. Probably good… probably.',
                                _mystery: true, _goodChance: 0.7,
@@ -923,10 +924,12 @@ function rollRewardMystery(goodChance) {
     apply:()=>{ nextRoundSwapDelta -= 1; showMessage('Mystery: -1 swap next round…', 'var(--red)'); } };
   if (roll === 2) return { good, icon:'☁', label:'-15s Round', flyTo:'clock', desc:'Next round starts with 15 fewer seconds.',
     apply:()=>{ nextRoundSecondsDelta -= 15; showMessage('Mystery: -15s next round…', 'var(--red)'); } };
-  if (roll === 3) return { good, icon:'🪨', label:'Stone', flyTo:'deck', desc:'A Stone slips into your deck. It blocks a cell until purged.',
-    apply:()=>{ injectStonesIntoDeck(1); showMessage('Mystery: a Stone slips into your deck…', 'var(--red)'); } };
-  return { good, icon:'🩸', label:'Curse', flyTo:'deck', desc:'A random card in your deck is cursed.',
-    apply:()=>{ const v = curseRandomCard(); showMessage(v ? `Mystery: ${v.rank}${v.suit} cursed (${CURSE_DEFS[v.curse].name})…` : 'Mystery: …nothing?', '#9b59b6'); } };
+  if (roll === 3) return { good, icon:'🗡', label:'War', flyTo:'deck', desc:'A War card slips into your deck until the next boss is over.',
+    apply:()=>{ injectStonesIntoDeck(1); showMessage('Mystery: a War card slips into your deck…', 'var(--red)'); } };
+  // r726: a horseman (js/horsemen.js) instead of a card curse.
+  { const _ks = curseCardKinds(), _k = _ks[Math.floor(Math.random() * _ks.length)], _d = CURSE_CARD_DEFS[_k];
+    return { good, icon: _d.icon, label: _d.name, flyTo:'deck', desc: `A ${_d.name} card slips into your deck.`,
+      apply:()=>{ addCurseCardsToDeck(1, _k); showMessage(`Mystery: ${_d.name} slips into your deck…`, 'var(--red)'); } }; }
 }
 function resolveRewardMystery(goodChance) { rollRewardMystery(goodChance).apply(); }
 

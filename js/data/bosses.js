@@ -7,14 +7,55 @@
 const BOSS_PRESETS = [
   {
     id: 'stone_lord',
-    name: 'THE STONE LORD',
-    flavor: 'Your deck turns to rubble',
+    name: 'WAR',
+    flavor: 'Heavy cuts, from the top down',
     objective: { type: 'score' },
-    brief: 'Stones land on the board when the round starts, and about a fifth of your deck turns to stone for the round. A stone cannot be selected, played, swapped or discarded.',
+    // r722 (owner): the stones MOVE (js/anvil.js); r723: they are WAR, the first horseman.
+    // The deck dose is about a tenth (was 0.18): every one crushes its way down a column.
+    brief: 'War cards land on the board when the round starts, and more are shuffled into your deck. Every 15 seconds a War card drops a row and crushes the card under it. At the bottom it falls out after 30 seconds. A War card can be swapped, never selected, played or discarded.',
     modifiers: ['inject_stones'],
     // r216: stoneInjectCount is dead. The board dose is derived from the grid and
     // the deck dose from the real deck size (see inject_stones in js/boss.js).
-    params: { deckStoneFraction: 0.18 }
+    params: { deckStoneFraction: 0.10 }
+  },
+  // r723 (owner): the horsemen's bosses (js/horsemen.js).
+  {
+    // r727: the top difficulty's last boss (js/difficulty.js). Never in the bag.
+    id: 'the_four_horsemen',
+    name: 'THE FOUR HORSEMEN',
+    flavor: 'All of them',
+    objective: { type: 'score' },
+    brief: 'The round starts with one of each curse card on the grid: War, Death, Famine and Pestilence.',
+    modifiers: ['inject_horsemen'],
+    params: {},
+    final: true
+  },
+  {
+    id: 'the_reaper',
+    name: 'THE REAPER',
+    flavor: 'Heads will roll',
+    objective: { type: 'score' },
+    brief: 'The round starts with a Death card on the grid and another lands every 45 seconds. Every 30 seconds a Death card flies the way it faces and every card in its path goes to the played pile. Cards it takes cost half their rank in seconds.',
+    modifiers: ['inject_death'],
+    params: { everySecs: 45 }
+  },
+  {
+    id: 'the_plague',
+    name: 'THE PLAGUE',
+    flavor: 'It gets around',
+    objective: { type: 'score' },
+    brief: 'The round starts with two Pestilence cards in opposite corners and another lands every minute. Every 30 seconds a Pestilence card turns a neighbour into one unless it was played since.',
+    modifiers: ['inject_pestilence'],
+    params: { everySecs: 60 }
+  },
+  {
+    id: 'the_shortage',
+    name: 'THE SHORTAGE',
+    flavor: 'Make do',
+    objective: { type: 'score' },
+    brief: 'The round starts with a Famine card on the grid and another lands every 45 seconds. Swap a Famine card every 30 seconds or it takes a swap, a discard, 20 seconds, a Trick for 20 seconds or every Sleight on the grid.',
+    modifiers: ['inject_famine'],
+    params: { everySecs: 45 }
   },
   {
     id: 'voidwright',

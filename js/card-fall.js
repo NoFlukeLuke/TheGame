@@ -30,15 +30,20 @@ function renderCardAppearance(card, r, c, {
   if (!isChallenge && card._isStone) {
     if (card._curseCard && typeof CURSE_CARD_DEFS !== 'undefined' && CURSE_CARD_DEFS[card._curseCard]) {   // r590: a curse card
       const d = CURSE_CARD_DEFS[card._curseCard];
+      if (typeof isHorseman === 'function' && isHorseman(card)) {   // r723: the horsemen (js/horsemen.js, css/horsemen.css)
+        hmEnsure(card, r, c);
+        return { className: 'card stone-card junk-card curse-card' + horsemenFaceClass(card) + (isSwapPending ? ' swap-pending' : ''), innerHTML: horsemenFaceHTML(card) };
+      }
       return { className: 'card stone-card junk-card curse-card', innerHTML: `<div class="junk-glyph">${d.icon}</div><div class="junk-word">${d.name.toUpperCase()}</div>` };
     }
     if (card._junk) return {   // r576: junk, an empty card that stays in your deck
       className: `card stone-card junk-card${isSwapPending ? ' swap-pending' : ''}`,
       innerHTML: `<div class="junk-glyph">✕</div><div class="junk-word">JUNK</div>`,
     };
+    // r722: the boss stone is the ANVIL (js/anvil.js, css/anvil.css): black, a white edge, a big anvil.
     return {
-      className: `card stone-card${isSwapPending ? ' swap-pending' : ''}`,
-      innerHTML: `<div class="stone-glyph">✦</div>`,
+      className: `card stone-card anvil-card${isSwapPending ? ' swap-pending' : ''}`,
+      innerHTML: `<div class="anvil-ico">${emGlyph(ANVIL_ICON)}</div>`,
     };
   }
 
@@ -393,7 +398,11 @@ async function removeAndFall(removingCells, mode = 'play') {
   const visibleLeaving = leaving.filter(el => { const o = el.style.opacity; if (o !== '' && +o === 0) { el.remove(); return false; } return true; });
   let leaveMs = 0;
   if (visibleLeaving.length) {
-    if (mode === 'discard' && typeof cardAnimExit === 'function') {
+    if (mode === 'anvil' && typeof anvilExit === 'function') {
+      // r722 (js/anvil.js): the crushed card is pressed flat, a leaving anvil drops out the bottom.
+      visibleLeaving.forEach(el => { el.style.transition = 'none'; const ms = anvilExit(el); setTimeout(() => el.remove(), ms); });
+      leaveMs = 180;
+    } else if (mode === 'discard' && typeof cardAnimExit === 'function') {
       visibleLeaving.forEach(el => { el.style.transition = 'none'; });
       leaveMs = 200;
       Promise.resolve(cardAnimExit('discard', visibleLeaving, targetRect)).catch(() => {}).then(() => visibleLeaving.forEach(el => el.remove()));
@@ -423,7 +432,8 @@ async function removeAndFall(removingCells, mode = 'play') {
   const newCards = [];
   for (let col = 0; col < gridCols; col++) {
     const playableRows = [];
-    for (let r = 0; r < gridRows; r++) if (!isCellVoid(r, col)) playableRows.push(r);
+    // r723: a FIXED card (an embedded Death card, js/horsemen.js) keeps its cell; the others fall past it.
+    for (let r = 0; r < gridRows; r++) if (!isCellVoid(r, col) && !cardFixedAt(r, col)) playableRows.push(r);
     if (playableRows.length === 0) continue;
     const survivors = [];
     for (const r of playableRows) {
@@ -469,7 +479,7 @@ async function removeAndFall(removingCells, mode = 'play') {
   removingCells.forEach(([r,c]) => { gridData[r][c] = null; });
   for (let col = 0; col < gridCols; col++) {
     const playableRows = [];
-    for (let r = 0; r < gridRows; r++) if (!isCellVoid(r, col)) playableRows.push(r);
+    for (let r = 0; r < gridRows; r++) if (!isCellVoid(r, col) && !cardFixedAt(r, col)) playableRows.push(r);
     const survivors = [];
     for (const r of playableRows) {
       if (gridData[r][col] !== null) survivors.push(gridData[r][col]);

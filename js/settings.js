@@ -17,6 +17,14 @@ const SETTINGS_DEF = [
   // row live. A module keeping its own copy of a settings-backed flag is the
   // r244 payout-pick trap: loadSettings applies every row's stored value OR its
   // default at boot, so a second store gets stamped back over on the next load.
+  // r727: the difficulty tier (js/difficulty.js). A view of its own store; the
+  // next run takes it, a live run keeps the tier it started on.
+  { group: 'Run', id: 'difficulty', label: 'Difficulty',
+    hint: 'For the next run. 1: horsemen last 4 rounds, swaps and discards cost no time. 2: horsemen last 6 rounds, a swap costs 3s, a discard 5s. 3: horsemen stay until removed, every round starts 30s shorter. 4: the last boss is THE FOUR HORSEMEN.',
+    type: 'select', default: '1',
+    options: (typeof DIFF_TIERS !== 'undefined') ? DIFF_TIERS.map(t => [String(t.tier), `${t.tier} · ${t.name}`]) : [['1', '1']],
+    get: () => String((typeof difficultySetting === 'function') ? difficultySetting() : 1),
+    apply: v => { if (typeof difficultySet === 'function') difficultySet(v); } },
   { group: 'Help', id: 'handbook', type: 'action',
     label: 'Handbook', hint: 'How everything works, in more detail than the game stops to explain.',
     buttons: () => [{ label: 'Open the handbook', fn: 'openInfoHubFromSettings()', primary: true }] },
@@ -58,6 +66,12 @@ const SETTINGS_DEF = [
   { group: 'Audio', id: 'musicClock', label: 'Music follows the clock',
     hint: () => `In a run the track plays faster as the round clock runs down, up to ${(typeof MUSIC_CLOCK !== 'undefined' ? MUSIC_CLOCK.max : 1.65)}x at 0:00. Tempo keeps the key. Tape lets the pitch rise with it.`,
     type: 'select', default: 'tempo', options: [['off', 'Off'], ['tempo', 'Tempo'], ['tape', 'Tape']] },
+  // r721: the payout's coin (js/coin-sounds.js). Read at every coin; a change plays it.
+  { group: 'Audio', id: 'payoutCoin', label: 'Payout coin',
+    hint: 'The coin you hear as the payout counts up.',
+    type: 'select', default: (typeof PAYOUT_COIN_DEFAULT !== 'undefined') ? PAYOUT_COIN_DEFAULT : 'pack',
+    options: (typeof payoutCoinOptions === 'function') ? payoutCoinOptions() : [['pack', 'Pack coin']],
+    apply: () => { if (typeof sfxPayoutCoin === 'function' && navigator.userActivation && navigator.userActivation.isActive) sfxPayoutCoin(2, 3); } },
   // Sound source (r186). Files beat packs beat classic - see the resolution order
   // in js/audio-assets.js. Both rows are read there rather than applied from here,
   // so there is no `apply` to keep in step.

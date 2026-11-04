@@ -239,6 +239,11 @@ function playHand() {
   if (animating) { pendingAction = 'play'; dbgEvent('info', 'play queued (animating)'); scheduleQueuedRetry(); return; }
   // r200: the minimum selection is a rule, not just a disabled button - keyboard
   // and queued-action paths reach here without going past the button's state.
+  // r726: a Pestilence card in the selection is not part of the hand (js/horsemen.js). It is
+  // pulled out here, so nothing below sees it, and handed back once the hand commits: its
+  // spread clock resets and it stays on the grid. With no hand it goes back into the selection.
+  const _pestSel = selected.filter(([r, c]) => gridData[r]?.[c]?._curseCard === 'pest');
+  if (_pestSel.length) selected = selected.filter(([r, c]) => gridData[r]?.[c]?._curseCard !== 'pest');
   if (typeof handMinSelection === 'function' && selected.length < handMinSelection()) {
     // Roll Call (r278) pulls every card of its rank into the hand, so a selection
     // that is short on its own can still be legal. The count is asked for BEFORE
@@ -247,6 +252,7 @@ function playHand() {
     // the state. rollCallPullCells is pure, so asking twice costs nothing.
     const _rcN = (typeof rollCallPullCount === 'function') ? rollCallPullCount(selected) : 0;
     if (selected.length + _rcN < handMinSelection()) {
+      if (_pestSel.length) selected = [...selected, ..._pestSel];
       dbgEvent('warn', 'play: below minimum selection', { selected: selected.length, min: handMinSelection() });
       return;
     }
@@ -264,7 +270,7 @@ function playHand() {
   const _sweeping = typeof sweepSilent === 'function' && sweepSilent();
   const _rollCall = (!_sweeping && typeof rollCallAugment === 'function') ? rollCallAugment(result, selected) : null;
   if (_rollCall) { result = _rollCall.result; selected = [...selected, ..._rollCall.cells]; }
-  if (!result) { dbgEvent('warn', 'play: no valid hand', { selected: selected.length, animating, falling, roundEnded, dance: !!danceAbortController, swapPending: !!swapPending, swiping: isSwiping }); console.log('[PLAY] no result, exiting'); return; }
+  if (!result) { if (_pestSel.length) selected = [...selected, ..._pestSel]; dbgEvent('warn', 'play: no valid hand', { selected: selected.length, animating, falling, roundEnded, dance: !!danceAbortController, swapPending: !!swapPending, swiping: isSwiping }); console.log('[PLAY] no result, exiting'); return; }
   // Abort any prior in-flight score dance ONLY now that we have a real hand to play.
   // (A spurious double-fire of Play on a now-empty selection must NOT cancel the
   //  in-progress dance - that was the "cards wiggle but never score" bug.)
@@ -301,6 +307,7 @@ function playHand() {
   const playedCells = [...selected]; // capture before any path clears selection (for on_play sleights)
   // r635: the hand ends every running pause (js/discard.js); it still scores as played in it.
   if (typeof endPausesForPlay === 'function') endPausesForPlay();
+  if (_pestSel.length && typeof pestPlayed === 'function') pestPlayed(_pestSel);   // r726: held off, stays on the grid
   const { hand, handCells, penaltyCells, penaltyPips } = result;
   // Kickers (r326, renamed r385): cards inside the hand that no component claims.
   // Every hand may carry one; Tagalong allows more and makes them free. Unless
@@ -616,6 +623,7 @@ function playHand() {
     goalReachedThisRound = true;
     roundEnded = true;
     clearInterval(roundInterval); roundInterval = null;
+    if (typeof scoreRiseHold === 'function') scoreRiseHold(scoreBeforeHand);   // r729: the winning hand waits for its own climb
     const toRemove = [...selected];
     selected = [];
     // Survival/Flow keep-board (r324): the goal hand's cells, so survivalDealNext
@@ -638,6 +646,7 @@ function playHand() {
     console.log('[GOAL] reached', { score, goal: roundGoal, finalScore });
     goalReachedThisRound = true;
     roundEnded = true; // freeze input immediately
+    if (typeof scoreRiseHold === 'function') scoreRiseHold(scoreBeforeHand);   // r729: the winning hand waits for its own climb
     // Stop the round clock the instant the goal is met (unless a challenge is
     // still pending - that path keeps its own timer running). This freezes the
     // clock as a clear "goal reached" signal AND prevents a late timer tick from

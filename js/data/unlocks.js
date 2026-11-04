@@ -207,4 +207,5 @@ const TRICK_UNLOCKS = {
   old_growth: { s: 'wins', n: 1 }, five_stack: { s: 'wins', n: 1 }, club_double: { s: 'wins', n: 1 }, knave_power: { s: 'wins', n: 1 },
   blackjack_bonus: { s: 'wins', n: 1 }, richter: { s: 'wins', n: 1 }, relentless: { s: 'wins', n: 1 }, obsessed: { s: 'wins', n: 1 },
   buried_treasure: { s: 'wins', n: 1 }, phoenix: { s: 'wins', n: 1 }, aces_absorb: { s: 'wins', n: 1 }, monopoly: { s: 'wins', n: 1 },
+  severance_package: { s: 'wins', n: 1 },
 };

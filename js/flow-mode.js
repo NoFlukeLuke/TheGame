@@ -128,7 +128,9 @@ function flowTriggerBoss() {
   // The boss opens on a full deck: the level's played cards go back in, as at a
   // level-up. Flow's boss comes mid-level, so nothing else would return them.
   flushPlayedDeck();
-  const _go = () => triggerBoss(null, FLOW_BOSS_WINDOW);
+  // r727: at the top difficulty the fourth boss is THE FOUR HORSEMEN.
+  const _final = (typeof difficultyFinalBossDue === 'function' && difficultyFinalBossDue(survivalBossesBeaten + 1)) ? difficultyFinalBossPreset() : null;
+  const _go = () => triggerBoss(_final, FLOW_BOSS_WINDOW);
   if (typeof bossApproachWipe === 'function') bossApproachWipe(_wiped).then(_go);
   else { suppressScoreDisplay = false; updateScoreUI(); _go(); }
 }
@@ -157,7 +159,8 @@ function flowNextRoundSeconds(currentSeconds) {
 function flowSessionSeconds() {
   const bonus = (typeof limits !== 'undefined' && limits.round_time)
     ? limits.round_time.current - limits.round_time.base : 0;
-  return Math.max(30, FLOW_SESSION_SECONDS + bonus);
+  // r727: the difficulty tier takes seconds off every session (a quarter).
+  return Math.max(30, FLOW_SESSION_SECONDS + bonus - difficultyTimeCut());
 }
 
 // r399: Survival and Flow pay a Starting Time pick NOW as well as later. Owner:

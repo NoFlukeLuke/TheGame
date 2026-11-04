@@ -134,8 +134,11 @@ function modeRoundDuration() {
   // A picker-built mode names its own round length, and it is checked BEFORE the
   // survival fallback: a custom pick-of-three run still gets the clock it asked
   // for rather than Survival's 2:00 by virtue of sharing its loop.
-  if (typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE && ACTIVE_MODE.clock) return pickerRoundSeconds();
-  return survivalActive() ? SURVIVAL_ROUND_SECONDS : ROUND_DURATION;
+  // r727: the difficulty tier takes seconds off every round (Flow's cut is on its
+  // session, flowSessionSeconds above; Crunch's quarter bank is left alone).
+  const _cut = (typeof difficultyTimeCut === 'function') ? difficultyTimeCut() : 0;
+  if (typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE && ACTIVE_MODE.clock) return Math.max(30, pickerRoundSeconds() - _cut);
+  return Math.max(30, (survivalActive() ? SURVIVAL_ROUND_SECONDS : ROUND_DURATION) - _cut);
 }
 
 // Survival's goal curve: same growth rate as Classic from a lower start, and
@@ -234,6 +237,8 @@ function survivalEntityBanned(id) {
   if (typeof inseparableDef === 'function' && inseparableDef(id)) return true;
   // r706: a locked Trick is never offered (js/unlocks.js).
   if (typeof trickLocked === 'function' && trickLocked(id)) return true;
+  // r727: Free Swaps / Free Discards do nothing at a difficulty where they cost no time.
+  if (typeof difficultyOfferBanned === 'function' && difficultyOfferBanned(id)) return true;
   // r651: Separation Anxiety is offered only with a fused Trick in the tray.
   if (id === 'separation_anxiety' && !(typeof trickTray !== 'undefined' && trickTray.some(t => t && t.fused))) return true;
   // The reward-grid-only entities are dead picks wherever the MODE never opens

@@ -285,6 +285,7 @@ const BAL = {
   lightning_rod: { pips: 10 },
   the_catalyst: { mult: 5 },
   the_bomb: { pips: 3 },
+  severance_package: { swaps: 1, discards: 1 },   // r723: what a double-tap on a curse card or stone costs
   bellhop: { swaps: 2, discards: 2 },   // r646 (owner): improvements alternate +2 swaps / +2 discards
   cash_out: { coins: 10 },
   amplifier: { mult_per_level: 3 },   // r636: the next hand scores level x this
@@ -356,15 +357,15 @@ const BAL = {
   time_bank: { seconds: 30 },
   inheritance: { coins: 5 },
   lucky_seven: { interval_hands: 7, swaps: 1 },
-  steady_hand: { swap_seconds: 20 },
-  hoarder: { discard_seconds_per_card: 6 },
+  steady_hand: { swap_mult: 2 },        // r727: a multiple of the tier's swap seconds (js/difficulty.js)
+  hoarder: { discard_mult: 2 },         // r727: a multiple of the tier's discard seconds
   extra_swaps: { swaps: 2 },
   extra_discards: { discards: 2 },
   carry_swaps: { max: 8 },
   carry_discards: { max: 8 },
   carry_time: { max_seconds: 60 },
   // ── system: base resource time costs ──
-  _resources: { unspent_credits: 2, unspent_cap: 10, interest_cap: 10, swap_seconds: 8, discard_seconds_per_card: 3 },   // play is free by default
+  _resources: { unspent_credits: 2, unspent_cap: 10, interest_cap: 10 },   // play is free by default; swap and discard seconds are the difficulty tier's (r727, js/difficulty.js)
 };
 
 // ── Description templates - keep tooltip text in sync with BAL numbers ──
@@ -488,7 +489,8 @@ const DESC_TEMPLATES = {
   pivot: 'Cards touching Pivot swap for free. Swap two of its neighbours together and both gain +{mult} permanent mult, then Pivot leaves the board. (3 charges)',
   the_naturalist: 'Play this: each other scored card permanently gains +{pips} pips.',
   bellhop: 'Play this: gain +{swaps} swaps and +{discards} discards. (5 charges)',
-  the_bomb: 'Discard this: every card on the grid permanently gains +{pips} pips. (2 charges)',
+  severance_package: 'Double-tap a curse card or a stone: spend {swaps} swap and {discards} discard to discard it.',
+  the_bomb: 'Discard this: every card on the grid permanently gains +{pips} pips, then every card on the grid is discarded with it, Sleights, curse cards and anvils too. (2 charges)',
   cash_out: 'Discard this: gain {coins} credits. (3 charges)',
   lightning_rod: 'When swapped, the card it traded with permanently gains +{pips} pips.',
   the_catalyst: 'When swapped, the card it traded with permanently gains +{mult} mult.',
@@ -565,8 +567,8 @@ const DESC_TEMPLATES = {
   deja_vu: 'Playing the same ranks in two hands in a row rewinds the clock {seconds}s.',
   clockmaker: 'Any time a single hand scores at least 30% of the round goal, rewind the clock {seconds}s.',
   piggy_bank: 'Double-tap: gain {coins} credits, once per round. Becomes inert on use: it can no longer be swapped or discarded. (5 charges)',
-  steady_hand: 'Swaps no longer count against the swap limit, but cost {swap_seconds}s each.',
-  hoarder: 'Discards no longer count against the discard limit, but cost {discard_seconds_per_card}s per card.',
+  steady_hand: 'Swaps no longer count against the swap limit, but cost {swap_mult}x the time.',
+  hoarder: 'Discards no longer count against the discard limit, but cost {discard_mult}x the time.',
   king_guard: 'Kings and Jacks score +{pips} pips and +{mult} mult',
   full_color: 'Hands with four unique suits score x{mult_mult} mult per card',
   knave_power: 'Score ×{per_jack} pips for each Jack on the grid',

@@ -101,6 +101,7 @@ const SAVE_VARS = [
   'acquiredTricks', 'acquiredKnacks', 'trickTray',
   'grantedSleightIds', 'altarEffects', 'sleightCapBonus', 'lockboxStash', 'entityTier',
   'wildsUnbound', 'staticPips', 'staticMult',   // r579: Wild Cards and Static Bonus events
+  'runDifficulty', 'hmRounds', 'hmSeen',        // r727: the run's difficulty tier; a deck horseman's rounds on the grid
   'lastBoard',                                  // r590: Clean Up's "your last grid"
   // r217: the slot machine's rotating buff cursor, and the event no-repeat memory.
   'slotBuffIdx', 'recentEventIds',

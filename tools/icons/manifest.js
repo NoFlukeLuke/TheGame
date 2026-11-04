@@ -192,6 +192,12 @@ const ICONS = [
   { glyph: '⬍', icon: 'delapouite/vertical-flip',   color: 'cyan'   },  // Grid Rows
   { glyph: '⬌', icon: 'delapouite/horizontal-flip', color: 'cyan'   },  // Grid Columns
   { glyph: '💾', icon: 'delapouite/save',            color: 'gold'   },  // Trick Slots (a floppy, like the Tricks)
+  { glyph: '⚒', icon: 'lorc/anvil',                 color: 'white'  },  // r722's anvil (kept on the sheet)
+  // The four horsemen (r723, js/horsemen.js): the curse cards and War's stone
+  { glyph: '🗡', icon: 'lorc/broadsword',            color: 'white'  },  // War (the boss stone)
+  { glyph: '🥣', icon: 'delapouite/grain',           color: 'orange' },  // Famine
+  { glyph: '☣', icon: 'lorc/biohazard',             color: 'green'  },  // Pestilence
+  { glyph: '⚰', icon: 'lorc/scythe',                color: 'white'  },  // Death
 ];
 
 module.exports = { PALETTE, ICONS };

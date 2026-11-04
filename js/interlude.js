@@ -373,14 +373,14 @@ async function showPayoutUI() {
       tickCoin(id);
       return;
     }
-    const stride = coinStride(target);
-    let n = 0;
+    const stride = coinStride(target), sounds = Math.ceil(target / stride);
+    let n = 0, k = 0;
     while (n < target) {
       n++;
       c.textContent = n;
       if (n % stride === 0 || n === target) {
         tickCoin(id);
-        sfxCoin();
+        sfxPayoutCoin(k++, sounds);
       }
       await wait(payoutCoinMs(n - 1));
       if (fastForward) {
@@ -419,7 +419,8 @@ async function showPayoutUI() {
     const _spc = efficiencySecondsPerCoin();
     let secsLeft = _poSecs;
     let effEarned = 0;
-    const effStride = coinStride(efficiencyCoins);
+    const effStride = coinStride(efficiencyCoins), effSounds = Math.ceil(efficiencyCoins / effStride);
+    let effK = 0;
     while (secsLeft > 0) {
       secsLeft--;
       clockEl.textContent = formatTime(secsLeft);
@@ -428,7 +429,7 @@ async function showPayoutUI() {
         effCoinsEl.textContent = effEarned;
         if (effEarned % effStride === 0 || effEarned === efficiencyCoins) {
           tickCoin('po-efficiency');
-          sfxCoin();
+          sfxPayoutCoin(effK++, effSounds);
         }
       }
       await wait(payoutCoinMs(Math.min(effEarned, Math.max(0, efficiencyCoins - 1))) / _spc);
@@ -461,6 +462,7 @@ async function showPayoutUI() {
 
   // ── 5. Valued button ──
   el.querySelector('#po-valued').classList.add('show');
+  { const _ff = el.querySelector('#po-ff'); if (_ff) _ff.classList.add('ss-gone'); }   // r721: nothing left to skip
 
   // Wait for tap
   await new Promise(res => {
@@ -688,6 +690,7 @@ function payoutTiledHTML(c) {
   return `
     <div class="po-tile po-tile-title show" data-box="0,0,6,1">
       <div class="payout-title">Payout</div>
+      <button class="payout-ff-btn scr-skip" id="po-ff" title="Skip the count">${skipKeyHTML('SKIP', true)}</button>
     </div>
     <div class="po-tile po-tile-tab show" data-box="1,0,3,1">
       <button class="payout-tab active" id="po-tab-payout-btn">Payout</button>
@@ -742,8 +745,7 @@ function payoutTiledHTML(c) {
       <span class="pt-label">Total</span>
       <span class="pt-coins" id="po-total-coins">${creditsTxt(0)}</span>
     </div>
-    <button class="payout-valued-btn po-tile" id="po-valued" data-box="5,3,3,1">Valued.</button>
-    <button class="payout-ff-btn" id="po-ff" title="Fast forward">»</button>`;
+    <button class="payout-valued-btn po-tile" id="po-valued" data-box="5,3,3,1">Valued.</button>`;
 }
 
 // Turn every data-box into a real box, in the same cell units the cards use
@@ -856,5 +858,5 @@ function payoutPanelHTML(c) {
     </div>
     </div>
     <button class="payout-valued-btn" id="po-valued">Valued.</button>
-    <button class="payout-ff-btn" id="po-ff" title="Fast forward">»</button>`;
+    <button class="payout-ff-btn scr-skip" id="po-ff" title="Skip the count">${skipKeyHTML('SKIP', true)}</button>`;
 }

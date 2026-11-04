@@ -40,6 +40,8 @@ superseded is history, not current code. The other reference docs:
 | `FLOW_TIME_TRICKS.md` | what "the round" is in Flow, and every entity that reads the round clock, with a recommendation each (r722) |
 | `POST_LAUNCH.md` | work deliberately parked until the itch build is out. Not a wish list: each item is a spec or a decided fix |
 | `CLEANUP.md` | the dead-code audit and removal log |
+| `CURSE_CARDS.md` | the four horsemen as built (r723), Pestilence's open call, the parked card conditions, the r722 survey |
+| `DIFFICULTY.md` | the difficulty tiers (r727): the four built, what follows from them, the knobs recommended for more |
 | `docs/archive/` | finished design docs, kept for reference |
 | `tools/sim/README.md` | the Monte Carlo bot that plays whole runs headlessly; rerun after any deck or hand-value change |
 
@@ -146,7 +148,7 @@ and clock from JS because the board moves.
   Leaves the board through `discardSleightAfterUse` / `discardToPlayed` (which keeps charges);
   `discardToDrawPile` silently drops Sleights.
 - **Knack**: not a card. `acquiredKnacks[]`, `hasKnack(id)`.
-- **Stone**, **Wild** (completes a set only, no pips, no Tricks), **Challenge** card (r444: a
+- **Stone** (shown as **War** since r723, see below), **Wild** (completes a set only, no pips, no Tricks), **Challenge** card (r444: a
   challenge round's card, `_isStone` + `_isChallenge`, falls and renders only; see below).
 - `cardCan(card, action)` gates select/swap/discard/fall/render.
 
@@ -3887,3 +3889,221 @@ scaling stays family based and hand-counted; no legendary names one hand type.
 - **`named`** (js/data/tags.js, WHEN): a Trick that names one hand type; six rows carry it.
 - Layer math for 6-7 card hands is MILESTONES.md 8b: "every sub-hand counts" explodes (a typical
   7-card hand has 14 layers at min 4); "every distinct hand" stays at 3-6 with a ceiling of 11.
+## r722-r724 numbering
+Two sessions shipped r722 and r723 in parallel: the money and selling pass (above, on main) and
+the anvil / horsemen pass (below). The merge that joined them is r724.
+
+## r722 (horsemen branch) - the Anvil; a Sleight's discard pierces; Bomb clears the board (owner)
+- **The Anvil** (`js/anvil.js`, `css/anvil.css`): the boss stone's display name (ids frozen:
+  `_isStone`, suit 'stone', `makeStoneCard`, boss `stone_lord` is **THE ANVIL**). `isAnvil(card)` is
+  the test (not junk, curse, challenge or Reshuffle cards). Every `ANVIL_CFG.drop` (15) seconds it
+  drops one row and crushes the card under it to the played pile (`anvilToPlayed`, which lets a
+  Snared card through); the card under it shakes for the last `warn` (10) seconds, harder as the drop
+  nears (`anvilPaint`, from the tick and render's tail: `.anvil-doom` + `--doom`). At the bottom it
+  rests `rest` (30) seconds, then drops out of the board and is gone. It waits (timer held full) over
+  a card it cannot crush: another anvil, a challenge card, the Reshuffle card, an aim fixture. Timers
+  are on the board card (`_anvT`, `_anvRest`), so they save with gridData and follow a swap. Ticked
+  from the round tick (`anvilTick`, js/round-timers.js), acting only when the board is still; one
+  `removeAndFall(cells, 'anvil')` per tick (the exit look is `anvilExit`: pressed flat, or out the
+  bottom). The face is black with a white edge and the pixel anvil (`ANVIL_ICON` '⚒', lorc/anvil on the
+  sheet, 159 icons, the first 158 unchanged). The boss's deck dose is 10% (was 18%). Reward-grid,
+  Mystery, Pairs and 1-on-1 stones are anvils too.
+- **Pierce** (owner, a default rule): a Sleight that discards cards takes the ones a curse or a boss
+  holds in place: anvils, junk and curse cards, Snared and Recalled cards, held and quarantined cells
+  (`pierceCanTake(cd, r, c)`), each routed by `pierceRoute` (an anvil is gone, a Sleight cycles with its
+  charges, the rest go to the back of the draw pile). Procrastinate, Magnet, Photocopier, Fresh Start
+  and Bomb use it. **A new Sleight that discards cards asks `pierceCanTake` and routes through
+  `pierceRoute`**, never `cardCan(cd, 'discard')` / `discardToDrawPile`.
+- **Bomb**: every card on the grid gains +3 pips (as before), then every card on the grid goes with
+  the discard (`bombCarry`, from doDiscard beside `procrastinateCarry`): cards, Sleights, curse cards,
+  junk, anvils. Carried cards cost no time or stock; a carried Sleight cycles with its charges and does
+  not fire its own discard effect (or Martyr).
+Measured in headless Chromium at 1440x820 and 420x900: three anvils on a 4x4 counted 15s, the cards
+under them shook from 10s (--doom .09 to .82), both crushed onto the played pile and the anvils moved
+down a row; the bottom anvil counted its 30s. Bomb by real tap and DISCARD on a board with an anvil,
+a curse card, junk, a Snared Q, Cash Out: no card left, anvil gone, curse card / junk / the Q in the
+draw pile (the Q with +3 pips), Cash Out in the played pile with its 3 charges. Procrastinate took an
+anvil and a curse card beside it; Fresh Start redealt both. No page errors.
+
+## r723 (horsemen branch) - the four horsemen; Severance Package; the discard fling (owner)
+CURSE_CARDS.md has the table. `js/horsemen.js`, `css/horsemen.css`; the stone stays in `js/anvil.js`.
+- **War** is r722's anvil renamed (boss `stone_lord` reads **WAR**, `ANVIL_ICON` is a sword; the
+  anvil icon stays on the sheet). Nothing else about it changed; `isAnvil` and `.anvil-card` are
+  the code names.
+- **Death, Famine, Pestilence** are curse cards (`CURSE_CARD_DEFS` in js/boss.js: `death`,
+  `famine`, `pest`; Leech and Smog are `retired`, never drawn, `curseCardKinds()`).
+  `isHorseman(card)`; `hmEnsure` rolls a card's timer and direction the first time the board sees
+  it. Timers live on the board card (`_hmT`, `_dir`, `_flown`, `_fixed`, `_hmSpread`, `_hmLast`),
+  ticked by `horsemenTick` from the round tick (counts always, acts only while the board is
+  still); `curseCardTick`'s 120s return skips them. `horsemenPaint` (the tick and render's tail)
+  writes each face's clock bar (`--hb`) and jitter. A boss's horseman is `_temp` (`hmSpawnAt`).
+  **Death** (`deathFly`): the cut cards leave through the deck editor's cut look
+  (`cardAnimExit('cut')`, ids stripped first), it moves in data, `removeAndFall([], 'anvil')`
+  refills, and its element is flipped from its old cell. **A `_fixed` card keeps its cell**:
+  `cardFixedAt(r, c)` is read by `removeAndFall`'s two playable-row loops and `fillGridHoles`, so
+  cards fall PAST it (its cell is left out like a void). `cardCan` swap for a curse card asks
+  `curseCardSwappable` (Famine always, Death until `_flown`). **Famine** (`famineFire`): one of
+  stock / time / a Trick muted (`famineMuted`, read by `isTrickDisabledByBoss` ahead of the boss
+  tests, so the chip greys) / every Sleight on the grid (`pierceRoute`); `horsemenOnSwap` (doSwap,
+  after the data swap) resets its clock. **Pestilence** (`pestWatch` / `pestAct`): a draft; the
+  owner has not settled it.
+- **Bosses** (js/data/bosses.js, modifiers in applyBossModifiers): `the_reaper` (`inject_death`:
+  `bossSchedule`'s opening call places the first, then one every 45s, `hmSpawnRandom`; the cards
+  the scythe takes cost half their rank in seconds, `deathBossSeconds`) and `the_plague`
+  (`inject_pestilence`: `hmSpawnCorners`, then one a minute). `purgeStonesFromDeck` also drops a
+  temp curse card. `anvilCrushable` refuses a horseman, so they never take each other.
+- **Severance Package** (legendary Trick `severance_package`, `BAL.severance_package`, unlocks with a
+  won run): `severanceTap(r, c)` runs in `onCardTap` ahead of the cardCan gate with its own
+  double-tap timer; spends the stock, `pierceRoute`, `removeAndFall('discard')`. With it in the
+  tray a double-tap no longer lifts a stone for a swap.
+- **The discard look is Fling** (`CARD_ANIM_DEFAULT.discard`, js/card-anims.js): a short lift
+  toward the top of the board, then flung down hard and out of the bottom, 300ms. Sink stays in
+  the lab.
+Measured in headless Chromium at 1440x820 and 420x900: a Death card facing right flew from (1,1)
+to (1,3) taking the two cards on the way to the played pile (+2), fixed, a new direction and a
+fresh 30s; two cards below it discarded, it stayed at (1,3) and the column fell past it; its face
+read the arrow, the bar at 0.1 and the jitter class in the last 5s. Famine at 0 took a swap; a
+real double-tap-and-tap swap moved it and reset its clock (29). Pestilence with a neighbour still
+for 20s infected it (2 on the board, 1 temp) and at its moment changed places with a neighbour.
+Severance Package by real clicks discarded a Pestilence card and a War stone for 1 swap + 1
+discard each and refused with no swaps. THE REAPER opened with one Death card (temp) and a forced
+flight over a 2 and a 3 cost 3s. The fling's leaving cards rose 27px then dropped. No page errors.
+
+## r726 - Pestilence is played to hold it off; every horseman in the debuff places; THE SHORTAGE (owner)
+- **Pestilence, option (c)** (js/horsemen.js): `_hmT` counts to its next spread (`HM.pest.spread`
+  30s; `pestSpread`: a random neighbour to the played pile, a temp Pestilence in its cell, cap
+  `HM.pest.max`), `_hmMove` to its next move (`HM.pest.swap` 15s, `pestMove`), `_hmSpread` since
+  its last spread (`HM.pest.life` 65s, then `pestLeave`). **Playing it resets `_hmT`**: `cardCan`
+  lets a `pest` card be SELECTED, `getReachable` lets a selectable stone through, it takes no
+  Selection Size slot (`selCountForCap`, js/hand-detect.js, read at both add sites in input.js),
+  `findBestHand` drops it before detection (so the preview and the hand never see it), and
+  `playHand` pulls it out of `selected` before the minimum check (`_pestSel`), gives it back on
+  a refused play, and hands it to `pestPlayed` once the hand commits. It is never in `playedCells`
+  or `toRemove`, so it stays on the grid. The r723 "sat still beside it" watch is gone.
+- **The debuff places hand out horsemen**: the Balance Sheet's curse tile (a random horseman curse
+  card into the deck, `addCurseCardsToDeck(1, kind)`), the Mystery's bad roll, Pairs' penalty A
+  (its tile draws the pixel icon; penalty B reads War). The card curses (Leaden / Taxing / Snared)
+  are offered nowhere now; `cardCurses` and the Cleanse tile's lift stay for saved runs. The
+  Cleanse tile removes a curse card first (`clearOneCurseCard`, js/boss.js) and is offered while
+  the deck holds one.
+- **THE SHORTAGE** (boss `the_shortage`, `inject_famine`): one Famine card at the start, another every
+  45s. `hmSpawnRandom` / `hmSpawnCorners` retry every 400ms (20 tries) while the board is busy, so a
+  boss's opening card is not lost to a fall.
+Measured in headless Chromium at 1440x820 and 420x900 by real clicks: Q, Pestilence, Q, Q tapped in
+a row selected all four (Selection Size 3), the label read SET OF 3, PLAY scored 270 and the
+Pestilence card stayed with its clock back at 30; at 0 it spread (2 on the board, 1 temp); at its
+move it changed cells; at 65s unspread it left to the played pile with the audit matched; THE
+SHORTAGE opened with one temp Famine card; the Cleanse tile removed a curse card. Golden: all match.
+
+
+## r727 - difficulty tiers (`js/difficulty.js`, owner)
+DIFFICULTY.md is the write-up. `DIFF_TIERS` (four rows, takes six): Settings -> Run -> Difficulty
+and dev -> Change the game now set `lethe.difficulty.v1` (stored only off tier 1) for the NEXT
+run; `startGame` copies it into `runDifficulty` (SAVE_VARS), and **every reader asks
+`difficultyTier()`**. Each tier keeps the ones below it. 1 ENTRY LEVEL: a deck horseman leaves
+after 4 rounds on the grid; swaps and discards cost no time. 2 SENIOR: 6 rounds; a swap 3s, a
+discard 5s FLAT. 3 EXECUTIVE: horsemen stay until removed; every round 30s shorter. 4 C-SUITE:
+the last boss is THE FOUR HORSEMEN.
+- **The swap and discard seconds are the tier's** (`swapSecondsBase()` / `discardSecondsBase()`;
+  `BAL._resources.swap_seconds` and `discard_seconds_per_card` are gone). The five sites (doSwap,
+  doDiscard, the Time pop-up, the held stack, the walkthrough's `tutCostLine`) read them; a
+  discard is one flat charge whatever the count (a discard of Fodder alone pays nothing). Steady
+  Hand is `BAL.steady_hand.swap_mult` (2) x the base, Spoiled `BAL.hoarder.discard_mult` (2) x;
+  Free Swaps / Free Discards are banned from offers where the base is 0 (`difficultyOfferBanned`,
+  in `survivalEntityBanned`). The first two discards of a round are still free of time
+  (`freeDiscardsLeft`), and Flow still halves (`FLOW_INTERACT_TIME_MULT`).
+- **The 30s cut is inside `modeRoundDuration()`** (not Flow, not Crunch), so round 1, later rounds
+  (`startingTimeSeconds`), the clock bar and the Time pop-up agree; Flow's is in
+  `flowSessionSeconds()`; a boss window takes it in `triggerBoss` (not Flow / Crunch).
+- **Horsemen rounds** (js/horsemen.js): `hmSeen` (id -> 1) is marked by the tick and every render
+  for a non-temp horseman on the board; `hmRoundsSettle()` (from `triggerLevelUp`) adds the round
+  to `hmRounds` (id -> n) and `hmRemoveById` takes a card at the limit out of the piles or the
+  board (`expectedDeckTotal--`, "Death leaves the deck"). Both in SAVE_VARS, reset in startGame.
+  The face prints rounds left top-left (`.hm-left`) when finite.
+- **THE FOUR HORSEMEN** (`the_four_horsemen`, `final: true`, modifier `inject_horsemen` ->
+  `hmSpawnAll`: a temp War stone `hmSpawnWar` plus Death, Famine, Pestilence). Never in the bag
+  (both bag fills filter `final`). `difficultyFinalBossDue(n)` says whether boss / quarter n is
+  the run's last (not Endless); `drawActBoss` and `peekNextActBoss` (Classic, the Schedule),
+  `mapDrawReviewPresets` (every seat of Q4's review row) and `flowTriggerBoss` (boss 4) read it.
+- The finale's header and the run history carry the tier (`difficultyName()`, `entry.difficulty`).
+Measured in headless Chromium at 1440x820 and 420x900 by real calls: tier 1 pop-up 0s / 0s, a
+discard and a swap took 0s, Free Swaps / Free Discards banned; a Death card in the deck read 4,
+then 3, a round in the pile did not count, left after its 4th round with the audit matched; tier 2
+pop-up 3s / 5s, the third discard of a round (3 cards) took 5s, a swap 3s, Steady Hand / Spoiled
+quoted 6s / 10s; tier 3 round 1 opened at 150, Flow's session at 270; tier 4 Advance Notice named
+THE FOUR HORSEMEN for Q4 only, Q4 drew it, PROCEED put a War stone, Death, Famine and Pestilence on
+the grid; Flow's boss 4 was it. Golden: all match. No page errors.
+
+## r728 - the skip keys belong to their screens; five payout coins (owner)
+- **One skip key** (`css/screen-skip.css`, `skipKeyHTML(label, bar)` in js/labels.js): the scoring
+  preview's SPEED UP / SKIP (`#dnc-ff`) and the payout's SKIP (`#po-ff`) are the same small key printed
+  on the glass in its screen's phosphor (`--sk`: amber on the preview, cyan on the payout), VT323, stepped
+  pixel corners, pixel triangles drawn as rects (a ▶ turns into an emoji on a phone). Idle outlined,
+  SPEED UP taken lit solid, done faint. **Placement rule: the right end of its screen's header line**,
+  inset by the header's margin: the preview's hand-name band (landscape), the payout's title tile
+  (moved into it; the title is left-aligned now so the subtitle cannot run under the key). On a phone
+  the preview has no header line (its name is centred under the cards), so `dncMountFF` mounts the key
+  on `#hand-preview-area` in its free top-left corner (the Knacks toggle has the top right) and
+  `dncStageClear` removes it from there. The payout's key hides once Valued. shows (`.ss-gone`).
+- **Payout coins** (`js/coin-sounds.js`, Settings -> Audio -> Payout coin, `SETTINGS.payoutCoin`):
+  `PAYOUT_COINS` pack (the sound pack's coin, what played before), arcade (8-bit pickup), register
+  (Ka-ching), stack (Coin stack), chip (Credit chip, default), jar (Tip jar), built from js/audio-dsp.js.
+  Only the payout count-up plays them: `sfxPayoutCoin(k, n)` (catalog `payout_coin`, event bus,
+  `D_FREQUENT` 0.20) with k the sound's place in its line and n the line's sounds; the new coins climb a
+  pentatonic step a sound and the line's last rings longer. Each has a `level` so it sits within about
+  1.5 dB of the pack coin over its first 300ms (measured offline). A choice in Settings plays the coin
+  (only inside a user gesture, `navigator.userActivation`). **`coin-preview.html`** loads the real
+  js/audio-dsp.js and js/coin-sounds.js (the pack coin is a copy of `vgCoin`): one coin or a whole
+  payout (Interest, Early Finish Bonus, Unspent at the game's own `payoutCoinMs` / `coinStride`), three
+  sizes, volume. Published for the owner as an artifact.
+Measured in headless Chromium at 1440x820 and 420x900 by real clicks and taps: SPEED UP then SKIP on a
+hand (pace 1.1 -> 2.2, the blast), SKIP on the payout (Valued. 0.1-0.3s later, key hidden); the keys sit
+level with the hand name / the payout title in console and pit, and the phone key clears the cards;
+all six coins play through the wrapper with no warnings; no page errors, no drift.
+
+
+## r729 - the winning hand waits; the odometer rests on whole digits (owner)
+- **The winning hand is not added to SCORE until its own climb** (js/score-rise.js): playHand's two
+  goal branches call `scoreRiseHold(scoreBeforeHand)`, which caps the rising score at the total
+  before that hand (`rise.cap`, `riseGoal()`); hands still rolling land there and the box holds,
+  owned, until the goal hand's dance reaches its SCORE climb and calls `scoreRiseYield(scoreBefore)`
+  (js/score-dance.js), which hands the box back at that number for the climb to write. With nothing
+  rolling the hold hands back at once. A cut dance still snaps to the whole total.
+- **A wheel only rests on a whole digit.** The higher wheels turned over the last tenth of the WHOLE
+  number below them (the thousands wheel sat half way for 100 points of roll); now a wheel turns only
+  on the carry, while every wheel below it reads 9. A units step slower than `RISE_SPIN_MS` (33ms)
+  rolls in its last `RISE_ROLL_MS` (90, at most 60% of the step), eased, and sits whole for the rest;
+  faster steps spin. The target is rounded, so a roll never lands between digits.
+Measured in headless Chromium at 1440x820 and 420x900: a 3-point roll showed a half digit for at most
+50ms at a time (was 717ms), 9 points 67ms (was 1,000ms); a winning hand played behind another held the
+box at 260 until its climb (was 270 within 0.9s of PLAY); a winning first hand stayed at 0 until its
+climb and the round went to the interlude; no page errors.
+
+## r730 - Records in the console look; the Hands tab by family; Owned has two views (owner)
+- **The whole panel is amber glass** (css/records.css rewritten): VT323, the board screens' glass
+  and colours (`--am*`, the event lab's phosphors as `--r-*`, scoped to `#records-panel`), tabs and
+  toggles as wireframe keys, stat boxes, pixel-square bars, `[+]` folds. No tab icons. The screen
+  door already lists `#records-overlay`. Class names are unchanged, so every tab took the look.
+- **Hands** (js/records.js, `recordsRenderHands`), when the scoring model is the card ladder with
+  double scaling (`recHandLadderOn`; any other dev model keeps the old table,
+  `recordsRenderHandsTable`). **SCORE** (`recordsHandsScore`): one example hand per family
+  (`REC_FAMILIES`: 7 7 7 K K..., 5 6 7 8 9..., hearts), max(5, Hand Size) cards, real faces from
+  `renderCardAppearance` on made-up cards (`rec-x-` ids, no store has them), cards past the Hand
+  Size dimmed; under each card the mult it pays (place + `nsFamStep`) and its bonus pips
+  (`nsFamPips`); on the right plays this run and two square bars to the next mult step and pip.
+  **FOCUS** (`recordsHandsFocus`): every hand type as a small hand (`REC_HAND_EX`) with
+  `HAND_FOCUS` as squares and a figure, grouped SETS / RUNS / FLUSHES / BOTH, hands over the Hand
+  Size or not unlocked folded under BIGGER AND LOCKED HANDS. Names are the preview's
+  (`recHandWord`, from `HAND_LABEL`). **HAND FILES** (`recordsHandFiles`): one fold per hand: size
+  and families, Focus (and half the speed bonus), plays this run (`crHandPlays`), what it needs,
+  unlock paths, and the owned Tricks / Knacks whose words name it (`recHandMentions`: longer hand
+  names are taken out first, so "Flush" does not find "Straight Flush").
+- Facts the tab states (checked in code): a same-suit run credits both families' play counts,
+  every card scores twice, and it takes the BETTER family's step and pips, not the sum
+  (`nsHandGrowth`); its Focus is the run's alone (`generateHandFocus` reads the primary hand).
+- **Owned** (`recordsRenderPersonnel`): VIEW List / Tray (`recOwnedView`, `lethe.recOwnedView.v1`,
+  stored only when 'tray'). List: the object 96 x 92 on the left (`entityTileHTML` with the id, so
+  tier bands and stamp show), name, tag and words on the right. Tray: the objects at 68 x 64 in a
+  wrapping row with name, tag and words under each. Both go Tricks, Knacks, Sleights.
+Measured in headless Chromium at 1440x820 and 420x900 (Classic, real `openRecords`): every tab,
+both Hands views and both Owned views drawn, no element wider than its box, no page errors.

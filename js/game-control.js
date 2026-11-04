@@ -183,16 +183,16 @@ function updateInteractCosts() {
   }
   // Play is 0 by default (r50); a "Hands +Ns" debuff makes it cost that much.
   set('ic-play', `${playHandCostThisRound || 0}s`);
-  // Discard cost per card: 3 base, 0 with Free Discards, 6 with Spoiled (id hoarder), + reward debuff.
-  let disc = (typeof BAL !== 'undefined') ? BAL._resources.discard_seconds_per_card : 3;
+  // Discard cost (flat, r727): the tier's figure, 0 with Free Discards, 2x with Spoiled (id hoarder), + reward debuff.
+  let disc = discardSecondsBase();
   if (typeof hasKnack === 'function' && hasKnack('free_discards')) disc = 0;
-  else { if (typeof hasKnack === 'function' && hasKnack('hoarder')) disc = BAL.hoarder.discard_seconds_per_card; disc += (discardCostThisRound || 0); }
+  else { if (typeof hasKnack === 'function' && hasKnack('hoarder')) disc = hoarderDiscardSecs(); disc += (discardCostThisRound || 0); }
   disc = Math.round(disc * (typeof bossInteractMult === 'function' ? bossInteractMult() : 1) * _tm);
   set('ic-discard', `${disc}s`);
-  // Swap cost: 4 base, 0 with Free Swaps.
-  let swap = (typeof BAL !== 'undefined') ? BAL._resources.swap_seconds : 8;
+  // Swap cost: the tier's figure, 0 with Free Swaps, 2x with Steady Hand.
+  let swap = swapSecondsBase();
   if (typeof hasKnack === 'function' && hasKnack('free_swaps')) swap = 0;
-  else if (typeof hasKnack === 'function' && hasKnack('steady_hand')) swap = BAL.steady_hand.swap_seconds;
+  else if (typeof hasKnack === 'function' && hasKnack('steady_hand')) swap = steadyHandSwapSecs();
   swap = Math.round(swap * (typeof bossInteractMult === 'function' ? bossInteractMult() : 1) * _tm);
   set('ic-swap', `${swap}s`);
   // Starting Time less permanent (−5s) penalties. Not a ceiling: rewinds and round-start bonuses go above it.
@@ -590,6 +590,8 @@ function startGame() {
   trickFireTotals  = {};
   if (typeof resetQuarterLog === 'function') resetQuarterLog();   // js/quarter.js
   if (typeof endlessReset === 'function') endlessReset();          // js/endless.js (r680)
+  if (typeof difficultyStartRun === 'function') difficultyStartRun();   // r727: the run takes the difficulty setting
+  hmRounds = {}; hmSeen = {};                                       // r727: js/horsemen.js
   if (typeof hideQuarterCard === 'function') hideQuarterCard();
   if (typeof resetHandLog === 'function') resetHandLog();
   gameStartTime    = Date.now();

@@ -995,7 +995,7 @@ function fillGridHoles() {
       for (let c = 0; c < gridCols; c++) if (!gridData[r][c]) gridData[r][c] = drawCard() || null;
     return;
   }
-  const _void = (r, c) => typeof isCellVoid === 'function' && isCellVoid(r, c);
+  const _void = (r, c) => (typeof isCellVoid === 'function' && isCellVoid(r, c)) || (typeof cardFixedAt === 'function' && cardFixedAt(r, c));   // r723: a fixed card keeps its cell
   for (let c = 0; c < gridCols; c++) {
     const rows = [];
     for (let r = 0; r < gridRows; r++) if (!_void(r, c)) rows.push(r);

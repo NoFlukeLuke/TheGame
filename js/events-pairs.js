@@ -40,7 +40,7 @@ function _pairsBuild() {
   const ops = (typeof flowrDrawOps === 'function')
     ? flowrDrawOps(PAIRS_OP_PAIRS, FLOWR_DECK_OPS.filter(o => PAIRS_RARE_OPS.includes(o.id)), { event: true })
     : FLOWR_DECK_OPS.filter(o => PAIRS_RARE_OPS.includes(o.id)).slice(0, PAIRS_OP_PAIRS);
-  const curseIds = Object.keys(CURSE_DEFS);
+  const curseIds = curseCardKinds();   // r726: penalty A is a horseman curse card (js/horsemen.js)
   const curse = curseIds[Math.floor(Math.random() * curseIds.length)];
   const tiles = [];
   ranks.slice(0, PAIRS_RANK_PAIRS).forEach(rank => { for (let k = 0; k < 2; k++) tiles.push({ kind: 'rank', key: 'rank:' + rank, card: _pairsRankCard(rank) }); });
@@ -63,15 +63,15 @@ function _pairsFaceHTML(t) {
       `<div class="mt-buffs">${t.card.buffs.map(b => `<div>${_pairsBuffText(b)}</div>`).join('')}</div>`;
   }
   if (t.kind === 'op') return `<div class="mt-ico">${t.op.icon}</div><div class="mt-name">${t.op.name}</div>`;
-  if (t.pen === 'A') { const d = CURSE_DEFS[t.curse]; return `<div class="mt-ico">${d.icon}</div><div class="mt-name">${d.name}</div><div class="mt-pen">A</div>`; }
-  return `<div class="mt-ico">🪨</div><div class="mt-name">Stones</div><div class="mt-pen">B</div>`;
+  if (t.pen === 'A') { const d = CURSE_CARD_DEFS[t.curse]; return `<div class="mt-ico">${emGlyph(d.icon)}</div><div class="mt-name">${d.name}</div><div class="mt-pen">A</div>`; }
+  return `<div class="mt-ico">${emGlyph('🗡')}</div><div class="mt-name">War</div><div class="mt-pen">B</div>`;
 }
 
 function _pairsPayText(t) {
   if (t.kind === 'rank') return `${t.card.rank}${t.card.suit} and its match join the deck, buffs and all`;
   if (t.kind === 'op') return `${t.op.name} lands on your deck`;
-  if (t.pen === 'A') return `${CURSE_DEFS[t.curse].name} on one of your cards`;
-  return 'Two stones in your deck until the next boss';
+  if (t.pen === 'A') return `A ${CURSE_CARD_DEFS[t.curse].name} card in your deck`;
+  return 'Two War cards in your deck until the next boss';
 }
 
 function renderPairs() {
@@ -252,11 +252,10 @@ function _pairsPay(a, t) {
     return;
   }
   if (a.pen === 'A') {
-    const cd = _pairsPickCards(1, c => !cardCurses[cardId(c)])[0];
-    if (cd) { cardCurses[cardId(cd)] = { id: a.curse, left: CURSE_DEFS[a.curse].liftAfter }; noteMessage(`Pairs: ${CURSE_DEFS[a.curse].name} on ${cd.rank}${cd.suit}`, 'var(--red)'); }
+    addCurseCardsToDeck(1, a.curse); noteMessage(`Pairs: a ${CURSE_CARD_DEFS[a.curse].name} card in the deck`, 'var(--red)');
     return;
   }
-  if (typeof injectStonesIntoDeck === 'function') { injectStonesIntoDeck(2); noteMessage('Pairs: two stones in the deck', 'var(--red)'); }
+  if (typeof injectStonesIntoDeck === 'function') { injectStonesIntoDeck(2); noteMessage('Pairs: two War cards in the deck', 'var(--red)'); }
 }
 
 function confirmPairs() { closeEvent(); }

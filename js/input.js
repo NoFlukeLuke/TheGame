@@ -199,6 +199,7 @@ function doSwap(r1, c1, r2, c2) {
   const tmp = gridData[r1][c1];
   gridData[r1][c1] = gridData[r2][c2];
   gridData[r2][c2] = tmp;
+  if (typeof horsemenOnSwap === 'function') horsemenOnSwap([[r1, c1], [r2, c2]]);   // r723: a swap resets Famine's clock
 
   // Pivot payout: both swapped cards take +5 permanent mult, keyed by card identity
   // (cardId), so the buff follows that one physical card through the deck. The Pivot
@@ -223,13 +224,14 @@ function doSwap(r1, c1, r2, c2) {
   if (typeof ulBump === 'function') ulBump('swaps');   // r706
   swapsUsedGame++;    // r651: Landfill counts swaps this game
   if (sleightFreeSwapPending) sleightFreeSwapPending = false;
-  // Swap time cost - a flat 8s (BAL._resources.swap_seconds), 0s with Free Swaps
+  // Swap time cost: the difficulty tier's figure (r727; it was a flat 8s), 0s with Free Swaps
   // or a free swap, Steady Hand's own figure otherwise. There used to be an extra
   // flat spendRoundTime(SWAP_TIME_COST) on top of this, which made the 3rd swap of
   // a round cost 14s while the UI said 4s. One charge only now.
-  let swapTimeCost = BAL._resources.swap_seconds;
+  // r727: the seconds are the difficulty tier's (swapSecondsBase, js/difficulty.js).
+  let swapTimeCost = swapSecondsBase();
   if (freeThisSwap || _fodderSwap || hasKnack('free_swaps')) swapTimeCost = 0;
-  else if (hasKnack('steady_hand')) swapTimeCost = BAL.steady_hand.swap_seconds;
+  else if (hasKnack('steady_hand')) swapTimeCost = steadyHandSwapSecs();
   swapTimeCost = Math.round(swapTimeCost * bossInteractMult() * interactTimeCostMult());
   if (swapTimeCost > 0) {
     roundSeconds = Math.max(1, roundSeconds - swapTimeCost);
@@ -342,7 +344,8 @@ function deselect(r, c) {
 function tryAddToSelection(r, c) {
   const _card = gridData[r]?.[c];
   const _cs = dbgCardStr(_card);
-  if (selected.length >= limits.selection.current) { dbgEvent('warn', `add blocked: selection full [${r},${c}] ${_cs}`); return false; }
+  // r726: a Pestilence card rides along outside the hand (js/horsemen.js), so it takes no Selection Size slot.
+  if (selCountForCap() >= limits.selection.current && !(gridData[r]?.[c]?._curseCard === 'pest')) { dbgEvent('warn', `add blocked: selection full [${r},${c}] ${_cs}`); return false; }
   if (isCellBlocked(r, c)) { dbgEvent('warn', `add blocked: cell blocked [${r},${c}]`); return false; }
   if (!cardCan(gridData[r]?.[c], 'select')) { dbgEvent('warn', `add blocked: cardCan=false [${r},${c}] ${_cs}`); return false; }
   const key = `${r}-${c}`;
@@ -419,6 +422,8 @@ function onCardTap(r, c) {
       return;
     }
   }
+  // r723: Severance Package (js/horsemen.js): a double-tap on a curse card or stone discards it for stock.
+  if (typeof severanceTap === 'function' && severanceTap(r, c)) return;
   if (!cardCan(gridData[r]?.[c], 'select') && !cardCan(gridData[r]?.[c], 'swap')) { dbgEvent('warn', `tap blocked: cardCan=false`, { card: _cardStr }); return; }
 
   const now = Date.now();
@@ -667,7 +672,7 @@ gridEl2.addEventListener('pointermove', e => {
         swipeStopped = true;
         return;
       }
-      if (selected.length < limits.selection.current) {
+      if (selCountForCap() < limits.selection.current) {
         selected.push([r, c]);
         (ps.added || (ps.added = [])).push(key);
         dbgEvent('info', `swipe-add [${r},${c}] (total:${selected.length})`);

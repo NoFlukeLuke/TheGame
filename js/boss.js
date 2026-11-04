@@ -111,17 +111,24 @@ function isJunkCard(c) { return !!(c && c._junk && !c._curseCard); }
 // into the deck (curseCardTick, js/card-states.js). Only undoing a curse removes
 // it (Clean Slate, Clean Up). Extra Rep is the first thing that costs them.
 const CURSE_CARD_LIFE = 120;
+// r723 (owner): the curse cards are the horsemen (js/horsemen.js). Leech and Smog are
+// retired: never drawn, kept so a saved run that holds one still works.
 const CURSE_CARD_DEFS = {
-  leech: { name: 'Leech', icon: '🩸', desc: 'Playing a hand next to it costs 2s.', secs: 2 },
-  smog:  { name: 'Smog',  icon: '☁',  desc: 'Hands next to it score ×0.8 mult.', mult: 0.8 },
+  death:  { name: 'Death',      icon: '⚰', desc: 'Every 30s it flies the way it faces. Every card in its path goes to the played pile. It sticks where it stops.' },
+  famine: { name: 'Famine',     icon: '🥣', desc: 'Swap it every 30s or it takes a swap, a discard, 20s, a Trick for 20s or every Sleight on the grid.' },
+  pest:   { name: 'Pestilence', icon: '☣', desc: 'Every 30s a neighbour becomes one. Playing it in a hand resets that clock; it scores nothing and stays on the grid. Changes places with a neighbour every 15s.' },
+  leech: { name: 'Leech', icon: '🩸', desc: 'Playing a hand next to it costs 2s.', secs: 2, retired: true },
+  smog:  { name: 'Smog',  icon: '☁',  desc: 'Hands next to it score ×0.8 mult.', mult: 0.8, retired: true },
 };
+function curseCardKinds() { return Object.keys(CURSE_CARD_DEFS).filter(k => !CURSE_CARD_DEFS[k].retired); }
 function makeCurseCard(kind) {
-  const k = kind || Object.keys(CURSE_CARD_DEFS)[Math.floor(Math.random() * Object.keys(CURSE_CARD_DEFS).length)];
+  const _ks = curseCardKinds();
+  const k = kind || _ks[Math.floor(Math.random() * _ks.length)];
   return stampId({ rank: '?', suit: 'junk', _isStone: true, _junk: true, _curseCard: k });
 }
 function isCurseCard(c) { return !!(c && c._curseCard); }
-function addCurseCardsToDeck(n) {
-  for (let i = 0; i < n; i++) drawPile.splice(Math.floor(Math.random() * (drawPile.length + 1)), 0, makeCurseCard());
+function addCurseCardsToDeck(n, kind) {
+  for (let i = 0; i < n; i++) drawPile.splice(Math.floor(Math.random() * (drawPile.length + 1)), 0, makeCurseCard(kind));
   expectedDeckTotal += n;
   updateDeckHud();
 }
@@ -130,6 +137,12 @@ function curseCardsAll() {
   [drawPile, playedPile].forEach(p => p.forEach(c => { if (isCurseCard(c)) out.push(c); }));
   for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) if (isCurseCard(gridData[r]?.[c])) out.push(gridData[r][c]);
   return out;
+}
+// One curse card out of the run: the piles first, then the board (the cell refills).
+function clearOneCurseCard() {
+  for (const p of [drawPile, playedPile]) for (let i = p.length - 1; i >= 0; i--) if (isCurseCard(p[i])) { p.splice(i, 1); expectedDeckTotal--; updateDeckHud(); return true; }
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) if (isCurseCard(gridData[r]?.[c])) { const t = gridData[r][c]._temp; gridData[r][c] = drawCard() || null; if (!t) expectedDeckTotal--; updateDeckHud(); return true; }
+  return false;
 }
 function clearCurseCards() {
   let n = 0;
@@ -202,11 +215,12 @@ function placeStonesOnGrid(count) {
 function purgeStonesFromDeck() {
   // Remove all stones from drawPile, playedPile, and grid
   // Junk (r576) is yours, not the boss's: it stays.
-  drawPile = drawPile.filter(c => !c._isStone || c._junk);
-  playedPile = playedPile.filter(c => !c._isStone || c._junk);
+  // r723: a boss's horseman is a TEMP curse card; it goes with the stones.
+  drawPile = drawPile.filter(c => !c._isStone || (c._junk && !c._temp));
+  playedPile = playedPile.filter(c => !c._isStone || (c._junk && !c._temp));
   for (let r = 0; r < gridRows; r++) {
     for (let c = 0; c < gridCols; c++) {
-      if (gridData[r][c] && gridData[r][c]._isStone && !gridData[r][c]._isChallenge && !gridData[r][c]._junk) {
+      if (gridData[r][c] && gridData[r][c]._isStone && !gridData[r][c]._isChallenge && (!gridData[r][c]._junk || (gridData[r][c]._temp && gridData[r][c]._curseCard))) {
         gridData[r][c] = drawCard() || null; // refill with a real card
       }
     }
@@ -337,6 +351,28 @@ function applyBossModifiers(preset) {
                                  * (typeof bossMagScale === 'function' ? bossMagScale() : 1)));
         placeStonesOnGrid(_onBoard);
         injectStonesIntoDeck(_inDeck);
+        break;
+      }
+      // r723 (owner): THE REAPER. One Death card when the clock starts (the opening
+      // call), another every everySecs. Its time rule is in deathBossSeconds (js/horsemen.js).
+      case 'inject_death':
+        bossSchedule(preset.params.everySecs || 45, () => { hmSpawnRandom('death'); });
+        break;
+      // r727 (owner): THE FOUR HORSEMEN, the top difficulty's last boss. One of each
+      // curse card as the clock starts: War, Death, Famine, Pestilence. Nothing after.
+      case 'inject_horsemen': {
+        let _n = 0;
+        bossSchedule(3600, () => { if (_n++ === 0) hmSpawnAll(); });
+        break;
+      }
+      // THE SHORTAGE: one Famine card when the clock starts, another every everySecs.
+      case 'inject_famine':
+        bossSchedule(preset.params.everySecs || 45, () => { hmSpawnRandom('famine'); });
+        break;
+      // THE PLAGUE: two Pestilence cards in opposite corners, then one every everySecs.
+      case 'inject_pestilence': {
+        let _n = 0;
+        bossSchedule(preset.params.everySecs || 60, () => { if (_n++ === 0) hmSpawnCorners('pest'); else hmSpawnRandom('pest'); });
         break;
       }
       case 'void_corners':
@@ -515,6 +551,7 @@ function maybeFamineDrawSwap(card) { return card; }
 function isTrickDisabledByBoss(trickId) {
   // r590: The Investment can lock Tricks too. Every "is this Trick switched off" read goes through here.
   if (typeof altarTrickLocked === 'function' && altarTrickLocked(trickId)) return true;
+  if (typeof famineMutedTrick === 'function' && famineMutedTrick(trickId)) return true;   // r723: Famine's mute
   if (!bossActive) return false;
   if (hasSleightOnGrid('fight_power')) return false; // Fight the Power ignores boss effects
   if (typeof bossTrickBlackedOut === 'function' && bossTrickBlackedOut(trickId)) return true; // The Censor
@@ -588,7 +625,8 @@ function peekNextActBoss() {
   // place the run's length is written down.
   if (typeof actNumber === 'number' && actNumber >= QUARTERS_PER_RUN && !(typeof endlessRun !== 'undefined' && endlessRun)) return null;
   if (!nextActBossId) {
-    const p = nextBossPreset();
+    // r727: at the top difficulty the last quarter's boss is THE FOUR HORSEMEN.
+    const p = (typeof difficultyFinalBossDue === 'function' && difficultyFinalBossDue(actNumber + 1)) ? difficultyFinalBossPreset() : nextBossPreset();
     nextActBossId = p ? p.id : null;
   }
   return BOSS_PRESETS.find(p => p.id === nextActBossId) || null;
@@ -614,6 +652,8 @@ function drawActBoss() {
     nextActBossId = null;
     if (p && !bossPresetIsLive(p)) p = null;
   }
+  // r727: at the top difficulty the last quarter's boss is THE FOUR HORSEMEN, whatever was named.
+  if (typeof difficultyFinalBossDue === 'function' && difficultyFinalBossDue(actNumber)) p = difficultyFinalBossPreset() || p;
   if (!p) p = nextBossPreset();
   actBossId = p ? p.id : null;
   if (typeof updateActProgressUI === 'function') updateActProgressUI();
@@ -663,7 +703,7 @@ function peekBossPreset() {
     const held = BOSS_PRESETS.find(p => p.id === actBossId);
     if (held) return held;
   }
-  if (!bossBag.length) bossBag = shuffle(BOSS_PRESETS.map(p => p.id));
+  if (!bossBag.length) bossBag = shuffle(BOSS_PRESETS.filter(p => !p.final).map(p => p.id));
   const id = bossBag.find(bid => {
     const p = BOSS_PRESETS.find(x => x.id === bid);
     return p && bossPresetIsLive(p);
@@ -697,7 +737,7 @@ function nextBossPreset() {
   // live (very early run, no Tricks yet) take the front of the bag anyway rather
   // than loop forever.
   for (let refill = 0; refill < 2; refill++) {
-    if (!bossBag.length) bossBag = shuffle(BOSS_PRESETS.map(p => p.id));
+    if (!bossBag.length) bossBag = shuffle(BOSS_PRESETS.filter(p => !p.final).map(p => p.id));   // r727: the final boss is never in the bag
     const liveIdx = bossBag.findIndex(id => {
       const p = BOSS_PRESETS.find(x => x.id === id);
       return p && bossPresetIsLive(p);
@@ -782,6 +822,10 @@ function triggerBoss(presetOverride = null, windowSeconds = null) {
   // Not in Crunch, whose boss is fought on whatever the quarter's bank has left.
   if (typeof overtimeBossMult === 'function' && !(typeof crunchActive === 'function' && crunchActive()))
     bossWindowDuration = Math.max(10, Math.round(bossWindowDuration * overtimeBossMult()));
+  // r727: the difficulty tier's cut applies to a boss round like any round (not Flow,
+  // whose cut is on the session clock, and not Crunch's bank).
+  if (typeof difficultyTimeCut === 'function' && !(ACTIVE_MODE && ACTIVE_MODE.flow) && !(typeof crunchActive === 'function' && crunchActive()))
+    bossWindowDuration = Math.max(10, bossWindowDuration - difficultyTimeCut());
   roundSeconds = bossWindowDuration;
   if (typeof overtimeBossGoalMult === 'function' && overtimeBossGoalMult() !== 1) roundGoal = Math.ceil(roundGoal * overtimeBossGoalMult());
   if (typeof crrBossGoalApply === 'function') roundGoal = crrBossGoalApply(roundGoal);   // r671: a challenge's Boss goal reward or penalty

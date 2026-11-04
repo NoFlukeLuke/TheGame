@@ -69,6 +69,9 @@ function doDiscard() {
   // Procrastinate (r647): its 8 neighbours join the discard. They are CARRIED: no
   // seconds and no stock of their own, and the discard counts as 2 (discardsUsedRound).
   const _carried = procrastinateCarry(), _procrastinated = _carried.procs > 0;
+  // Bomb (r722): the whole board goes with it, pierced (js/anvil.js). Carried like Procrastinate's.
+  const _bombed = (typeof bombCarry === 'function') ? bombCarry() : new Set();
+  _bombed.forEach(cd => _carried.add(cd));
   const discardedCards = selected.map(([r,c]) => gridData[r][c]);
   // Lucky Sevens: +3 Focus per 7 discarded
   if (hasTrick('lucky_sevens')) { const _sv = discardedCards.filter(c => rkHas('lucky_sevens', c?.rank)).length; if (_sv) addFocus(_sv * BAL.lucky_sevens.focus, 'lucky_sevens'); }
@@ -81,7 +84,7 @@ function doDiscard() {
   _discardContextCards = discardedCards.filter(c => c && c.rank && !c._isSleight);
   selected.forEach(([r,c]) => {
     const card = gridData[r]?.[c];
-    if (card?._isSleight) {
+    if (card?._isSleight && !_carried.has(card)) {   // r722: a Sleight a Bomb carried does not fire
       const def = sleightDef(card);
       if (def?.activation === 'on_discard') {
         applySleightGridEffect(def.id, r, c);
@@ -115,8 +118,9 @@ function doDiscard() {
     if (!_dc || _sieve) return;
     // Cloud Nine (r539): a 9 thrown away while it is held is destroyed, not reshuffled.
     if (rkHas('nines_mult', _dc.rank) && !_dc._isSleight && !isWildCard(_dc) && hasTrick('nines_mult')) _dc._nineSpent = true;
-    if (_dc._isSleight && sleightDef(_dc)?.activation === 'on_discard') discardToPlayed(_dc);
-    else if (shredderVictims.has(_dc)) { expectedDeckTotal--; updateDeckHud(); }   // Shredder (r647): gone for good
+    if (shredderVictims.has(_dc)) { expectedDeckTotal--; updateDeckHud(); }   // Shredder (r647): gone for good
+    else if (_carried.has(_dc) && typeof pierceRoute === 'function') pierceRoute(_dc);   // r722: carried cards are pierced
+    else if (_dc._isSleight && sleightDef(_dc)?.activation === 'on_discard') discardToPlayed(_dc);
     else discardToDrawPile(_dc);
   });
   shredderVictims.clear();
@@ -125,20 +129,22 @@ function doDiscard() {
   const _own = discardedCards.filter(c => !_carried.has(c));   // r647: carried cards pay nothing
   const _fodderN = _freeHand ? _own.length : ((typeof cardIsFodder === 'function') ? _own.filter(cardIsFodder).length : 0);
   if (!hasKnack('hoarder') && _fodderN < _own.length) discards--;
-  // Discard time cost - 3s PER CARD (BAL._resources.discard_seconds_per_card).
+  // Discard time cost: the difficulty tier's flat figure (r727; it was 3s PER CARD).
   // There used to be a flat spendRoundTime(DISCARD_TIME_COST) here as well, so a
   // 1-card discard billed 3 + 3 = 6s while the UI said 3s, and the Free Discards
   // knack ("costs no time") still charged the flat 3s. One charge only now.
   // Reward-grid time penalties add to the per-card cost (unless discards are free).
-  let perCardCost = BAL._resources.discard_seconds_per_card;
-  if (hasKnack('free_discards')) perCardCost = 0;
-  else { if (hasKnack('hoarder')) perCardCost = BAL.hoarder.discard_seconds_per_card; perCardCost += (discardCostThisRound || 0); }
-  const usingFreeDiscard = perCardCost > 0 && freeDiscardsLeft > 0;
+  // r727 (owner): the cost is FLAT, the difficulty tier's figure (discardSecondsBase,
+  // js/difficulty.js), whatever the count; the reward-grid penalty adds to it.
+  let flatCost = discardSecondsBase();
+  if (hasKnack('free_discards')) flatCost = 0;
+  else { if (hasKnack('hoarder')) flatCost = hoarderDiscardSecs(); flatCost += (discardCostThisRound || 0); }
+  const usingFreeDiscard = flatCost > 0 && freeDiscardsLeft > 0;
   if (usingFreeDiscard) freeDiscardsLeft--;
   // interactTimeCostMult() is 0 when the mode does not bill the clock at all and
   // Flow's half rate when it does, so this site needs no second test (r326).
-  // r567: a Fodder card bills no seconds; the others pay their per-card cost.
-  const timeCost = usingFreeDiscard ? 0 : Math.round((_own.length - _fodderN) * perCardCost * bossInteractMult() * interactTimeCostMult());
+  // r567: a discard of Fodder alone bills no seconds.
+  const timeCost = (usingFreeDiscard || _own.length - _fodderN <= 0) ? 0 : Math.round(flatCost * bossInteractMult() * interactTimeCostMult());
   if (timeCost > 0) {
     roundSeconds = Math.max(1, roundSeconds - timeCost);
     showTimeCost(`-${timeCost}s`);
@@ -187,7 +193,7 @@ function doDiscard() {
     }
   }
   // Martyr: sacrificing a non-discard Sleight refills 1 charge on every OTHER on-grid Sleight
-  if (hasKnack('martyr') && discardedCards.some(c => c?._isSleight && sleightDef(c)?.activation !== 'on_discard')) {
+  if (hasKnack('martyr') && discardedCards.some(c => c?._isSleight && !_carried.has(c) && sleightDef(c)?.activation !== 'on_discard')) {
     let _restored = 0;
     for (let _r = 0; _r < gridRows; _r++) for (let _c = 0; _c < gridCols; _c++) {
       const _sc = gridData[_r]?.[_c];
@@ -628,7 +634,8 @@ function procrastinateCarry() {
   live.forEach(([pr, pc]) => {
     for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
       const r = pr + dr, c = pc + dc, k = r + '-' + c, cd = gridData[r]?.[c];
-      if ((!dr && !dc) || inSel.has(k) || !cd || cd._isSleight || !cardCan(cd, 'discard') || isCellBlocked(r, c)) continue;
+      // r722: a Sleight's discard PIERCES (js/anvil.js): anvils, curse cards, Snared and held cards go too.
+      if ((!dr && !dc) || inSel.has(k) || !cd || cd._isSleight || !pierceCanTake(cd, r, c)) continue;
       if (typeof crDiscardLocked === 'function' && crDiscardLocked([[r, c]])) continue;
       inSel.add(k); selected.push([r, c]); out.add(cd);
     }

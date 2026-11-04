@@ -350,6 +350,14 @@ const INFO_TOPICS = [
       'You can read the briefing again mid-round by tapping the {GOAL} chip or the progress block.',
     ] },
 
+  { id: 'difficulty', group: 'pressure', title: 'Difficulty',
+    body: [
+      'Settings sets the tier for the next run; a run keeps the tier it started on. Each tier keeps the changes below it.',
+      '1 ENTRY LEVEL: a horseman curse card in your deck leaves after 4 rounds in which it came onto the grid. Swaps and discards cost no time.',
+      '2 SENIOR: horsemen last 6 rounds. A swap costs 3s and a discard 5s, whatever the count.',
+      '3 EXECUTIVE: horsemen stay until removed. Every round starts 30s shorter (Flow: every quarter).',
+      '4 C-SUITE: the run\u2019s last boss is THE FOUR HORSEMEN, which opens with one of each curse card on the grid.',
+    ] },
   { id: 'mini_boss', group: 'pressure', title: 'Priority accounts',
     body: [
       `A priority account is an ordinary round with a RAISED {GOAL} and one extra requirement. Clearing it pays ${gridName('reward', { a: true })}; meeting the requirement pays credits too.`,
