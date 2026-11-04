@@ -397,6 +397,8 @@ component rule generalised). Flush as a flat second payout, as the owner said.
   panel's keys change the next one); every tap, play, swap, discard and Reshuffle is logged with
   its clock second, cells, faces and the board; COPY LOG puts the session on the clipboard as
   JSON. Paste it into a message or a file in the repo and the next pass reads it.
+  r731: four more rounds (17 to 20) at 3:00 on a 5 x 6 board, to see whether a bigger board
+  changes the pace and the swaps; 20 rounds in all.
 - **The `named` tag** (above).
 - **The build sweep** (`tools/sim/probes/build-sweep.js`): section 8d.
 

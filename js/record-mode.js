@@ -4,7 +4,8 @@
 // index.html?record starts a Classic run with the walkthrough ended, a 4 x 5
 // board, 3 swaps, 3 discards, Focus starting at 10 and no Tricks, on a round
 // that never clears (the goal is out of reach). Rounds 1 to 8 are 1:00, 9 to 16
-// are 3:00 (the keys change the next round's length). When the clock runs out
+// are 3:00, and 17 to 20 are 3:00 on a 5 x 6 board (r731: does a bigger board
+// change the pace and the swaps?); the keys change the next round's length and board. When the clock runs out
 // the round ends here, not in the game: NEXT ROUND deals again. Every tap,
 // play, swap, discard and Reshuffle is logged with its second on the round
 // clock, its cells and card faces, and the board as it stood; COPY LOG puts
@@ -12,9 +13,13 @@
 // section 5). Nothing here runs without ?record, and nothing is stored.
 (function () {
   if (!/[?&]record\b/.test(location.search)) return;
-  const PLAN = [60, 60, 60, 60, 60, 60, 60, 60, 180, 180, 180, 180, 180, 180, 180, 180];
-  const ROWS = 4, COLS = 5, STOCK = 3, FOCUS0 = 10;
-  let nextLen = null, round = 0, cur = null, rounds = [], ready = false, over = false, panel = null, watch = 0;
+  const SMALL = [4, 5], BIG = [5, 6];   // rows x cols
+  const PLAN = [];
+  for (let i = 0; i < 8; i++) PLAN.push({ len: 60, grid: SMALL });
+  for (let i = 0; i < 8; i++) PLAN.push({ len: 180, grid: SMALL });
+  for (let i = 0; i < 4; i++) PLAN.push({ len: 180, grid: BIG });
+  const STOCK = 3, FOCUS0 = 10;
+  let nextLen = null, nextGrid = null, round = 0, cur = null, rounds = [], ready = false, over = false, panel = null, watch = 0;
   try { window.insightsOn = () => false; } catch (e) {}
 
   const face = c => !c ? '·' : c._isSleight ? 'SL:' + c.sleightId : c._isReshuffle ? 'RESHUFFLE' : c._isChallenge ? 'CH' : c._isStone ? 'STONE'
@@ -58,11 +63,12 @@
     wrap('reshuffleTap', () => ({ board: board() }), (pre) => { cur.reshuffles++; ev('reshuffle', { board: pre.board }); });
   }
 
-  function lenFor(n) { return nextLen || PLAN[Math.min(PLAN.length - 1, n - 1)]; }
+  function planFor(n) { const p = PLAN[Math.min(PLAN.length - 1, n - 1)]; return { len: nextLen || p.len, grid: nextGrid || p.grid }; }
   function deal() {
     over = false;
     round++;
-    const len = lenFor(round); nextLen = null;
+    const { len, grid } = planFor(round); nextLen = null; nextGrid = null;
+    const [ROWS, COLS] = grid;
     limits.grid_rows.current = ROWS; limits.grid_cols.current = COLS;
     gridRows = ROWS; gridCols = COLS;
     try { trickTray.length = 0; renderTrickTray(); } catch (e) {}
@@ -73,9 +79,9 @@
     try { recomputeFocusDecayInterval?.(); } catch (e) {}
     try { if (typeof CR_SPOT_CHANCE !== 'undefined') CR_SPOT_CHANCE = 0; } catch (e) {}
     try { recomputeGridMetrics(); _devSafeRender(); updateClockUI(); updateScoreUI(); updateSelectionUI(); } catch (e) {}
-    cur = { n: round, len, t0: Date.now(), hands: 0, swaps: 0, discards: 0, reshuffles: 0, focusSum: 0, board0: board(), events: [] };
+    cur = { n: round, len, rows: ROWS, cols: COLS, t0: Date.now(), hands: 0, swaps: 0, discards: 0, reshuffles: 0, focusSum: 0, board0: board(), events: [] };
     gameTimerPaused = false;
-    showMessage(`RECORD · round ${round} · ${len / 60}:00`, 'var(--c-mint)');
+    showMessage(`RECORD · round ${round} · ${len / 60}:00 · ${ROWS} x ${COLS}`, 'var(--c-mint)');
     paint();
   }
   function finish() {
@@ -84,7 +90,7 @@
     gameTimerPaused = true;
     roundSeconds = Math.max(roundSeconds, 5);   // the game's own clock-out must not end the run
     try { updateClockUI(); } catch (e) {}
-    rounds.push({ n: cur.n, len: cur.len, score, hands: cur.hands, swaps: cur.swaps, discards: cur.discards, reshuffles: cur.reshuffles,
+    rounds.push({ n: cur.n, len: cur.len, rows: cur.rows, cols: cur.cols, score, hands: cur.hands, swaps: cur.swaps, discards: cur.discards, reshuffles: cur.reshuffles,
       avgFocus: cur.hands ? +(cur.focusSum / cur.hands).toFixed(2) : 1, board0: cur.board0, events: cur.events });
     showMessage(`Round ${cur.n} done: ${score.toLocaleString()} · ${cur.hands} hands`, 'var(--gold)');
     paint();
@@ -96,7 +102,7 @@
   }
   function text() {
     return JSON.stringify({ record: 1, build: typeof BUILD !== 'undefined' ? BUILD : null, when: new Date().toISOString(),
-      setup: { rows: ROWS, cols: COLS, swaps: STOCK, discards: STOCK, focus0: FOCUS0, scoring: typeof scoringModel !== 'undefined' ? scoringModel : null },
+      setup: { plan: PLAN.map(p => `${p.len}s ${p.grid[0]}x${p.grid[1]}`), swaps: STOCK, discards: STOCK, focus0: FOCUS0, scoring: typeof scoringModel !== 'undefined' ? scoringModel : null },
       rounds, live: cur && !over ? { n: cur.n, events: cur.events } : null });
   }
   async function copy() {
@@ -120,6 +126,7 @@
       const b = e.target.closest('button'); if (!b) return;
       const act = b.dataset.act;
       if (act === 'len') nextLen = +b.dataset.v;
+      if (act === 'grid') nextGrid = b.dataset.v === 'big' ? BIG : SMALL;
       if (act === 'next') deal();
       if (act === 'end') finish();
       if (act === 'copy') copy();
@@ -128,11 +135,11 @@
   }
   function paint() {
     if (!panel) return;
-    const nl = lenFor(round + 1);
+    const np = planFor(round + 1), nl = np.len, ng = np.grid === BIG ? 'big' : 'small';
     const live = cur && !over;
-    panel.innerHTML = `<div><b>RECORD</b> · round ${round}${round ? ` · ${(cur.len / 60) | 0}:00` : ''}${live ? '' : round ? ' · <b>done</b>' : ''}</div>
+    panel.innerHTML = `<div><b>RECORD</b> · round ${round} of ${PLAN.length}${round ? ` · ${(cur.len / 60) | 0}:00 · ${cur.rows}x${cur.cols}` : ''}${live ? '' : round ? ' · <b>done</b>' : ''}</div>
       <div><small>${live ? `hands ${cur.hands} · swaps ${cur.swaps} · discards ${cur.discards} · score ${score.toLocaleString()}` : `${rounds.length} rounds logged`}</small></div>
-      <div class="row"><small>next round:</small><button data-act="len" data-v="60" class="${nl === 60 ? 'on' : ''}">1:00</button><button data-act="len" data-v="180" class="${nl === 180 ? 'on' : ''}">3:00</button></div>
+      <div class="row"><small>next round:</small><button data-act="len" data-v="60" class="${nl === 60 ? 'on' : ''}">1:00</button><button data-act="len" data-v="180" class="${nl === 180 ? 'on' : ''}">3:00</button><button data-act="grid" data-v="small" class="${ng === 'small' ? 'on' : ''}">4x5</button><button data-act="grid" data-v="big" class="${ng === 'big' ? 'on' : ''}">5x6</button></div>
       <div class="row">${live ? '<button data-act="end">END ROUND</button>' : '<button data-act="next" class="next">NEXT ROUND</button>'}<button data-act="copy">COPY LOG</button></div>`;
   }
 
