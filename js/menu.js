@@ -1,4 +1,4 @@
-const BUILD = "2026-11-03 · r729 · the winning hand waits for its own climb; the odometer rests only on whole digits";
+const BUILD = "2026-11-04 · r730 · Records in the console look; Hands by family and Focus; Owned has list and tray views";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

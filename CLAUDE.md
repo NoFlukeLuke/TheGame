@@ -4048,3 +4048,32 @@ Measured in headless Chromium at 1440x820 and 420x900: a 3-point roll showed a h
 50ms at a time (was 717ms), 9 points 67ms (was 1,000ms); a winning hand played behind another held the
 box at 260 until its climb (was 270 within 0.9s of PLAY); a winning first hand stayed at 0 until its
 climb and the round went to the interlude; no page errors.
+
+## r730 - Records in the console look; the Hands tab by family; Owned has two views (owner)
+- **The whole panel is amber glass** (css/records.css rewritten): VT323, the board screens' glass
+  and colours (`--am*`, the event lab's phosphors as `--r-*`, scoped to `#records-panel`), tabs and
+  toggles as wireframe keys, stat boxes, pixel-square bars, `[+]` folds. No tab icons. The screen
+  door already lists `#records-overlay`. Class names are unchanged, so every tab took the look.
+- **Hands** (js/records.js, `recordsRenderHands`), when the scoring model is the card ladder with
+  double scaling (`recHandLadderOn`; any other dev model keeps the old table,
+  `recordsRenderHandsTable`). **SCORE** (`recordsHandsScore`): one example hand per family
+  (`REC_FAMILIES`: 7 7 7 K K..., 5 6 7 8 9..., hearts), max(5, Hand Size) cards, real faces from
+  `renderCardAppearance` on made-up cards (`rec-x-` ids, no store has them), cards past the Hand
+  Size dimmed; under each card the mult it pays (place + `nsFamStep`) and its bonus pips
+  (`nsFamPips`); on the right plays this run and two square bars to the next mult step and pip.
+  **FOCUS** (`recordsHandsFocus`): every hand type as a small hand (`REC_HAND_EX`) with
+  `HAND_FOCUS` as squares and a figure, grouped SETS / RUNS / FLUSHES / BOTH, hands over the Hand
+  Size or not unlocked folded under BIGGER AND LOCKED HANDS. Names are the preview's
+  (`recHandWord`, from `HAND_LABEL`). **HAND FILES** (`recordsHandFiles`): one fold per hand: size
+  and families, Focus (and half the speed bonus), plays this run (`crHandPlays`), what it needs,
+  unlock paths, and the owned Tricks / Knacks whose words name it (`recHandMentions`: longer hand
+  names are taken out first, so "Flush" does not find "Straight Flush").
+- Facts the tab states (checked in code): a same-suit run credits both families' play counts,
+  every card scores twice, and it takes the BETTER family's step and pips, not the sum
+  (`nsHandGrowth`); its Focus is the run's alone (`generateHandFocus` reads the primary hand).
+- **Owned** (`recordsRenderPersonnel`): VIEW List / Tray (`recOwnedView`, `lethe.recOwnedView.v1`,
+  stored only when 'tray'). List: the object 96 x 92 on the left (`entityTileHTML` with the id, so
+  tier bands and stamp show), name, tag and words on the right. Tray: the objects at 68 x 64 in a
+  wrapping row with name, tag and words under each. Both go Tricks, Knacks, Sleights.
+Measured in headless Chromium at 1440x820 and 420x900 (Classic, real `openRecords`): every tab,
+both Hands views and both Owned views drawn, no element wider than its box, no page errors.
