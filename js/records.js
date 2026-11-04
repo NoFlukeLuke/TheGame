@@ -366,9 +366,9 @@ function recordsEntityRow(e) {
 }
 function recordsEntityTrayItem(e) {
   return `<div class="rec-ent rec-ent-tray rar-${e.rar}${e.off ? ' ent-off' : ''}">
-    <div class="rec-ent-mid">${recordsEntityTile(e)}</div>
-    <div class="rec-ent-name">${e.name}</div>
-    <div class="rec-ent-tag">${e.off ? 'SWITCHED OFF' : e.tag}</div>
+    <div class="rec-ent-head"><div class="rec-ent-mid">${recordsEntityTile(e)}</div>
+      <div class="rec-ent-id"><div class="rec-ent-name">${e.name}</div>
+        <div class="rec-ent-tag">${e.off ? 'SWITCHED OFF' : e.tag}</div></div></div>
     <div class="rec-ent-desc">${recordsEntityDesc(e)}</div></div>`;
 }
 

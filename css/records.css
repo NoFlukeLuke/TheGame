@@ -174,11 +174,14 @@
 .rec-ent-row .rec-ent-top { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
 .rec-ent-row .rec-ent-name { flex: 1; }
 /* tray: the objects in a row near their tray size, the words under each */
-.rec-ents-tray { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
-.rec-ent-tray { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px 6px 8px; text-align: center; border-left-width: 1px; border-top: 3px solid var(--e-accent); }
-.rec-ent-mid { display: flex; }
-.rec-ent-mid .reward-cell { width: 68px; height: 64px; }
-.rec-ent-tray .rec-ent-name { font-size: 18px; }
+/* r731 (owner): the object on the left at 1.6x the old 68 x 64, its name and tier to its right */
+.rec-ents-tray { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px; }
+.rec-ent-tray { display: flex; flex-direction: column; gap: 4px; padding: 6px 8px 8px; border-left-width: 1px; border-top: 3px solid var(--e-accent); }
+.rec-ent-head { display: flex; align-items: center; gap: 10px; }
+.rec-ent-mid { flex: 0 0 auto; display: flex; }
+.rec-ent-mid .reward-cell { width: 109px; height: 102px; }
+.rec-ent-id { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.rec-ent-tray .rec-ent-name { font-size: 20px; }
 .rec-ent-tray .rec-ent-desc { font-size: 16px; text-align: left; align-self: stretch; }
 /* A Trick a boss has switched off (Voidwright, the Censor): Records answers it like the tray. */
 .rec-ent.ent-off { opacity: 0.5; filter: saturate(0.2); border-style: dashed; }
@@ -310,7 +313,7 @@
   .rh-frow { grid-template-columns: 148px minmax(0, 1fr) auto; }
   .rh-fbar { display: none; }
   .rec-ent-big .reward-cell { width: 66px; height: 63px; }
-  .rec-ents-tray { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+  .rec-ents-tray { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 600px) {
   .rec-fold > summary { flex-wrap: wrap; row-gap: 0; }

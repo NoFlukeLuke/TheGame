@@ -4073,7 +4073,7 @@ climb and the round went to the interlude; no page errors.
   (`nsHandGrowth`); its Focus is the run's alone (`generateHandFocus` reads the primary hand).
 - **Owned** (`recordsRenderPersonnel`): VIEW List / Tray (`recOwnedView`, `lethe.recOwnedView.v1`,
   stored only when 'tray'). List: the object 96 x 92 on the left (`entityTileHTML` with the id, so
-  tier bands and stamp show), name, tag and words on the right. Tray: the objects at 68 x 64 in a
-  wrapping row with name, tag and words under each. Both go Tricks, Knacks, Sleights.
+  tier bands and stamp show), name, tag and words on the right. Tray (r731, owner): each object 109 x 102 on the
+  left with its name and tag beside it, the words under both, in a wrapping grid. Both go Tricks, Knacks, Sleights.
 Measured in headless Chromium at 1440x820 and 420x900 (Classic, real `openRecords`): every tab,
 both Hands views and both Owned views drawn, no element wider than its box, no page errors.

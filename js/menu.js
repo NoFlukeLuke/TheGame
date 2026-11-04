@@ -1,4 +1,4 @@
-const BUILD = "2026-11-04 · r730 · Records in the console look; Hands by family and Focus; Owned has list and tray views";
+const BUILD = "2026-11-04 · r731 · Records Owned tray view: the object on the left, larger; name and tier beside it";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
