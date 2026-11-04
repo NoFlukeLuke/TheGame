@@ -1,4 +1,4 @@
-const BUILD = "2026-11-04 · r731 · Merge r726-r730; record mode plays four rounds on a bigger board";
+const BUILD = "2026-11-04 · r732 · Merge r731 (Records tray view); record mode plays four rounds on a bigger board";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

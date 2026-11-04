@@ -3887,7 +3887,7 @@ scaling stays family based and hand-counted; no legendary names one hand type.
   faces and the board; the round ends at 0:01 inside the mode (never a clock-out), NEXT ROUND
   deals; COPY LOG is the session as JSON. Nothing stored.
   r731: rounds 17-20 are 3:00 on a 5 x 6 board (`PLAN` rows carry `len` and `grid`; the panel's
-  4x5 / 5x6 keys override the next round). Deployed to main at r731.
+  4x5 / 5x6 keys override the next round). Deployed to main at r732.
 - **`named`** (js/data/tags.js, WHEN): a Trick that names one hand type; six rows carry it.
 - Layer math for 6-7 card hands is MILESTONES.md 8b: "every sub-hand counts" explodes (a typical
   7-card hand has 14 layers at min 4); "every distinct hand" stays at 3-6 with a ceiling of 11.
@@ -4105,7 +4105,7 @@ climb and the round went to the interlude; no page errors.
   (`nsHandGrowth`); its Focus is the run's alone (`generateHandFocus` reads the primary hand).
 - **Owned** (`recordsRenderPersonnel`): VIEW List / Tray (`recOwnedView`, `lethe.recOwnedView.v1`,
   stored only when 'tray'). List: the object 96 x 92 on the left (`entityTileHTML` with the id, so
-  tier bands and stamp show), name, tag and words on the right. Tray: the objects at 68 x 64 in a
-  wrapping row with name, tag and words under each. Both go Tricks, Knacks, Sleights.
+  tier bands and stamp show), name, tag and words on the right. Tray (r731, owner): each object 109 x 102 on the
+  left with its name and tag beside it, the words under both, in a wrapping grid. Both go Tricks, Knacks, Sleights.
 Measured in headless Chromium at 1440x820 and 420x900 (Classic, real `openRecords`): every tab,
 both Hands views and both Owned views drawn, no element wider than its box, no page errors.
