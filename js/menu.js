@@ -1,4 +1,4 @@
-const BUILD = "2026-11-04 · r728 · eight difficulty tiers on the mode cards: starting curse card by draws, costs, forced penalties, harsher penalties, goals, THE BOARD";
+const BUILD = "2026-11-04 · r732 · eight difficulty tiers on the mode cards (r728, difficulty branch) merged with main's r728-r731";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

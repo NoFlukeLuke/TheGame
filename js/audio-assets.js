@@ -76,6 +76,8 @@ const SFX_CATALOG = [
 
   // Economy
   { id: 'coin',          fn: 'sfxCoin',            group: 'Economy', label: 'Coin' },
+  { id: 'payout_coin',   fn: 'sfxPayoutCoin',      group: 'Economy', label: 'Payout coin', args: [3, 6],
+    note: 'The payout count-up. Settings -> Audio -> Payout coin picks which (js/coin-sounds.js).' },
   { id: 'shop_open',     fn: 'sfxShopOpen',        group: 'Economy', label: 'Shop opens' },
   { id: 'reward_good',   fn: 'sfxRewardGood',      group: 'Economy', label: 'Reward - good' },
   { id: 'reward_bad',    fn: 'sfxRewardBad',       group: 'Economy', label: 'Reward - bad' },

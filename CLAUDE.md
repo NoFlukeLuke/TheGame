@@ -4004,7 +4004,84 @@ quoted 6s / 10s; tier 3 round 1 opened at 150, Flow's session at 270; tier 4 Adv
 THE FOUR HORSEMEN for Q4 only, Q4 drew it, PROCEED put a War stone, Death, Famine and Pestilence on
 the grid; Flow's boss 4 was it. Golden: all match. No page errors.
 
-## r728 - eight difficulty tiers, chosen on the mode cards (owner)
+## r728 - the skip keys belong to their screens; five payout coins (owner)
+- **One skip key** (`css/screen-skip.css`, `skipKeyHTML(label, bar)` in js/labels.js): the scoring
+  preview's SPEED UP / SKIP (`#dnc-ff`) and the payout's SKIP (`#po-ff`) are the same small key printed
+  on the glass in its screen's phosphor (`--sk`: amber on the preview, cyan on the payout), VT323, stepped
+  pixel corners, pixel triangles drawn as rects (a ▶ turns into an emoji on a phone). Idle outlined,
+  SPEED UP taken lit solid, done faint. **Placement rule: the right end of its screen's header line**,
+  inset by the header's margin: the preview's hand-name band (landscape), the payout's title tile
+  (moved into it; the title is left-aligned now so the subtitle cannot run under the key). On a phone
+  the preview has no header line (its name is centred under the cards), so `dncMountFF` mounts the key
+  on `#hand-preview-area` in its free top-left corner (the Knacks toggle has the top right) and
+  `dncStageClear` removes it from there. The payout's key hides once Valued. shows (`.ss-gone`).
+- **Payout coins** (`js/coin-sounds.js`, Settings -> Audio -> Payout coin, `SETTINGS.payoutCoin`):
+  `PAYOUT_COINS` pack (the sound pack's coin, what played before), arcade (8-bit pickup), register
+  (Ka-ching), stack (Coin stack), chip (Credit chip, default), jar (Tip jar), built from js/audio-dsp.js.
+  Only the payout count-up plays them: `sfxPayoutCoin(k, n)` (catalog `payout_coin`, event bus,
+  `D_FREQUENT` 0.20) with k the sound's place in its line and n the line's sounds; the new coins climb a
+  pentatonic step a sound and the line's last rings longer. Each has a `level` so it sits within about
+  1.5 dB of the pack coin over its first 300ms (measured offline). A choice in Settings plays the coin
+  (only inside a user gesture, `navigator.userActivation`). **`coin-preview.html`** loads the real
+  js/audio-dsp.js and js/coin-sounds.js (the pack coin is a copy of `vgCoin`): one coin or a whole
+  payout (Interest, Early Finish Bonus, Unspent at the game's own `payoutCoinMs` / `coinStride`), three
+  sizes, volume. Published for the owner as an artifact.
+Measured in headless Chromium at 1440x820 and 420x900 by real clicks and taps: SPEED UP then SKIP on a
+hand (pace 1.1 -> 2.2, the blast), SKIP on the payout (Valued. 0.1-0.3s later, key hidden); the keys sit
+level with the hand name / the payout title in console and pit, and the phone key clears the cards;
+all six coins play through the wrapper with no warnings; no page errors, no drift.
+
+
+## r729 - the winning hand waits; the odometer rests on whole digits (owner)
+- **The winning hand is not added to SCORE until its own climb** (js/score-rise.js): playHand's two
+  goal branches call `scoreRiseHold(scoreBeforeHand)`, which caps the rising score at the total
+  before that hand (`rise.cap`, `riseGoal()`); hands still rolling land there and the box holds,
+  owned, until the goal hand's dance reaches its SCORE climb and calls `scoreRiseYield(scoreBefore)`
+  (js/score-dance.js), which hands the box back at that number for the climb to write. With nothing
+  rolling the hold hands back at once. A cut dance still snaps to the whole total.
+- **A wheel only rests on a whole digit.** The higher wheels turned over the last tenth of the WHOLE
+  number below them (the thousands wheel sat half way for 100 points of roll); now a wheel turns only
+  on the carry, while every wheel below it reads 9. A units step slower than `RISE_SPIN_MS` (33ms)
+  rolls in its last `RISE_ROLL_MS` (90, at most 60% of the step), eased, and sits whole for the rest;
+  faster steps spin. The target is rounded, so a roll never lands between digits.
+Measured in headless Chromium at 1440x820 and 420x900: a 3-point roll showed a half digit for at most
+50ms at a time (was 717ms), 9 points 67ms (was 1,000ms); a winning hand played behind another held the
+box at 260 until its climb (was 270 within 0.9s of PLAY); a winning first hand stayed at 0 until its
+climb and the round went to the interlude; no page errors.
+
+## r730 - Records in the console look; the Hands tab by family; Owned has two views (owner)
+- **The whole panel is amber glass** (css/records.css rewritten): VT323, the board screens' glass
+  and colours (`--am*`, the event lab's phosphors as `--r-*`, scoped to `#records-panel`), tabs and
+  toggles as wireframe keys, stat boxes, pixel-square bars, `[+]` folds. No tab icons. The screen
+  door already lists `#records-overlay`. Class names are unchanged, so every tab took the look.
+- **Hands** (js/records.js, `recordsRenderHands`), when the scoring model is the card ladder with
+  double scaling (`recHandLadderOn`; any other dev model keeps the old table,
+  `recordsRenderHandsTable`). **SCORE** (`recordsHandsScore`): one example hand per family
+  (`REC_FAMILIES`: 7 7 7 K K..., 5 6 7 8 9..., hearts), max(5, Hand Size) cards, real faces from
+  `renderCardAppearance` on made-up cards (`rec-x-` ids, no store has them), cards past the Hand
+  Size dimmed; under each card the mult it pays (place + `nsFamStep`) and its bonus pips
+  (`nsFamPips`); on the right plays this run and two square bars to the next mult step and pip.
+  **FOCUS** (`recordsHandsFocus`): every hand type as a small hand (`REC_HAND_EX`) with
+  `HAND_FOCUS` as squares and a figure, grouped SETS / RUNS / FLUSHES / BOTH, hands over the Hand
+  Size or not unlocked folded under BIGGER AND LOCKED HANDS. Names are the preview's
+  (`recHandWord`, from `HAND_LABEL`). **HAND FILES** (`recordsHandFiles`): one fold per hand: size
+  and families, Focus (and half the speed bonus), plays this run (`crHandPlays`), what it needs,
+  unlock paths, and the owned Tricks / Knacks whose words name it (`recHandMentions`: longer hand
+  names are taken out first, so "Flush" does not find "Straight Flush").
+- Facts the tab states (checked in code): a same-suit run credits both families' play counts,
+  every card scores twice, and it takes the BETTER family's step and pips, not the sum
+  (`nsHandGrowth`); its Focus is the run's alone (`generateHandFocus` reads the primary hand).
+- **Owned** (`recordsRenderPersonnel`): VIEW List / Tray (`recOwnedView`, `lethe.recOwnedView.v1`,
+  stored only when 'tray'). List: the object 96 x 92 on the left (`entityTileHTML` with the id, so
+  tier bands and stamp show), name, tag and words on the right. Tray (r731, owner): each object 109 x 102 on the
+  left with its name and tag beside it, the words under both, in a wrapping grid. Both go Tricks, Knacks, Sleights.
+Measured in headless Chromium at 1440x820 and 420x900 (Classic, real `openRecords`): every tab,
+both Hands views and both Owned views drawn, no element wider than its box, no page errors.
+
+## r728-r732 numbering
+Two sessions shipped r728 in parallel: main's r728-r731 (the skip keys, payout coins, the odometer,
+Records) and the difficulty branch's r728 (below). The merge that joined them is r732.
+## r728 (difficulty branch) - eight difficulty tiers, chosen on the mode cards (owner)
 DIFFICULTY.md is the write-up; r727's four-tier table and Settings row are superseded. `DIFF_TIERS`
 (js/difficulty.js) has eight rows: INTERN (no modifiers), ENTRY LEVEL (a starting curse card that
 goes after 4 draws; swaps 3s, discards 5s), SPECIALIST (rounds / Flow's quarters start 30s shorter),

@@ -336,7 +336,7 @@ function dncButtonPress(){
   const btn = document.getElementById('dnc-ff');
   if(dncUserPace === 1 && !dncFF && !dncSkipReq){
     dncUserPace = 2;
-    if(btn){ btn.classList.add('ff-fast'); btn.innerHTML = '<span class="ff-gl">\u25B6\u25B6|</span><span class="ff-lab">SKIP</span>'; btn.title = 'Skip the rest of this hand'; }
+    if(btn){ btn.classList.add('ff-fast'); btn.innerHTML = skipKeyHTML('SKIP', true); btn.title = 'Skip the rest of this hand'; }
     return;
   }
   if(dncBeatsDone || !(typeof blastOn === 'function' && blastOn())){ dncRequestFF(); return; }
@@ -371,14 +371,19 @@ function dncRequestFF(){
 // a positioned element in both orientations (absolute in landscape, relative in
 // portrait), so one rule anchors it in both. It is disposed of with everything
 // else by the settle's `stage.innerHTML = ''`.
+// r721: on a phone the hand name is centred UNDER the cards, so the key goes on the
+// preview's screen (#hand-preview-area) in its free top-left corner (the Knacks toggle
+// holds the top right; css/screen-skip.css), and the stage clear removes it from there
+// too. Landscape keeps it on the stage, at the right end of the hand-name band.
 function dncMountFF(stage){
   if(!stage || document.getElementById('dnc-ff')) return;
   const b = document.createElement('button');
-  b.id = 'dnc-ff'; b.type = 'button'; b.title = 'Score this hand twice as fast';
-  b.innerHTML = '<span class="ff-gl">▶▶</span><span class="ff-lab">SPEED UP</span>';
+  b.id = 'dnc-ff'; b.type = 'button'; b.className = 'scr-skip'; b.title = 'Score this hand twice as fast';
+  b.innerHTML = skipKeyHTML('SPEED UP');
   if(dncFF) b.classList.add('ff-on');
   b.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); dncButtonPress(); });
-  stage.appendChild(b);
+  const st = document.getElementById('stage'), area = document.getElementById('hand-preview-area');
+  (st && !st.classList.contains('landscape') && area && area.offsetWidth ? area : stage).appendChild(b);
 }
 
 // ── The goal finale's blast: OUT AND BACK (r280) ────────────────────────────
@@ -843,7 +848,8 @@ function dncQueueHost(){
 const dnqAnchorEl = () => dncQueueHost().firstElementChild;
 // The preview is cleared at a dance's start and end; the queue's strips are the
 // one thing in it that must survive that.
-function dncStageClear(stage){ if(!stage) return; [...stage.children].forEach(ch => { if(ch.id !== 'dnc-queue') ch.remove(); }); }
+function dncStageClear(stage){ if(!stage) return; [...stage.children].forEach(ch => { if(ch.id !== 'dnc-queue') ch.remove(); });
+  const ff = document.getElementById('dnc-ff'); if(ff) ff.remove(); }   // r721: the key may live on the phone's screen
 // The strips live INSIDE the preview (z -1: over its glass, under its rows), anchored on
 // the live hand's first card, each waiting hand further up and right, smaller and
 // darker, the next hand on top. r695 (owner): never outside the tray. The host is
@@ -1803,6 +1809,8 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   }
 
   // ── SCORE climb ──
+  // r729: the rising score held at the total before the winning hand; its climb takes the box now.
+  if(isGoalHand && typeof scoreRiseYield==='function') scoreRiseYield(scoreBefore);
   if(scoreEl && !_riseOwns()) scoreEl.textContent=scoreBefore.toLocaleString();
   const climb = skipBeats ? 140
               : (dncFF ? Math.max(120, DANCE_CFG.scoreClimb/DANCE_CFG.ff) : Math.max(120, DANCE_CFG.scoreClimb/dncPace()));
