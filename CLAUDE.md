@@ -4111,3 +4111,16 @@ climb and the round went to the interlude; no page errors.
   `--fa-<tier>-bs` width, or the diamond's rect), so the object's left edge is the text's. Both go Tricks, Knacks, Sleights.
 Measured in headless Chromium at 1440x820 and 420x900 (Classic, real `openRecords`): every tab,
 both Hands views and both Owned views drawn, no element wider than its box, no page errors.
+
+## r734 - SPEED UP and SKIP hold for the whole burst (owner)
+A press on the preview's key (r710) now applies to every hand still to score in the burst:
+the hands waiting in the queue, hands played into it meanwhile, and the winning hand at the
+round's end. `dncCarry` (js/score-dance.js: 1 SPEED UP, 2 SKIP) is set by `dncButtonPress`
+and read by `dncCarryApply()` right after each dance mounts its key (pace 2x, the key reads
+SKIP; at 2 the hand's beats are cut and it blasts, or fast-forwards with the blast off). It
+is cleared by `dncCarryEnd()` when a dance ends with nothing waiting, a goal hand ends, a
+dance is cut (`dncFinishAbort`) or the queue is dropped (`dncQueueClear`), so the next lone
+hand starts at SPEED UP. Measured in headless Chromium at 1440x820 (click) and 420x900 (tap):
+four hands, SPEED UP once: all four at 2x; SPEED UP then SKIP: all four skipped; a winning
+hand behind a skipped one skipped too and the round ended; a hand after the burst read
+SPEED UP at 1x. No page errors, no timeline drift.

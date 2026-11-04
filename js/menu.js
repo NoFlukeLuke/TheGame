@@ -1,4 +1,4 @@
-const BUILD = "2026-11-04 · r733 · Records tray view: objects 20% smaller, text lined up with the drawn object";
+const BUILD = "2026-11-04 · r734 · SPEED UP and SKIP hold for every hand in the scoring queue";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
