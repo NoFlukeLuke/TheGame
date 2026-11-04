@@ -1,4 +1,4 @@
-const BUILD = "2026-11-04 · r732 · eight difficulty tiers on the mode cards (r728, difficulty branch) merged with main's r728-r731";
+const BUILD = "2026-11-04 · r733 · merge: the difficulty tiers (r728, difficulty branch) with main's r732 (the milestones branch, Records)";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

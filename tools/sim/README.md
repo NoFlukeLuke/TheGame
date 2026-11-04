@@ -47,6 +47,21 @@ Sleight activations, edit the deck, face boss modifiers, or suffer reward-grid d
 first three make it WEAKER than a good player, the last two make it stronger;
 net, treat its win rate as a floor a real player clears by a wide margin.
 
+## r724: the bot spends what a hand spends
+
+The bot scored through `calcScore` alone, which only READS the charges a real play spends
+(`playHand` zeroes them after the score). So Second Hand's and Minute Hand's charges, a prime,
+Amplifier and Siphon paid on every hand after they were earned, and the pending charges leaked
+from one run into the next in a batch (`startGame` does not reset them): Second Hand alone scored
+1.4 million in one 3-minute round, and every run after it in the batch was inflated. `SIM_afterHand`
+now spends them after every scored hand and `SIM_resetCharges` zeroes them at every run and level
+start. Printed notices are stubbed (a Cloud Nine pickup threw in `ptNewSlip`). This is the likely
+cause of the r690 note about identical batches disagreeing.
+
+The milestone probes (MILESTONES.md) are `probes/`, run from this folder (`node probes/trick-count.js 150 6`, `node probes/schedule-rounds.js 40 6 nson out.json`, `node probes/flow-levels.js 40 6`, `node probes/build-sweep.js 4000 9` for the random-build regression): a
+3-minute round at level 1 with N random Tricks, a Schedule run playing every round to the clock
+with the score recorded per level, and a Flow run logging each level's time to clear.
+
 ## r683: what the sim measures now
 
 Before r683 the Schedule runner crashed on its first hand, the Survival runner on its first

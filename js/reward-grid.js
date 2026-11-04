@@ -21,6 +21,47 @@
 // grid, not two. Survival and Flow have no reward grid at all (they run a
 // pick-of-three), so they keep their bonus pick.
 let rewardGridMode = 'normal';   // 'normal' | 'prize' | 'penalty' | 'mini' | 'callit'
+// ── r725: the growing Balance Sheet (owner's experiment, Classic only) ──
+// Half of Classic's ordinary grids open as three tiles and ROLL for more: every
+// RG_GROW_MS a roll adds a row or a column (RG_GROW_STEP) or stops the sheet where
+// it is. The whole grid is generated as usual; `rewardGrow` is the window of it
+// that is dealt (top-left anchored, centred on the board), and a tile outside the
+// window is hidden: not drawn, not selectable, not counted. The path is picked on
+// what showed. Tunables in dev -> Probabilities (PROB_TABLES 'growgrid').
+let RG_GROW_OPEN = 0.5;    // chance an ordinary Classic grid is a growing one
+let RG_GROW_STEP = 0.65;   // chance each roll adds a row or a column
+const RG_GROW_MS = 650, RG_GROW_START = 3;
+let rewardGrow = null, _rgGen = 0;   // { rows, cols, rolling, gen } while a growing grid is up
+function rewardHidden(r, c) { return !!rewardGrow && (r >= rewardGrow.rows || c >= rewardGrow.cols); }
+function rewardGrowEligible() {
+  return rewardGridMode === 'normal' && isActMode() && !(typeof mapActive === 'function' && mapActive())
+    && !(typeof guidedActive === 'function' && guidedActive())
+    && !(typeof tutorialActive === 'function' && tutorialActive())
+    && !(typeof testDriveActive === 'function' && testDriveActive());
+}
+function rewardGrowStart() {
+  const g = rewardGrow; if (!g) return;
+  const ROWS = rewardCells.length, COLS = rewardCells[0]?.length || 0;
+  const step = () => {
+    if (!rewardOnGrid || rewardGrow !== g || rewardConfirmed) return;
+    const canR = g.rows < ROWS, canC = g.cols < COLS;
+    if (!(canR || canC) || Math.random() >= RG_GROW_STEP) {
+      g.rolling = false;
+      showMessage(`${gridName('reward', { bare: true })}: ${g.rows} x ${g.cols}`, 'var(--gold)');
+      renderRewardTiles();
+      return;
+    }
+    const axis = canR && canC ? (Math.random() < 0.5 ? 'r' : 'c') : canR ? 'r' : 'c';
+    const fresh = new Set();
+    if (axis === 'r') { for (let c = 0; c < g.cols; c++) fresh.add(`${g.rows}-${c}`); g.rows++; }
+    else { for (let r = 0; r < g.rows; r++) fresh.add(`${r}-${g.cols}`); g.cols++; }
+    noteMessage(axis === 'r' ? '+1 row' : '+1 column');
+    try { sfxCardSelect?.(); } catch (e) {}
+    renderRewardTiles(fresh);
+    setTimeout(step, RG_GROW_MS);
+  };
+  setTimeout(step, RG_GROW_MS + 400);
+}
 function prizeGridActive() { return rewardGridMode === 'prize'; }
 // ── PENALTY GRID (r444) ──────────────────────────────────────────────────────
 // The inverse of the prize grid: what a failed challenge round costs
@@ -1066,6 +1107,9 @@ function openRewardGrid() {
   gameTimerPaused = true;
   if (!penaltyGridActive() && !miniGridActive() && !callItGridActive()) rewardGridsSeen++;   // count this grid (gates the first-5 guaranteed upgrades)
   rewardCells     = generateRewardContent();
+  rewardGrow = null;   // r725: half of Classic's ordinary grids start as three tiles and roll for more
+  if (rewardGrowEligible() && Math.random() < RG_GROW_OPEN && (rewardCells[0]?.length || 0) >= RG_GROW_START)
+    rewardGrow = { rows: 1, cols: RG_GROW_START, rolling: true, gen: ++_rgGen };
   rewardSelected  = new Set();
   rewardPickOrder = [];
   rewardTipKey    = null;
@@ -1093,6 +1137,7 @@ function openRewardGrid() {
   if (typeof enterGridScreenHud === 'function') enterGridScreenHud(prizeGridActive() ? gridName('prize', { bare: true, caps: true }) : penaltyGridActive() ? 'PENALTIES' : miniGridActive() ? 'BONUS' : callItGridActive() ? 'CALL IT' : gridName('reward', { bare: true, caps: true }), 'reward');
   enterRewardButtonMode();
   renderRewardTiles(true);   // deal the reward tiles in like a new round's cards
+  if (rewardGrow) rewardGrowStart();
 }
 
 // Render the reward cells INTO the play #grid, positioned exactly like cards
@@ -1106,7 +1151,12 @@ function renderRewardTiles(animateIn = false) {
   recomputeGridMetrics();          // make sure CARD_W/H + #grid box are current
   hideRewardTooltip();
   gridEl.innerHTML = '';
-  const ROWS = rewardCells.length, COLS = rewardCells[0]?.length || 0;
+  const FULL_ROWS = rewardCells.length, FULL_COLS = rewardCells[0]?.length || 0;
+  // r725: a growing grid draws only its window. animateIn may also be a Set of
+  // '<r>-<c>' keys: only those tiles deal in (the row or column a roll added).
+  const ROWS = rewardGrow ? Math.min(FULL_ROWS, rewardGrow.rows) : FULL_ROWS;
+  const COLS = rewardGrow ? Math.min(FULL_COLS, rewardGrow.cols) : FULL_COLS;
+  const animKeys = animateIn instanceof Set ? animateIn : null;
   // The prize grid is smaller than the play grid it is drawn onto, and cellLeft/
   // cellTop are anchored at the board's top-left corner - so without this it
   // would sit in the corner with a wedge of empty board beside it. Centre it on
@@ -1159,7 +1209,7 @@ function renderRewardTiles(animateIn = false) {
       const nameEl = div.querySelector('.rwd-name');
       if (nameEl) fitRewardName(nameEl);
 
-      if (animateIn) {
+      if (animateIn && (!animKeys || animKeys.has(key))) {
         const dropDist = (ROWS - r) * CARD_STEP;
         const delay    = c * COL_OFFSET + (ROWS - 1 - r) * 18;
         dealAnimsLocal.push(div.animate([
@@ -1194,7 +1244,7 @@ function renderRewardTiles(animateIn = false) {
   // re-anchored to the new node for the tile it belongs to (r182).
   restoreRewardTooltip();
 
-  if (animateIn && dealAnimsLocal.length) {
+  if (dealAnimsLocal.length) {
     rewardDealing = true;
     Promise.allSettled(dealAnimsLocal.map(a => a.finished)).then(() => {
       rewardDealing = false;
@@ -1608,13 +1658,14 @@ function rewardTrickRoom(keys) {
 }
 function rewardSlotTileLeft() {
   return rewardCells.some((row, r) => (row || []).some((cell, c) =>
-    cell && !rewardSelected.has(`${r}-${c}`) && rewardTrickSlotGain(cell.payload) > 0));
+    cell && !rewardHidden(r, c) && !rewardSelected.has(`${r}-${c}`) && rewardTrickSlotGain(cell.payload) > 0));
 }
 
 // A cell is selectable if: nothing selected yet (any cell), OR orthogonally adjacent to any selected cell and not already selected
 function isRewardCellSelectable(r, c) {
   const key = `${r}-${c}`;
   if (rewardSelected.has(key)) return false; // already selected
+  if (rewardHidden(r, c) || (rewardGrow && rewardGrow.rolling)) return false;   // r725: not dealt yet, or still rolling
   // Picks are capped by the Selection Size limit (+ Greedy Boi) - same base cap as the play grid
   if (rewardSelected.size >= rewardSelectionCap()) return false;
   // Destination rule: at most one dest tile per selection
@@ -1647,6 +1698,7 @@ function isRewardCellSelectable(r, c) {
 // current group - without that reading costing you a pick or disturbing one.
 function onRewardCellClick(r, c) {
   if (rewardConfirmed || rewardDealing) return;
+  if (rewardHidden(r, c)) return;   // r725: outside the dealt window
   const key = `${r}-${c}`;
 
   // LAST SWAP: a lifted tile waits for its neighbour; double-tap lifts one.
@@ -1974,6 +2026,7 @@ function closeRewardGrid() {
   document.body.classList.remove('reward-active', 'reward-boss', 'reward-prize', 'reward-penalty', 'reward-callit');
   if ((rewardGridMode === 'normal' || rewardGridMode === 'prize') && typeof crrGridClosed === 'function') crrGridClosed();   // r671: the path bonus is spent
   rewardGridMode = 'normal';   // one prize grid per boss; the next grid is ordinary
+  rewardGrow = null;   // r725
   if (typeof exitGridScreenHud === 'function') exitGridScreenHud();
   rewardOnGrid = false;
   const gridEl = document.getElementById('grid');
