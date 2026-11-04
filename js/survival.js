@@ -239,6 +239,8 @@ function survivalEntityBanned(id) {
   if (typeof trickLocked === 'function' && trickLocked(id)) return true;
   // r727: Free Swaps / Free Discards do nothing at a difficulty where they cost no time.
   if (typeof difficultyOfferBanned === 'function' && difficultyOfferBanned(id)) return true;
+  // r730: Stacked has no Focus, no draw pile and no fall; untimed, no clock (js/stack-mode.js).
+  if (typeof stkEntityBanned === 'function' && stkEntityBanned(id)) return true;
   // r651: Separation Anxiety is offered only with a fused Trick in the tray.
   if (id === 'separation_anxiety' && !(typeof trickTray !== 'undefined' && trickTray.some(t => t && t.fused))) return true;
   // The reward-grid-only entities are dead picks wherever the MODE never opens

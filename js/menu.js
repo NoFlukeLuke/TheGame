@@ -1,4 +1,4 @@
-const BUILD = "2026-11-03 · r729 · the winning hand waits for its own climb; the odometer rests only on whole digits";
+const BUILD = "2026-11-04 · r730 · STACKED: the whole deck dealt into a 5x5 as stacks, nothing falls, the card beneath comes up; timed or untimed; no Focus";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
@@ -149,6 +149,27 @@ const MODES = {
   // clock. The 3x3 and 4x4 dailies (js/squares-daily.js) are unchanged. See
   // js/squares-mode.js for why it borrows the real calcScore rather than
   // carrying a scorer of its own.
+  // STACKED (r730, owner): the whole deck dealt into a 5x5 as stacks, nothing
+  // falls, the card beneath comes up. Timed (5:00) or untimed from its start
+  // screen (stkTimed). Classic's progression. See js/stack-mode.js.
+  stacks: {
+    id: 'stacks',
+    name: 'Stacked',
+    desc: 'The whole deck on a 5x5 board, in stacks. Nothing falls: play a card and the one beneath comes up. Hand size 5, four swaps, four discards, no Focus. Reach each goal before the cards run out.',
+    winCondition: 'boss_defeat',
+    enableBosses: true,
+    enableShops: true,
+    enableEvents: true,
+    autoRefillGrid: false,
+    timeIsCurrency: false,
+    autoPlayHands: false,
+    actStructure: true,
+    suitCount: 4,
+    stacked: true,
+    noWalkthrough: true,
+    scoringModel: 'classic',
+    clock: 'stacked'
+  },
   squares: {
     id: 'squares',
     name: 'Poker Squares',
@@ -292,6 +313,8 @@ const MODE_META = {
               blurb: 'You have 5 minutes until the review. Level up as many times as you can before it starts. Each level up offers a pick of three, and you can enter the shop for a fee at any time. Pass the review and the clock refills.' },
   climb:    { accent: '#f2c14e',        suits: '1 → 15',
               blurb: 'Four suits, values 1 to 13, no face cards. Every card that scores goes up one rank, up to 15. A 15 that scores pays +75 pips, then goes back to the rank it started at. Otherwise plays like Classic.' },
+  stacks:   { accent: '#e0b07a',        suits: '5 × 5 · IN STACKS',
+              blurb: 'The whole deck dealt onto the board in stacks. Nothing falls: when a card is played the one beneath it comes up. Hover a stack to see what is under it, tap a card there to bring it up. Swaps move whole stacks. Hand size 5, four swaps, four discards, no Focus. With or without a clock.' },
   squares:  { accent: '#7fb2ff',        suits: '5 × 5 · 10 LINES',
               blurb: 'Poker Squares. Three cards at a time, placed one by one on a 5x5 board, with a trick pick between every other deal. The best hand of 3+ cards in every row and column pays, once mid-grid and once at the end, times your Focus. Two grids, five minutes each, one score. The 3x3 and 4x4 are quick daily puzzles.' },
   match3:   { accent: '#ff7ad0',         suits: '5 × 5',
@@ -387,7 +410,7 @@ function buildModeCard(id) {
   const more = card.querySelector('.mode-card-more');
   if (more) more.onclick = (e) => { e.preventDefault(); e.stopPropagation(); openInfoHub('mode_' + id); };
   if (open) {
-    card.querySelector('.mode-card-play').onclick = () => isPicker ? openPickerMode() : chooseMode(id);
+    card.querySelector('.mode-card-play').onclick = () => isPicker ? openPickerMode() : (id === 'stacks' && typeof stkOpenStart === 'function') ? stkOpenStart() : chooseMode(id);
   }
   return card;
 }

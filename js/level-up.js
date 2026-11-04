@@ -376,6 +376,7 @@ async function showLevelUpScreen() {
   for (let r = 0; r < gridRows; r++)
     for (let c = 0; c < gridCols; c++)
       if (!gridData[r][c]) gridData[r][c] = drawCard() || null;
+  if (typeof stkDealRest === 'function') stkDealRest();   // r730: Stacked puts the rest of the deck under the board
 
   // ── Hide grid visually until 3-2-1 fires - deal anims handle the reveal ──
   dealPhase = true;

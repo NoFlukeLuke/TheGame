@@ -391,6 +391,7 @@ function render() {
   if (typeof bossGradientPaint === 'function') bossGradientPaint();
   if (typeof cardAnimAfterRender === 'function') cardAnimAfterRender();   // r445: the select ripple
   if (typeof chanceCountPaint === 'function') chanceCountPaint();         // r624: hit counts on chance Tricks
+  if (typeof stkPaint === 'function') stkPaint();                         // r730: Stacked's open fan survives the repaint
 }
 
 // r646 (owner): the turning board pattern (r409, `#board-hypno`, ensureBoardPattern) is gone.

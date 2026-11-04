@@ -200,6 +200,7 @@ function doSwap(r1, c1, r2, c2) {
   gridData[r1][c1] = gridData[r2][c2];
   gridData[r2][c2] = tmp;
   if (typeof horsemenOnSwap === 'function') horsemenOnSwap([[r1, c1], [r2, c2]]);   // r723: a swap resets Famine's clock
+  if (typeof stkOnSwap === 'function') stkOnSwap(r1, c1, r2, c2);   // r730: Stacked swaps whole stacks
 
   // Pivot payout: both swapped cards take +5 permanent mult, keyed by card identity
   // (cardId), so the buff follows that one physical card through the deck. The Pivot
@@ -287,6 +288,7 @@ function doSwap(r1, c1, r2, c2) {
   // board once the swap animation has landed. (The swap itself stays manual;
   // only the resulting matches play themselves.)
   if (match3Active()) setTimeout(() => match3Resolve(), cardSwapMs() + 20);
+  if (typeof stkScheduleCheck === 'function') stkScheduleCheck();   // r730: Stacked ends the round when no hand is left
 }
 
 // Remove a card from selection, then keep only the largest connected component.

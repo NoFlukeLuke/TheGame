@@ -65,6 +65,7 @@ function crDialFlip() {
 // Does this mode deal challenge cards at all (Flow's level cards, the node modes'
 // spot cards and challenge rounds)? The dial is a dead pick anywhere else.
 function crModeHasCards() {
+  if (typeof stackedActive === 'function' && stackedActive()) return false;   // r730: no fall, no challenge cards
   return (typeof flowActive === 'function' && flowActive()) || (typeof isActMode === 'function' && isActMode());
 }        // r528: chance a Flow level opens with a card (while the cycle has room)
 const CR_FLOW_LEVEL_DELAY = [3, 8];      // ...whose warning appears this many live seconds into the level          // ...this many seconds after the first
@@ -817,6 +818,7 @@ function crTakeFlowSteps() {
 function crSpotState() { return crSpot || (crSpot = { at: null, hints: 0 }); }
 function crSpotMayRun() {
   if (typeof isActMode !== 'function' || !isActMode()) return false;
+  if (typeof crModeHasCards === 'function' && !crModeHasCards()) return false;   // r730
   if (typeof survivalActive === 'function' && survivalActive()) return false;
   if (typeof bossActive !== 'undefined' && bossActive) return false;
   if (typeof tutorialActive === 'function' && tutorialActive()) return false;

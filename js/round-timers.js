@@ -57,6 +57,7 @@ function startRoundTimer() {
   if (typeof roundQuotaAnnounce === 'function') { roundQuotaAnnounce(); roundQuotaPaint(); }
   if (typeof crOnRoundStart === 'function') crOnRoundStart();   // a challenge round's first card
   if (typeof chgRoundStart === 'function') chgRoundStart();     // r676: Temp and Floater change (once a level, before the save point)
+  if (typeof stkScheduleCheck === 'function') stkScheduleCheck(1500);   // r730: a Stacked board dealt with no hand on it ends at once
   if (typeof sfxSetMuffle === 'function') sfxSetMuffle(false);
   startClockTick();                 // the clock's 10s tick runs with the round (js/clock-tick.js)
   cdStartTicker();                  // cooldown / disable rings (js/cooldown.js)

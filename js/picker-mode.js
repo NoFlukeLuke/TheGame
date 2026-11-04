@@ -178,7 +178,7 @@ function pickerBuildMode(raw) {
 
 // How long a custom round is. Only ever consulted for a mode carrying a `clock`,
 // so the shipped modes reach none of this.
-const PICKER_CLOCK_SECONDS = { standard: 180, short: 120, long: 240, none: 600 };
+const PICKER_CLOCK_SECONDS = { standard: 180, short: 120, long: 240, none: 600, stacked: 300 };   // r730: Stacked's round (js/stack-mode.js)
 function pickerRoundSeconds() {
   const k = (typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE) ? ACTIVE_MODE.clock : null;
   return PICKER_CLOCK_SECONDS[k] || ROUND_DURATION;
@@ -188,6 +188,7 @@ function pickerRoundSeconds() {
 // and by the entity ban list.
 function modeHasNoRoundClock() {
   if (typeof flowActive === 'function' && flowActive()) return true;
+  if (typeof stkUntimed === 'function' && stkUntimed()) return true;   // r730: untimed Stacked
   return !!(typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE && ACTIVE_MODE.clock === 'none');
 }
 

@@ -720,7 +720,7 @@ function dncCleanupReal(){ dncRealEls.forEach(el=>{ if(!el) return;
 // new marks in renderCardAppearance. This strips only what belongs to the board
 // moment, not the card: selection and hint states, the order badge, the animation
 // lab's own overlays and idle classes, and inline styles (cell position, gaze tilt).
-const CARD_FLY_STRIP = /^(selected|hand-|swap-pending|unreachable|score-pop|dnc-|ca-|flowr-|tray-|sqp-|sq-|m3-)/;
+const CARD_FLY_STRIP = /^(selected|hand-|swap-pending|unreachable|score-pop|dnc-|ca-|flowr-|tray-|sqp-|sq-|m3-|stk-)/;
 function cardFlyClone(gEl){
   const c = gEl.cloneNode(true);
   [...c.classList].forEach(k => { if (CARD_FLY_STRIP.test(k)) c.classList.remove(k); });

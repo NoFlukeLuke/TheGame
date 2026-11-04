@@ -405,6 +405,9 @@ function startGame() {
   // the round readout into the top bar), so a run that starts as ANY other mode
   // has to put them back. No-ops when nothing was moved.
   if (typeof squaresTeardown === 'function' && !(typeof squaresActive === 'function' && squaresActive())) squaresTeardown();
+  // r730: Stacked pins its limits (5x5, hand size 5, 4 swaps, 4 discards) and marks the stage (js/stack-mode.js).
+  if (typeof stkSetupRun === 'function') stkSetupRun();
+  if (typeof stkStageClasses === 'function') stkStageClasses();
   // Survival: reset its per-run state and flag the stage (shows the shop button).
   document.getElementById('stage')?.classList.toggle('survival-mode', survivalActive());
   if (typeof pickRerollsInit === 'function') pickRerollsInit();  // the pick-of-three reroll pool (js/grid-pick.js)
@@ -699,6 +702,7 @@ function startGame() {
   drawActBoss();
 
   initGridData();
+  if (typeof stkDealRest === 'function') stkDealRest();   // r730: Stacked deals the rest of the deck under the board
   // Spectrum: shuffle the four deck fixtures in. AFTER initGridData - it assigns
   // drawPile wholesale, so anything added before this would be thrown away.
   spectrumGrantDeckCards();

@@ -170,6 +170,7 @@ function payoutEfficiencyName() { return crunchActive() ? 'Under Par' : 'Early F
 // What that line pays for `secs` left on the clock: the payout passes the frozen
 // clock, the credits chip's hover (js/hud.js) the live one.
 function earlyFinishCredits(secs) {
+  if (typeof stkUntimed === 'function' && stkUntimed()) return 0;   // r730: no clock, nothing left on it
   return crunchActive() ? crunchParCredits() : Math.floor(Math.max(0, secs) / efficiencySecondsPerCoin());
 }
 function payoutEfficiencyDesc() {

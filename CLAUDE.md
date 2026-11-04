@@ -264,7 +264,7 @@ stacks fire on the next firing and are then cleared; `_rank` is permanent. Force
 
 ## Modes
 
-Carousel: Flow, Schedule, Classic, Custom, Poker Squares, Climb. Hidden (dev panel -> Hidden
+Carousel: Flow, Schedule, Classic, Custom, Stacked (r730), Poker Squares. Hidden (dev panel -> Hidden
 Modes): Guided, Spectrum, Crunch, Match-3, Zen. Dominoes (r411), `tetris`/`autoplay` and the
 20-minute game clock (r427), Six Suits and
 Orientation (the other r416) and the Survival mode entry (r417) were removed; **Flow runs on the Survival engine** (`js/survival.js`,
@@ -4048,3 +4048,62 @@ Measured in headless Chromium at 1440x820 and 420x900: a 3-point roll showed a h
 50ms at a time (was 717ms), 9 points 67ms (was 1,000ms); a winning hand played behind another held the
 box at 260 until its climb (was 270 within 0.9s of PLAY); a winning first hand stayed at 0 until its
 climb and the round went to the interlude; no page errors.
+
+## r730 - STACKED: the whole deck on the board, nothing falls (`js/stack-mode.js`, `css/stack-mode.css`, owner)
+Mode id `stacks`, flag `stacked: true` (`stackedActive()`); `js/stacked.js` is the r685 KNACK, a
+different thing. The carousel card's PLAY opens a one-question start screen on the picker overlay
+(`stkOpenStart`: no clock / 5:00, `stkTimed` in SAVE_VARS), then `stkStart`.
+- **The deal:** `initGridData` fills the 5x5 as usual and `stkDealRest` (from startGame and
+  showLevelUpScreen) deals the rest of the draw pile under the surface cards, round robin, so
+  the stacks differ by one at most (56 cards: a row of 3, the rest 2). **The stacks belong to the
+  CELLS** (`stkCells[r][c]`, nearest first, SAVE_VARS), not to the surface card: a boss dropping a
+  horseman on a cell, a Magnet pull or a Death flight write gridData directly and would have
+  taken a card-borne stack out of the run. `stkOnSwap` (doSwap) moves two cells' stacks; `stkSweep`
+  (the round-end sweep) banks every under-card to the played pile; `everyDeckCard` and
+  `gridCardCount` read them. The draw pile is empty for the round; `discardToDrawPile` sends a
+  discard to the played pile here, so nothing comes back before the next deal.
+- **No fall:** `removeAndFall` branches to `stkAfterRemove` after the leaving animations: the
+  card beneath each removed cell surfaces in place (`stkTakeOver`), rises from its strip, the
+  tail runs (`_fallTail`) and the end check is scheduled. No `falling` lock is taken.
+- **Look:** one `.stk-peek` element per under-card, a full face from `renderCardAppearance`,
+  a DIRECT CHILD of #grid with a negative z-index (#grid `isolation: isolate` in this mode), stepped
+  3px down and right at rest (`stkPaint`, from render's tail); the surface card lists what is
+  beneath it on its lower edge (`.stk-list`, from `stkPeekHTML(card, r, c)` inside
+  renderCardAppearance; hidden off the board). **Hover** fans the stack (`stkFanOpen`, 110ms): each
+  face slides `STK_FAN_DOWN` (0.8) card heights down, up when the board has no room below, over
+  the neighbours; a preview only (pointer-events none), it closes when the pointer is over
+  anything else. **The wheel over a stack cycles it** (`stkCycle`: down brings the next card up and
+  sends the surface to the back). **Touch:** a long press (`STK_PRESS_MS` 500) fans it
+  (`#grid.stk-touchfan`, the faces take taps) and a tap on a face brings it up (`stkSurface`).
+  Surfacing is free and lets the cell's selection go.
+- **The round ends when no hand is left** (`stkCheckEnd`, scheduled after every play, discard,
+  swap and round start, waiting for a quiet board): `stkAnyHand` says whether any two touching
+  cells can show one rank, any connected three a run of 3, or any connected five one suit, over
+  every card each cell can present (every larger hand contains one of those); then, with no hand,
+  a discard that could reveal a card (stock left and a stack somewhere) or a single swap that would
+  make a hand (`stkAnySwapMakesHand`) keeps the round open with a printed line; otherwise
+  `onRoundEnd` (a missed goal is the run, as Classic's clock-out). High Card is never live
+  (`minSelectionBinds` is false), so this is the whole test.
+- **Limits** pinned in `stkSetupRun`: 5x5, Selection 5, 4 swaps, 4 discards, Starting Time 300,
+  every max = current, so no tile, shop row or Limit Break offers them. `scoringModel 'classic'`
+  (the table prices the hand type). **No Focus:** `addFocus` returns, the gauge is hidden
+  (`#stage.stk-nofocus`), entities tagged `focus` are banned (`stkEntityBanned`, from
+  `survivalEntityBanned`), plus `STK_BANNED` (Card Counter, Keeper, Fresh Start, Backfill, Tempo,
+  the Reserve, Quick Draw, Expanse...). **Untimed** (`stkUntimed()`): `modeHasNoRoundClock` is true
+  (the clock ticks for the entities that read it, never ends the round), the clock is hidden
+  (`#stage.stk-noclock`, back during a boss: that window still ends the round), `earlyFinishCredits`
+  is 0, clock / pause / time entities are banned, the Starting Time reward tile is dropped. Timed:
+  `PICKER_CLOCK_SECONDS.stacked` 300 through `clock: 'stacked'`; swaps and discards cost no time
+  (`timeIsCurrency: false`). **Rewards** are Classic's (`actStructure`), card buffs x3 in the
+  reward table (`stkRewardCats`). No challenge cards (`crModeHasCards` false). No walkthrough.
+- Measured in headless Chromium at 1440x820 (and a 420x900 touch page): 56 cards dealt as stacks,
+  audit 56/56 through a play, a discard, a whole-stack swap, a goal, the sweep, the redeal at
+  level 2 and a save / continue; the fan opens on hover (faces 99px apart at 125px tall), the wheel
+  cycled K♠ -> A♠, a Pair played and both cards beneath surfaced with no fall; a dead board with no
+  stock ended the run; the untimed clock at 0 ended nothing; a long press fanned on touch and a tap
+  on a face surfaced it. Known: the DECK AUDIT transient right after `discardToPlayed` (the card is
+  still in gridData) is pre-existing and prints in Classic too.
+- **Open (owner):** in-stack multi-select (several cards of one stack in one hand) waits for a
+  selection model that carries depth; the daily (one seeded grid, two non-resource Tricks, a score
+  against the best possible); Focus as a streak counter; whether an untimed boss should keep its
+  window; a "cards left" readout.

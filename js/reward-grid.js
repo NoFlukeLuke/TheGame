@@ -620,6 +620,7 @@ function _generateRewardContent() {
     let cats = PRIZE ? prizeCategories : buffCategories;
     if (PRIZE && _limitTilesThisGrid >= PRIZE_MAX_LIMIT_TILES) cats = cats.filter(c => c.kind !== 'limit_up');
     cats = rewardImproveBoost(cats);
+    if (typeof stkRewardCats === 'function') cats = stkRewardCats(cats);   // r730: Stacked weights card buffs up, drops the time tile untimed
     const cat = weightedPick(cats);
     switch (cat.kind) {
       case 'trick':      return makeTrickPayload();

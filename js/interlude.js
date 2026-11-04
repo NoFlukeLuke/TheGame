@@ -98,6 +98,7 @@ async function showLevelUpScreen_fallOnly() {
   // them, and the next round's deal puts the same cards back in the same cells.
   // So the ceremony is unchanged and the position is kept.
   const _persist = (typeof boardPersists === 'function') && boardPersists();
+  if (typeof stkSweep === 'function') stkSweep();   // r730: Stacked's under-cards go to the played pile with the board
   // The round-winning hand is the one part of the board that DOES leave (r371):
   // it scored, so it goes to the played pile like any scored hand.
   if (_persist) liftGoalHand();

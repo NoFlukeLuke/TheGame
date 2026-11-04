@@ -199,6 +199,7 @@ function renderCardAppearance(card, r, c, {
     ${fxMark}
     ${(typeof cardStateBadgeHTML === 'function') ? cardStateBadgeHTML(card) : ''}
     ${_cd.html}
+    ${(typeof stkPeekHTML === 'function') ? stkPeekHTML(card, r, c) : ''}
   `;
 
   return { className, innerHTML };
@@ -424,6 +425,9 @@ async function removeAndFall(removingCells, mode = 'play') {
       });
     }
   }
+
+  // r730: Stacked has no fall. The card beneath each removed one surfaces (js/stack-mode.js).
+  if (typeof stackedActive === 'function' && stackedActive()) { await stkAfterRemove(removingCells, leaveMs); return; }
 
   // ── The plan (data only), computed from the board as it is now. Voids
   //    ("blocked cells") are skipped: cards stack to the bottom-most non-void

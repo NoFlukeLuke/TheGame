@@ -603,6 +603,8 @@ function gridCardCount() {
       const cd = gridData[r][c];
       if (cd && !cd._isTrick && !cd._isSleight && !cd._temp && cd.rank) n++;
     }
+  // r730: Stacked's under-cards (js/stack-mode.js)
+  if (typeof stkCells !== 'undefined') (stkCells || []).forEach(row => (row || []).forEach(list => (list || []).forEach(u => { if (u && !u._isSleight && !u._temp && u.rank) n++; })));
   return n;
 }
 // r400: a SLEIGHT is not part of the audited deck, on the board or in a pile.
@@ -680,6 +682,8 @@ function everyDeckCard() {
   (gridData || []).forEach(row => (row || []).forEach(cd => {
     if (cd && !cd._isTrick && !cd._isSleight && !cd._isStone && cd.rank) out.push(cd);
   }));
+  // r730: Stacked's under-cards are on the board too (js/stack-mode.js)
+  if (typeof stkCells !== 'undefined') (stkCells || []).forEach(row => (row || []).forEach(list => (list || []).forEach(u => { if (u && !u._isSleight && !u._isStone && u.rank) out.push(u); })));
   // r576: a stone or junk card in a pile is not a card to buff, curse or copy.
   drawPile.forEach(cd => { if (cd && !cd._isSleight && !cd._isStone && cd.rank) out.push(cd); });
   playedPile.forEach(cd => { if (cd && !cd._isSleight && !cd._isStone && cd.rank) out.push(cd); });
@@ -776,6 +780,8 @@ function drawCard() {
 // Discard action - card goes to BACK of draw pile (re-enters only after every other card seen)
 function discardToDrawPile(card) {
   if (!cardCan(card, 'discard')) return;
+  // r730: Stacked deals nothing mid-round; a discard is out until the next deal.
+  if (typeof stackedActive === 'function' && stackedActive() && !card._isSleight) { discardToPlayed(card); return; }
   // Sleights are consumed on discard (their on_discard effect is fired by the caller
   // with grid position); they are not returned to the draw pile.
   if (card._isSleight) { updateDeckHud(); return; }

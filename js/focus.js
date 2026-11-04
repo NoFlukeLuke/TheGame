@@ -337,6 +337,7 @@ if (typeof requestAnimationFrame === 'function') requestAnimationFrame(focusFxLo
 // which point these calls become events rather than immediate effects.
 function addFocus(amount, srcId, srcSource) {
   if (!amount || amount <= 0) return;
+  if (typeof stackedActive === 'function' && stackedActive()) return;   // r730: Stacked has no Focus
   if (srcId && typeof entityEffectFX === 'function') entityEffectFX('focus', amount, { id: srcId, source: srcSource });
   focusGenGame += amount; focusGenRound += amount; // total Focus generated (any source) - Wellspring / Feedback Loop
   focusDecayBuffer = 0;   // gaining focus resets the x.0 grace buffer
