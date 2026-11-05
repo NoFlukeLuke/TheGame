@@ -42,11 +42,6 @@
 .evt-won .evt-wheel { animation: evt-land .32s ease-out; }
 
 /* die */
-.evt-die { width: 64px; height: 64px; border-radius: 12px; display: flex; align-items: center; justify-content: center;
-  background: linear-gradient(160deg, #fffaf0, #d9cdb0); color: #1d5f45;
-  box-shadow: inset 0 -4px 0 rgba(0,0,0,.18), inset 0 2px 0 rgba(255,255,255,.7), 0 5px 12px rgba(0,0,0,.55);
-  font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 24px; }
-.evt-die.neg { color: var(--c-red); }
 .evt-die-faces { display: flex; gap: 3px; }
 .evt-die-faces i { font-style: normal; font-family: 'Share Tech Mono', monospace; font-size: 9px; color: var(--c-mint);
   padding: 1px 3px; border: 1px solid rgba(53,213,155,.35); border-radius: 3px; }

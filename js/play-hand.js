@@ -1203,8 +1203,10 @@ function scalingCount(hand, handCells, reps) {
       if (hasTrick('sixes_perm') && cardsScoredTotal % BAL.sixes_perm.interval === 0) {
         const roll = Math.floor(Math.random() * (BAL.sixes_perm.roll_max - BAL.sixes_perm.roll_min + 1)) + BAL.sixes_perm.roll_min;
         const k = cardId(card);
-        if (Math.random() < 0.5) permPips[k] = (permPips[k] || 0) + yokeGain('pips', roll);   // r625: pips or mult, a coin flip
+        const _d6p = Math.random() < 0.5;   // r625: pips or mult, a coin flip
+        if (_d6p) permPips[k] = (permPips[k] || 0) + yokeGain('pips', roll);
         else permMult[k] = (permMult[k] || 0) + yokeGain('mult', roll);
+        if (typeof diceD6Fx === 'function') diceD6Fx(roll, _d6p ? 'pips' : 'mult');   // r743: the die you watch land
       }
     }
   });

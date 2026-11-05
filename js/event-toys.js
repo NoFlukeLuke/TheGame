@@ -168,36 +168,24 @@ function evWheel(segs, parent, opts) {
 
 // ── DIE ─────────────────────────────────────────────────────────────────────
 // evDie(faces, parent) -> { el, roll(value) -> Promise<value> }
-// faces are numbers; a negative face is printed red.
+// faces are six numbers; a negative face is a red die (js/dice-sim.js).
+// r743 (owner): a real throw. The die is a cube tossed across a small table by
+// diceSimulate and comes to rest on the decided face.
 function evDie(faces, parent, label) {
   const host = _etHost('evt-die-host', parent);
-  host.innerHTML = `<div class="evt-die"><span></span></div><div class="evt-die-faces">${label ? `<b>${label}</b>` : ''}${faces.map(f =>
+  host.innerHTML = `<div class="evt-die-tray"></div><div class="evt-die-faces">${label ? `<b>${label}</b>` : ''}${faces.map(f =>
     `<i class="${f < 0 ? 'neg' : ''}">${f > 0 ? '+' + f : f}</i>`).join('')}</div>`;
-  const die = host.querySelector('.evt-die'), face = die.querySelector('span');
-  const paint = v => { face.textContent = v > 0 ? '+' + v : String(v); die.classList.toggle('neg', v < 0); };
-  paint(faces[0]);
+  const tray = host.querySelector('.evt-die-tray');
+  const die = diceMake(tray, faces, { size: 40 });
+  requestAnimationFrame(() => die.show(faces[0]));
   return {
     el: host,
     roll(value) {
       host.classList.remove('evt-land');
-      const flips = 11 + Math.floor(_etRnd() * 4);
-      let k = 0;
-      return new Promise(res => {
-        const next = () => {
-          if (k >= flips || _etFast()) {
-            paint(value);
-            die.style.transform = '';
-            host.classList.remove('evt-land'); void host.offsetWidth; host.classList.add('evt-land');
-            _etSfx('sfxCardPop');
-            res(value); return;
-          }
-          paint(faces[Math.floor(_etRnd() * faces.length)]);
-          die.style.transform = `rotate(${(_etRnd() - 0.5) * 50}deg) translateY(${-Math.sin(k / flips * Math.PI) * 18}px)`;
-          if (k % 2 === 0) _etSfx('sfxClockTick');
-          k++;
-          setTimeout(next, 45 + k * k * 1.6);
-        };
-        next();
+      // Thrown in from the left edge, across the table.
+      return die.roll(value, { x: 30, y: 34 + _etRnd() * 32, h: 30, dir: (_etRnd() - 0.5) * 0.9 }).then(v => {
+        _etSfx('sfxCardPop');
+        return v;
       });
     },
   };

@@ -72,6 +72,7 @@ const AUDIO_MANIFEST = {
     flip_shuffle:  'assets/sfx/cards-falling.mp3',      // the hand flying to the preview
     reward_select: 'assets/sfx/cork-pop.mp3',           // picking a reward-grid tile
     round_start:   'assets/sfx/floppy-insert.mp3',      // a round begins
+    dice_throw:    'assets/sfx/dice-throw.mp3',         // r743: a die thrown (Kenney, CC0)
 
     // A GUESS, easy to move: "good sound, pitch down" reads as the good sound
     // pitched down for the bad outcome. If it is meant to be positive, change

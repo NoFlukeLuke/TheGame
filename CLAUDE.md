@@ -4407,3 +4407,18 @@ Measured in headless Chromium at 1440x820 and 420x900 by real taps: three Kings 
 +10 pips; Legacy x3 pips; Cash Out +10 credits; Siphon x4 and 15 Focus spent; Snooze paused; Bomb
 +3 pips on the 13 other cards; Piggy Bank +5 credits. Built on r729, rebased onto r740's Sleight
 triage (r739) before landing.
+
+## r743 - dice you watch land (`js/dice-sim.js`, `css/dice.css`, owner)
+Kenney's Boardgame Pack dice (CC0, `assets/dice/`, white = a positive face, red = a negative one)
+on a CSS cube thrown by a small physics sim: gravity, table and wall bounces, sliding friction,
+spin that turns into rolling on each touch, a settle that tips it flat. **The result is decided
+first**: the throw is simulated to rest, then the die is turned at the START by the cube rotation
+that puts the decided face where it lands, so the flight is pure physics and nothing corrects at
+the end. `diceMake(tray, faces, opts)` (a die on a table element; `show` / `roll(value)`),
+`diceThrowAt(rect, faces, value, opts)` (a body-level table over a viewport rect; zoom scales its
+left / top too, so they are design px). Users: **`evDie`** (Luck Dice, js/event-toys.js) and the
+**D6 Trick** (`diceD6Fx` from play-hand.js: a die rolls across the Tricks tray's screen out of its
+chip, white for pips, red for mult; console mode's housing hides anything off a screen). Sound
+`sfxDiceThrow` (catalog `dice_throw`, Kenney's dieThrow1 as `assets/sfx/dice-throw.mp3`; a coded
+fallback in the same file). Cosmetic randomness is fxRandom; reduced motion shows the face at once.
+A new die anywhere uses `diceMake`, never its own flicker.

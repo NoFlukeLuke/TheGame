@@ -1,4 +1,4 @@
-const BUILD = "2026-11-05 · r742 · Plinko: real gravity, no hop on the drop";
+const BUILD = "2026-11-05 · r743 · dice you watch land: Luck Dice and the D6 Trick";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

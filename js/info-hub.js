@@ -433,6 +433,7 @@ const INFO_TOPICS = [
     body: [
       () => `The pictures on Tricks, Knacks, Sleights and reward tiles are pixel versions of icons from game-icons.net, by ${(typeof PX_ICON_AUTHORS !== 'undefined' ? PX_ICON_AUTHORS : []).join(', ')}. CC BY 3.0 (creativecommons.org/licenses/by/3.0). The list of icons is in assets/icons/CREDITS.md.`,
       'The playing cards are Pixel Cards by Jfred (jfredd.itch.io/pixel-cards), CC0; the Joker is the wild card.',
+      'The dice and their throw sound are from the Boardgame Pack by Kenney (kenney.nl), CC0.',
       'VT323 is by Peter Hull, under the SIL Open Font License.',
       'The music is by Kevin MacLeod (incompetech.com), CC BY 4.0 (creativecommons.org/licenses/by/4.0): Your Call, Eternity, Presenterator, Delightful D, Digital Lemonade, Newer Wave, Getting it Done, Nowhere Land, Shiny Tech. The list is in assets/music/CREDITS.md.',
     ] },
