@@ -43,7 +43,7 @@ function freeHandActive() { return freeHandSecs > 0; }
 // (generateHandFocus). Tricks and Knacks that pay Focus still do.
 function autoplayNoFocus() {
   return !!_overdriveRun || (typeof autopilotRunning === 'function' && autopilotRunning())
-    || (typeof sweepRunning === 'function' && sweepRunning());   // r572: All Hands's hands
+    || (typeof sweepRunning === 'function' && sweepRunning() && !(BAL.all_hands && BAL.all_hands.focus > 0));   // r572: All Hands's hands (r739: improved, they make Focus)
 }
 function overdriveFastHand() { return _ovFast; }
 function overdriveMultX() { return _overdriveRun ? _overdriveMultX : 1; }

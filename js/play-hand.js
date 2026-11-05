@@ -17,8 +17,10 @@ function generateHandFocus(hand, handCells, vultureSec) {
     // is applied AFTER the rate mods and before the floor, so an Overclock or a
     // Flywheel still doubles what is left rather than being cancelled by it.
     const _halfSpeed = FOCUS_HALF_SPEED_HANDS.has(hand) ? 0.5 : 1;
-    const speedBonus = _auto ? 0 : Math.floor(speedBonusFromTime(secondsSinceLast / _fr.window) * _fr.speed * _halfSpeed);
-    let totalFocus = handFocus + speedBonus;
+    // r739: an improved All Hands' hands make half, then all, of their hand Focus; never the speed bonus.
+    const _sweepF = (typeof sweepRunning === 'function' && sweepRunning()) ? ((BAL.all_hands && BAL.all_hands.focus) || 0) : 1;
+    const speedBonus = (_auto || _sweepF < 1 || (typeof sweepRunning === 'function' && sweepRunning())) ? 0 : Math.floor(speedBonusFromTime(secondsSinceLast / _fr.window) * _fr.speed * _halfSpeed);
+    let totalFocus = Math.round(handFocus * Math.min(1, _sweepF)) + speedBonus;
     // Rhythm: +Focus per hand (BAL.rhythm.focus)
     totalFocus += BAL.rhythm.focus * trickFires('rhythm');
     // Kaleidoscope no longer pays flat Focus here (r343): four or more suits in a
@@ -242,6 +244,7 @@ function playHand() {
   // r726: a Pestilence card in the selection is not part of the hand (js/horsemen.js). It is
   // pulled out here, so nothing below sees it, and handed back once the hand commits: its
   // spread clock resets and it stays on the grid. With no hand it goes back into the selection.
+  if (typeof sleightOnlyRefusePlay === 'function' && sleightOnlyRefusePlay(selected)) return;   // r739: Theta is Discard only
   const _pestSel = selected.filter(([r, c]) => gridData[r]?.[c]?._curseCard === 'pest');
   if (_pestSel.length) selected = selected.filter(([r, c]) => gridData[r]?.[c]?._curseCard !== 'pest');
   if (typeof handMinSelection === 'function' && selected.length < handMinSelection()) {
@@ -301,7 +304,7 @@ function playHand() {
   const _ringer = (!_sweeping && typeof ringerAugment === 'function') ? ringerAugment(result, selected) : null;
   if (_ringer) {
     result = _ringer.result;
-    selected = [...selected, _ringer.cell];
+    selected = [...selected, ...(_ringer.cells || [_ringer.cell])];   // r739: an improved Ringer may pull two
   }
 
   const playedCells = [...selected]; // capture before any path clears selection (for on_play sleights)
@@ -433,7 +436,12 @@ function playHand() {
     if (_rf > 0 && typeof addFocus === 'function') addFocus(_rf, 'rule_evens', 'sleight');
     const _rs = ruleFaceSeconds(_scoredCells, _handRetrigByCell);
     if (_rs > 0) rewindTime(_rs, `⏪ Face cards - rewound ${_rs}s`, 'rule_faces', 'sleight');
+    const _rc = typeof ruleEvenCredits === 'function' ? ruleEvenCredits(_scoredCells, _handRetrigByCell) : 0;   // r739
+    if (_rc > 0) grantEntityCoins(_rc, 'sleight', 'rule_evens');
   }
+  // r739: Soul Mirror costs seconds when its rank scores (once a hand), and Whetstone sharpens on played cards beside it.
+  if (typeof soulMirrorCharge === 'function') soulMirrorCharge(_scoredCells);
+  if (typeof feedWhetstones === 'function') feedWhetstones(playedCells.filter(([r, c]) => !gridData[r]?.[c]?._isSleight || gridData[r][c].sleightId !== 'whetstone'));
 
   // Short Change (r483): a hand that used fewer cards than your hand size pays
   // credits. It counts `playedCells` - everything this hand CONSUMED, which is
@@ -778,6 +786,7 @@ function playHand() {
 
   // Streak tracking
   const now = Date.now();
+  if (typeof syncopationOnHand === 'function') syncopationOnHand(hand, lastHandType);   // r739: Syncopation, a Knack now
   if (hand === lastHandType) {
     streakCount++;
     // The Starling: every 2nd hand of an unbroken same-type streak grants +1 discard
@@ -1099,6 +1108,14 @@ function scalingCount(hand, handCells, reps) {
   if (typeof suitPackOnScore === 'function') { try { suitPackOnScore(_cells); } catch (e) { console.error('[SUIT PACK]', e); } }
   // Small Change, Time and a Half (r722, js/money.js): credits per card, once per scoring where replays count.
   if (typeof moneyOnHand === 'function') { try { moneyOnHand(_cells); } catch (e) { console.error('[MONEY]', e); } }
+  // r739 (js/sleight-roles.js): the Recycler's named hand, and Perpetual Motion's roll per replay.
+  try {
+    if (typeof recyclerOnHand === 'function') {
+      const _cmp = (typeof handComponentsFor === 'function') ? handComponentsFor(handCells) : null;
+      recyclerOnHand([hand, ...((_cmp && _cmp.components) || []).map(cp => cp.name)], handCells);
+    }
+    if (typeof perpetualMotionRoll === 'function') perpetualMotionRoll(_cells.reduce((s, x) => s + Math.max(0, (x.n || 1) - 1), 0));
+  } catch (e) { console.error('[SLEIGHT TRIAGE]', e); }
   // Suggestive (r646, owner): each card scored in its marked line has `chance` (its second
   // line: chance2) of PRIMING the Trick in the tray slot of that line's number, once per
   // replay. Primes are spent here, not in calcScore (read-only), so this is a real roll.

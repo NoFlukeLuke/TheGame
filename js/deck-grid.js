@@ -661,7 +661,7 @@ const DURABLE_CARD_FIELDS = [
   // Whetstone's banked mult and the Vulture's clock buff
   '_whetMult', '_vulturePause',
   // a Floater (r676, js/changing.js) stays one whatever it has become
-  '_floater', '_floatSeen',
+  '_floater', '_floatSeen', '_floatLeft',
   // r722: Nest Egg's grown sell value, the level a Loan Shark was taken at (js/money.js)
   '_eggValue', '_loanFrom',
   // Climb mode (r398): the rank the card started the run at, for the reset.
@@ -824,10 +824,12 @@ function discardToPlayed(card) {
       // _whetMult too (r371): Whetstone's banked mult is "permanent", and since
       // it now leaves the board every 90s it would otherwise reset on each lap.
       // _gridSecs (its board clock) is deliberately NOT carried - a fresh lap.
+      // r739: a Floater whose own charges are spent leaves the deck as it goes.
+      if (card._floater && typeof card._floatLeft === 'number' && card._floatLeft <= 0) { noteMessage(`${SLEIGHT_POOL.find(d => d.id === 'floater')?.name || 'Floater'} is spent`); updateDeckHud(); return; }
       _pile.push({ _isSleight: true, sleightId: card.sleightId, rank: card.rank, suit: card.suit, _id: card._id,
                    _usesLeft: card._usesLeft === 'infinite' ? 'infinite' : Math.max(0, card._usesLeft), _faceMark: card._faceMark, _playable: card._playable,
                    _adjPlays: card._adjPlays || 0, _whetMult: card._whetMult || 0, _drawFired: false,
-                   _floater: card._floater || undefined, _floatSeen: card._floatSeen || undefined,
+                   _floater: card._floater || undefined, _floatSeen: card._floatSeen || undefined, _floatLeft: card._floatLeft ?? undefined,
                    _eggValue: card._eggValue || undefined, _loanFrom: card._loanFrom ?? undefined });   // r722 (js/money.js)   // r676: a Floater stays one (js/changing.js)
       updateDeckHud();
     }
@@ -933,7 +935,8 @@ function boardKeeper() {
   return null;
 }
 const KEEP_MODES = ['both', 'cards', 'sleights'];
-function boardKeepMode() { const k = boardKeeper(); return k ? (KEEP_MODES.includes(k._keepMode) ? k._keepMode : 'both') : null; }
+// r739: what it may keep grows with its improvements (keeperModeOf); 'none' redeals as if it were not there.
+function boardKeepMode() { const k = boardKeeper(); if (!k) return null; const m = typeof keeperModeOf === 'function' ? keeperModeOf(k) : (KEEP_MODES.includes(k._keepMode) ? k._keepMode : 'both'); return m === 'none' ? null : m; }
 function boardKeepsCard(card) {
   if (!card) return false;
   if (card._isTrick) return true;

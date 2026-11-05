@@ -191,7 +191,7 @@ function exitGridScreenHud() {
 function shopgCatViable(cat) {
   try {
     if (cat === 'tricks')   return TRICK_POOL.some(t => !acquiredTricks.some(b => b.id === t.id));
-    if (cat === 'knacks')   return KNACK_POOL.some(k => !acquiredKnacks.some(a => a.id === k.id));
+    if (cat === 'knacks')   return KNACK_POOL.some(k => knackOfferable(k) && !acquiredKnacks.some(a => a.id === k.id));
     if (cat === 'sleights') return true;
     if (cat === 'limits')   return LIMITS_DEF.some(d => limits[d.id].current < limits[d.id].max);
     if (cat === 'cards')    return typeof everyDeckCard === 'function' && everyDeckCard().length > 0;
@@ -232,7 +232,7 @@ function shopgDrawCats(prev) {
 // a payload with `_span: 2` covers two cells and counts twice against n. ──
 function shopgKnackPayloads(n) {
   const owned = new Set(acquiredKnacks.map(t => t.id));
-  return shuffle(KNACK_POOL.filter(t => !owned.has(t.id))).slice(0, n)
+  return shuffle(KNACK_POOL.filter(t => knackOfferable(t) && !owned.has(t.id))).slice(0, n)
     .map(k => ({ entity:'knack', label:k.name, desc:k.desc, emoji:k.emoji, rarity:k.rarity || 'common',
                  price: SHOP_KNACK_PRICE, buy: () => { acquiredKnacks.push({ ...k }); updateKnackList?.(); } }));
 }
@@ -411,6 +411,7 @@ function sellOwnedTrick(t) {
   if (typeof renderTrickTray === 'function') renderTrickTray();
 }
 function sellOwnedSleight(inst) {
+  if (typeof slowBurnSold === 'function') slowBurnSold(inst.card);   // r739: an improved Slow Burn keeps what it earned
   if (inst.from === 'draw')   drawPile.splice(inst.key, 1);
   else if (inst.from === 'played') playedPile.splice(inst.key, 1);
   else { const [r, c] = inst.key.split('-').map(Number); gridData[r][c] = (typeof drawCard === 'function' ? drawCard() : null) || null; }

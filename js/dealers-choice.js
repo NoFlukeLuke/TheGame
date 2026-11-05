@@ -80,11 +80,11 @@ function dealerOpen(jcard, r, c) {
   // Seed the stack where the Sleight sits, so it visibly comes out of the card.
   const src = document.querySelector(`#grid [data-card-id="${jcard._id}"]`)?.getBoundingClientRect();
   const sx = src ? src.left + src.width / 2 : innerWidth / 2, sy = src ? src.top + src.height / 2 : innerHeight / 2;
-  dealerHand = { cards, els: [], pos: cards.map(() => ({ x: sx, y: sy, vx: 0, vy: 0, rot: 0 })), still: 0, t0: performance.now() };
+  dealerHand = { mode: 'dealer', cards, els: [], pos: cards.map(() => ({ x: sx, y: sy, vx: 0, vy: 0, rot: 0 })), still: 0, t0: performance.now() };
   dealerBuildLayer();
   dealerFlyIn(src);
   try { sfxFlipShuffle(); } catch (e) {}
-  showMessage(`🃏 Dealer's Choice - tap a card to swap one in, or DISCARD it`, '#8fd0ff');
+  showMessage(`🃏 Dealer's Choice - tap a cell to place a card${BAL.dealers_choice.perm ? ' (it stays in your deck)' : ''}`, '#8fd0ff');
   discardSleightAfterUse(jcard, r, c);
   dealerStartLoop();
 }
@@ -402,11 +402,13 @@ function dealerPlaceAt(r, c) {
   if (typeof cardStatesOnLeave === 'function') cardStatesOnLeave([[r, c]]);
   if (old._isSleight) discardToPlayed(old); else discardToDrawPile(old);
   gridData[r][c] = card;
-  if (dealerHand.mode === 'reserve' || dealerHand.mode === 'lockbox') {
+  if (dealerHand.mode === 'reserve' || dealerHand.mode === 'lockbox' || dealerHand.mode === 'dealer') {
     // The Reserve (r569, js/reserve.js): the old card goes to the back of the deck
     // and nothing else happens - no time, no stock, no hook, no count. The
     // Lockbox (r576, js/lockbox.js) the same, and its card joins the deck.
+    // r739 (owner): Dealer's Choice is "like the Reserve" now; its 5th improvement keeps what you place.
     if (dealerHand.mode === 'lockbox' && typeof lockboxPlaced === 'function') lockboxPlaced(card);
+    if (dealerHand.mode === 'dealer' && BAL.dealers_choice.perm && card._temp) { delete card._temp; expectedDeckTotal++; if (typeof updateDeckHud === 'function') updateDeckHud(); }
     if (typeof cardStatesTouchCells === 'function') cardStatesTouchCells([[r, c]]);
   } else {
   // Counts as a swap: time, the round's swap tally, and the swap hooks. No stock.
@@ -452,10 +454,36 @@ function dealerDiscardTop() {
       { duration: 380, easing: 'cubic-bezier(.5,0,.75,.4)', fill: 'forwards' });
     setTimeout(() => g.remove(), 420);
   }
-  if (dealerHand.mode !== 'reserve') {   // the Reserve's throw-away is free (r569)
+  if (dealerHand.mode !== 'reserve' && dealerHand.mode !== 'dealer') {   // the Reserve's throw-away is free (r569); Dealer's Choice too (r739)
     dealerBill(dealerDiscardSeconds());
     if (typeof bossOnInteract === 'function') bossOnInteract('discard');
   }
   try { sfxCardDiscard(); } catch (e) {}
   dealerShift();
 }
+
+// ── Cycling the held cards (r739, owner) ─────────
+// The mouse wheel turns the stack (any held stack: Dealer's Choice, the Reserve,
+// the Lockbox); on touch the SWAP key does. Free; the top card goes to the back.
+function dealerCycle(dir) {
+  if (!dealerActive() || dealerHand.cards.length < 2) return false;
+  if (dir < 0) { dealerHand.cards.unshift(dealerHand.cards.pop()); dealerHand.pos.unshift(dealerHand.pos.pop()); }
+  else { dealerHand.cards.push(dealerHand.cards.shift()); dealerHand.pos.push(dealerHand.pos.shift()); }
+  dealerBuildLayer();
+  try { sfxCardSelect(); } catch (e) {}
+  return true;
+}
+let _dealerWheelAt = 0;
+document.addEventListener('wheel', e => {
+  if (!dealerActive()) return;
+  e.preventDefault();
+  const now = performance.now();
+  if (now - _dealerWheelAt < 90) return;   // one turn a notch, not a flood from a trackpad
+  _dealerWheelAt = now;
+  dealerCycle(e.deltaY > 0 ? 1 : -1);
+}, { passive: false });
+['btn-swap', 'swap-indicator'].forEach(id => {
+  const bind = () => { const el = document.getElementById(id); if (!el || el._dealerCycle) return; el._dealerCycle = 1;
+    el.addEventListener('click', e => { if (!dealerActive()) return; e.stopImmediatePropagation(); e.preventDefault(); if (!dealerCycle(1)) refuse('That is your only held card'); }, true); };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind); else bind();
+});

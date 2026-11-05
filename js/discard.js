@@ -47,7 +47,9 @@ function doDiscard() {
   // r567: a selection of nothing but Fodder costs no stock, so it is never refused for stock.
   const _freeHand = typeof freeHandActive === 'function' && freeHandActive();   // r571: Free Hand's window
   const _allFodder = _freeHand || (typeof cardIsFodder === 'function' && selected.every(([r, c]) => cardIsFodder(gridData[r]?.[c])));
-  if (discards <= 0 && !hasKnack('hoarder') && !_allFodder) {
+  // r739: the Recycler's free swaps and discards (js/sleight-roles.js).
+  const _recFree = !_allFodder && typeof recyclerFreeLeft !== 'undefined' && recyclerFreeLeft > 0;
+  if (discards <= 0 && !hasKnack('hoarder') && !_allFodder && !_recFree) {
     const btn = document.getElementById('btn-discard');
     if (btn) { btn.style.borderColor='var(--red)'; btn.style.color='var(--red)'; setTimeout(()=>{btn.style.borderColor='';btn.style.color='';},500); }
     refuse('No discards left');
@@ -128,7 +130,8 @@ function doDiscard() {
   // r567: Fodder takes no stock either, when every card thrown away is Fodder.
   const _own = discardedCards.filter(c => !_carried.has(c));   // r647: carried cards pay nothing
   const _fodderN = _freeHand ? _own.length : ((typeof cardIsFodder === 'function') ? _own.filter(cardIsFodder).length : 0);
-  if (!hasKnack('hoarder') && _fodderN < _own.length) discards--;
+  if (_recFree) { recyclerFreeLeft--; noteMessage(`♻️ Recycler: free discard (${recyclerFreeLeft} left)`); }
+  else if (!hasKnack('hoarder') && _fodderN < _own.length) discards--;
   // Discard time cost: the difficulty tier's flat figure (r727; it was 3s PER CARD).
   // There used to be a flat spendRoundTime(DISCARD_TIME_COST) here as well, so a
   // 1-card discard billed 3 + 3 = 6s while the UI said 3s, and the Free Discards
@@ -142,7 +145,7 @@ function doDiscard() {
   // interactTimeCostMult() is 0 when the mode does not bill the clock at all, so
   // this site needs no second test (r326). r728: the two free discards a round are gone.
   // r567: a discard of Fodder alone bills no seconds.
-  const timeCost = (_own.length - _fodderN <= 0) ? 0 : Math.round(flatCost * bossInteractMult() * interactTimeCostMult());
+  const timeCost = (_recFree || _own.length - _fodderN <= 0) ? 0 : Math.round(flatCost * bossInteractMult() * interactTimeCostMult());
   if (timeCost > 0) {
     roundSeconds = Math.max(1, roundSeconds - timeCost);
     showTimeCost(`-${timeCost}s`);
@@ -155,7 +158,8 @@ function doDiscard() {
   if (typeof ulBump === 'function') { ulBump('discards', count); if (pipeTimerPaused) ulBump('pausediscards', count); }   // r706
   cardsDiscardedRound += count;
   discardsUsedRound += _procrastinated ? 2 : 1;   // r647: Procrastinate counts as 2 discards
-  if (_procrastinated && BAL.procrastinate.discards) { discards += BAL.procrastinate.discards; noteMessage(`Procrastinate: +${BAL.procrastinate.discards} discards`); }
+  // r739: an improved Procrastinate gives every other Sleight on the grid charges back.
+  if (_procrastinated && BAL.procrastinate.recharge && typeof sleightRechargeGrid === 'function') sleightRechargeGrid(BAL.procrastinate.recharge, 'Procrastinate', discardedCards);
   // For Fodder (a Knack since r708): discarding a valid hand grants its size in credits
   if (_fodderHand) {
     const _fc = _fodderHand * BAL.five_fodder.credits_per_card;
@@ -327,6 +331,7 @@ function rewindCeiling() { return Infinity; }
 // knows it, so the FX can fly the symbol from that entity's tray tile (js/payout-fx.js).
 function rewindTime(seconds, label, srcId, srcSource) {
   if (seconds > 0 && typeof ulBump === 'function') { ulBump('rewinds'); ulBump('rewindsecs', seconds); unlockTimeTouched(seconds); }   // r706
+  if (seconds > 0 && typeof perpetualMotionOnTime === 'function') perpetualMotionOnTime();   // r739
   // The Rerun (boss): a coin flip on every rewind. Not speculative - this is only
   // ever reached from playHand and the round tick, never from calcScore.
   // Overtime's Unreliable clock (r562) misses the same way, on its own coin.
@@ -462,6 +467,7 @@ function pauseRound(seconds, srcId, srcSource) {
   // count toward Hummingbird (+mult per pause triggered) and the Time popup's tally.
   if (!seconds || seconds <= 0) return;
   if (typeof ulBump === 'function') { ulBump('pauses'); ulBump('pausesecs', seconds); unlockTimeTouched(seconds); }   // r706
+  if (typeof perpetualMotionOnTime === 'function') perpetualMotionOnTime();   // r739
   // The Rerun (boss): a coin flip on every pause, rolled before Time Slip so a
   // missed pause cannot become a rewind through the back door.
   if ((typeof bossRerunMisses === 'function' && bossRerunMisses())

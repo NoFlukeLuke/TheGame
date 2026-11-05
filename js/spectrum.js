@@ -83,7 +83,7 @@ function spectrumGrantDeckCards() {
   if (!isNumericMode()) return;
   [...SLEIGHT_FIXTURES].forEach(id => {
     const def = SLEIGHT_POOL.find(j => j.id === id);
-    if (!def) return;
+    if (!def || def.retired) return;   // r739: Shift Swap and Time Clock are cut
     drawPile.push({
       _isSleight: true, sleightId: def.id,
       rank: null, suit: null,

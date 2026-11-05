@@ -151,9 +151,11 @@ function doSwap(r1, c1, r2, c2) {
   // r567: a swap that moves a Fodder card costs no stock and no time (it still counts as a swap).
   const _fodderSwap = (typeof cardIsFodder === 'function' && (cardIsFodder(gridData[r1]?.[c1]) || cardIsFodder(gridData[r2]?.[c2])))
                    || (typeof freeHandActive === 'function' && freeHandActive());   // r571: Free Hand's window
+  // r739: the Recycler's free swaps and discards (js/sleight-roles.js), spent below once the swap happens.
+  const _recFree = !freeThisSwap && !_fodderSwap && typeof recyclerFreeLeft !== 'undefined' && recyclerFreeLeft > 0;
 
   // Guard: block swap when out of swaps (Steady Hand or a free swap bypasses limit)
-  if (swaps <= 0 && !hasKnack('steady_hand') && !freeThisSwap && !_fodderSwap) {
+  if (swaps <= 0 && !hasKnack('steady_hand') && !freeThisSwap && !_fodderSwap && !_recFree) {
     const btn = document.getElementById('btn-swap');
     if (btn) { btn.style.borderColor='var(--red)'; btn.style.color='var(--red)'; setTimeout(()=>{btn.style.borderColor='';btn.style.color='';},500); }
     refuse('No swaps left');
@@ -178,7 +180,8 @@ function doSwap(r1, c1, r2, c2) {
   // Wanderer charge is only spent when nothing else was already allowing it.
   // The Queen's Royal Reach (r358) swaps along its lines at any distance.
   const _royalSwap = notAdjacent && (hasRoyalReach(gridData[r1]?.[c1]) || hasRoyalReach(gridData[r2]?.[c2])) && onQueenLine(r1, c1, r2, c2);
-  const _wanderer = (notAdjacent && !hasKnack('free_range_t') && !_pivotCell && !_royalSwap) ? liveWanderer() : null;
+  // r739: the Wanderer's 5th improvement makes it a Knack (the_wanderer_k): any two, no charges.
+  const _wanderer = (notAdjacent && !hasKnack('free_range_t') && !_pivotCell && !_royalSwap) ? (hasKnack('the_wanderer_k') ? [null] : liveWanderer()) : null;
   if (notAdjacent && !hasKnack('free_range_t') && !_pivotCell && !_wanderer && !_royalSwap) {
     const btn = document.getElementById('btn-swap');
     if (btn) { btn.style.borderColor = 'var(--red)'; btn.style.color = 'var(--red)';
@@ -220,7 +223,8 @@ function doSwap(r1, c1, r2, c2) {
   }
 
   // Swap charge - skipped on a free swap; Steady Hand bypasses the limit
-  if (!hasKnack('steady_hand') && !freeThisSwap && !_fodderSwap) swaps--;
+  if (_recFree) { recyclerFreeLeft--; noteMessage(`♻️ Recycler: free swap (${recyclerFreeLeft} left)`); }
+  else if (!hasKnack('steady_hand') && !freeThisSwap && !_fodderSwap) swaps--;
   swapsUsedRound++;   // every swap ACTION, free or not (the No Takebacks challenge)
   if (typeof ulBump === 'function') ulBump('swaps');   // r706
   swapsUsedGame++;    // r651: Landfill counts swaps this game
@@ -231,7 +235,7 @@ function doSwap(r1, c1, r2, c2) {
   // a round cost 14s while the UI said 4s. One charge only now.
   // r727: the seconds are the difficulty tier's (swapSecondsBase, js/difficulty.js).
   let swapTimeCost = swapSecondsBase();
-  if (freeThisSwap || _fodderSwap || hasKnack('free_swaps')) swapTimeCost = 0;
+  if (freeThisSwap || _fodderSwap || _recFree || hasKnack('free_swaps')) swapTimeCost = 0;
   else if (hasKnack('steady_hand')) swapTimeCost = steadyHandSwapSecs();
   swapTimeCost = Math.round(swapTimeCost * bossInteractMult() * interactTimeCostMult());
   if (swapTimeCost > 0) {
@@ -268,9 +272,9 @@ function doSwap(r1, c1, r2, c2) {
   // above because discardSleightAfterUse spins the tile and then runs removeAndFall,
   // which takes the `falling` lock - starting that on top of the swap animation
   // would cut the swap short.
-  if (_wanderer) {
+  if (_wanderer && _wanderer[0]) {
     const _wc = _wanderer[0];
-    if (_wc._usesLeft > 1) { _wc._usesLeft--; render(); }
+    if (_wc._usesLeft > 1) { _wc._usesLeft--; if (typeof sleightChargeSpent === 'function') sleightChargeSpent(_wc); render(); }
     else setTimeout(() => {
       let _at = null;
       for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) if (gridData[r]?.[c] === _wc) _at = [r, c];
@@ -279,7 +283,11 @@ function doSwap(r1, c1, r2, c2) {
   }
   if (_pivotSpent) {
     const [_pr, _pc] = _pivotSpent;
-    setTimeout(() => {
+    // r739: an improved Pivot stays for BAL.pivot.swaps buff swaps, a charge each, then leaves.
+    const _pv0 = gridData[_pr]?.[_pc];
+    if (_pv0?._isSleight && _pv0.sleightId === 'pivot' && (_pv0._pivotSwaps = (_pv0._pivotSwaps || 0) + 1) < BAL.pivot.swaps
+        && (_pv0._usesLeft === 'infinite' || _pv0._usesLeft > 1)) { consumeSleightCharge(_pv0, _pr, _pc); render(); }
+    else setTimeout(() => {
       const _pv = gridData[_pr]?.[_pc];
       if (_pv?._isSleight && _pv.sleightId === 'pivot') discardSleightAfterUse(_pv, _pr, _pc);
     }, cardSwapMs() + 40);
@@ -448,11 +456,17 @@ function onCardTap(r, c) {
   // double_tap-activated sleights (none in current pool) would intercept here:
   if (gridData[r]?.[c]?._isSleight) {
     const jdef = sleightDef(gridData[r][c]);
+    // r739: Bomb's 5th improvement gives it a second use: double-tap raises every card on the grid a rank.
+    if (jdef?.id === 'the_bomb' && isDoubleTap && BAL.the_bomb.rank_up) {
+      lastTapTime = 0; lastTapCell = null; hideSleightGridTooltip(); selected = []; swapPending = null;
+      if (typeof bombRankUp === 'function') bombRankUp(gridData[r][c], r, c);
+      return;
+    }
     if (jdef?.activation === 'double_tap' && isDoubleTap) {
       const jcard = gridData[r][c];
       lastTapTime = 0; lastTapCell = null;
       // Keeper (r568): double-tap cycles what the board keeps between rounds. No charge, no lock.
-      if (jdef.id === 'keeper') { hideSleightGridTooltip(); keeperCycle(jcard); spinSleightTile(r, c); render(); return; }
+      if (jdef.id === 'keeper') { hideSleightGridTooltip(); if (keeperCycle(jcard)) spinSleightTile(r, c); render(); return; }
       // Lockbox (r576, js/lockbox.js): opens the cards bought at the Card Market. No charge, no lock.
       if (jdef.id === 'lockbox') { hideSleightGridTooltip(); lockboxToggle(jcard, r, c); return; }
       // Stopwatch: custom freeze (not the once-per-round-locked charge model). Double-tap toggles.
@@ -473,21 +487,7 @@ function onCardTap(r, c) {
       hideSleightGridTooltip();
       // All Hands (r572, js/sweep.js): plays every hand on the board. It leaves with them.
       if (jdef.id === 'all_hands') { sweepStart(jcard, r, c); return; }
-      // Capacitor: pay 10 Focus AND 20 seconds for 10 credits, then it leaves the grid (spent).
-      if (jdef.id === 'capacitor') {
-        if (focusNodes < BAL.capacitor.focus_cost) { refuse(`Capacitor needs ${BAL.capacitor.focus_cost} Focus`, { color: 'var(--cream-dim)' }); return; }
-        removeFocus(BAL.capacitor.focus_cost);
-        roundSeconds = Math.max(1, roundSeconds - BAL.capacitor.time_cost); showTimeCost(`-${BAL.capacitor.time_cost}s`); updateClockUI();
-        grantEntityCoins(BAL.capacitor.credits, 'sleight', 'capacitor');
-        // The payout is the particle, not a toast (r326): the credits plate flies
-        // from the card to the coin readout with the coin sound; the time cost
-        // already flashed off the clock above.
-        if (typeof entityEffectFX === 'function')
-          entityEffectFX('credits', BAL.capacitor.credits,
-            { srcEl: document.querySelector(`#grid [data-card-id="${jcard._id}"]`), id: 'capacitor', source: 'sleight' });
-        selected = []; sleightUseInPlace(jcard, r, c);   // INERT on use (r341), stays on the grid
-        return;
-      }
+      // r739: Capacitor is Theta, a discard (js/sleight-roles.js); no double-tap any more.
       // Siphon: pay 15 Focus to charge the next hand with ×4 mult, then leave the grid - it
       // cycles back into the deck with its remaining charges, or is spent on its last charge.
       if (jdef.id === 'siphon') {
@@ -503,6 +503,7 @@ function onCardTap(r, c) {
       if (jdef.id === 'dealers_choice') { dealerOpen(jcard, r, c); return; }
       // r647 (js/office-sleights.js): both leave through discardSleightAfterUse themselves.
       if (jdef.id === 'photocopier') { photocopierUse(jcard, r, c); return; }
+      if (jdef.id === 'sequencer') { sequencerUse(jcard, r, c); return; }   // r739 (js/sleight-roles.js)
       if (jdef.id === 'bogo') { bogoUse(jcard, r, c); return; }   // r722 (js/money.js)
       if (jdef.id === 'logistics_assistant') { logisticsStart(jcard, r, c); return; }
       if (jdef.id === 'magnet') {

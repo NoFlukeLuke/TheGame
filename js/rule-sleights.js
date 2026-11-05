@@ -32,8 +32,10 @@ function _ruleRanksText(ranks) {
   return w.length > 1 ? w.slice(0, -1).join(', ') + ' and ' + w[w.length - 1] : w[0];
 }
 function ruleRollRanks(n) {
+  // r739 (owner): the ranks are chosen from the deck (ranks some deck card holds).
+  const inDeck = new Set((typeof everyDeckCard === 'function' ? everyDeckCard() : []).filter(c => c && c.rank && !c._isSleight && !c._isStone).map(c => c.rank));
   const pool = ((typeof ACTIVE_RANKS !== 'undefined' && ACTIVE_RANKS.length) ? ACTIVE_RANKS : RANKS)
-    .filter(r => !(typeof WILD_RANK !== 'undefined' && r === WILD_RANK));
+    .filter(r => !(typeof WILD_RANK !== 'undefined' && r === WILD_RANK) && (!inDeck.size || inDeck.has(r)));
   const a = pool.slice();
   for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
   return a.slice(0, Math.max(1, Math.min(a.length, n || 2)));
@@ -51,8 +53,8 @@ function ruleSleightsScan() {
     const def = sleightDef(cd), name = def ? def.name : 'Rule';
     const left = cd._usesLeft === 'infinite' ? '' : cd._usesLeft > 0 ? ` (${cd._usesLeft} left)` : ' (its last)';
     let rule = '';
-    if (cd.sleightId === 'rule_ranks') { cd._ruleRanks = ruleRollRanks(BAL.rule_ranks.ranks); rule = `${_ruleRanksText(cd._ruleRanks)} replay once`; }
-    if (cd.sleightId === 'rule_evens') rule = `even cards score +${BAL.rule_evens.focus} Focus`;
+    if (cd.sleightId === 'rule_ranks') { cd._ruleRanks = ruleRollRanks(BAL.rule_ranks.ranks); rule = `${_ruleRanksText(cd._ruleRanks)} replay ${BAL.rule_ranks.replays > 1 ? BAL.rule_ranks.replays + 'x' : 'once'}`; }
+    if (cd.sleightId === 'rule_evens') rule = `even cards score +${BAL.rule_evens.focus} Focus${BAL.rule_evens.credits ? ` and ${BAL.rule_evens.credits} credits` : ''}`;
     if (cd.sleightId === 'rule_faces') rule = `face cards rewind the clock ${BAL.rule_faces.seconds}s`;
     showMessage(`${name} on the board${left}: ${rule} while it stays`, '#cc88ff');
   }
@@ -61,7 +63,7 @@ function ruleSleightsScan() {
 // calcScore's card loop: the replays a card takes from rule_ranks.
 function ruleRankReplays(rank) {
   const cd = ruleSleightOn('rule_ranks');
-  return (cd && cd._ruleRanks && cd._ruleRanks.includes(rank)) ? 1 : 0;
+  return (cd && cd._ruleRanks && cd._ruleRanks.includes(rank)) ? (BAL.rule_ranks.replays || 1) : 0;
 }
 // playHand: what the scored cells pay under rule_evens / rule_faces, once per
 // scoring (a card that replays pays again). `retrig` is the hand's replay counts by cell.
@@ -79,6 +81,13 @@ function ruleEvenFocus(cells, retrig) {
   return _ruleCellsPay(cells, retrig, rk => typeof _rankIsEvenRank === 'function' && _rankIsEvenRank(rk)) * BAL.rule_evens.focus;
 }
 function ruleFaceSeconds(cells, retrig) {
-  if (!ruleSleightOn('rule_faces')) return 0;
-  return _ruleCellsPay(cells, retrig, rk => RULE_FACE_RANKS.includes(rk)) * BAL.rule_faces.seconds;
+  // r739: the 5th improvement makes it a Knack (rule_faces_k): the rule always holds.
+  const _k = typeof hasKnack === 'function' && hasKnack('rule_faces_k');
+  if (!_k && !ruleSleightOn('rule_faces')) return 0;
+  return _ruleCellsPay(cells, retrig, rk => RULE_FACE_RANKS.includes(rk)) * (_k ? BAL.rule_faces_k.seconds : BAL.rule_faces.seconds);
+}
+// r739: Even Keel's 5th improvement pays credits for even cards as well.
+function ruleEvenCredits(cells, retrig) {
+  if (!BAL.rule_evens.credits || !ruleSleightOn('rule_evens')) return 0;
+  return _ruleCellsPay(cells, retrig, rk => typeof _rankIsEvenRank === 'function' && _rankIsEvenRank(rk)) * BAL.rule_evens.credits;
 }

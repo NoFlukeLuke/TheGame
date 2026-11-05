@@ -236,6 +236,8 @@ function survivalTickBossClock() {
 function survivalEntityBanned(id) {
   // r646: a fused (INSEPARABLE) Trick exists only through its pair, never as an offer.
   if (typeof inseparableDef === 'function' && inseparableDef(id)) return true;
+  // r739: a role-change Knack comes only from its Sleight's 5th improvement.
+  if (typeof KNACK_POOL !== 'undefined' && KNACK_POOL.some(k => k.id === id && k.roleOnly)) return true;
   // r706: a locked Trick is never offered (js/unlocks.js).
   if (typeof trickLocked === 'function' && trickLocked(id)) return true;
   // r727: Free Swaps / Free Discards do nothing at a difficulty where they cost no time.
@@ -283,7 +285,7 @@ function survivalBuildPools() {
   // would leak into the shop, the reward grid and every other draw.
   tricks.push(SURVIVAL_GRID_OFFER);
   const ownedKnack = new Set(acquiredKnacks.map(k => k.id));
-  const knacks = KNACK_POOL.filter(k => !survivalEntityBanned(k.id) && !ownedKnack.has(k.id));
+  const knacks = KNACK_POOL.filter(k => knackOfferable(k) && !survivalEntityBanned(k.id) && !ownedKnack.has(k.id));
   const grantedSl = _grantedSleightSet();
   const sleights = SLEIGHT_POOL.filter(j => !survivalEntityBanned(j.id) && !grantedSl.has(j.id) && sleightOfferable(j));
   const lims = LIMITS_DEF.filter(d => limits[d.id].current < limits[d.id].max);

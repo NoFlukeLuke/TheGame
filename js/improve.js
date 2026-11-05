@@ -72,8 +72,6 @@ const IMPROVE_MUL = new Set([
 // for that entity - nothing else on it scales.
 //   ENTITY_IMPROVEMENTS.md, "Improve option 1", is the source of truth.
 const IMPROVE_STEP = {
-  amplifier:      { mult_per_level: 1 },   // r636: x3 the level, +1x an improvement
-  rule_ranks:     { ranks: 1 },            // r675: one more named rank a tier (2 3 4 5 6 9)
   first_light:    { worth: 10 },        // Aces worth 21; the sheet says +10, not +21
   rising_tide:    { mult_min: 1, mult_max: 1 },   // r539: each level's roll, 1-3 -> 2-4 -> ...
   face_value:     { face_pips: 5 },     // face cards 15; the sheet says +5
@@ -196,15 +194,10 @@ const IMPROVE_PLAN = {
   marathon:         t => ({ extra: [1, 2, 2, 3, 4, 4][t], flush: t >= 2 ? 1 : 0, sets: t >= 5 ? 1 : 0 }),
   // ── r647, the owner's new Sleights and Green Station ──
   // +2 charges a tier; the 5th gives 2 discards a use and half the time spends 2 charges
-  procrastinate:    t => ({ charges: 5 + 2 * [0, 1, 2, 3, 4, 4][t], discards: t >= 5 ? 2 : 0, double_spend: t >= 5 ? 0.5 : 0 }),
   // +1 charge, then a temp copy of a played card, alternating; the 5th refills and makes two copies permanent
-  retake:           t => ({ charges: 8 + [0, 1, 1, 2, 2, 2][t], copies: [0, 0, 1, 1, 2, 2][t], permanent: t >= 5 ? 1 : 0, double_spend: t >= 5 ? 0.5 : 0 }),
   // +2 charges, then one more card deleted, alternating; the 5th refills and deletes them all
-  shredder:         t => ({ charges: 3 + 2 * [0, 1, 1, 2, 2, 2][t], deletes: [1, 1, 2, 2, 3, 99][t], double_spend: t >= 5 ? 0.5 : 0 }),
   // one more copy a tier; the 5th makes two of them permanent
-  photocopier:      t => ({ copies: 4 + [0, 1, 2, 3, 4, 4][t], permanent: t >= 5 ? 2 : 0, double_spend: t >= 5 ? 0.5 : 0 }),
   // +2 charges a tier; the 5th gives 2 swaps a use
-  logistics_assistant: t => ({ charges: 4 + 2 * [0, 1, 2, 3, 4, 4][t], swaps: t >= 5 ? 2 : 0 }),
   // +10% a tier; the 5th adds a 30% chance of a second charge
   // r677 (owner): v2 x buffs, v3 6 cards, v4 up to 3 buffed allowed, v5 second rank / suit, v6 8 cards and up to 6
   touch_up:         t => ({ cards: t >= 5 ? 8 : t >= 2 ? 6 : 3, max: t >= 5 ? 6 : t >= 3 ? 3 : 0, kinds: t >= 4 ? 3 : t >= 1 ? 2 : 1 }),
@@ -236,6 +229,49 @@ const IMPROVE_PLAN = {
   deluxe_subscription: t => ({ chance: 0.15 * (1 + Math.min(t, 4)), chance2: t >= 5 ? 0.5 : 0 }),
   // the number is not the point: each improvement grows the cards' buffs (IMPROVE_HOOKS.yoked)
   yoked:            () => ({}),
+  // ── r739: the owner's Sleight triage (and its two charge Knacks) ──
+  the_queen: t => ({ pips: [10, 20, 20, 30, 30, 30][t], mult: [10, 20, 20, 30, 30, 30][t], pause_seconds: [5, 5, 15, 15, 25, 25][t], all_reach: t >= 5 ? 1 : 0 }),
+  warehouse: t => ({ charges: [5, 6, 6, 7, 7, 7][t], counts: [2, 2, 3, 3, 4, 4][t], wild: t >= 5 ? 1 : 0 }),
+  the_ringer: t => ({ charges: [10, 11, 11, 13, 13, 13][t], second: [0, 0.25, 0.25, 0.5, 1, 1][t], inert: t < 2 ? 1 : 0 }),
+  fight_power: t => ({ charges: [9, 11, 13, 15, 17, 17][t], use_seconds: 20 * [9, 11, 13, 15, 17, 17][t] }),
+  dazed: t => ({ free: t >= 1 ? 1 : 0, played: t >= 5 ? 1 : 0 }),
+  pivot: t => ({ charges: [3, 3, 4, 4, 4, 5][t], mult: [8, 16, 16, 16, 24, 32][t], swaps: [1, 1, 1, 2, 2, 3][t] }),
+  echo_play: t => ({ charges: [5, 6, 6, 7, 7, 8][t], replays: [2, 2, 3, 3, 4, 5][t] }),
+  the_naturalist: t => ({ pips: [5, 10, 10, 15, 15, 15][t], chance: [0, 0, 0.5, 0.5, 1, 1][t], adj: t >= 5 ? 1 : 0 }),
+  retake: t => ({ charges: [6, 8, 8, 8, 8, 8][t], copies_a: t >= 2 ? 2 : 0, perm_a: t >= 3 ? 1 : 0, copies_b: t >= 4 ? 2 : 0, perm_b: t >= 5 ? 1 : 0 }),
+  the_bomb: t => ({ charges: [3, 4, 4, 5, 5, 5][t], pips: [3, 3, 9, 9, 15, 15][t], rank_up: t >= 5 ? 1 : 0 }),
+  the_legacy: t => ({ charges: [5, 5, 6, 6, 7, 8][t], pips_x: [3, 4, 4, 5, 5, 6][t], mult_x: t >= 5 ? 6 : 0 }),
+  last_call: t => ({ charges: [5, 6, 6, 7, 7, 8][t], seconds: [12, 12, 18, 18, 24, 30][t] }),
+  sandbag: t => ({ flat: [0, 5, 5, 10, 10, 15][t], extra_per_member: [0.5, 0.5, 0.75, 0.75, 1, 1.25][t] }),
+  procrastinate: t => ({ charges: [5, 7, 7, 9, 9, 11][t], recharge: [0, 0, 1, 1, 2, 3][t] }),
+  shredder: t => ({ charges: [3, 5, 5, 7, 7, 7][t], deletes: [1, 1, 2, 2, 3, 99][t] }),
+  the_catalyst: t => ({ charges: [6, 6, 6, 7, 7, 8][t], mult: [10, 20, 20, 20, 30, 40][t], pips: [10, 10, 20, 20, 20, 30][t] }),
+  the_wanderer: t => ({ charges: [5, 7, 9, 11, 13, 13][t] }),
+  amplifier: t => ({ charges: [5, 6, 6, 7, 7, 8][t], mult_per_level: [5, 5, 10, 10, 15, 20][t] }),
+  magnet: t => ({ charges: [5, 6, 6, 7, 7, 7][t], copies: [0, 0, 1, 1, 2, 2][t], perm: t >= 5 ? 2 : 0 }),
+  photocopier: t => ({ charges: [5, 6, 6, 7, 7, 7][t], copies: [3, 3, 5, 5, 7, 7][t], permanent: t >= 5 ? 2 : 0 }),
+  sequencer: t => ({ charges: [5, 6, 6, 6, 6, 8][t], copies: [3, 3, 5, 5, 7, 9][t], suit: t >= 3 ? 1 : 0 }),
+  logistics_assistant: t => ({ charges: [12, 14, 14, 16, 16, 16][t], focus: [0, 0, 2, 2, 4, 4][t], stock_per: t >= 5 ? 2 : 0 }),
+  keeper: t => ({ modes: [1, 2, 3, 3, 3, 3][t], inert: t < 3 ? 1 : 0, pay: t >= 4 ? 1 : 0, improve: t >= 5 ? 1 : 0 }),
+  lockbox: t => ({ temp: [0, 2, 4, 6, 8, 8][t], perm: t >= 5 ? 2 : 0 }),
+  dealers_choice: t => ({ charges: [3, 3, 5, 5, 7, 7][t], cards: [3, 5, 5, 7, 7, 7][t], perm: t >= 5 ? 1 : 0 }),
+  all_hands: t => ({ charges: [3, 3, 3, 6, 6, 6][t], focus: [0, 0.5, 1, 1, 1, 1][t], applies: t >= 4 ? 2 : 1, boss: t >= 5 ? 1 : 0 }),
+  reflect: t => ({ extra_replays: [2, 3, 3, 4, 4, 4][t], board_seconds: [60, 60, 75, 75, 90, 90][t], arrows: t >= 5 ? 2 : 1 }),
+  soul_mirror: t => ({ flat: [0, 1, 1, 2, 2, 2][t], cost_seconds: [5, 5, 4, 4, 3, 3][t], arrows: t >= 5 ? 2 : 1 }),
+  autopilot: t => ({ charges: [15, 18, 18, 18, 21, 24][t], max_hands: [5, 5, 7, 7, 7, 9][t], extra_applies: [0, 0, 0, 1, 1, 2][t] }),
+  whetstone: t => ({ mult_per_event: [2, 2, 4, 4, 6, 6][t], life_seconds: [90, 120, 120, 150, 150, 150][t], per_card: t >= 5 ? 1 : 0 }),
+  entourage: t => ({ mult_per_sleight: [10, 20, 30, 40, 50, 50][t], all: t >= 5 ? 1 : 0 }),
+  lighthouse: t => ({ mult: [20, 40, 40, 60, 60, 60][t], falloff_per_column: [7, 7, 5, 5, 3, 3][t], adj: t >= 5 ? 1 : 0 }),
+  capacitor: t => ({ charges: [5, 6, 6, 6, 7, 7][t], seconds: [10, 10, 9, 9, 9, 8][t], per: [1, 1, 1, 2, 2, 2][t] }),
+  siphon: t => ({ charges: [4, 4, 5, 5, 5, 6][t], focus_cost: [15, 12, 12, 12, 9, 6][t], mult: [4, 4, 4, 5, 5, 6][t] }),
+  rule_ranks: t => ({ charges: [6, 7, 7, 7, 8, 9][t], ranks: [2, 2, 4, 4, 4, 6][t], replays: [1, 1, 1, 2, 2, 3][t] }),
+  rule_evens: t => ({ charges: [5, 6, 6, 7, 7, 8][t], focus: [2, 2, 4, 4, 6, 6][t], credits: t >= 5 ? 2 : 0 }),
+  rule_faces: t => ({ charges: [5, 6, 6, 7, 7, 7][t], seconds: [2, 2, 4, 4, 4, 4][t], role: t >= 4 ? 1 : 0 }),
+  rule_faces_k: () => ({}),   // a role-change Knack never improves (it arrives at v6)
+  slow_burn: t => ({ per: [1, 2, 2, 3, 3, 3][t], cap: [15, 15, 20, 20, 25, 25][t], keep: t >= 5 ? 1 : 0 }),
+  recycler: t => ({ charges: [6, 7, 7, 8, 8, 10][t], free: [3, 3, 4, 4, 5, 5][t], anywhere: t >= 5 ? 1 : 0 }),
+  trickle_charge: t => ({ chance: [0.25, 0.35, 0.45, 0.55, 0.55, 0.55][t], amount: t >= 4 ? 2 : 1, two: t >= 5 ? 1 : 0 }),
+  perpetual_motion: t => ({ chance: [0.04, 0.06, 0.08, 0.1, 0.12, 0.14][t], amount: t >= 3 ? 2 : 1, time: t >= 4 ? 1 : 0, spend: t >= 5 ? 0.5 : 0 }),
 };
 
 // What an improvement DOES beyond its numbers (r625): a tier jump, a roll kept on
@@ -257,24 +293,26 @@ const IMPROVE_HOOKS = {
   suggestive:    () => { if (BAL.suggestive.chance2 && typeof markExtraLine === 'function') markExtraLine('suggestive'); },
   coin_sword:    () => { if (BAL.coin_sword.line2 && typeof markExtraLine === 'function') markExtraLine('coin_sword'); },
   assembly_line: () => { if (BAL.assembly_line.lines > 1 && typeof markExtraLine === 'function') markExtraLine('assembly_line'); },
-  // r647: a Sleight's owned copies take its new charges (a refill where the 5th says so)
-  procrastinate: tier => sleightTierCharges('procrastinate', tier),
-  bogo: tier => sleightTierCharges('bogo', tier),
-  retake: tier => sleightTierCharges('retake', tier, tier >= 5),
-  shredder: tier => sleightTierCharges('shredder', tier, tier >= 5),
-  logistics_assistant: tier => sleightTierCharges('logistics_assistant', tier),
+  // r739 (owner): every Sleight improvement refills its charges (sleightRefillAll, from improveEntity).
+  // Fresh Start improves twice: the 1st jumps to tier 3 (no cost), the 2nd to tier 5 (the played pile too).
+  dazed: tier => { if (tier === 1 || tier === 2) return 3; if (tier === 4) return 5; },
+  // The 5th improvement of these four is a role change: the Sleight leaves the run as a Knack (js/sleight-roles.js).
+  rule_faces: tier => { if (tier >= 5 && typeof sleightRoleChange === 'function') sleightRoleChange('rule_faces'); },
+  fight_power: tier => { if (tier >= 5 && typeof sleightRoleChange === 'function') sleightRoleChange('fight_power'); },
+  the_wanderer: tier => { if (tier >= 5 && typeof sleightRoleChange === 'function') sleightRoleChange('the_wanderer'); },
+  the_ringer: tier => { if (tier >= 5 && typeof sleightRoleChange === 'function') sleightRoleChange('the_ringer'); },
   yoked: tier => { yokedImprove(tier); },
 };
-// The charges a Sleight's IMPROVE_PLAN gives at a tier, onto every owned copy: the
-// step since the last tier, or full when `refill`. Capped at the Sleight's cap.
-function sleightTierCharges(id, tier, refill) {
-  const plan = IMPROVE_PLAN[id];
-  if (!plan || typeof allOwnedSleightCards !== 'function') return;
-  const step = Math.max(0, plan(tier).charges - plan(Math.max(0, tier - 1)).charges);
-  const cap = sleightMaxCharges(SLEIGHT_POOL.find(s => s.id === id));
+// r739 (owner): improving a Sleight refills every owned copy to its cap (a Floater
+// that is this Sleight right now included), and a spent copy lying dormant wakes.
+// A timed Sleight (Fight the Power, Stopwatch) also gets its part-spent charge back.
+function sleightRefillAll(id) {
+  if (typeof allOwnedSleightCards !== 'function' || !SLEIGHT_POOL.some(s => s.id === id)) return;
   allOwnedSleightCards().forEach(c => {
     if (c.sleightId !== id || typeof c._usesLeft !== 'number') return;
-    c._usesLeft = refill ? cap : Math.min(cap, c._usesLeft + step);
+    const cap = sleightCapOf(c);
+    if (cap != null) c._usesLeft = Math.max(c._usesLeft, cap);
+    c._chargeSecsUsed = 0;
   });
 }
 // `n` distinct ranks, none in `not`, kept on the Trick under `key` (rolled once
@@ -466,6 +504,7 @@ function improveEntity(id) {
     const jump = hook(entityTier[id], ownedTrickObj(id));
     if (typeof jump === 'number' && jump > entityTier[id]) { entityTier[id] = Math.min(IMPROVE_MAX_TIER, jump); applyEntityTiers(); hook(entityTier[id], ownedTrickObj(id)); }
   }
+  sleightRefillAll(id);   // r739: a Sleight's improvement refills it
   improveRepaintArt();
   if (typeof ulBump === 'function') ulBump('improves');   // r706
   // r627: the improvement animation (js/improve-anim.js) plays from a queue, so a

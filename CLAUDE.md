@@ -4324,3 +4324,51 @@ throughout, no timeline drift, no page errors. Golden: 838 cases match.
   finger and selected nothing. While a fall runs, the pointerdown falls back to the cell layout
   and the drag reads the layout first. Measured on a 420x900 touch page, drags timed to start
   mid-fall: 6 of 8 played before, 17 of 18 after (the miss was the five-hands-scoring cap).
+
+## r739 - the owner's Sleight triage (the Sleight Triage page; `js/sleight-roles.js`)
+Numbers, sentences and ladders are BAL / DESC_TEMPLATES / IMPROVE_PLAN (one block each, tagged
+r739); behaviour that is new lives in js/sleight-roles.js (loads after js/office-sleights.js).
+- **Every Sleight improvement refills it** (`sleightRefillAll`, from `improveEntity`; replaces
+  r647's `sleightTierCharges`). A ladder that names charges keeps them in BAL `charges`.
+- **Play only / Discard only / Fixed** (`sleightOnly(card)`, `SLEIGHT_ONLY_WORDS`): the word on a
+  Sleight that can no longer do everything. Play only = r341's `_inert`; Discard only = `_only:
+  'discard'` (cardCan lets it be selected and discarded, `sleightOnlyRefusePlay` in playHand);
+  Fixed = the aim Sleights. The sentences use the words; the old "Inert: it cannot be swapped or
+  discarded, only played" is gone from the Sleights this pass touched.
+- **Role change** (`sleightRoleChange(id)`, IMPROVE_HOOKS at tier 5): In Your Face, Fight the Power,
+  Wanderer and The Ringer leave the run at their 5th improvement as a Knack (`<id>_k`, `roleOnly`,
+  v6, never offered: `knackOfferable` at every KNACK_POOL offer site, `survivalEntityBanned`).
+  Their code asks `hasKnack('<id>_k')` beside the board check.
+- **Cut** (`retired: true`, `sleightOfferable` refuses it; rows kept for saved runs): Governor,
+  Lightning Rod, Shift Swap, Time Clock (Spectrum skips the retired fixtures). **Syncopation is a
+  Knack** (same id): a hand of a different FAMILY than the one before pauses the clock 3s.
+- **New:** Sequencer (rare, double-tap: temp cards running up from a neighbour's rank replace its
+  column, then the next; v4 they take its suit), Trickle Charge and Perpetual Motion (rare Knacks,
+  `sleightChargeSpent(card)` is called wherever a charge is spent; Perpetual Motion also rolls per
+  replay in scalingCount and per pause / rewind), Recycler as an offered Sleight (names a hand on
+  landing, `_recHand`; scoring it beside it gives `recyclerFreeLeft` free swaps / discards, in
+  SAVE_VARS), Theta (was Capacitor, id frozen: banks credits on the grid, Discard only, discard pays).
+- **Reworked:** Floater changes on every DRAW (`chgScan`), its form has unlimited charges and the
+  Floater's own `_floatLeft` (durable) pays one a draw. Lockbox is offered again (double-tap: bought
+  cards + `BAL.lockbox.temp` buffed temp cards, `perm` permanent at v6; leaves after 90s). Dealer's
+  Choice places free like the Reserve (mode 'dealer'). Keeper keeps the cards to start; v2 cards or
+  Sleights, v3 everything or nothing too (`keeperModesAllowed`; 'none' redeals), v4 no longer Play
+  only, v5 pays 1 credit a kept card (a plate at the round's end, not a payout line yet), v6
+  improves a random Sleight on the grid (`keeperRoundEnd`). Legacy is x PIPS (v6 adds the same x
+  mult). Logistics spends a charge per swap. Fresh Start improves twice (free, then the played pile).
+  Reflect / Soul Mirror take a second arrow at v6 (`aimTargetCells`, `aimArrowHTML`); Soul Mirror
+  costs seconds when its rank scores (`soulMirrorCharge`). The Queen's v6 gives every card royal
+  reach (`royalReachCells`). Warehouse counts `BAL.warehouse.counts` and at v6 is a wild for sets and
+  runs (`warehouseIsWild`, in `countWilds`). Bomb's v6 double-tap raises every card a rank
+  (`bombRankUp`). Naturalist's random second buff (`naturalistBonusBuff`). Whetstone also feeds on
+  played cards. Slow Burn sold at v6 keeps its Focus (`slowBurnSold`).
+- **Held cards cycle** (`dealerCycle`, js/dealers-choice.js): the mouse wheel, or the SWAP key, turns
+  any held stack (Dealer's Choice, the Reserve, the Lockbox).
+Measured in headless Chromium at 1440x820 and 420x900 (Trick tour, dev mode on): every edited
+Sleight's six sentences print with no leftover template; Theta banked 2 in 25s, refused a swap,
+paid 2 on DISCARD; a Recycler Pair gave 3 free swaps; Sequencer by double-tap placed 5 6 7 from a 4;
+Bomb v6 raised a 5 to a 6; In Your Face v6 became the Knack and left the deck; an improvement
+refilled Amplifier 1 -> 6; Keeper cycled cards / sleights / both / none; Dealer's Choice placed free
+and turned on SWAP and the wheel; Lockbox v3 opened 4 temp cards; Queen v6 made 16 of 16 cells royal;
+a Warehouse v6 made 9 9 + Warehouse a Three of a Kind; Legacy x3 pips 60 -> 180; three real hands
+with Legacy and Echo: no drift, no page errors. Golden: 838 cases match.

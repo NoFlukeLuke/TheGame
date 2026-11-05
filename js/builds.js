@@ -73,8 +73,8 @@ function bvBuildCatalogue() {
   });
   bvAll = [
     ...TRICK_POOL_ALL.filter(t => !t.retired && (!t.fused || (typeof anyPairDiscovered === 'function' && anyPairDiscovered()))).map(t => wrap(t, 'trick')),
-    ...SLEIGHT_POOL.map(s => wrap(s, 'sleight')),
-    ...KNACK_POOL.map(k => wrap(k, 'knack')),
+    ...SLEIGHT_POOL.filter(s => !s.retired).map(s => wrap(s, 'sleight')),
+    ...KNACK_POOL.filter(k => knackOfferable(k)).map(k => wrap(k, 'knack')),
   ];
 }
 function bvFind(type, id) { return bvAll.find(x => x.type === type && x.id === id) || null; }

@@ -29,8 +29,8 @@ function photocopierUse(card, r, c) {
   if (!sides.length) { refuse(wildOK ? 'Photocopier: no card beside it' : 'Photocopier: no card beside it to copy (a wild needs Stand-In)', dim); return; }
   const [sr, sc] = sides[Math.floor(Math.random() * sides.length)];
   const src = gridData[sr][sc];
-  const rows = [r];
-  for (let d = 1; d < gridRows; d++) { if (r + d < gridRows) rows.push(r + d); if (r - d >= 0) rows.push(r - d); }
+  // r739 (owner): its row and the row below (the row above on the bottom row); the rest go into the deck.
+  const rows = [r, r + 1 < gridRows ? r + 1 : r - 1].filter(rr => rr >= 0);
   const cells = [];
   rows.forEach(rr => { for (let cc = 0; cc < gridCols; cc++) {
     if ((rr === r && cc === c) || (rr === sr && cc === sc)) continue;
@@ -41,8 +41,12 @@ function photocopierUse(card, r, c) {
   for (let i = 0; i < n; i++) {
     const cp = makeTempCard(src.rank, src.suit);
     copyCardBuffs(src, cp);
-    if (i < perm) { delete cp._temp; expectedDeckTotal++; }
     copies.push(cp);
+  }
+  // r739: the 5th improvement adds `permanent` permanent copies to the deck as well.
+  for (let i = 0; i < perm; i++) {
+    const pc = makeTempCard(src.rank, src.suit); delete pc._temp; copyCardBuffs(src, pc);
+    drawPile.splice(Math.floor(Math.random() * (drawPile.length + 1)), 0, pc); expectedDeckTotal++;
   }
   const placed = cells.slice(0, copies.length);
   const gone = placed.map(([rr, cc]) => gridData[rr][cc]).filter(Boolean);
@@ -189,13 +193,18 @@ function logisticsStart(card, r, c) {
 }
 async function _logRunSwaps(mv) {
   const run = _logRun;
-  while (mv && _logRun === run && run.done < BAL.logistics_assistant.max_swaps) {
+  // r739 (owner): every swap spends a charge; it stops when they run out.
+  const _chLeft = () => run.card._usesLeft === 'infinite' ? Infinity : (run.card._usesLeft || 0);
+  while (mv && _logRun === run && run.done < BAL.logistics_assistant.max_swaps && _chLeft() > 0) {
     const [a, b] = [mv.a, mv.b];
     sleightFreeSwapPending = true;
     const id1 = gridData[a[0]][a[1]]._id;
     doSwap(a[0], a[1], b[0], b[1]);
     if (gridData[b[0]]?.[b[1]]?._id !== id1) { sleightFreeSwapPending = false; break; }   // refused (a boss, say)
     run.done++;
+    if (typeof run.card._usesLeft === 'number') { run.card._usesLeft--; if (typeof sleightChargeSpent === 'function') sleightChargeSpent(run.card); }
+    if (BAL.logistics_assistant.focus && typeof addFocus === 'function') addFocus(BAL.logistics_assistant.focus, 'logistics_assistant', 'sleight');
+    if (BAL.logistics_assistant.stock_per && run.done % BAL.logistics_assistant.stock_per === 0) { swaps++; noteMessage('🚚 Logistics Assistant: +1 swap'); }
     [a, b, ...mv.hand].forEach(([hr, hc]) => run.locked.add(hr + '-' + hc));
     await wait(((typeof cardSwapMs === 'function') ? cardSwapMs() : 220) + 60);
     _logFlash(mv.hand);
@@ -219,12 +228,11 @@ function _logFinish() {
   const run = _logRun;
   logisticsReset();
   if (!run) return;
-  const g = BAL.logistics_assistant.swaps;
-  if (g) { swaps += g; noteMessage(`🚚 Logistics Assistant: +${g} swaps`); }
   noteMessage(`🚚 Logistics Assistant: ${run.done} swap${run.done === 1 ? '' : 's'}`);
   dbgEvent('info', 'logistics', { swaps: run.done });
   let at = null;
   for (let r = 0; r < gridRows && !at; r++) for (let c = 0; c < gridCols; c++) if (gridData[r]?.[c] === run.card) { at = [r, c]; break; }
-  if (at) discardSleightAfterUse(run.card, at[0], at[1]);
+  // Its charges were spent swap by swap, so it leaves without spending another.
+  if (at) spinSleightTile(at[0], at[1], () => { if (gridData[at[0]]?.[at[1]] !== run.card) return; discardToPlayed(run.card); removeAndFall([at], 'discard'); });
   else render();
 }

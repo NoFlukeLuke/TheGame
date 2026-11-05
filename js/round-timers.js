@@ -107,6 +107,7 @@ function startRoundTimer() {
       const _cd = gridData[_r]?.[_c];
       if (_cd && _cd._isSleight && _cd.sleightId === 'slow_burn') _cd._slowBurnSecs = (_cd._slowBurnSecs || 0) + 1;
     }
+    if (typeof sleightTriageTick === 'function') sleightTriageTick();   // r739: Theta's bank, Fight the Power's curse sweep, landing marks
     if (survivalActive()) survivalTickBossClock(); // 5-minute boss cadence (live play time)
     // Tempo knack: every N seconds hand back 1 resource, alternating swap → discard → swap.
     // The alternation always advances, even when that stock is already full, so the rhythm

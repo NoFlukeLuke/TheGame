@@ -101,7 +101,7 @@ function sweepHands() {
 function sweepStart(card, r, c) {
   if (_sweepRun) return;
   const dim = 'var(--cream-dim)';
-  if (bossActive) { refuse('All Hands cannot run in a boss round', { color: dim }); return; }
+  if (bossActive && !BAL.all_hands.boss) { refuse('All Hands cannot run in a boss round', { color: dim }); return; }   // r739: its 5th improvement lifts this
   const busy = animating || falling || !!danceAbortController || roundEnded
     || (typeof dealerHand !== 'undefined' && dealerHand)
     || (typeof autopilotRunning === 'function' && autopilotRunning())

@@ -569,7 +569,7 @@ function guidedPickPools() {
     // SLEIGHT_POOL so they can render, and the only way to have one is to draw it.
     sleight: SLEIGHT_POOL.filter(s => !gotSl.has(s.id) && !banned(s.id)
                && (typeof sleightOfferable !== 'function' || sleightOfferable(s))),
-    knack:   KNACK_POOL.filter(k => !ownedK.has(k.id) && !banned(k.id)),
+    knack:   KNACK_POOL.filter(k => knackOfferable(k) && !ownedK.has(k.id) && !banned(k.id)),
   };
 }
 

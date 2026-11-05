@@ -12,11 +12,21 @@ function getNeighbors(r, c) {
 // two diagonals, at any distance - a chess queen's lines. It can join a hand
 // with any card on those lines and swap with any of them. The link is mutual:
 // the other card reaches the Queen as much as the Queen reaches it.
-function hasRoyalReach(card) { return !!card && card._isSleight && !!sleightDef(card)?.royalReach; }
+function hasRoyalReach(card) {
+  if (!card) return false;
+  if (card._isSleight && sleightDef(card)?.royalReach) return true;
+  // r739: The Queen's 5th improvement gives every card on the grid royal reach while she is on it.
+  return !!(BAL.the_queen && BAL.the_queen.all_reach) && !card._isStone && typeof hasSleightOnGrid === 'function' && hasSleightOnGrid('the_queen');
+}
 function onQueenLine(r1, c1, r2, c2) { return r1 === r2 || c1 === c2 || Math.abs(r1 - r2) === Math.abs(c1 - c2); }
 function royalReachCells() {
   const out = [];
-  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) if (hasRoyalReach(gridData[r]?.[c])) out.push([r, c]);
+  // r739: with The Queen's 5th improvement on the grid every card is royal (asked once, not per cell).
+  const all = !!(BAL.the_queen && BAL.the_queen.all_reach) && typeof hasSleightOnGrid === 'function' && hasSleightOnGrid('the_queen');
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
+    const cd = gridData[r]?.[c];
+    if (cd && (all ? !cd._isStone : (cd._isSleight && sleightDef(cd)?.royalReach))) out.push([r, c]);
+  }
   return out;
 }
 // getNeighbors plus the royal-reach links. With no royal card on the board this
@@ -382,7 +392,7 @@ function _handShape(cells) {
   // absence alone for white and r165 had to unpick it, so the rule is stated
   // rather than inherited from a list that a mode could change.
   const _anyWhite = cards.some(c => c && isWhiteCard(c));
-  const _anyWild  = wilds > 0;
+  const _anyWild  = cards.some(c => c && isWildCard(c));   // r739: a wild Warehouse keeps its own flush rule
   // r578: the Wild Cards event (wildsFlushOn) lets a wild stand in for any suit.
   const _wildSuit = _anyWild && typeof wildsFlushOn === 'function' && wildsFlushOn();
   const allSameSuitStrict = !_anyWhite && (!_anyWild || _wildSuit) && (typeof flushSuits === 'function' ? flushSuits() : ACTIVE_SUITS).some(s =>   // r709: Crowns / Crescents flush too
@@ -397,6 +407,7 @@ function _handShape(cells) {
   // fills one; a dual-rank card fills BOTH its ranks at once (two slots of the
   // run), so its options are the pairs of its two ranks' run values.
   const rankOptions = cards.map(c => {
+    if (c && warehouseIsWild(c)) return (typeof wildRunVals === 'function' ? wildRunVals() : []).map(v => [v]);   // r739: a wild Warehouse fills any run value
     if (!c || isWarehouseCard(c)) return [];
     const a = rankRunVals(c.rank);
     if (!c.rank2) return a.map(v => [v]);
@@ -587,7 +598,7 @@ function flushOverlayFor(cells) {
     const group = uniq.slice(0, HAND_MAX_CARDS);
     if (group.length < cells.length) return;   // a card sits outside this suit - no overlay
     // A Warehouse is one cell and two cards of the flush; a double suit likewise.
-    const size = Math.min(HAND_MAX_CARDS, bySuit[s].length + _wh.length * 2 + _wd.length);
+    const size = Math.min(HAND_MAX_CARDS, bySuit[s].length + _wh.length * ((BAL.warehouse && BAL.warehouse.counts) || 2) + _wd.length);   // r739: Warehouse counts as BAL.warehouse.counts
     const name = FLUSH_BY_SIZE[size];
     if (size < flushOverlayMin || !name || !HAND_BASE[name]) return;
     if (!best || handWorth(name) > handWorth(best.name)) best = { name, cells: group };

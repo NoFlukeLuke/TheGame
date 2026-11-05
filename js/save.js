@@ -107,7 +107,7 @@ const SAVE_VARS = [
   'slotBuffIdx', 'recentEventIds',
   'overtimeRun',               // r562: Overtime taken, its two costs, and the skip gift (js/overtime.js)
   'sleightNextHandDouble', 'sleightLegacyMult', 'sleightAmplifierMult',
-  '_dabiSwapNext', 'sleightFreeSwapPending',
+  '_dabiSwapNext', 'sleightFreeSwapPending', 'recyclerFreeLeft',
   // ── Permanent card buffs / curses ──
   'permPips', 'permMult', 'permXPips', 'permXMult', 'permRetrig', 'permTime', 'permCoins', 'permFocus', 'permFodder',
   'permPipsGrow', 'permMultGrow', 'cardCurses',

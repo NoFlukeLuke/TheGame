@@ -70,13 +70,13 @@ function renderCardAppearance(card, r, c, {
           `<div class="sleight-aim-inner" style="transform:perspective(360px) ${AIM_TILT[dir]}">` +
             `<div class="sleight-card-emoji">${emGlyph(def?.emoji || '🪞')}</div>` +
           `</div>` +
-          `<div class="aim-arrow aim-${dir}">${AIM_ARROW[dir]}</div>`,
+          aimArrowHTML(card),
       };
     }
     return {
       className: `trick-card sleight-card${sleightRarityClass(def)}${sleightTierClass(def)}${isSwapPending ? ' swap-pending' : ''}`
                + (sleightIsSpent(card, def) ? ' sleight-spent' : '')
-               + (card._inert ? ' sleight-inert' : ''),
+               + ((card._inert || card._only) ? ' sleight-inert' : ''),
       innerHTML: sleightFaceHTML(card, def, usesStr),
     };
   }

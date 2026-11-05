@@ -114,7 +114,20 @@ const KNACK_POOL = [
   { id:'long_fuse',       emoji:'🧨',  name:'Long Fuse',        rarity:'rare', desc:'You have 2× as long to earn the same Focus speed bonus.', tags:['focus','other'] },
   { id:'shorthand',       emoji:'✍️',  name:'Shorthand',        rarity:'rare', desc:'Hands generate 1.5× their listed Focus.', tags:['focus','other'] },
   { id:'core_memories',   emoji:'🧠',  name:'Core Memories',    rarity:'rare', desc:'Each Event you attend raises your Focus limit by 2.', tags:['focus','other','scaling'] },
+  // ── r739 (owner's Sleight triage). Syncopation is a Knack now (same id; the retired Sleight row stays for saved runs).
+  // Trickle Charge and Perpetual Motion are working names. Descriptions from DESC_TEMPLATES (js/sleight-roles.js runs them). ──
+  { id:'syncopation',      emoji:'🎼', name:'Syncopation',      rarity:'rare', desc:'', tags:['time','hand','streak','pause'] },
+  { id:'trickle_charge',   emoji:'🔌', name:'Trickle Charge',   rarity:'rare', desc:'', tags:['charges','other','sleights','chance'] },
+  { id:'perpetual_motion', emoji:'🔄', name:'Perpetual Motion', rarity:'rare', desc:'', tags:['charges','card','sleights','replays','chance'] },
+  // ── r739: ROLE CHANGES. A Sleight's 5th improvement turns it into one of these (sleightRoleChange). Never offered
+  // (roleOnly: knackOfferable). Each reads the Sleight's own BAL row at its 5th tier. ──
+  { id:'rule_faces_k',  emoji:'🫅', name:'In Your Face',    rarity:'rare',      roleOnly:true, desc:'', tags:['time','card','rank','scores'] },
+  { id:'fight_power_k', emoji:'⚔️', name:'Fight the Power', rarity:'legendary', roleOnly:true, desc:'Boss effects are nullified, and curses discard themselves when drawn.', tags:['shield','other','boss'] },
+  { id:'the_wanderer_k',emoji:'🧭', name:'Wanderer',        rarity:'rare',      roleOnly:true, desc:'You may swap any two cards regardless of position.', tags:['stock','other','swap'] },
+  { id:'the_ringer_k',  emoji:'🎩', name:'The Ringer',      rarity:'epic',      roleOnly:true, desc:'A hand you submit pulls up to two more cards off the grid (from anywhere) when that makes a better hand. Ignores your selection size.', tags:['board','hand','scores'] },
 ];
+// r739: a role-change Knack exists only through its Sleight's 5th improvement.
+function knackOfferable(k) { return !!k && !k.roleOnly; }
 // ── SLEIGHT POOL ──
 // Sleights live in the deck as special cards (_isSleight:true). They fall onto the grid,
 // can be swapped/discarded/selected/played like normal cards.

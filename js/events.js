@@ -253,7 +253,7 @@ function buildDoorPrize(tier) {
     const pool = TRICK_POOL.filter(b=>!ownedTrick.has(b.id) && b.tier==='legendary');
     if (pool.length>0) { const p=pool[Math.floor(Math.random()*pool.length)]; return { icon:'★', name:p.name, desc:p.desc, cls:'revealed-good', apply:()=>injectTrickAfterReward(p) }; }
     // fallback: knack
-    const tp = KNACK_POOL.filter(t=>!ownedT.has(t.id));
+    const tp = KNACK_POOL.filter(t=>knackOfferable(t) && !ownedT.has(t.id));
     if (tp.length>0) { const p=tp[Math.floor(Math.random()*tp.length)]; return { icon:p.emoji, name:p.name, desc:p.desc, cls:'revealed-good', apply:()=>{acquiredKnacks.push({...p});updateKnackList?.();noteMessage(`+ ${p.name}`,'var(--gold)');} }; }
   }
   if (tier === 'good') {

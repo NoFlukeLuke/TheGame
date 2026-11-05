@@ -1,4 +1,4 @@
-const BUILD = "2026-11-04 · r738 · one pip plate per card; the payout and contributions in console; L and Q on the phone; drags over falling cards";
+const BUILD = "2026-11-05 · r739 · the Sleight triage: 43 Sleights edited, four cut, Sequencer, two charge Knacks, role changes";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

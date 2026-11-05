@@ -33,6 +33,7 @@ function render() {
   // before the faces are drawn (rule_ranks prints its named ranks).
   if (typeof chgScan === 'function') chgScan();   // r676: a Floater that lands unchanged changes now
   if (typeof ruleSleightsScan === 'function') ruleSleightsScan();
+  if (typeof sleightTriageScan === 'function') sleightTriageScan();   // r739: Theta, the Ringer, the Keeper, the Recycler land marked
   if (typeof moneySleightsScan === 'function') moneySleightsScan();   // r722: Nest Egg, Loan Shark land
   // Boss cell overlays (quarantine crosses, dark cells, contamination) are
   // absolutely-positioned siblings of the cards, so they have to be repainted
@@ -116,7 +117,7 @@ function render() {
         const _stateJ = (_validJ ? ' hand-valid' : '') + (_readyJ ? ' hand-ready' : '')
                       + (_unreachJ ? ' unreachable' : '')
                       + (sleightIsSpent(card, def) ? ' sleight-spent' : '')
-                      + (card._inert ? ' sleight-inert' : '')
+                      + ((card._inert || card._only) ? ' sleight-inert' : '')
                       // className is rewritten wholesale below, so an in-flight
                       // double-tap spin has to be carried across the repaint.
                       + (div.classList.contains('sl-spin') ? ' sl-spin' : '');
@@ -127,7 +128,7 @@ function render() {
             `<div class="sleight-aim-inner" style="transform:perspective(360px) ${AIM_TILT[dir]}">` +
               `<div class="sleight-card-emoji">${emGlyph(def?.emoji||'🪞')}</div>` +
             `</div>` +
-            `<div class="aim-arrow aim-${dir}">${AIM_ARROW[dir]}</div>`;
+            aimArrowHTML(card);
           // No div.onclick here (r326): the grid's own pointerup handler already
           // routes a tap on any [data-row] tile into onCardTap, so an onclick on
           // top of it fired onCardTap TWICE per physical click. On a double_tap

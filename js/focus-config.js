@@ -40,7 +40,7 @@ function onGridSleightCapBonus() {
     const cd = gridData[r]?.[c];
     if (!cd || !cd._isSleight) continue;
     if (cd.sleightId === 'power_cell') n += BAL.power_cell.focus_cap;             // +max Focus while on grid
-    if (cd.sleightId === 'slow_burn')  n += Math.min(BAL.slow_burn.cap, Math.floor((cd._slowBurnSecs || 0) / BAL.slow_burn.seconds_per)); // +1 per 45s on grid, max +15
+    if (cd.sleightId === 'slow_burn')  n += slowBurnEarned(cd);   // r739: +per every seconds_per on the grid, to its cap
   }
   return n;
 }

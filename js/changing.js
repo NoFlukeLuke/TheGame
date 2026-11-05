@@ -126,18 +126,14 @@ function _chgCellOf(card) {
   for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) if (gridData[r]?.[c] === card) return [r, c];
   return null;
 }
+// r739 (owner): it changes each time it is DRAWN, not each round; the Sleight it
+// becomes has unlimited charges (`_usesLeft` 'infinite'), and the Floater's own
+// charges (`_floatLeft`, durable) pay one per draw. At 0 it leaves the deck when it
+// goes (discardToPlayed).
 function chgChangeFloater(card, noRender) {
-  const was = card._floater ? card.sleightId : null, wasDef = was && SLEIGHT_POOL.find(d => d.id === was);
-  // A form that never spent a charge (infinite) pays one for the round it was on the board.
-  if (card._floatSeen && wasDef && wasDef.durability === 'infinite' && typeof card._usesLeft === 'number') card._usesLeft = Math.max(0, card._usesLeft - 1);
+  const was = card._floater ? card.sleightId : null;
   card._floatSeen = false;
   const at = _chgCellOf(card);
-  if (typeof card._usesLeft === 'number' && card._usesLeft <= 0 && !(typeof greenStationKeeps === 'function' && greenStationKeeps())) {
-    // Spent: off the deck for good (a card on the board leaves when it goes).
-    [drawPile, playedPile].forEach(p => { const i = p.indexOf(card); if (i >= 0) p.splice(i, 1); });
-    noteMessage(`${SLEIGHT_POOL.find(d => d.id === CHG_SLEIGHT_ID)?.name || 'Floater'} is spent`);
-    return;
-  }
   const def = _chgFlat(chgSleightPool(was));
   if (!def) return;
   if (was && was !== def.id && !allOwnedSleightCards().some(c => c !== card && c.sleightId === was)) delete entityTier[was];
@@ -146,7 +142,8 @@ function chgChangeFloater(card, noRender) {
   applyEntityTiers();
   card._floater = true;
   card.sleightId = def.id;
-  ['_ruleLanded', '_ruleRanks', '_inert', '_usedThisRound', '_apLanded', '_apSecs', '_apEngaged', '_keepMode', '_adjPlays', '_whetMult', '_gridSecs'].forEach(f => { delete card[f]; });
+  card._usesLeft = 'infinite';
+  ['_ruleLanded', '_ruleRanks', '_inert', '_inertRole', '_only', '_thetaLanded', '_thetaBank', '_recHand', '_pivotSwaps', '_usedThisRound', '_apLanded', '_apSecs', '_apEngaged', '_keepMode', '_adjPlays', '_whetMult', '_gridSecs'].forEach(f => { delete card[f]; });
   if (at && !noRender && typeof render === 'function') {
     render();
     const el = document.querySelector(`#grid [data-card-id="${card._id}"]`);
@@ -157,11 +154,18 @@ function chgChangeFloater(card, noRender) {
 // render's top (beside the rule Sleights' scan): a Floater on the board is seen
 // this round, and one that has not changed yet changes now if a round is live.
 function chgScan() {
+  if (!chgRoundLive()) return;
   for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
     const cd = gridData[r]?.[c];
-    if (!cd || !cd._isSleight) continue;
-    if (cd.sleightId === CHG_SLEIGHT_ID && chgRoundLive()) { cd._floater = true; chgChangeFloater(cd, true); }
-    if (cd._floater && chgRoundLive()) cd._floatSeen = true;
+    if (!cd || !cd._isSleight || cd._floatLanded) continue;
+    if (cd.sleightId !== CHG_SLEIGHT_ID && !cd._floater) continue;
+    // A landing (not durable, so every draw is one): spend a Floater charge and change.
+    cd._floatLanded = 1;
+    if (typeof cd._floatLeft !== 'number') cd._floatLeft = typeof cd._usesLeft === 'number' ? cd._usesLeft : (BAL.floater ? BAL.floater.charges : 6);
+    cd._floatLeft = Math.max(0, cd._floatLeft - 1);
+    cd._floater = true;
+    const def = chgChangeFloater(cd, true);
+    if (def) noteMessage(`${SLEIGHT_POOL.find(d => d.id === CHG_SLEIGHT_ID)?.name || 'Floater'} is ${def.name} (${cd._floatLeft} draw${cd._floatLeft === 1 ? '' : 's'} left)`, '#c07aee');
   }
 }
 
@@ -171,11 +175,7 @@ function chgRoundStart() {
   if (chgLevel === level) return;
   chgLevel = level;
   if (chgTrickObj()) chgChangeTrick();
-  allOwnedSleightCards().filter(c => c._floater || c.sleightId === CHG_SLEIGHT_ID).forEach(c => {
-    c._floater = true;
-    const def = chgChangeFloater(c);
-    if (def) showMessage(`${SLEIGHT_POOL.find(d => d.id === CHG_SLEIGHT_ID)?.name || 'Floater'} is ${def.name} this round`, '#c07aee');
-  });
+  // r739: the Floater changes as it is drawn (chgScan), not at the round's start.
 }
 
 // ── Improvements: the tier passes to the form ───────────────────────────────
@@ -194,5 +194,7 @@ function chgSyncTiers(id) {
 }
 IMPROVE_HOOKS[CHG_SLEIGHT_ID] = tier => {
   chgFloaterCards().forEach(c => { if (c.sleightId !== CHG_SLEIGHT_ID) entityTier[c.sleightId] = tier; });
+  // r739: an improvement refills it, like every Sleight.
+  allOwnedSleightCards().filter(c => c._floater || c.sleightId === CHG_SLEIGHT_ID).forEach(c => { c._floatLeft = BAL.floater ? BAL.floater.charges : 6; });
   applyEntityTiers();
 };

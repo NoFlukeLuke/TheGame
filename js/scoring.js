@@ -639,7 +639,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     let _ins = (!_G && _insChance > 0) ? Math.min(1, luckRollDet(_insChance, (card._id || 0) + 8317, handsPlayedRound)) : 0;   // r722: Insurance Policy
     const _srcs = [
       ['r8', _r8 ? _eightCount - 1 : 0], ['rl', _rl], ['pt', _ptN], ['res', _res ? 2 : 0], ['rip', _rip], ['evb', _evb], ['wod', _wod], ['twn', _twn],
-      ['refl', _refl ? BAL.reflect.extra_replays : 0], ['soul', _soul], ['echoS', _echoS ? 1 : 0], ['re', _re],
+      ['refl', _refl ? BAL.reflect.extra_replays : 0], ['soul', _soul], ['echoS', _echoS ? (BAL.echo_play.replays || 1) : 0], ['re', _re],
       ['rne', _rne ? 1 : 0], ['ech', _ech ? 1 : 0], ['wp', _wp ? BAL.woodpecker.retrigger_count + ((BAL.woodpecker.chance_extra > 0 && _detReplayRand((card._id || 0) + 7971, handsPlayedRound) < BAL.woodpecker.chance_extra) ? 1 : 0) : 0], ['hnm', _hnm ? 1 : 0],
       ['wfi', _wfi], ['hr', _hr], ['enc', _enc ? 1 : 0], ['lab', _lab ? 1 : 0], ['cb', _cb ? 1 : 0],
       ['3c', _3c ? BAL.third_charm.extra_replays : 0], ['rule', _rule], ['ins', _ins],
@@ -1132,7 +1132,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // so they're tracked separately and attributed with source:'sleight' in the contributions.
   const _whetM  = whetstoneMultForCells(cells); // Whetstone: sharpened mult, if it neighbors the hand
   const _entM   = entourageMult();              // Entourage: +mult per other Sleight on the grid
-  const _lightM = lighthouseMult();             // Lighthouse: mult by distance from its favored column
+  const _lightM = lighthouseMult(cells);        // Lighthouse: mult by distance from its favored column (r739: and per card beside it at v6)
   mult += _whetM + _entM + _lightM;
   _ev('whetstone',  'mult+', _whetM,  'sleight');
   _ev('entourage',  'mult+', _entM,   'sleight');
@@ -1151,7 +1151,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   _ev('loan_shark', 'pip+',  _loanP, 'sleight');
   _ev('loan_shark', 'mult+', _loanM, 'sleight');
   let _siphonM = 0;                              // Siphon: multiplicative ×mult, applied after additive mults (below)
-  let _legacyM = 0;                              // Legacy: multiplicative ×mult, same step as Siphon (r193)
+  let _legacyM = 0, _legacyP = 0;                // Legacy: x pips (r739), and x mult at its 5th improvement
   let _spotM   = 0;                              // Spot Check: multiplicative ×mult penalty (r194)
 
 
@@ -1291,6 +1291,11 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // on the card's replay beat now: see the card loop and `_bankCell`.
   // Deep Breath: ×pips while the clock is held. Pairs with every pause entity.
   if (hasTrick('deep_breath') && clockPausedForHand()) { const _pre = totalPips; totalPips = Math.round(totalPips * BAL.deep_breath.pip_mult); bPipX('deep_breath', BAL.deep_breath.pip_mult, totalPips - _pre); }
+  // r739 (owner): Legacy is x PIPS now (its 5th improvement adds the same x mult, below).
+  if (typeof sleightLegacyMult !== 'undefined' && sleightLegacyMult && BAL.the_legacy.pips_x > 1) {
+    const _pre = totalPips; totalPips = Math.round(totalPips * BAL.the_legacy.pips_x); _legacyP = totalPips - _pre;
+    _ev('the_legacy', 'pip*', BAL.the_legacy.pips_x, 'sleight');
+  }
   // Interest: ×pips scaling with credits held, capped so a rich run can't run away.
   if (hasTrick('interest') && coins > 0) {
     const _m = Math.min(TB('interest').max_pip_mult, 1 + Math.floor(coins / 10) * TB('interest').pip_mult_per_10_credits);
@@ -1534,7 +1539,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // playHand, where the arithmetic was identical (s = pips × mult) but nothing on
   // screen said why the number jumped - the same legibility problem r190 fixed for
   // the four xSCORE Tricks. Read-only here; playHand clears the flag after the hand.
-  if (typeof sleightLegacyMult !== 'undefined' && sleightLegacyMult) {
+  if (typeof sleightLegacyMult !== 'undefined' && sleightLegacyMult && BAL.the_legacy.mult_x > 1) {
     const _pre = mult; mult = Math.round(mult * BAL.the_legacy.mult_x * 10) / 10; _legacyM = mult - _pre;
     _ev('the_legacy', 'mult*', BAL.the_legacy.mult_x, 'sleight');
   }
@@ -1642,6 +1647,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     if (_entM   > 0) contrib.push({type:'mult',source:'sleight',id:'entourage', delta:Math.round(_entM*10)/10});
     if (_lightM > 0) contrib.push({type:'mult',source:'sleight',id:'lighthouse',delta:Math.round(_lightM*10)/10});
     if (_siphonM > 0) contrib.push({type:'mult',source:'sleight',id:'siphon',    delta:Math.round(_siphonM*10)/10});
+    if (_legacyP > 0) contrib.push({type:'pip',source:'sleight',id:'the_legacy',delta:Math.round(_legacyP)});
     if (_legacyM > 0) contrib.push({type:'mult',source:'sleight',id:'the_legacy',delta:Math.round(_legacyM*10)/10});
     if (_spotM < 0) contrib.push({type:'mult',source:'penalty',id:'spot_check',delta:Math.round(_spotM*10)/10});
   }
@@ -2092,6 +2098,7 @@ function focusExtraApplies(handName, cells) {
     // Autopilot (r474): hand k of a run applies Focus k times.
     if (typeof autopilotFocusExtra === 'function') n += autopilotFocusExtra();
     if (typeof focusDoubleHands !== 'undefined' && focusDoubleHands > 0) n++;   // Double Down (r571)
+    if (typeof sweepRunning === 'function' && sweepRunning() && BAL.all_hands && BAL.all_hands.applies > 1) n += BAL.all_hands.applies - 1;   // r739: All Hands v5
   } catch (e) {}
   return n;
 }

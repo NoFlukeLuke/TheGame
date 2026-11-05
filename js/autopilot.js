@@ -27,7 +27,7 @@
 let autopilotRun = null;      // { card, k } while a run is in progress
 let _autopilotHandK = 0;      // the run's hand number while that hand is being played
 
-function autopilotFocusExtra() { return _autopilotHandK > 1 ? _autopilotHandK - 1 : 0; }
+function autopilotFocusExtra() { return _autopilotHandK > 1 ? _autopilotHandK - 1 + ((BAL.autopilot && BAL.autopilot.extra_applies) || 0) : 0; }   // r739: + extra_applies once improved
 function autopilotRunning() { return !!autopilotRun; }
 
 function _apCfg() { return BAL.autopilot || { delay_seconds: 30, focus_cost: 5, max_hands: 5 }; }

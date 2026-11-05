@@ -11,7 +11,7 @@ const V6_NAMES = {
   alignment:      'Perfect Alignment',     // Knack
   bellhop:        'Bell Captain',          // Sleight
   muscle_memory:  'Friends with Benefits', // Buddy System (Knack)
-  capacitor:      'Supercapacitor',        // Sleight
+  // capacitor: 'Supercapacitor' was dropped (r739): the Sleight is Theta now.
   overgrowth:     'Cataract',              // Cascade (Trick)
   coin_toss:      'Weighted Coin',         // Knack
   carry_discards: 'Hoarder',               // Collector (Knack); the old Hoarder knack is Spoiled

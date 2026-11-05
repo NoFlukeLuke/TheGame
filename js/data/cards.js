@@ -102,7 +102,9 @@ function isWildCard(card) { return !!card && card.rank === WILD_RANK; }
 // toward a flush and nothing else. Like a wild it scores nothing itself.
 function isWarehouseCard(card) { return !!card && card._isSleight && card.sleightId === 'warehouse'; }
 function naturalCards(cards) { return (cards || []).filter(c => c && !isWildRank(c.rank) && !isWarehouseCard(c)); }
-function countWilds(cards) { return (cards || []).reduce((n, c) => n + (c && isWildRank(c.rank) ? 1 : 0), 0); }
+function countWilds(cards) { return (cards || []).reduce((n, c) => n + (c && (isWildRank(c.rank) || warehouseIsWild(c)) ? 1 : 0), 0); }
+// r739: Warehouse's 5th improvement makes it a wild for sets and runs as well as its flush count.
+function warehouseIsWild(card) { return isWarehouseCard(card) && typeof BAL !== 'undefined' && !!(BAL.warehouse && BAL.warehouse.wild); }
 // ── STAND-IN (r578): what a wild scores as ──
 // cell key -> a proxy card { _id (the wild's), rank, suit } for every wild in the
 // hand, read by calcScore with the Stand-In knack. In a set: the set's rank (the
@@ -493,6 +495,8 @@ function cardCan(card, action) {
     // INERT (r341): a used Piggy Bank / Capacitor stays on the grid and can no longer
     // be swapped or discarded. Selecting it into a hand is its one way off the board.
     if (card._inert) return action === 'fall' || action === 'render' || action === 'select';
+    // r739: DISCARD ONLY (Theta): selected and discarded, never swapped or played (playHand refuses it).
+    if (card._only === 'discard') return action === 'fall' || action === 'render' || action === 'select' || action === 'discard';
     return action === 'fall' || action === 'render' || action === 'swap' || action === 'select' || action === 'discard';
   }
   if (card.isChallenge) {

@@ -43,7 +43,7 @@ function evDrawEntityUp(kind, tier) {
   const banned = id => (typeof survivalEntityBanned === 'function') && survivalEntityBanned(id);
   const owned = new Set((acquiredKnacks || []).map(k => k.id));
   const pool = (kind === 'knack'
-    ? KNACK_POOL.filter(k => !owned.has(k.id) && !banned(k.id))
+    ? KNACK_POOL.filter(k => knackOfferable(k) && !owned.has(k.id) && !banned(k.id))
     : SLEIGHT_POOL.filter(x => !grantedSleightIds.has(x.id) && (typeof sleightOfferable !== 'function' || sleightOfferable(x)) && !banned(x.id)))
     .filter(e => EV_TIER_ORDER.indexOf(e.rarity || 'common') >= floor);
   return (pool.length && pickEntityByRarity(pool, e => e.rarity || 'common')) || evDrawEntity(kind, tier);
@@ -58,7 +58,7 @@ function evDrawEntity(kind, minTier) {
   let pool;
   if (kind === 'knack') {
     const owned = new Set((acquiredKnacks || []).map(k => k.id));
-    pool = KNACK_POOL.filter(k => !owned.has(k.id) && !banned(k.id));
+    pool = KNACK_POOL.filter(k => knackOfferable(k) && !owned.has(k.id) && !banned(k.id));
   } else {
     pool = SLEIGHT_POOL.filter(s => !grantedSleightIds.has(s.id)
       && (typeof sleightOfferable !== 'function' || sleightOfferable(s)) && !banned(s.id));

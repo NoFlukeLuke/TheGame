@@ -55,6 +55,26 @@ function aimTargetCell(card, r, c) {
   if (ar < 0 || ac < 0 || ar >= gridRows || ac >= gridCols) return null;
   return [ar, ac];
 }
+// r739: an aim Sleight's 5th improvement adds a second arrow, the opposite way.
+const AIM_OPP = { up: 'down', down: 'up', left: 'right', right: 'left' };
+function aimArrows(card) { const b = card && BAL[card.sleightId]; return (b && b.arrows > 1) ? 2 : 1; }
+function aimTargetCells(card, r, c) {
+  const out = [], t = aimTargetCell(card, r, c);
+  if (t) out.push(t);
+  if (aimArrows(card) > 1) {
+    const [dr, dc] = AIM_DELTA[AIM_OPP[card._aimDir || 'up']];
+    const ar = r + dr, ac = c + dc;
+    if (ar >= 0 && ac >= 0 && ar < gridRows && ac < gridCols) out.push([ar, ac]);
+  }
+  return out;
+}
+// The arrow markup for an aim Sleight's face (render.js and card-fall.js).
+function aimArrowHTML(card) {
+  const dir = card._aimDir || 'up';
+  let h = `<div class="aim-arrow aim-${dir}">${AIM_ARROW[dir]}</div>`;
+  if (aimArrows(card) > 1) h += `<div class="aim-arrow aim-${AIM_OPP[dir]}">${AIM_ARROW[AIM_OPP[dir]]}</div>`;
+  return h;
+}
 function findAimSleight(id) {
   for (let r = 0; r < gridRows; r++)
     for (let c = 0; c < gridCols; c++) {
@@ -74,23 +94,22 @@ function findAimSleight(id) {
 // reflectSpendForRound), the same contract Siphon and Legacy use.
 
 // The rank a Reflect currently faces, or null if it faces nothing / no Reflect.
-function reflectAimedRank() {
+function reflectAimedRank() { return reflectAimedRanks()[0] || null; }
+// r739: every rank it faces (two with the second arrow).
+function reflectAimedRanks() {
   const f = findAimSleight('reflect');
-  if (!f) return null;
-  const t = aimTargetCell(f.card, f.r, f.c);
-  if (!t) return null;
-  const tc = gridData[t[0]]?.[t[1]];
-  return (tc && tc.rank) ? tc.rank : null;
+  if (!f) return [];
+  return aimTargetCells(f.card, f.r, f.c).map(([a, b]) => gridData[a]?.[b]).filter(tc => tc && tc.rank).map(tc => tc.rank);
 }
 let reflectUsedThisRound = false;   // cleared in the round-start sweep
 // True while Reflect would replay this card: it faces this card's rank and has
 // not yet fired this round. The (r, c) arguments are kept for call-site
 // compatibility - it is the rank that decides now, not the position.
 function reflectAimsAt(r, c) {
-  const rank = reflectAimedRank();
-  if (rank === null) return false;
+  const ranks = reflectAimedRanks();
+  if (!ranks.length) return false;
   const card = gridData[r]?.[c];
-  return !!card && card.rank === rank;
+  return !!card && ranks.includes(card.rank);
 }
 // Called from playHand once a hand that used Reflect has committed.
 function reflectSpendForRound(cells) {
@@ -113,13 +132,21 @@ function soulMirrorRankCount(rank) {
     for (let c = 0; c < gridCols; c++) {
       const cell = gridData[r]?.[c];
       if (!cell?._isSleight || sleightDef(cell)?.id !== 'soul_mirror') continue;
-      const t = aimTargetCell(cell, r, c);
-      if (!t) continue;
-      const tc = gridData[t[0]]?.[t[1]];
-      if (tc && tc.rank === rank) mirrors++;
+      if (aimTargetCells(cell, r, c).some(([a, b]) => { const tc = gridData[a]?.[b]; return tc && tc.rank === rank; })) mirrors++;
     }
   if (!mirrors) return 0;
-  return mirrors * rankCountInDeck(rank);
+  return mirrors * (rankCountInDeck(rank) + (BAL.soul_mirror.flat || 0));   // r739: + a flat bonus when improved
+}
+// r739 (owner): Soul Mirror costs seconds when its rank is scored, once a hand
+// (not per replay). Called from playHand with the scored cells.
+function soulMirrorCharge(cells) {
+  const cost = BAL.soul_mirror && BAL.soul_mirror.cost_seconds;
+  if (!cost || !(cells || []).length) return;
+  const ranks = new Set((cells || []).map(cl => (typeof cellCard === 'function' ? cellCard(cl) : gridData[cl[0]]?.[cl[1]])).filter(cd => cd && cd.rank && !cd._isSleight).map(cd => cd.rank));
+  if (![...ranks].some(rk => soulMirrorRankCount(rk) > 0)) return;
+  roundSeconds = Math.max(1, roundSeconds - cost);
+  if (typeof showTimeCost === 'function') showTimeCost(`-${cost}s`);
+  if (typeof updateClockUI === 'function') updateClockUI();
 }
 // r355: Soul Mirror counts the rank across the WHOLE deck - board and both piles.
 function rankCountInDeck(rank) {

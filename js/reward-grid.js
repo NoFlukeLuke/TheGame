@@ -574,7 +574,7 @@ function _generateRewardContent() {
   function makeKnackPayload() {
     if (typeof KNACK_POOL === 'undefined') return { icon: '♛', label: 'Knack', tier: 'rare', entity: 'knack', rarity: 'rare', apply: applyRewardKnack };
     const owned = new Set((acquiredKnacks || []).map(t => t.id));
-    let eligible = KNACK_POOL.filter(t => !owned.has(t.id) && !offerBanned(t.id));
+    let eligible = KNACK_POOL.filter(t => knackOfferable(t) && !owned.has(t.id) && !offerBanned(t.id));
     if (!eligible.length) return makeTrickPayload(); // fallback - all knacks owned
     eligible = freshPool(eligible);
     // Same rarity table as Tricks, for the same reason - KNACK_POOL is 24 common /
@@ -1087,7 +1087,7 @@ function applyRewardPipsCard() {
 function applyRewardKnack() {
   if (typeof KNACK_POOL === 'undefined') { showMessage('+ KNACK', 'var(--gold)'); return; }
   const owned = new Set((acquiredKnacks || []).map(t => t.id));
-  const eligible = KNACK_POOL.filter(t => !owned.has(t.id));
+  const eligible = KNACK_POOL.filter(t => knackOfferable(t) && !owned.has(t.id));
   if (eligible.length === 0) return;
   const pick = eligible[Math.floor(Math.random() * eligible.length)];
   acquiredKnacks.push({ ...pick });
