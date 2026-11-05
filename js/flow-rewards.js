@@ -495,6 +495,8 @@ function flowrOddsNow() {
   const c = (typeof coins !== 'undefined') ? coins : 0;
   if (c <= cfg.shop.min) o.shop = 0;
   else if (c > cfg.shop.rich) o.shop = (o.shop || 0) + cfg.shop.richBonus;
+  // r741: Dexterous weighs the Sleights step 4x among the non-Trick kinds (js/dexterous.js).
+  if (typeof dexSleightOfferMult === 'function') o.sleights = (o.sleights || 0) * dexSleightOfferMult();
   // r548: TRICKS take flowrTrickShare() percent of every screen; the other
   // kinds split the rest in the ratios the table sets.
   const share = flowrTrickShare();

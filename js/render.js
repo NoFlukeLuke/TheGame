@@ -35,6 +35,7 @@ function render() {
   if (typeof ruleSleightsScan === 'function') ruleSleightsScan();
   if (typeof sleightTriageScan === 'function') sleightTriageScan();   // r739: Theta, the Ringer, the Keeper, the Recycler land marked
   if (typeof moneySleightsScan === 'function') moneySleightsScan();   // r722: Nest Egg, Loan Shark land
+  if (typeof dexSweepIdentities === 'function') dexSweepIdentities();   // r741: every Sleight holds its card (a resumed save too)
   // Boss cell overlays (quarantine crosses, dark cells, contamination) are
   // absolutely-positioned siblings of the cards, so they have to be repainted
   // whenever the board is. renderBossCellOverlays no-ops cheaply when nothing
@@ -90,7 +91,7 @@ function render() {
       }
 
       // ── Sleight card path ──
-      if (!isChallenge && card._isSleight) {
+      if (!isChallenge && card._isSleight && !(typeof dexCardFace === 'function' && dexCardFace(card))) {   // r741: a Dexterous Sleight takes the card path
         const def = SLEIGHT_POOL.find(j => j.id === card.sleightId);
         let div = existingEls[cardId];
         if (!div) { div = document.createElement('div'); div.dataset.cardId = cardId; gridEl.appendChild(div); }
@@ -392,7 +393,7 @@ function render() {
   if (typeof bossGradientPaint === 'function') bossGradientPaint();
   if (typeof cardAnimAfterRender === 'function') cardAnimAfterRender();   // r445: the select ripple
   if (typeof chanceCountPaint === 'function') chanceCountPaint();         // r624: hit counts on chance Tricks
-  if (typeof stkPaint === 'function') stkPaint();                         // r730: Stacked's open fan survives the repaint
+  if (typeof stkPaint === 'function') stkPaint();                         // r741: Stacked's open fan survives the repaint
 }
 
 // r646 (owner): the turning board pattern (r409, `#board-hypno`, ensureBoardPattern) is gone.

@@ -220,7 +220,11 @@ function shopgDrawCats(prev) {
   for (let i = 0; i < nRows; i++) {
     if (meta[i]) continue;
     const opts = Object.keys(SHOP_CATS).filter(c => !taken.has(c) && shopgCatViable(c));
-    const cat = opts.length ? opts[Math.floor(Math.random() * opts.length)]
+    // r741: an even draw, except Dexterous weighs the Sleights shelf 4x (js/dexterous.js).
+    const _wOf = c => (c === 'sleights' && typeof dexSleightOfferMult === 'function') ? dexSleightOfferMult() : 1;
+    let _roll = Math.random() * opts.reduce((s, c) => s + _wOf(c), 0), _pick = opts[opts.length - 1];
+    for (const c of opts) { _roll -= _wOf(c); if (_roll <= 0) { _pick = c; break; } }
+    const cat = opts.length ? _pick
                             : Object.keys(SHOP_CATS).find(c => !taken.has(c)) || 'tricks';
     meta[i] = { cat, pinned: false };
     taken.add(cat);

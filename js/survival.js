@@ -242,7 +242,7 @@ function survivalEntityBanned(id) {
   if (typeof trickLocked === 'function' && trickLocked(id)) return true;
   // r727: Free Swaps / Free Discards do nothing at a difficulty where they cost no time.
   if (typeof difficultyOfferBanned === 'function' && difficultyOfferBanned(id)) return true;
-  // r730: Stacked has no Focus, no draw pile and no fall; untimed, no clock (js/stack-mode.js).
+  // r741: Stacked has no Focus, no draw pile and no fall; untimed, no clock (js/stack-mode.js).
   if (typeof stkEntityBanned === 'function' && stkEntityBanned(id)) return true;
   // r651: Separation Anxiety is offered only with a fused Trick in the tray.
   if (id === 'separation_anxiety' && !(typeof trickTray !== 'undefined' && trickTray.some(t => t && t.fused))) return true;
@@ -328,9 +328,11 @@ function survivalDrawOne(type, pools, used) {
 function survivalWeightedType(pools, used) {
   const types = Object.keys(SURVIVAL_PICK_WEIGHTS).filter(t => pools[t].some(d => !used[t].has(d.id)));
   if (!types.length) return null;
-  const total = types.reduce((s, t) => s + SURVIVAL_PICK_WEIGHTS[t], 0);
+  // r741: Dexterous weighs Sleights 4x (dexSleightOfferMult, js/dexterous.js).
+  const _w = t => SURVIVAL_PICK_WEIGHTS[t] * (t === 'sleight' && typeof dexSleightOfferMult === 'function' ? dexSleightOfferMult() : 1);
+  const total = types.reduce((s, t) => s + _w(t), 0);
   let rng = Math.random() * total;
-  for (const t of types) { rng -= SURVIVAL_PICK_WEIGHTS[t]; if (rng <= 0) return t; }
+  for (const t of types) { rng -= _w(t); if (rng <= 0) return t; }
   return types[types.length - 1];
 }
 

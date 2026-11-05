@@ -380,6 +380,12 @@ const INFO_TOPICS = [
       'Every obligation raises the goal. The review\'s goal is fixed when the schedule is drawn.',
       () => `Clearing a round offers a pick of three: ${typeof GUIDED_PICK_WEIGHTS !== 'undefined' ? `${GUIDED_PICK_WEIGHTS.trick}% {trick}, ${GUIDED_PICK_WEIGHTS.sleight}% {sleight}, ${GUIDED_PICK_WEIGHTS.knack}% {knack}` : ''} per offer. A priority account or a one-on-one pays ${gridName('reward', { a: true })} instead. An audit pays its challenge cards\u2019 rewards and nothing more.`,
     ] },
+  { id: 'mode_dexterous', group: 'modes', title: 'Dexterous',
+    body: [
+      'Flow, with every {sleight} dealt a rank and a suit when it joins your deck. It counts as a card of that rank in a hand and scores its pips.',
+      'A {sleight} played in a hand does what it does when double-tapped, discarded or swapped, as well as scoring. The hand it is in takes Amplifier, Legacy and Siphon. A few only score when played: Magnet, Photocopier, Logistics Assistant, Keeper, Lockbox, Dealer\'s Choice, All Hands, Stopwatch, BOGO, Procrastinate, Shredder, Sequencer, the Idol.',
+      'Sleights are four times as common in the reward chain, the pick of three and the shop. Two random common Sleights start in the deck. Everything else is Flow.',
+    ] },
   { id: 'mode_flow', group: 'modes', title: 'Flow',
     body: [
       () => `A ${Math.round((typeof FLOW_SESSION_SECONDS !== 'undefined' ? FLOW_SESSION_SECONDS : 300) / 60)}-minute clock counts down to the review. It does not reset when you level up.`,

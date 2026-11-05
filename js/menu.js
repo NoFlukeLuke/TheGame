@@ -1,4 +1,4 @@
-const BUILD = "2026-11-05 · r740 · difficulty: forced penalties at tier 3, the 30s cut at tier 4, tier 5 costs 5s / 7s";
+const BUILD = "2026-11-05 · r741 · Dexterous: Flow with Sleights as playing cards";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
@@ -138,6 +138,24 @@ const MODES = {
     autoPlayHands: false,
     survival: true,
     flow: true
+  },
+  // DEXTEROUS (r730, js/dexterous.js): Flow's engine with Sleights as playing
+  // cards. Carries flow + survival so every Flow reader holds; `dexterous` is
+  // what js/dexterous.js reads.
+  dexterous: {
+    id: 'dexterous',
+    name: 'Dexterous',
+    desc: 'Flow, with every Sleight dealt a rank and a suit. Sleights count as cards in a hand and do their thing when played. They are four times as common in rewards. Two start in the deck.',
+    winCondition: 'endless',
+    enableBosses: true,
+    enableShops: true,
+    enableEvents: false,
+    autoRefillGrid: true,
+    timeIsCurrency: true,
+    autoPlayHands: false,
+    survival: true,
+    flow: true,
+    dexterous: true
   },
   // Match-3 auto-play mode. A full 5×5 board of cards: straight-line flushes,
   // runs, and sets of 3+ AUTO-PLAY the instant they exist, then cascade (candy-
@@ -286,7 +304,7 @@ function startMatch3FromMenu(modeId = 'match3') {
 // which loads before this file. Orientation is no longer a card: every mode's
 // FIRST RUN is its tutorial now, so a standalone one would be a second door to
 // the same thing. It is still reachable from the dev panel's Modes group.
-const MODE_SELECT_LIST = [...MODE_UNLOCK_CHAIN, ...MODE_FINALE_GROUP, ...MODE_EXTRA_LIST];
+const MODE_SELECT_LIST = [...modeChainWithSiblings(), ...MODE_FINALE_GROUP, ...MODE_EXTRA_LIST];
 // Built but NOT in the carousel. Reachable from dev panel -> Modes, which is
 // generated from MODES itself so nothing here has to be listed twice.
 // `crunch` is here because it is a rough first pass being tuned, not because it
@@ -309,6 +327,8 @@ const MODE_META = {
               blurb: `Each quarter is eight slots and then a review. Before each slot you choose from four offers: a round, a hard round, the shop, ${gridName('reward', { a: true })}, a pick of three or an event. Rounds are free. Most other offers cost credits. The goal rises with every slot.` },
   spectrum: { accent: '#ff9d3c',        suits: '🔴 🟡 🔵 🟢 🟣 🟠 ⚫ ⚪',
               blurb: 'No suits and no face cards. Seven colours, values 0 to 11, plus a single 15 and 20 in each colour. 9s, 10s and 11s are white and never count toward a flush. Four payout cards are in the deck: score two hands next to one and it pays out.' },
+  dexterous: { accent: '#c07aee',        suits: '5:00 · SLEIGHTS ARE CARDS',
+              blurb: 'Flow, with every Sleight dealt a rank and a suit. A Sleight counts as a card of that rank in a hand, scores its pips and does its thing when played. Sleights are four times as common in every reward. Two start in your deck.' },
   flow:     { accent: '#6fd0ff',         suits: '5:00 · ONE CLOCK',
               blurb: 'You have 5 minutes until the review. Level up as many times as you can before it starts. Each level up offers a pick of three, and you can enter the shop for a fee at any time. Pass the review and the clock refills.' },
   climb:    { accent: '#f2c14e',        suits: '1 → 15',

@@ -4378,3 +4378,32 @@ From DIFFICULTY.md's spacing note: tier 3 SPECIALIST is now the forced penalty p
 MIDDLE MANAGER the 30s cut (they swapped; the names stay in their places), and tiers 5-8 cost 5s a
 swap and 7s a discard (were 6 / 9). `DIFF_TIERS` only; the dev select, the handbook and DIFFICULTY.md
 follow.
+## r741 - Dexterous: Flow with Sleights as playing cards (`js/dexterous.js`, `css/dexterous.css`, owner)
+`MODES.dexterous` carries `flow` + `survival` (every Flow reader holds) plus `dexterous`, read by
+`dexterousOn()`. The carousel draws it beside Flow (`MODE_SIBLINGS` in js/progress-unlock.js,
+unlocked from a cold install). Three rules, all gated on the flag:
+- **Every Sleight is dealt a rank and a suit** when granted (`dexEnsureIdentity` in `grantSleight`,
+  the old Tinker bench's `sleightAssignIdentity`; `dexSweepIdentities` from `render()` catches a
+  resumed save). Wildcards, aim fixtures and the Spectrum fixtures take none; The Queen keeps her
+  rank and takes a suit. It then counts as a card of that rank in hand detection
+  (`sleightIsPlayable`) and scores its rank's pips. The board card is drawn as a playing card
+  (`dexCardFace`: the ordinary `renderCardAppearance` face plus `.sleight-card.dex-sl`, the icon
+  bottom middle, charges bottom left; the dance no longer stands it up). Two random common
+  Sleights are shuffled into the deck at the start (`dexGrantStart`, from startGame).
+- **Sleights are 4x in every reward roll** (`dexSleightOfferMult`): Flow's chain `sleights` step
+  (before the Tricks share splits the rest), the pick of three (`survivalWeightedType`) and the
+  shop's shelf roll.
+- **A Sleight PLAYED in a hand does its thing as well as scoring** (`dexFireOnPlay`, after
+  `fireSleightsOnPlay`): a double_tap effect fires for that hand, an on_discard effect fires as if
+  discarded, an on_swap buff lands on every other scored card. Amplifier, Legacy and Siphon are
+  read in calcScore (`dexHandMult` / `dexHandPipsX` / `dexHandMultX`, read-only; the charge and
+  Siphon's Focus are spent after the hand commits). `DEX_PLAY_OUT` only score: Magnet, Photocopier,
+  Logistics Assistant, Keeper, Lockbox, Dealer's Choice, All Hands, Stopwatch, BOGO, Procrastinate,
+  Shredder, Sequencer, the Idol. A Discard-only Sleight (r739, Theta) may be played here
+  (`sleightOnlyRefusePlay` stands down) and its discard effect fires. The charge is spent with no cell (`consumeSleightCharge(card, -1, -1)`): the hand's own
+  removal takes the card, a spent one is dropped by `discardToPlayed`.
+Measured in headless Chromium at 1440x820 and 420x900 by real taps: three Kings with Amplifier
+(K) scored 270 (mult 6 + 3), charge 5 -> 4, back in the pile as K; Lightning Rod gave both Queens
++10 pips; Legacy x3 pips; Cash Out +10 credits; Siphon x4 and 15 Focus spent; Snooze paused; Bomb
++3 pips on the 13 other cards; Piggy Bank +5 credits. Built on r729, rebased onto r740's Sleight
+triage (r739) before landing.

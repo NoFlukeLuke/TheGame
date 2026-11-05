@@ -1046,7 +1046,7 @@ async function dncFallOut(stage){
 function dncQueueStrip(entry){
   const strip = document.createElement('div'); strip.className = 'dnq-strip';
   (entry.shown || entry.toRemove).forEach(cl => { const [r, c] = cl; const card = entry.result._q.cards[cellKey(cl)]; if(!card) return;
-    const slot = document.createElement('div'); slot.className = 'dnc-outer dnq-slot' + (card._isSleight ? ' dnc-turn' : '');
+    const slot = document.createElement('div'); slot.className = 'dnc-outer dnq-slot' + (card._isSleight && !(typeof dexCardFace === 'function' && dexCardFace(card)) ? ' dnc-turn' : '');
     const d = document.createElement('div');
     const { className, innerHTML } = renderCardAppearance(card, r, c, { revealFog: true });
     d.className = className + ' preview-card'; d.innerHTML = innerHTML;
@@ -1353,7 +1353,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   // Wrapped in .dnc-outer for the two-layer activation animation; sized by #selected-cards'
   // --card-w/--card-h; appended into the .dnc-track so large hands can scroll sideways as they score.
   const cardEls=previewCells.map(cl=>{ const [r,c]=cl; const card=cardOf(cl);
-    const outer=document.createElement('div'); outer.className='dnc-outer'+(card._isSleight?' dnc-turn':'');   // r503: a Sleight stands up (css/dance.css)
+    const outer=document.createElement('div'); outer.className='dnc-outer'+(card._isSleight && !(typeof dexCardFace === 'function' && dexCardFace(card))?' dnc-turn':'');   // r741: a Dexterous Sleight is a card; r503: a Sleight stands up (css/dance.css)
     const d=document.createElement('div');
     const { className, innerHTML } = renderCardAppearance(card, r, c, { revealFog: true });
     d.className=className+' preview-card'; d.innerHTML=innerHTML;

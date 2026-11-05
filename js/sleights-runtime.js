@@ -114,6 +114,7 @@ function grantSleight(def) {
     _id: 80000 + (Date.now() % 10000) + Math.floor(Math.random()*100),
     _usesLeft: sleightBaseCharges(def),
   };
+  if (typeof dexEnsureIdentity === 'function') dexEnsureIdentity(card);   // r741: Dexterous deals it a rank and a suit
   if (typeof moneySleightGranted === 'function') moneySleightGranted(card);   // r722: Loan Shark pays its loan
   drawPile.push(card);
   grantedSleightIds.add(def.id);
@@ -970,7 +971,10 @@ function showSleightGridTooltip(r, c, card) {
               : def.activation === 'on_swap' ? `SWAP TO ACTIVATE · ONCE PER ROUND${_usedLock}`
               : def.activation === 'passive' ? 'ALWAYS ACTIVE WHILE ON THE GRID'
               : 'LONG-PRESS FOR TOOLTIP';
-    tip.innerHTML = `<div class="sleight-tooltip-name">${def.emoji} ${def.name}</div><div class="sleight-tooltip-desc">${colorizeKeywords(def.desc)}</div><div class="sleight-tooltip-uses">${uses}</div><div class="sleight-tooltip-hint">${_hint}</div>`;
+  // r741: in Dexterous the card is played like any other and fires then too.
+  const _dexHint = (typeof dexCardFace === 'function' && dexCardFace(card))
+    ? (def.activation === 'on_play' || (typeof DEX_PLAY_OUT !== 'undefined' && DEX_PLAY_OUT.has(def.id)) ? '' : ' · OR PLAY IT IN A HAND') : '';
+    tip.innerHTML = `<div class="sleight-tooltip-name">${def.emoji} ${def.name}</div><div class="sleight-tooltip-desc">${colorizeKeywords(def.desc)}</div><div class="sleight-tooltip-uses">${uses}</div><div class="sleight-tooltip-hint">${_hint}${_dexHint}</div>`;
   tip.style.opacity = '0';
   placeCardTooltip(tip, sleightEl);
   // A timed Sleight's remaining time runs while you read it (r356), so the

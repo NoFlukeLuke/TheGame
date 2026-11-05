@@ -984,7 +984,9 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // handBaseMult is the hand's ladder mult, or the hand's CARD COUNT under the
   // hand_size model, plus Natural Scaling's earned family bonus. _scoreCells is
   // the hand actually being scored.
-  let mult = handBaseMult(handName, _handN) + sleightAmplifierMult + staticMult + _altarMult;
+  // r741 (js/dexterous.js): a Sleight played in the hand adds its mult here (Amplifier), read-only.
+  const _dexM = (typeof dexHandMult === 'function') ? dexHandMult(cells) : 0;
+  let mult = handBaseMult(handName, _handN) + sleightAmplifierMult + staticMult + _altarMult + _dexM;
 
   // Layered hands: every other component adds its base mult too. Additive, not
   // multiplied - two hands' worth of ladder, not the product of them.
@@ -1296,6 +1298,10 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     const _pre = totalPips; totalPips = Math.round(totalPips * BAL.the_legacy.pips_x); _legacyP = totalPips - _pre;
     _ev('the_legacy', 'pip*', BAL.the_legacy.pips_x, 'sleight');
   }
+  // r741 (js/dexterous.js): Legacy PLAYED in this hand multiplies its pips now. Read-only.
+  if (typeof dexHandPipsX === 'function') dexHandPipsX(cells).forEach(({ id, x }) => {
+    const _pre = totalPips; totalPips = Math.round(totalPips * x); _ev(id, 'pip*', x, 'sleight'); if (id === 'the_legacy') _legacyP += totalPips - _pre;
+  });
   // Interest: ×pips scaling with credits held, capped so a rich run can't run away.
   if (hasTrick('interest') && coins > 0) {
     const _m = Math.min(TB('interest').max_pip_mult, 1 + Math.floor(coins / 10) * TB('interest').pip_mult_per_10_credits);
@@ -1532,6 +1538,11 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     const _pre = mult; mult = Math.round(mult * siphonMultX * 10) / 10; _siphonM = mult - _pre;
     _ev('siphon', 'mult*', siphonMultX, 'sleight');
   }
+  // r741 (js/dexterous.js): Legacy or Siphon PLAYED in this hand multiplies it now. Read-only;
+  // dexFireOnPlay spends the charge (and Siphon's Focus) after the hand commits.
+  if (typeof dexHandMultX === 'function') dexHandMultX(cells).forEach(({ id, x }) => {
+    mult = Math.round(mult * x * 10) / 10; _ev(id, 'mult*', x, 'sleight');
+  });
   // Overdrive (r571, knack): hand k of its run scores x(1 + 0.5k) mult, read-only here.
   { const _ox = (typeof overdriveMultX === 'function') ? overdriveMultX() : 1;
     if (_ox > 1) { mult = Math.round(mult * _ox * 10) / 10; _ev('overdrive', 'mult*', _ox, 'knack'); } }
@@ -1639,6 +1650,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     // push {type,source:'knack'|'sleight',id,delta} and the dance will render it automatically.
     if (typeof sleightAmplifierMult === 'number' && sleightAmplifierMult > 0)
       contrib.push({type:'mult',source:'sleight',id:'amplifier',delta:Math.round(sleightAmplifierMult*10)/10});
+    if (_dexM > 0) contrib.push({type:'mult',source:'sleight',id:'amplifier',delta:Math.round(_dexM*10)/10});   // r741: played in the hand
     if (_whetM  > 0) contrib.push({type:'mult',source:'sleight',id:'whetstone', delta:Math.round(_whetM*10)/10});
     if (_queenP > 0) contrib.push({type:'pip',source:'sleight',id:'the_queen', delta:_queenP});
     if (_queenM > 0) contrib.push({type:'mult',source:'sleight',id:'the_queen', delta:_queenM});
@@ -1670,7 +1682,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     // worth before anything fires.
     ledger.basePips  = Math.round(handBasePips(handName) * levelScale) + staticPips + _altarPips
                      + _extraLayers.reduce((a, h) => a + Math.round(handBasePips(h) * levelScale), 0);
-    ledger.baseMult  = handBaseMult(handName, _handN) + sleightAmplifierMult + staticMult + _altarMult
+    ledger.baseMult  = handBaseMult(handName, _handN) + sleightAmplifierMult + staticMult + _altarMult + _dexM
                      + _extraLayers.reduce((a, h) => a + handBaseMult(h, _handN), 0);
   }
 

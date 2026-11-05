@@ -613,6 +613,7 @@ function playHand() {
 
   // on_play sleights (Shortcut challenge-complete) fire when played
   fireSleightsOnPlay(playedCells, handCells, hand);
+  if (typeof dexFireOnPlay === 'function') dexFireOnPlay(playedCells, handCells, hand);   // r741: Dexterous, the rest of the Sleights
   // Spectrum deck fixtures: count this hand against any fixture it scored beside.
   if (typeof fireAdjacentSleights === 'function') fireAdjacentSleights(handCells);
 

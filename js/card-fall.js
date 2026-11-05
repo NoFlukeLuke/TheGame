@@ -48,7 +48,7 @@ function renderCardAppearance(card, r, c, {
   }
 
   // ── Sleight card ──
-  if (!isChallenge && card._isSleight) {
+  if (!isChallenge && card._isSleight && !(typeof dexCardFace === 'function' && dexCardFace(card))) {   // r741: a Dexterous Sleight is drawn as a card below
     const def = SLEIGHT_POOL.find(j => j.id === card.sleightId);
     // An 'adjacent' fixture shows how close it is to paying out (1/2) rather than
     // its charge count, which is the number that actually matters on the board.
@@ -202,6 +202,19 @@ function renderCardAppearance(card, r, c, {
     ${(typeof stkPeekHTML === 'function') ? stkPeekHTML(card, r, c) : ''}
   `;
 
+  // r741 (js/dexterous.js): a Dexterous Sleight is this ordinary card with the
+  // Sleight's icon bottom middle and its charges bottom left; .sleight-card stays
+  // on it so every Sleight hook that finds its tile by class still does.
+  if (card._isSleight && typeof dexCardFace === 'function' && dexCardFace(card)) {
+    const def = sleightDef(card);
+    const _maxCh = (typeof sleightCapOf === 'function') ? sleightCapOf(card) : null;
+    const usesStr = card._usesLeft === 'infinite' ? '∞' : (_maxCh ? `${card._usesLeft}/${_maxCh}` : card._usesLeft);
+    return {
+      className: className + ' sleight-card dex-sl' + sleightRarityClass(def) + sleightTierClass(def)
+               + (sleightIsSpent(card, def) ? ' sleight-spent' : '') + (card._inert ? ' sleight-inert' : ''),
+      innerHTML: innerHTML + dexFaceExtraHTML(card, def, usesStr),
+    };
+  }
   return { className, innerHTML };
 }
 
@@ -426,7 +439,7 @@ async function removeAndFall(removingCells, mode = 'play') {
     }
   }
 
-  // r730: Stacked has no fall. The card beneath each removed one surfaces (js/stack-mode.js).
+  // r741: Stacked has no fall. The card beneath each removed one surfaces (js/stack-mode.js).
   if (typeof stackedActive === 'function' && stackedActive()) { await stkAfterRemove(removingCells, leaveMs); return; }
 
   // ── The plan (data only), computed from the board as it is now. Voids

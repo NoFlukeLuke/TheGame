@@ -17,6 +17,15 @@
 // The chain, in carousel order. The first is unlocked from a cold install;
 // every one after it opens when the one before it has had a run finish.
 const MODE_UNLOCK_CHAIN = ['flow', 'map'];  // r380: Flow first; Guided hidden
+// r741: modes drawn right after another in the carousel, unlocked from a cold
+// install (modeUnlocked returns true for an id in neither list). Dexterous
+// sits beside Flow, whose engine it runs on.
+const MODE_SIBLINGS = { flow: ['dexterous'] };
+function modeChainWithSiblings() {
+  const out = [];
+  MODE_UNLOCK_CHAIN.forEach(id => { out.push(id); (MODE_SIBLINGS[id] || []).forEach(s => out.push(s)); });
+  return out;
+}
 
 // Everything else opens AT ONCE when the chain is done, and is drawn as a
 // single stacked card until then - one locked object to work toward rather
@@ -26,7 +35,7 @@ const MODE_FINALE_GROUP = ['normal', 'picker'];  // r380: Spectrum hidden
 // Appended AFTER the finale group and NOT gated. `modeUnlocked` already answers
 // true for anything in neither list, so a mode here is playable from a cold
 // install - which is what "add it to the end and unlock it" asks for.
-const MODE_EXTRA_LIST = ['stacks', 'squares'];   // r730: Stacked   // r566: Climb moved to the hidden list (owner)
+const MODE_EXTRA_LIST = ['stacks', 'squares'];   // r741: Stacked   // r566: Climb moved to the hidden list (owner)
 
 // The id the carousel uses for the stack itself. Not a mode; never reaches MODES.
 const MODE_STACK_ID = '__stack__';
@@ -121,8 +130,8 @@ function modeUnlockedBy(id) {
 // the one stack standing in for them.
 function modeSelectList() {
   return finaleUnlocked()
-    ? [...MODE_UNLOCK_CHAIN, ...MODE_FINALE_GROUP, ...MODE_EXTRA_LIST]
-    : [...MODE_UNLOCK_CHAIN, MODE_STACK_ID, ...MODE_EXTRA_LIST];
+    ? [...modeChainWithSiblings(), ...MODE_FINALE_GROUP, ...MODE_EXTRA_LIST]
+    : [...modeChainWithSiblings(), MODE_STACK_ID, ...MODE_EXTRA_LIST];
 }
 
 // ── Dev ─────────────────────────────────────────────────────────────────────
