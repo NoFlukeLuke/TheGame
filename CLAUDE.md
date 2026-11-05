@@ -4372,3 +4372,9 @@ refilled Amplifier 1 -> 6; Keeper cycled cards / sleights / both / none; Dealer'
 and turned on SWAP and the wheel; Lockbox v3 opened 4 temp cards; Queen v6 made 16 of 16 cells royal;
 a Warehouse v6 made 9 9 + Warehouse a Three of a Kind; Legacy x3 pips 60 -> 180; three real hands
 with Legacy and Echo: no drift, no page errors. Golden: 838 cases match.
+
+## r740 - difficulty ladder respaced (owner)
+From DIFFICULTY.md's spacing note: tier 3 SPECIALIST is now the forced penalty picks and tier 4
+MIDDLE MANAGER the 30s cut (they swapped; the names stay in their places), and tiers 5-8 cost 5s a
+swap and 7s a discard (were 6 / 9). `DIFF_TIERS` only; the dev select, the handbook and DIFFICULTY.md
+follow.

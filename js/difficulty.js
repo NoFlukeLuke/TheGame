@@ -7,6 +7,7 @@
 // copies the mode's tier into the run (`runDifficulty`, SAVE_VARS), so a saved
 // run keeps the tier it was started on. Every reader asks difficultyTier().
 // Every tier keeps the tiers' changes below it. DIFFICULTY.md is the write-up.
+// r740: tier 3 is the penalty picks and tier 4 the 30s cut (swapped); tiers 5+ cost 5s / 7s.
 //
 //   hmDraws   how many DRAWS a horseman curse card in the deck lasts (Infinity:
 //             until removed). A draw is the card coming onto the grid.
@@ -24,17 +25,17 @@ const DIFF_TIERS = [
     say: 'No modifiers.' },
   { tier: 2, name: 'ENTRY LEVEL',    hmDraws: 4,        startCurse: true,  swapSecs: 3, discardSecs: 5, timeCut: 0,  penalties: false, harsh: false, goalMult: 1,    finalBoss: false,
     say: 'You start with a curse card. It goes away after 4 draws. Swaps cost 3s, discards cost 5s.' },
-  { tier: 3, name: 'SPECIALIST',     hmDraws: 4,        startCurse: true,  swapSecs: 3, discardSecs: 5, timeCut: 30, penalties: false, harsh: false, goalMult: 1,    finalBoss: false,
-    say: 'Every round starts with 30 fewer seconds.', sayFlow: 'Every quarter starts with 30 fewer seconds.' },
-  { tier: 4, name: 'MIDDLE MANAGER', hmDraws: 4,        startCurse: true,  swapSecs: 3, discardSecs: 5, timeCut: 30, penalties: true,  harsh: false, goalMult: 1,    finalBoss: false,
+  { tier: 3, name: 'SPECIALIST',     hmDraws: 4,        startCurse: true,  swapSecs: 3, discardSecs: 5, timeCut: 0,  penalties: true,  harsh: false, goalMult: 1,    finalBoss: false,
     say: 'Forced penalties can appear in rewards.' },
-  { tier: 5, name: 'SENIOR MANAGER', hmDraws: 6,        startCurse: true,  swapSecs: 6, discardSecs: 9, timeCut: 30, penalties: true,  harsh: false, goalMult: 1,    finalBoss: false,
-    say: 'The starting curse card lasts 6 draws. Swaps cost 6s, discards cost 9s.' },
-  { tier: 6, name: 'EXECUTIVE',      hmDraws: 6,        startCurse: true,  swapSecs: 6, discardSecs: 9, timeCut: 30, penalties: true,  harsh: true,  goalMult: 1,    finalBoss: false,
+  { tier: 4, name: 'MIDDLE MANAGER', hmDraws: 4,        startCurse: true,  swapSecs: 3, discardSecs: 5, timeCut: 30, penalties: true,  harsh: false, goalMult: 1,    finalBoss: false,
+    say: 'Every round starts with 30 fewer seconds.', sayFlow: 'Every quarter starts with 30 fewer seconds.' },
+  { tier: 5, name: 'SENIOR MANAGER', hmDraws: 6,        startCurse: true,  swapSecs: 5, discardSecs: 7, timeCut: 30, penalties: true,  harsh: false, goalMult: 1,    finalBoss: false,
+    say: 'The starting curse card lasts 6 draws. Swaps cost 5s, discards cost 7s.' },
+  { tier: 6, name: 'EXECUTIVE',      hmDraws: 6,        startCurse: true,  swapSecs: 5, discardSecs: 7, timeCut: 30, penalties: true,  harsh: true,  goalMult: 1,    finalBoss: false,
     say: 'Penalties are more punishing.', flowExtra: 'The chance of more than one reward is reduced.' },
-  { tier: 7, name: 'C-SUITE',        hmDraws: Infinity, startCurse: true,  swapSecs: 6, discardSecs: 9, timeCut: 30, penalties: true,  harsh: true,  goalMult: 1.15, finalBoss: false,
+  { tier: 7, name: 'C-SUITE',        hmDraws: Infinity, startCurse: true,  swapSecs: 5, discardSecs: 7, timeCut: 30, penalties: true,  harsh: true,  goalMult: 1.15, finalBoss: false,
     say: 'The starting curse card lasts until removed. Score requirements are higher.' },
-  { tier: 8, name: 'THE BOARD',      hmDraws: Infinity, startCurse: true,  swapSecs: 6, discardSecs: 9, timeCut: 30, penalties: true,  harsh: true,  goalMult: 1.3,  finalBoss: true,
+  { tier: 8, name: 'THE BOARD',      hmDraws: Infinity, startCurse: true,  swapSecs: 5, discardSecs: 7, timeCut: 30, penalties: true,  harsh: true,  goalMult: 1.3,  finalBoss: true,
     say: 'Score requirements are higher. Face the final boss.' },
 ];
 const DIFF_KEY = 'lethe.difficulty.v2';

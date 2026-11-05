@@ -1,4 +1,4 @@
-const BUILD = "2026-11-05 · r739 · the Sleight triage: 43 Sleights edited, four cut, Sequencer, two charge Knacks, role changes";
+const BUILD = "2026-11-05 · r740 · difficulty: forced penalties at tier 3, the 30s cut at tier 4, tier 5 costs 5s / 7s";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

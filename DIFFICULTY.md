@@ -13,9 +13,9 @@ unlocks them.
 |---|---|---|
 | 1 $ | INTERN | No modifiers. |
 | 2 $$ | ENTRY LEVEL | You start with a curse card (a random horseman, into the deck). It goes away after **4 draws**. Swaps cost **3s**, discards cost **5s** (flat). |
-| 3 $$$ | SPECIALIST | Every round starts with **30 fewer seconds** (Flow: every quarter's session). |
-| 4 $$$$ | MIDDLE MANAGER | **Forced penalties can appear in rewards**: a pick of three penalties from the Balance Sheet's own table, one must be taken, no skip. Flow: a step added to **15%** of level-up chains. The Schedule: **20%** of the time after a round's pick of three. |
-| 5 $$$$$ | SENIOR MANAGER | The starting curse card lasts **6 draws**. Swaps cost **6s**, discards **9s**. |
+| 3 $$$ | SPECIALIST | **Forced penalties can appear in rewards**: a pick of three penalties from the Balance Sheet's own table, one must be taken, no skip. Flow: a step added to **15%** of level-up chains. The Schedule: **20%** of the time after a round's pick of three. |
+| 4 $$$$ | MIDDLE MANAGER | Every round starts with **30 fewer seconds** (Flow: every quarter's session). |
+| 5 $$$$$ | SENIOR MANAGER | The starting curse card lasts **6 draws**. Swaps cost **5s**, discards **7s**. |
 | 6 $$$$$$ | EXECUTIVE | **Penalties are more punishing**: every penalty offered (Balance Sheet, Mystery, the forced pick) is a permanent one, and the serious ones (Lose a Trick, War, Quota Revision, Red Tape, -Luck, a horseman, a limit drained) weigh double. Flow only: the chance of more than one reward at a level-up is **10 points lower**. |
 | 7 $$$$$$$ | C-SUITE | The starting curse card lasts **until removed**. Every goal **x1.15**. |
 | 8 $$$$$$$$ | THE BOARD | Every goal **x1.3**. The run's last boss is **THE FOUR HORSEMEN** (one of each curse card on the grid as its clock starts). |
@@ -47,7 +47,7 @@ Things that follow from the built changes:
   the same wrapper would add it to Classic's interlude if wanted.)
 - Reaching THE BOARD on a mode takes seven won runs of that mode.
 
-## Is the ladder spaced well?
+## Is the ladder spaced well? (r740: the owner took both moves below; the table above is the result)
 
 Where each tier bites, as a share of a 3:00 round (2:30 from tier 3):
 
