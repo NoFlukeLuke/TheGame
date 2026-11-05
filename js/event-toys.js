@@ -209,10 +209,10 @@ function evDie(faces, parent, label) {
 // The ball's path is built from the result: exactly `binIndex` rights among the
 // rows, in a random order, so a bin's chance is the binomial share the player
 // would expect from a real board.
-// r590 (owner): half the speed, a bounce off every peg and two in the bin, and
-// the ball can be slid PLINKO_SLIDE px either way before the drop (offset() is
-// -1..1; evPlinkoRoll leans the odds that way, a little).
-const PLINKO_SLIDE = 20, PLINKO_SEG_MS = 300, PLINKO_LEAN = 0.12;
+// r590 (owner): the ball can be slid PLINKO_SLIDE px either way before the drop
+// (offset() is -1..1; evPlinkoRoll leans the odds that way, a little). The flight
+// itself is plinkoRoute / plinkoPlay (r742).
+const PLINKO_SLIDE = 20, PLINKO_LEAN = 0.12;
 function evPlinko(bins, parent) {
   const host = _etHost('evt-plinko-host', parent);
   const R = bins.length - 1, W = 300, binW = W / (R + 1), rowH = 26, top = 30;
@@ -250,43 +250,147 @@ function evPlinko(bins, parent) {
       armed = false;
       ball.classList.remove('evt-ball-drag');
       host.querySelector('.evt-drop-hint').style.visibility = 'hidden';
-      const steps = Array.from({ length: R }, (_, i) => i < binIndex);
-      for (let i = steps.length - 1; i > 0; i--) { const j = Math.floor(_etRnd() * (i + 1)); [steps[i], steps[j]] = [steps[j], steps[i]]; }
-      const pts = [{ x: W / 2 + off * PLINKO_SLIDE, y: 6 }];
-      let rights = 0;
-      steps.forEach((right, k) => {
-        if (right) rights++;
-        pts.push({ x: W / 2 + (rights - (k + 1) / 2) * binW, y: top + (k + 1) * rowH - 14 });
-      });
-      const last = pts[pts.length - 1];
-      pts.push({ x: last.x, y: H + 8 });
       host.querySelectorAll('.evt-bin').forEach(b => b.classList.remove('evt-hit'));
-      const fast = _etFast();
-      let p = Promise.resolve();
-      pts.slice(1).forEach((pt, i) => {
-        const from = pts[i], landing = i === pts.length - 2;
-        const ms = fast ? 0 : (landing ? PLINKO_SEG_MS * 0.8 : PLINKO_SEG_MS);
-        p = p.then(() => _etTween(ms, (e, t) => {
-          // Each hop leaves the peg upward, then falls onto the next: a bounce.
-          const x = from.x + (pt.x - from.x) * t;
-          const y = from.y + (pt.y - from.y) * t * t - (landing ? 0 : Math.sin(Math.PI * t) * 10);
-          ball.style.left = x + 'px'; ball.style.top = y + 'px';
-        }, t => t).then(() => { if (!landing) _etSfx('sfxClockTick'); }));
-      });
-      // Two little hops in the bin.
-      [9, 3].forEach(h => {
-        p = p.then(() => _etTween(fast ? 0 : 150 + h * 10, (e, t) => {
-          ball.style.top = (H + 8 - Math.sin(Math.PI * t) * h) + 'px';
-        }, t => t));
-      });
-      return p.then(() => {
+      const route = plinkoRoute(R, W, binW, rowH, top, H, binIndex, off, pegEl);
+      const done = () => {
         const bin = host.querySelector(`.evt-bin[data-i="${binIndex}"]`);
         if (bin) bin.classList.add('evt-hit');
         _etSfx('sfxRewardReveal');
         return binIndex;
-      });
+      };
+      const place = (x, y) => { ball.style.left = x + 'px'; ball.style.top = (y - PL_BR) + 'px'; };
+      if (_etFast()) { const e = route.end; place(e.x, e.y); ball.style.transform = ''; return Promise.resolve(done()); }
+      return plinkoPlay(route, place, ball).then(done);
     },
   };
+  function pegEl(k, j) { return board.querySelectorAll('.evt-peg')[k * (k + 1) / 2 + j]; }
+}
+// r742 (owner): the drop is real gravity. The ball falls from rest (no hop off
+// the drop point), strikes each peg on the shoulder it leaves by, and rebounds
+// with a share of the speed it hit with, so bounces come from the fall and not a
+// fixed arc. Each hit squashes the ball along the strike, kicks the peg and
+// plinks (louder when it hits harder, higher down the board). In the bin it
+// rattles off the floor and the walls until it settles. The path still lands on
+// the bin the roll chose; the physics only shape the trip.
+const PL_G = 0.0016;              // gravity, px per ms^2 (a hop between rows ~0.3s)
+const PL_BR = 7, PL_PR = 3;       // ball and peg radius, px (css/event-toys.css)
+const PL_E = [0.40, 0.56];        // a peg's bounce: share of the strike speed kept
+const PL_FLOOR_E = 0.42, PL_FLOOR_F = 0.55; // the bin floor's bounce, and sideways speed kept
+const PL_SQUASH = 0.28, PL_SQUASH_MS = 70;  // most squash at the hardest hit, and its decay
+// Every flight is a parabola: seg = { x, y, vx, vy, ms, lo, hi } (vy < 0 is up);
+// an impact at its end carries { peg, nx, ny, hit } for the squash and the sound.
+function plinkoRoute(R, W, binW, rowH, top, H, binIndex, off, pegEl) {
+  const rnd = (a, b) => a + (b - a) * _etRnd();
+  const steps = Array.from({ length: R }, (_, i) => i < binIndex);
+  for (let i = steps.length - 1; i > 0; i--) { const j = Math.floor(_etRnd() * (i + 1)); [steps[i], steps[j]] = [steps[j], steps[i]]; }
+  const x0 = W / 2 + off * PLINKO_SLIDE, y0 = 6 + PL_BR, lean = x0 - W / 2, CD = PL_BR + PL_PR;
+  // The first strike goes the way the ball was slid: put a step that way first.
+  if (Math.abs(lean) > 1.5 && steps[0] !== (lean > 0)) {
+    const i = steps.findIndex(r => r === (lean > 0));
+    if (i > 0) [steps[0], steps[i]] = [steps[i], steps[0]];
+  }
+  // Slid well off the top peg, the ball misses it and falls onto the next row.
+  const skip = R > 1 && Math.abs(lean) > CD * 0.7 && steps[0] === (lean > 0);
+  const contacts = [];
+  let j = 0;
+  for (let k = 0; k < R; k++) {
+    const side = steps[k] ? 1 : -1;
+    if (!(skip && k === 0)) {
+      const px = W / 2 + (j - k / 2) * binW, py = top + (k + 1) * rowH - 6;
+      // A straight fall hits where it falls; a hop hits a random point on the shoulder.
+      const s = contacts.length ? rnd(1.5, 4) : Math.max(1, Math.min(7, side * (x0 - px)));
+      const dy = Math.sqrt(CD * CD - s * s);
+      contacts.push({ x: px + side * s, y: py - dy, peg: pegEl(k, j), nx: side * s / CD, ny: -dy / CD, k });
+    }
+    if (steps[k]) j++;
+  }
+  const segs = [];
+  let px = x0, py = y0, up = 0, vyIn = 0;
+  const fly = (to, extra) => {
+    const t = (up + Math.sqrt(up * up + 2 * PL_G * (to.y - py))) / PL_G;
+    const seg = { x: px, y: py, vx: (to.x - px) / t, vy: -up, ms: t, ...extra };
+    segs.push(seg);
+    vyIn = -up + PL_G * t; px = to.x; py = to.y;
+    return seg;
+  };
+  const vMax = Math.sqrt(2 * PL_G * rowH * 2.2);
+  contacts.forEach(c => {
+    fly(c, { peg: c.peg, nx: c.nx, ny: c.ny, k: c.k });
+    segs[segs.length - 1].hit = Math.min(1, vyIn / vMax);
+    up = vyIn * rnd(PL_E[0], PL_E[1]);
+  });
+  // Into the bin, then rattle on the floor and off the walls until it rests.
+  const bx = W / 2 + (binIndex - R / 2) * binW, fy = H + 8 + PL_BR;
+  const lo = bx - binW / 2 + PL_BR + 1, hi = bx + binW / 2 - PL_BR - 1;
+  const inSeg = fly({ x: bx + rnd(-2, 2), y: fy }, { floor: true, k: R });
+  inSeg.hit = Math.min(1, vyIn / vMax);
+  let vx = inSeg.vx * PL_FLOOR_F;
+  up = vyIn * PL_FLOOR_E;
+  while (up * up / (2 * PL_G) > 0.4) {
+    const t = 2 * up / PL_G;
+    const seg = { x: px, y: py, vx, vy: -up, ms: t, lo, hi, floor: true, hit: Math.min(1, up / vMax), k: R };
+    segs.push(seg);
+    const e = plinkoFold(px + vx * t, lo, hi);
+    px = e.x; if (e.flip) vx = -vx;
+    vx *= PL_FLOOR_F; up *= PL_FLOOR_E;
+  }
+  return { segs, end: { x: px, y: py } };
+}
+// A position inside [lo, hi], bounced off the walls (and whether it ended going back).
+function plinkoFold(x, lo, hi) {
+  const w = hi - lo; if (w <= 0) return { x: lo, flip: false };
+  let u = (x - lo) % (2 * w); if (u < 0) u += 2 * w;
+  return u > w ? { x: hi - (u - w), flip: true } : { x: lo + u, flip: false };
+}
+function plinkoPlay(route, place, ball) {
+  return new Promise(res => {
+    const segs = route.segs;
+    let i = 0, t0 = performance.now(), sq = null;
+    const squash = (seg, now) => { sq = { a: PL_SQUASH * (0.35 + 0.65 * seg.hit), nx: seg.floor ? 0 : seg.nx, ny: seg.floor ? -1 : seg.ny, at: now }; };
+    const impact = (seg, now) => {
+      squash(seg, now);
+      if (seg.peg) { seg.peg.classList.remove('evt-peg-hit'); void seg.peg.offsetWidth; seg.peg.classList.add('evt-peg-hit'); }
+      _etSfx('sfxPlinkoHit', seg.hit, seg.k, !!seg.floor);
+    };
+    const frame = now => {
+      while (i < segs.length && now - t0 >= segs[i].ms) { t0 += segs[i].ms; impact(segs[i], t0); i++; }
+      if (i >= segs.length) { place(route.end.x, route.end.y); ball.style.transform = ''; res(); return; }
+      const s = segs[i], t = now - t0;
+      let x = s.x + s.vx * t;
+      if (s.lo != null) x = plinkoFold(x, s.lo, s.hi).x;
+      place(x, s.y + s.vy * t + 0.5 * PL_G * t * t);
+      if (sq) {
+        const a = sq.a * Math.exp(-(now - sq.at) / PL_SQUASH_MS);
+        if (a < 0.01) { sq = null; ball.style.transform = ''; }
+        else {
+          const deg = Math.atan2(sq.ny, sq.nx) * 180 / Math.PI;
+          ball.style.transform = `rotate(${deg}deg) scale(${1 - a}, ${1 + a * 0.7}) rotate(${-deg}deg)`;
+        }
+      }
+      requestAnimationFrame(frame);
+    };
+    requestAnimationFrame(frame);
+  });
+}
+// The ball on a peg (or the bin floor): a short plink, louder for a harder hit,
+// a step higher each row down; the floor is a duller tap.
+function sfxPlinkoHit(hit, row, floor) {
+  if (typeof getAudioCtx !== 'function' || typeof sfxOut !== 'function') return;
+  const v = (typeof sfxVolume === 'function') ? sfxVolume() : 1; if (v <= 0) return;
+  const ctx = getAudioCtx(), t = ctx.currentTime, g0 = (0.25 + 0.75 * (hit || 0)) * v;
+  const f = floor ? 520 : 1250 * Math.pow(1.06, row || 0) * (0.97 + 0.06 * _etRnd());
+  const o = ctx.createOscillator(), g = ctx.createGain();
+  o.type = floor ? 'triangle' : 'sine';
+  o.frequency.setValueAtTime(f * 1.04, t); o.frequency.exponentialRampToValueAtTime(f, t + 0.02);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime((floor ? 0.07 : 0.05) * g0, t + 0.002);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + (floor ? 0.06 : 0.11));
+  o.connect(g).connect(sfxOut(ctx)); o.start(t); o.stop(t + 0.13);
+  const n = Math.max(1, Math.floor(ctx.sampleRate * 0.006)), b = ctx.createBuffer(1, n, ctx.sampleRate), d = b.getChannelData(0);
+  for (let k = 0; k < n; k++) d[k] = (_etRnd() * 2 - 1) * Math.pow(1 - k / n, 2);
+  const s = ctx.createBufferSource(), bp = ctx.createBiquadFilter(), ng = ctx.createGain();
+  s.buffer = b; bp.type = 'bandpass'; bp.frequency.value = floor ? 1800 : 3600; bp.Q.value = 2;
+  ng.gain.value = 0.06 * g0;
+  s.connect(bp).connect(ng).connect(sfxOut(ctx)); s.start(t);
 }
 // A bin index drawn with the board's own binomial odds, leaned by the drop point
 // (off -1..1 moves each peg's right-hand chance by up to PLINKO_LEAN).

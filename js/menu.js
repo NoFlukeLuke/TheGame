@@ -1,4 +1,4 @@
-const BUILD = "2026-11-05 · r741 · Dexterous: Flow with Sleights as playing cards";
+const BUILD = "2026-11-05 · r742 · Plinko: real gravity, no hop on the drop";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
