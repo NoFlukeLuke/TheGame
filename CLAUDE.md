@@ -4422,3 +4422,22 @@ chip, white for pips, red for mult; console mode's housing hides anything off a 
 `sfxDiceThrow` (catalog `dice_throw`, Kenney's dieThrow1 as `assets/sfx/dice-throw.mp3`; a coded
 fallback in the same file). Cosmetic randomness is fxRandom; reduced motion shows the face at once.
 A new die anywhere uses `diceMake`, never its own flicker.
+
+## r744 - the coin flip is physics, with a real coin's sounds (`js/coin-sim.js`, owner)
+`evCoin` (js/event-toys.js, every coin event) is thrown by `coinSimulate`: a thin disc in the plane
+it turns in (height and depth), gravity, a contact at the rim's lowest corner with a bounce
+(`COIN_CFG.rest`), friction and the spin the hit gives it; a rim landing tips, rocks and falls flat
+by itself. A hard hit keeps at most `hop` of its speed as a bounce and `spinKeep` of its spin (a
+rim landing otherwise hopped as high as the throw). Down and slow, it hands over to a 360ms settle:
+the tilt runs round the coin faster as it drops (Euler's disk). **The result is decided first**:
+`coinThrowFor(side, from)` simulates throws until one settles on `side` (about 0.07ms each; a
+throw that never settles is not used). The drift a throw makes is undone while the coin is in the
+air, so it rests where it rests between flips. Sounds (Economy in the sound board): `sfxCoinFlick`
+(thumb tick + four inharmonic partials, synthesised), `sfxCoinHit(k)` at every contact the sim
+records over `hitMin` (louder for a harder hit, pitch 0.93-1.07, two cuts alternating),
+`sfxCoinSettle` at the handover. The hits and rattle are WAV cuts (no mp3 encoder delay) of "Coin
+drop" by vinrax (opengameart.org, CC0): assets/sfx/coin-hit-*.wav, coin-settle.wav, credited in
+assets/sfx/CREDITS.md and the handbook. They are loaded through `loadSfxBuffer` but are NOT in the
+manifest, because the wrapper's file path plays a buffer with no per-hit gain or rate. Reduced
+motion shows the face and plays one hit. The sounds replaced: the card shuffle, the coin ping and
+two clock ticks.

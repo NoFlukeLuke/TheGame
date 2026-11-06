@@ -77,6 +77,9 @@ const SFX_CATALOG = [
   // Economy
   { id: 'coin',          fn: 'sfxCoin',            group: 'Economy', label: 'Coin' },
   { id: 'dice_throw',    fn: 'sfxDiceThrow',       group: 'Economy', label: 'Dice throw' },
+  { id: 'coin_flick',    fn: 'sfxCoinFlick',       group: 'Economy', label: 'Coin flip: the flick' },
+  { id: 'coin_hit',      fn: 'sfxCoinHit',         group: 'Economy', label: 'Coin flip: a hit on the table', args: [0.9] },
+  { id: 'coin_settle',   fn: 'sfxCoinSettle',      group: 'Economy', label: 'Coin flip: rattles to rest' },
   { id: 'payout_coin',   fn: 'sfxPayoutCoin',      group: 'Economy', label: 'Payout coin', args: [3, 6],
     note: 'The payout count-up. Settings -> Audio -> Payout coin picks which (js/coin-sounds.js).' },
   { id: 'shop_open',     fn: 'sfxShopOpen',        group: 'Economy', label: 'Shop opens' },

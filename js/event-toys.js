@@ -50,8 +50,7 @@ function evReveal(el) {
 // evCoin(parent) -> { el, flip(side) -> Promise<side>, show(side), caption(t, cls) }
 // side is 'heads' or 'tails'.
 // r590 (owner: "more physics based, 3dish"): a disc with a rim (stacked edge
-// layers), tossed under gravity, tumbling end over end on the X axis, landing
-// on a shadow and bouncing twice with the spin damping onto the decided face.
+// layers) over its shadow. r744: thrown by coinSimulate (js/coin-sim.js).
 const COIN_TILT = 16;                 // resting lean toward you, so the rim shows
 const COIN_EDGE = 8;                  // edge layers (the coin's thickness in px)
 function evCoin(parent) {
@@ -64,61 +63,48 @@ function evCoin(parent) {
     </div></div></div><div class="evt-coin-cap"></div>`;
   const coin = host.querySelector('.evt-coin'), lift = host.querySelector('.evt-coin-lift');
   const shadow = host.querySelector('.evt-coin-shadow'), cap = host.querySelector('.evt-coin-cap');
-  let rest = 0;   // the face angle (0 heads, 180 tails), without the tilt
-  const pose = (ang, y, yaw) => {
-    coin.style.transform = `rotateY(${yaw || 0}deg) rotateX(${ang}deg)`;
-    lift.style.transform = `translateY(${-y}px)`;
-    const k = Math.max(0, 1 - y / 110);
-    shadow.style.transform = `scale(${(0.45 + 0.55 * k).toFixed(3)}, ${(0.45 + 0.55 * k).toFixed(3)})`;
+  if (typeof coinSoundsWarm === 'function') coinSoundsWarm();
+  let rest = 'heads';
+  // f: one frame of coinSimulate (js/coin-sim.js). th turns it end over end, wx / wy
+  // tilt it as it settles; y lifts it off the table, z is depth (toward you is down
+  // the screen a little), x a sideways drift.
+  const D = 180 / Math.PI;
+  const pose = f => {
+    coin.style.transform = `rotateX(${-COIN_TILT}deg) rotateY(${((f.yaw + f.wy) * D).toFixed(2)}deg) rotateX(${((f.th + f.wx) * D).toFixed(2)}deg)`;
+    lift.style.transform = `translate(${f.x.toFixed(2)}px, ${(-f.y + f.z * 0.2).toFixed(2)}px)`;
+    const k = Math.max(0, 1 - f.y / 110);
+    shadow.style.transform = `translateX(${f.x.toFixed(2)}px) scale(${(0.45 + 0.55 * k).toFixed(3)})`;
     shadow.style.opacity = (0.25 + 0.5 * k).toFixed(2);
   };
-  const show = side => { rest = side === 'tails' ? 180 : 0; pose(rest - COIN_TILT, 0, 0); };
+  const flatPose = side => ({ y: 0, z: 0, x: 0, th: side === 'tails' ? Math.PI : 0, yaw: 0, wx: 0, wy: 0 });
+  const show = side => { rest = side === 'tails' ? 'tails' : 'heads'; pose(flatPose(rest)); };
   show('heads');
   return {
     el: host,
     show,
     caption(t, cls) { cap.textContent = t || ''; cap.className = 'evt-coin-cap' + (cls ? ' ' + cls : ''); },
+    // r744 (owner): a real throw. coinThrowFor simulates throws until one lands on
+    // `side`; the sounds fire at the sim's own contacts.
     flip(side) {
-      const target = side === 'tails' ? 180 : 0;
-      const from = rest - COIN_TILT;
-      const turns = 4 + Math.floor(_etRnd() * 3);
-      // Spin always forward; land exactly on the target face, tilted.
-      let to = target - COIN_TILT + 360 * turns;
-      while (to - from < 360 * turns) to += 360;
-      const T = 0.95, H = 74 + _etRnd() * 14, v0 = 4 * H / T, g = 2 * v0 / T;   // flight: up and down in T
-      const E = 0.36;                                                              // bounce restitution
-      const b1 = 2 * v0 * E / g, b2 = 2 * v0 * E * E / g, settle = 0.42;
-      const total = T + b1 + b2 + settle;
-      const yawAmp = (_etRnd() - 0.5) * 34;
       cap.textContent = ''; cap.className = 'evt-coin-cap';
-      _etSfx('sfxFlipShuffle');
-      let hits = 0;
       return new Promise(res => {
-        if (_etFast()) { rest = target; pose(target - COIN_TILT, 0, 0); _etSfx('sfxCoin'); return res(side); }
+        if (_etFast()) { show(side); _etSfx('sfxCoinHit', 0.8); return res(side); }
+        const sim = coinThrowFor(side, rest), F = sim.frames, n = F.length;
+        let hit = 0, settled = false;
+        const end = F[n - 1], air = Math.max(0.2, sim.hits.length ? sim.hits[0].t : 0.6);
+        _etSfx('sfxCoinFlick');
         const t0 = performance.now();
         const frame = now => {
-          const t = Math.min(total, (now - t0) / 1000);
-          let y = 0, ang, yaw = 0;
-          if (t < T) {
-            y = v0 * t - g * t * t / 2;
-            const u = t / T;
-            ang = from + (to - from - 40) * (1 - Math.pow(1 - u, 1.25));   // fast off the thumb, still turning at the catch
-            yaw = yawAmp * Math.sin(u * Math.PI);
-          } else {
-            const tb = t - T;
-            if (tb < b1) { const v = v0 * E; y = v * tb - g * tb * tb / 2; if (hits < 1) { hits = 1; _etSfx('sfxCoin'); } }
-            else if (tb < b1 + b2) { const tt = tb - b1, v = v0 * E * E; y = v * tt - g * tt * tt / 2; if (hits < 2) { hits = 2; _etSfx('sfxClockTick'); } }
-            else if (hits < 3) { hits = 3; _etSfx('sfxClockTick'); }
-            // The last 40 degrees of spin damp out over the bounces and the settle.
-            const d = tb / (total - T);
-            ang = to - 40 * Math.exp(-5 * d) * Math.cos(d * Math.PI * 3.2) * (1 - d);
-            yaw = yawAmp * 0.25 * Math.exp(-6 * d) * Math.sin(d * Math.PI * 4);
-          }
-          pose(ang, Math.max(0, y), yaw);
-          if (t < total) { requestAnimationFrame(frame); return; }
-          rest = target;
-          pose(target - COIN_TILT, 0, 0);
-          host.classList.remove('evt-land'); void host.offsetWidth; host.classList.add('evt-land');
+          const t = Math.max(0, (now - t0) / 1000);
+          const i = Math.min(n - 1, Math.floor(t * 60));
+          while (hit < sim.hits.length && sim.hits[hit].t <= t) _etSfx('sfxCoinHit', sim.hits[hit++].k);
+          if (!settled && t >= sim.settleAt && hit >= sim.hits.length) { settled = true; _etSfx('sfxCoinSettle'); }
+          // The sim's drift (x sideways, z depth) is undone while the coin is in the
+          // air, so it comes to rest where it rests between flips.
+          const fr = F[i], u = Math.min(1, t / air), e = 1 - u * u * (3 - 2 * u);
+          pose({ ...fr, x: fr.x - end.x * (1 - e), z: fr.z - end.z * (1 - e) });
+          if (i < n - 1 && !_etFast()) { requestAnimationFrame(frame); return; }
+          show(side);
           res(side);
         };
         requestAnimationFrame(frame);

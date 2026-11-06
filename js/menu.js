@@ -1,4 +1,4 @@
-const BUILD = "2026-11-05 · r743 · dice you watch land: Luck Dice and the D6 Trick";
+const BUILD = "2026-11-06 · r744 · the coin flip is physics, with a real coin's sounds";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
