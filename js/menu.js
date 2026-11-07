@@ -1,4 +1,4 @@
-const BUILD = "2026-11-07 · r746 · cards land in the preview with no bounce; Reels is the default blast";
+const BUILD = "2026-11-07 · r747 · dealt cards fall at their drawn size";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

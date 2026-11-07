@@ -4457,3 +4457,12 @@ what the plate toast and the drawer print.
   The slot's own landing pop (`reveal` in `flyGridCardToSlot`, scale .82 -> 1 over 150ms) is gone too.
 - **`BLAST_DEFAULT` is `reels`** (js/score-blast.js; was beats5). The store is overrides only, so a
   browser with no choice stored plays Reels; one that picked another look keeps it.
+
+## r747 - dealt cards fall at their drawn size (owner)
+The round-start deal (`startNewRoundDealAnims`, js/level-up.js: every mode's deal, Flow's and Shuffle
+Up's included) built each copy with `buildCardAnimEl` (the drawn size since r659) and then rewrote
+its whole inline style at the CELL's size (`CARD_W` x `CARD_H`), so every dealt card fell wide (desktop
+71 x 82 against a 63 x 82 card) or tall (phone 66 x 97 against 66 x 87) and snapped when render()
+drew the board. The cssText line is gone. **A card copy is sized by `buildCardAnimEl`, never by
+`CARD_W` / `CARD_H`**: since r641 those are the cell, not the card. Cell-sized boxes elsewhere
+(reward tiles, the shop's labels, Poker Squares, Guided) are tiles, not card copies.

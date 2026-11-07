@@ -506,7 +506,9 @@ function startNewRoundDealAnims() {
       tempEl.dataset.cardId = String(card._id);
       tempEl.dataset.row    = r;
       tempEl.dataset.col    = c;
-      tempEl.style.cssText  = `position:absolute;width:${CARD_W}px;height:${CARD_H}px;left:${destX}px;top:${startY}px;opacity:0;pointer-events:none;z-index:10;`;
+      // r747: no cssText here. It used to rewrite the copy at the CELL's size
+      // (CARD_W x CARD_H) over buildCardAnimEl's drawn size (r659), so every dealt
+      // card fell wide and snapped thin when render() drew the real board.
       gridEl.appendChild(tempEl);
 
       dealAnims.push(tempEl.animate([
