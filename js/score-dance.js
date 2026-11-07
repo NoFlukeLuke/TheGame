@@ -765,7 +765,7 @@ function flyGridCardToSlot(gEl, slotEl, dur, idx, lookId, delay, opts){
   const strip = opts && opts.queue ? slotEl.closest('.dnq-strip') : null;
   const reveal=()=>{ slotEl.style.opacity='';
     if(strip){ dnqSettleSlot(slotEl, t); return; }
-    slotEl.animate([{transform:'scale(.82)'},{transform:'scale(1)'}],{duration:150,easing:'ease-out'}); };
+    /* r746 (owner): no pop on landing; the copy already arrived at the slot's box */ };
   const s = gEl && gEl.getBoundingClientRect();
   const t = slotEl.getBoundingClientRect();
   // dur 0 = there is no flight to watch, just put the card in its slot. That is

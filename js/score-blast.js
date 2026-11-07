@@ -23,7 +23,7 @@ const BLAST_KEY = 'lethe.scoreBlast.v1';
 //   reels     PIPS and MULT spin like slot reels after a lever clunk, land one at a time
 //             on a bell; the cards are flung on the second bell
 const BLAST_LOOKS = { beats5: 'Five beats', shockwave: 'Shockwave', strobe: 'Strobe', implode: 'Implode', drumroll: 'Drumroll', overload: 'Overload', reels: 'Reels', off: 'Off (fast forward)' };
-const BLAST_DEFAULT = 'beats5';
+const BLAST_DEFAULT = 'reels';   // r746 (owner); was beats5
 const BLAST_QUEUE_DEEP = 3;   // hands waiting (the fourth hand in the system) makes the live hand blast
 let blastLook = (() => { try { const v = localStorage.getItem(BLAST_KEY); return BLAST_LOOKS[v] ? v : BLAST_DEFAULT; } catch (e) { return BLAST_DEFAULT; } })();
 function setBlastLook(v) {

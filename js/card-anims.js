@@ -27,7 +27,7 @@ const CARD_ANIM_KINDS = [
       { id: 'current', name: 'Current: straight flight' },
       { id: 'lean',    name: 'A · Lean in', step: 5, desc: 'Each card tilts into its flight and straightens as it lands.' },
       { id: 'comet',   name: 'B · Comet', step: 5, desc: 'Cards streak along a curve with a short trail.' },
-      { id: 'pinball', name: 'C · Pinball', step: 5, desc: 'Cards hop a little away from the tray, then fly over and land with a bounce. Takes a fifth longer.' },
+      { id: 'pinball', name: 'C · Pinball', step: 5, desc: 'Cards hop a little away from the tray, then fly over and land.' },
       { id: 'mech',    name: 'T · Carriage', desc: 'Terminal look: a straight run at constant speed, seated with a firm stop.' },
     ] },
   { id: 'discard', label: 'Discard', note: 'Cards you throw away.',
@@ -268,20 +268,20 @@ const CARD_FLY_LOOKS = {
       { transform: `${pt(1)} scale(${sc}) rotate(0deg)`, opacity: .9 }] };
   },
   // C: hops a little AWAY from the tray (right when the preview is on the left,
-  // down when it is above), then flies over and lands with a bounce
+  // down when it is above), then flies over and comes to rest in the slot.
+  // r746 (owner): no overshoot and settle at the end; the flight just lands.
   pinball: (dx, dy, sc, i, h) => {
-    const len = Math.hypot(dx, dy) || 1, ux = dx / len, uy = dy / len, hop = h * .35, over = h * sc * .12, back = h * sc * .06;
+    const len = Math.hypot(dx, dy) || 1, ux = dx / len, uy = dy / len, hop = h * .35;
     return { easing: 'linear', frames: [
       { transform: 'translate(0,0) scale(1)', opacity: 1, easing: 'cubic-bezier(.2,.8,.4,1)' },
-      { transform: `translate(${-ux * hop}px,${-uy * hop}px) scale(1.1)`, opacity: 1, offset: .26, easing: 'cubic-bezier(.55,0,.85,.4)' },
-      { transform: `translate(${dx + ux * over}px,${dy + uy * over}px) scale(${sc * .95})`, opacity: .95, offset: .74, easing: 'cubic-bezier(.2,.7,.4,1)' },
-      { transform: `translate(${dx - ux * back}px,${dy - uy * back}px) scale(${sc * 1.02})`, opacity: .92, offset: .87, easing: 'ease-in' },
+      { transform: `translate(${-ux * hop}px,${-uy * hop}px) scale(1.1)`, opacity: 1, offset: .35, easing: 'cubic-bezier(.45,0,.3,1)' },
       { transform: `translate(${dx}px,${dy}px) scale(${sc})`, opacity: .9 }] };
   },
 };
-// A look may take longer than the dance's own flight (pinball: a fifth longer).
-// The dance multiplies its flight by this, so its beats wait for the landing.
-const CARD_FLY_MUL = { pinball: 1.2 };
+// A look's length against the dance's own flight. The dance multiplies its flight
+// by this, so its beats wait for the landing. r746: pinball lost its 26% landing
+// bounce (1.2 x .74 = .89), so it is the hop and the flight only.
+const CARD_FLY_MUL = { pinball: 0.9 };
 function cardFlyMs(ms, id) { return caReduced() ? ms : ms * (CARD_FLY_MUL[id || cardAnimChoice('fly')] || 1) * caSlow(); }
 function cardFlyLook(dx, dy, sc, i, h, id) {
   const f = CARD_FLY_LOOKS[id || cardAnimChoice('fly')] || CARD_FLY_LOOKS.current;

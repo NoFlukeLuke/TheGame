@@ -4449,3 +4449,11 @@ prints the goal itself ("Reach Focus x2"), a won run "Win a run", a license "Lic
 leads with a pixel open padlock: `showMessage(..., { svgIcon: 'unlock' })` draws `PT_LINE_ICONS.unlock`
 (js/print-toast.js, `.pt-ico`) in the line's ink under the dot-matrix mask; `icon` (the emoji) is
 what the plate toast and the drawer print.
+
+## r746 - cards land in the preview with no bounce; Reels is the default blast (owner)
+- **Pinball** (`CARD_FLY_LOOKS.pinball`, js/card-anims.js, the default fly look) is the hop and the
+  flight only: the overshoot and settle at the end (scale .95, then 1.02, then rest; the last 26%)
+  is gone, so `CARD_FLY_MUL.pinball` is 0.9 (was 1.2) and the dance's beats wait that much less.
+  The slot's own landing pop (`reveal` in `flyGridCardToSlot`, scale .82 -> 1 over 150ms) is gone too.
+- **`BLAST_DEFAULT` is `reels`** (js/score-blast.js; was beats5). The store is overrides only, so a
+  browser with no choice stored plays Reels; one that picked another look keeps it.
