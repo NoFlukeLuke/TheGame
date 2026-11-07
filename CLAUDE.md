@@ -4441,3 +4441,11 @@ assets/sfx/CREDITS.md and the handbook. They are loaded through `loadSfxBuffer` 
 manifest, because the wrapper's file path plays a buffer with no per-hit gain or rate. Reduced
 motion shows the face and plays one hit. The sounds replaced: the card shuffle, the coin ping and
 two clock ticks.
+
+## r745 - the unlock notice shows a padlock and what was done (owner)
+`unlockAnnounce` (js/unlocks.js) prints "UNLOCKED: NAME · Play Pairs 50/50": `unlockMetText(id)` is
+the goal's words with the number taken out, then the count as met. A best value or a written goal
+prints the goal itself ("Reach Focus x2"), a won run "Win a run", a license "Licensed". The line
+leads with a pixel open padlock: `showMessage(..., { svgIcon: 'unlock' })` draws `PT_LINE_ICONS.unlock`
+(js/print-toast.js, `.pt-ico`) in the line's ink under the dot-matrix mask; `icon` (the emoji) is
+what the plate toast and the drawer print.

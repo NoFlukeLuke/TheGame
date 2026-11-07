@@ -47,6 +47,9 @@
 .pt-x { display: inline-block; margin-left: .5em; padding: 0 .3em; border: 1.5px solid currentColor; border-radius: 3px;
         line-height: 1; font-size: .85em; transform: rotate(-6deg); }
 .pt-empty { visibility: hidden; }
+/* r745: a pixel mark before the text (`opts.svgIcon`), in the line's ink */
+.pt-ico { display: inline-block; width: .8em; height: .8em; margin-right: .35em; vertical-align: -.05em; }
+.pt-ico svg { width: 100%; height: 100%; display: block; }
 
 /* r510: a tap pulls the slip back; the pin keeps it up */
 .pt-slip { pointer-events: auto; cursor: var(--cur-pointer, pointer); }

@@ -1,4 +1,4 @@
-const BUILD = "2026-11-06 · r744 · the coin flip is physics, with a real coin's sounds";
+const BUILD = "2026-11-07 · r745 · the unlock notice shows a padlock and what was done";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

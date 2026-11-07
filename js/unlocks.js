@@ -98,6 +98,23 @@ function unlockGoalText(id, withProgress) {
   return t;
 }
 
+// What the player did, for the unlock notice: the goal's words without the number,
+// then the count as met ("Play Pairs 50/50"). A best value or a written goal reads
+// as the goal itself; a license reads Licensed.
+function unlockMetText(id) {
+  const rule = trickUnlockRule(id);
+  if (!rule || rule.start) return '';
+  if (rule.buy) return 'Licensed';
+  if (rule.text || !rule.s) return rule.text || '';
+  const t = (typeof UL_STAT_TEXT !== 'undefined' && UL_STAT_TEXT[rule.s]) || null;
+  if (!t || rule.s.startsWith('max:') || (rule.s === 'wins' && rule.n === 1)) return unlockStatPhrase(rule).replace('Win 1 run', 'Win a run');
+  let w = t.replace(/,? \{n\} times\b/, '').replace('{n} ', '');
+  if (w.includes('{n}')) return unlockStatPhrase(rule);
+  if (rule.run) w += ' in one run';
+  const n = (rule.n || 0).toLocaleString();
+  return `${w} ${n}/${n}`;
+}
+
 // ── meeting a goal ──────────────────────────────────────────────────────────
 let _ulByStat = null;
 function _ulIndex() {
@@ -141,8 +158,9 @@ function unlockAnnounce(id) {
       const hidden = typeof nameHidden === 'function' && nameHidden(def, 'trick');
       const tier = (typeof tierLabel === 'function') ? tierLabel('trick', def.tier) : def.tier;
       const word = (typeof entityLabel === 'function') ? entityLabel('trick', false) : 'Trick';
-      const line = hidden ? `UNLOCKED: a new ${tier} ${word}` : `UNLOCKED: ${def.name}`;
-      if (typeof showMessage === 'function') showMessage(line, '#7fe0a0');
+      const how = unlockMetText(x);
+      const line = (hidden ? `UNLOCKED: a new ${tier} ${word}` : `UNLOCKED: ${def.name}`) + (how ? ` · ${how}` : '');
+      if (typeof showMessage === 'function') showMessage(line, '#7fe0a0', { icon: '\u{1F513}', svgIcon: 'unlock' });
     });
     if (typeof sfxSuccess === 'function') { try { sfxSuccess(); } catch (e) {} }
   }, 250);

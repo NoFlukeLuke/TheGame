@@ -107,7 +107,8 @@ function printToast(text, color, opts) {
   const slip = _ptSlip;
   ptHistoryPush((o.icon ? o.icon + ' ' : '') + text, ptLineInk(color), false);
   if (_ptDrawer) ptDrawerClose();
-  const line = { text: String(text), icon: o.icon || '', ink: ptLineInk(color), el: null, n: 1, mute: o.mute || null,
+  const svg = (o.svgIcon && PT_LINE_ICONS[o.svgIcon]) || '';
+  const line = { text: String(text), icon: svg ? '' : (o.icon || ''), svg, ink: ptLineInk(color), el: null, n: 1, mute: o.mute || null,
                  holdMul: (typeof improveAnimRunning === 'function' && improveAnimRunning()) ? PT_CFG.overChangeHold : 1 };
   slip.lines.push(line); slip.queue.push(line);
   slip.last = now; clearTimeout(slip.hold);
@@ -189,11 +190,20 @@ function ptFeedLine(slip, line) {
   el.className = 'pt-line'; el.style.setProperty('--ink', line.ink);
   el.innerHTML = '<span class="pt-t"></span>';
   el.firstChild.textContent = (line.icon ? line.icon + ' ' : '') + line.text;
+  if (line.svg) el.firstChild.insertAdjacentHTML('afterbegin', `<span class="pt-ico">${line.svg}</span>`);
   if (line.mute) el.insertAdjacentHTML('beforeend', `<button class="pt-mute" title="Don't show this again" aria-label="Don't show this again">${PT_EYE_OFF}</button>`);
   line.el = el;
   slip.box.insertBefore(el, slip.box.firstChild);    // the newest line is at the head
   slip.el.classList.remove('pt-empty');
 }
+
+// Pixel marks a notice can print before its text (`opts.svgIcon`), drawn in its ink.
+// `opts.icon` (an emoji) stays the plate toast's and the drawer's mark.
+const PT_LINE_ICONS = {
+  // an open padlock: shackle swung up and off to the left
+  unlock: '<svg viewBox="0 0 12 12" shape-rendering="crispEdges" fill="currentColor">'
+    + '<path d="M4 1h5v1H4zM4 2h1v1H4zM8 2h1v3H8zM2 5h8v6H2zM5 7h2v2H5z" fill-rule="evenodd"/></svg>',
+};
 
 // An eye with a line through it: "don't show this again".
 const PT_EYE_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">'
