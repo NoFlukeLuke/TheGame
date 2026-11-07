@@ -243,7 +243,14 @@ const FOCUS_HALF_SPEED_HANDS = new Set(['Pair', 'Flush of 3', 'Flush of 4']);
 
 // Speed bonus formula - dev-tunable. Three formulas, params held in focusSpeedParams.
 // t = seconds since last play; returns extra focus (pre-floor).
+// r747: Precision (and its Knack, Measure Twice) flattens the curve: half the
+// formula's bonus at 0 seconds, the same for PRECISION.speedFlat seconds, then a
+// slow fade (js/protocols.js).
 function speedBonusFromTime(t) {
+  if (typeof precisionSpeedOn === 'function' && precisionSpeedOn()) return precisionSpeedBonus(t, _speedBonusFormula(0));
+  return _speedBonusFormula(t);
+}
+function _speedBonusFormula(t) {
   if (t === Infinity || t < 0) t = 0;
   const p = focusSpeedParams[focusSpeedFormula] || {};
   if (focusSpeedFormula === 'linear') {

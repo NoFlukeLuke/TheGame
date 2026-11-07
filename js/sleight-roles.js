@@ -19,7 +19,7 @@ function sleightOnly(card) {
 }
 // playHand: a 'discard only' card in the selection refuses the play.
 function sleightOnlyRefusePlay(cells) {
-  if (typeof dexterousOn === 'function' && dexterousOn()) return false;   // r741: in Dexterous every Sleight is a card; its discard effect fires on play
+  if (typeof dexCardsOn === 'function' && dexCardsOn()) return false;   // r741: in Dexterous every Sleight is a card; its discard effect fires on play
   const cd = (cells || []).map(([r, c]) => gridData[r]?.[c]).find(x => sleightOnly(x) === 'discard');
   if (!cd) return false;
   refuse(`${sleightDef(cd)?.name || 'That Sleight'} can only be discarded`);

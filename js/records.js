@@ -549,7 +549,7 @@ function recordsRenderHandsTable() {
     // panel is reflected here rather than quoting a table the scorer ignores.
     const pips  = handBasePips(name);
     const mult  = handBaseMult(name);
-    const focus = HAND_FOCUS[name] || 0;
+    const focus = (typeof handFocusValue === 'function' ? handFocusValue(name) : (HAND_FOCUS[name] || 0));
     const sizeMult = (typeof scoringModel !== 'undefined') && (scoringModel === 'hand_size' || scoringModel === 'card_ladder');
     // pips/mult above already INCLUDE Natural Scaling (handBasePips/handBaseMult
     // fold it in), so this only splits out how much of the quote this run earned.
@@ -677,13 +677,13 @@ function recordsHandsScore() {
 }
 
 function recFocusRow(name, why) {
-  const f = HAND_FOCUS[name] || 0;
+  const f = (typeof handFocusValue === 'function' ? handFocusValue(name) : (HAND_FOCUS[name] || 0));
   const half = (typeof FOCUS_HALF_SPEED_HANDS !== 'undefined') && FOCUS_HALF_SPEED_HANDS.has(name);
   const cards = _RX(REC_HAND_EX[name] || '').map(([rk, s]) => `<div class="rh-mini">${recCardFace(rk, s)}</div>`).join('');
   return `<div class="rh-frow${why ? ' off' : ''}">
     <div class="rh-mhand">${cards}</div>
     <div class="rh-fname">${recHandWord(name)}${why ? `<small>${why}</small>` : half ? '<small>half the speed bonus</small>' : ''}</div>
-    <div class="rh-fval"><span class="rh-fbar">${'<i></i>'.repeat(Math.min(f, 14))}</span><b>${f}</b></div></div>`;
+    <div class="rh-fval"><span class="rh-fbar">${'<i></i>'.repeat(Math.max(0, Math.min(f, 14)))}</span><b>${f}</b></div></div>`;
 }
 function recordsHandsFocus() {
   const sel = _recSel();
@@ -734,7 +734,7 @@ function recordsHandFiles() {
     const fams = (NS_HAND_FAMILIES[h] || []).map(f => f.toUpperCase());
     lines.push(`${size} cards · ${fams.join(' and ')}${fams.length > 1 ? ' (counts for both)' : ''}`);
     const half = FOCUS_HALF_SPEED_HANDS.has(h);
-    lines.push(`Focus ${HAND_FOCUS[h] || 0}${half ? ', and half the speed bonus' : ''}`);
+    lines.push(`Focus ${(typeof handFocusValue === 'function' ? handFocusValue(h) : (HAND_FOCUS[h] || 0))}${half ? ', and half the speed bonus' : ''}`);
     lines.push(`Played ${plays[h] || 0} time${plays[h] === 1 ? '' : 's'} this run`);
     if (!handIsActive(h)) {
       const u = (typeof UNLOCK_PROGRESS !== 'undefined') ? UNLOCK_PROGRESS.find(x => x.key === nameToKey[h]) : null;

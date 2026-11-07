@@ -1,16 +1,16 @@
 // ══════════════════════════════════════════════
-// DEXTEROUS (r741): Flow, with Sleights as playing cards.
-//
-// The mode is Flow's engine (MODES.dexterous carries flow + survival, so every
-// Flow reader holds) plus three rules, all gated on dexterousOn():
+// DEXTEROUS (r741): Sleights as playing cards. Since r747 a PROTOCOL of Flow or
+// the Schedule (js/protocols.js adds the `dexterous` flag); the card rules also
+// hold under the Ambidextrous Knack (dexCardsOn). Three rules:
 //   1. Every Sleight that is not a wildcard, an aim fixture or a Spectrum
 //      fixture is dealt a RANK and a SUIT when it is granted (dexEnsureIdentity,
 //      the old Tinker bench's sleightAssignIdentity). It then counts as a card
 //      of that rank in hand detection and scores its rank's pips. The Queen
 //      keeps her rank and takes a suit.
-//   2. Sleights are 4x as likely in rewards: Flow's reward chain (its
-//      `sleights` step), the pick of three (SURVIVAL_PICK_WEIGHTS.sleight) and
-//      the shop's shelf roll (dexSleightOfferMult).
+//   2. Sleights are 4x as likely in rewards (2x with Ambidextrous): Flow's
+//      reward chain (its `sleights` step), the pick of three (Flow's and the
+//      Schedule's), the Balance Sheet's tiles and the shop's shelf roll
+//      (dexSleightOfferMult).
 //   3. A Sleight PLAYED in a hand does its thing as well as scoring (DEX_PLAY,
 //      run from fireSleightsOnPlay): a double_tap effect fires for that hand, an
 //      on_discard effect fires as if discarded, an on_swap buff lands on the
@@ -28,6 +28,11 @@ const DEX_SLEIGHT_START = 2;      // random common Sleights in the deck at the s
 const DEX_SLEIGHT_OFFER_MULT = 4; // Sleights' weight in every reward roll
 
 function dexterousOn() { return !!ACTIVE_MODE && ACTIVE_MODE.dexterous === true; }
+// r747: the card rules (a rank and a suit, counted in hands, fired when played)
+// hold in the Dexterous protocol and wherever the Ambidextrous Knack is owned.
+// The two starting Sleights and the 4x offers are the protocol's alone.
+const DEX_KNACK_OFFER_MULT = 2;   // Ambidextrous: Sleights twice as common in rewards
+function dexCardsOn() { return dexterousOn() || (typeof ambidextrousOn === 'function' && ambidextrousOn()); }
 
 // Which Sleights take a rank and a suit. Wildcards already have the best identity
 // in the game; aim and Spectrum fixtures are not cards that leave the board.
@@ -41,7 +46,7 @@ function dexTakesIdentity(def) {
 // Deal the identity once. The fields (rank, suit, _playable) ride through
 // discardToPlayed's rebuild and a save, so a Sleight keeps its card for the run.
 function dexEnsureIdentity(card) {
-  if (!dexterousOn() || !card || !card._isSleight) return card;
+  if (!dexCardsOn() || !card || !card._isSleight) return card;
   const def = sleightDef(card);
   if (!dexTakesIdentity(def)) return card;
   if (def.fixedRank) {                                   // The Queen: her rank, a dealt suit
@@ -54,7 +59,7 @@ function dexEnsureIdentity(card) {
 
 // A Sleight drawn as a playing card on the board (and in the preview).
 function dexCardFace(card) {
-  return dexterousOn() && !!card && !!card._isSleight && !!card.rank && !!card.suit
+  return dexCardsOn() && !!card && !!card._isSleight && !!card.rank && !!card.suit
       && typeof sleightIsPlayable === 'function' && sleightIsPlayable(card)
       && dexTakesIdentity(sleightDef(card));
 }
@@ -71,7 +76,7 @@ function dexFaceExtraHTML(card, def, usesStr) {
 // Every Sleight in the deck and on the board takes its identity (a resumed
 // pre-r741 save, or a card granted by a path that does not call grantSleight).
 function dexSweepIdentities() {
-  if (!dexterousOn()) return;
+  if (!dexCardsOn()) return;
   const seen = new Set();
   const take = cd => { if (cd && cd._isSleight && !seen.has(cd)) { seen.add(cd); dexEnsureIdentity(cd); } };
   (drawPile || []).forEach(take); (playedPile || []).forEach(take);
@@ -95,7 +100,7 @@ function dexGrantStart() {
 }
 
 // 4x in every reward roll (the chain step, the pick of three, the shop shelf).
-function dexSleightOfferMult() { return dexterousOn() ? DEX_SLEIGHT_OFFER_MULT : 1; }
+function dexSleightOfferMult() { return dexterousOn() ? DEX_SLEIGHT_OFFER_MULT : (typeof ambidextrousOn === 'function' && ambidextrousOn()) ? DEX_KNACK_OFFER_MULT : 1; }
 
 // ── What a played Sleight does ──────────────────────────────────────────────
 // Scores as a card always. These also fire their effect. Keyed by id; a Sleight
@@ -109,7 +114,7 @@ const DEX_PLAY_OUT = new Set([
 // in the preview and the score, and fireSleightsOnPlay spends it.
 function dexSiphonCanPay() { return typeof focusNodes !== 'undefined' && focusNodes >= BAL.siphon.focus_cost; }
 function dexPlaySleights(cells) {
-  if (!dexterousOn() || !cells) return [];
+  if (!dexCardsOn() || !cells) return [];
   const out = [];
   cells.forEach(([r, c]) => {
     const cd = gridData[r]?.[c];
@@ -150,7 +155,7 @@ function dexHandMultX(cells) {
 // After the hand commits: the effects that are not a hand mult, then the charge.
 // `handCells` are the scored cells; the Sleight is among them.
 function dexFireOnPlay(playedCells, handCells, hand) {
-  if (!dexterousOn()) return;
+  if (!dexCardsOn()) return;
   dexPlaySleights(playedCells).forEach(({ card, def, r, c }) => {
     const others = handCells.map(([hr, hc]) => gridData[hr]?.[hc]).filter(o => o && o !== card && !o._isSleight && !o._isTrick && !o._isStone && o.rank);
     let fired = true;

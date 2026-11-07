@@ -682,6 +682,8 @@ function _generateRewardContent() {
     if (PRIZE && _limitTilesThisGrid >= PRIZE_MAX_LIMIT_TILES) cats = cats.filter(c => c.kind !== 'limit_up');
     cats = rewardImproveBoost(cats);
     if (typeof stkRewardCats === 'function') cats = stkRewardCats(cats);   // r730: Stacked weights card buffs up, drops the time tile untimed
+    // r747: Dexterous / Ambidextrous weigh Sleight tiles up on the Balance Sheet too.
+    { const _dx = (typeof dexSleightOfferMult === 'function') ? dexSleightOfferMult() : 1; if (_dx !== 1) cats = cats.map(c => c.kind === 'sleight' ? { ...c, weight: c.weight * _dx } : c); }
     const cat = weightedPick(cats);
     switch (cat.kind) {
       case 'trick':      return makeTrickPayload();

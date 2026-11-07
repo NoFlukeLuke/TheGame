@@ -1,0 +1,34 @@
+/* r747: the protocol screen (js/protocols.js) on the picker overlay. */
+#picker-overlay.pk-proto .pk-opt.on { --rc: var(--pa, var(--c-mint)); box-shadow: 0 0 16px color-mix(in srgb, var(--pa, #7fe3c0) 25%, transparent); }
+#picker-overlay.pk-proto .pk-opt-name { color: var(--pa, var(--cream)); }
+#picker-overlay.pk-proto .pk-opt-tag { color: var(--pa, var(--cream-dim)); font-size: 11px; }
+.pk-proto-diff { margin: 10px 0 2px; }
+.pk-proto-diff .mode-card-diff { display: flex; align-items: center; gap: 6px; width: 100%; }
+.pk-proto-diff .mdf-arrow {
+  flex: 0 0 auto; width: 30px; height: 30px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.05); color: var(--cream); font-size: 20px; line-height: 1; cursor: var(--cur-pointer, pointer);
+}
+.pk-proto-diff .mdf-arrow:hover { background: rgba(255,255,255,0.1); }
+.pk-proto-diff .mdf-arrow.mdf-off { opacity: .3; }
+.pk-proto-diff .mdf-mid { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.pk-proto-diff .mdf-dollars { font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 16px; letter-spacing: 1px; color: var(--mode-accent); line-height: 1; }
+.pk-proto-diff .mdf-name { font-family: 'Share Tech Mono', monospace; font-size: 10px; letter-spacing: 1.5px; color: var(--cream); white-space: nowrap; }
+.pk-proto-diff .mode-card-diff-say { font-family: 'Share Tech Mono', monospace; font-size: 11px; line-height: 1.4; color: var(--cream-dim); min-height: 2.8em; text-align: center; margin-top: 4px; }
+/* The Flow and Schedule cards list their protocols where the tier keys were. */
+.mode-card-proto { text-align: center; letter-spacing: 1.5px; text-transform: uppercase; }
+#picker-overlay.pk-proto #picker-rail { display: none; }
+#picker-overlay.pk-proto .pk-q { display: none; }
+#picker-overlay.pk-proto .pk-opts { flex-direction: row; gap: 6px; }
+#picker-overlay.pk-proto .pk-opt { flex: 1 1 0; min-width: 0; padding: 6px 9px; }
+#picker-overlay.pk-proto .pk-opt-desc { font-size: 12.5px; line-height: 1.25; }
+.pk-proto-rules {
+  margin-top: 8px; padding: 7px 10px; border-left: 3px solid var(--pa, var(--c-mint));
+  font-family: 'Crimson Pro', Georgia, serif; font-size: 13.5px; line-height: 1.3; color: var(--cream);
+  background: rgba(255,255,255,0.03); border-radius: 0 7px 7px 0;
+}
+.pk-proto-note { font-size: 12px; margin: 4px 0 0; text-align: center; }
+@media (max-width: 560px) {
+  #picker-overlay.pk-proto .pk-opt-head { flex-direction: column; align-items: flex-start; gap: 0; }
+  #picker-overlay.pk-proto .pk-opt-name { font-size: 11px; letter-spacing: .5px; }
+  #picker-overlay.pk-proto .pk-opt { padding: 5px 7px; }
+}

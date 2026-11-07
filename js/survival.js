@@ -136,7 +136,9 @@ function modeRoundDuration() {
   // for rather than Survival's 2:00 by virtue of sharing its loop.
   // r727: the difficulty tier takes seconds off every round (Flow's cut is on its
   // session, flowSessionSeconds above; Crunch's quarter bank is left alone).
-  const _cut = (typeof difficultyTimeCut === 'function') ? difficultyTimeCut() : 0;
+  // r747: Precision adds a minute to every round (precisionClockBonus, js/protocols.js).
+  const _cut = ((typeof difficultyTimeCut === 'function') ? difficultyTimeCut() : 0)
+             - ((typeof precisionClockBonus === 'function') ? precisionClockBonus() : 0);
   if (typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE && ACTIVE_MODE.clock) return Math.max(30, pickerRoundSeconds() - _cut);
   return Math.max(30, (survivalActive() ? SURVIVAL_ROUND_SECONDS : ROUND_DURATION) - _cut);
 }
@@ -240,6 +242,9 @@ function survivalEntityBanned(id) {
   if (typeof KNACK_POOL !== 'undefined' && KNACK_POOL.some(k => k.id === id && k.roleOnly)) return true;
   // r706: a locked Trick is never offered (js/unlocks.js).
   if (typeof trickLocked === 'function' && trickLocked(id)) return true;
+  // r747: a protocol's Knack is locked until a run of that protocol is won, and is
+  // never offered inside its own protocol (it would change nothing; js/protocols.js).
+  if (typeof protoKnackBanned === 'function' && protoKnackBanned(id)) return true;
   // r727: Free Swaps / Free Discards do nothing at a difficulty where they cost no time.
   if (typeof difficultyOfferBanned === 'function' && difficultyOfferBanned(id)) return true;
   // r741: Stacked has no Focus, no draw pile and no fall; untimed, no clock (js/stack-mode.js).

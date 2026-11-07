@@ -133,7 +133,7 @@ const NEW_RUN_KEY = 'lethe.newRun.v1';
 function restartRun() {
   if (!confirm('Start a new run of this mode? The current run ends here.')) return;
   const m = (typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE) || MODES.normal;
-  try { sessionStorage.setItem(NEW_RUN_KEY, JSON.stringify({ mode: m.id, picker: m.picker ? { ...m.picker } : null })); } catch (e) {}
+  try { sessionStorage.setItem(NEW_RUN_KEY, JSON.stringify({ mode: m.id, protocol: m.protocol || null, picker: m.picker ? { ...m.picker } : null })); } catch (e) {}
   location.reload();
 }
 // Read once at boot and cleared at once, so a later reload is an ordinary one.
@@ -147,7 +147,7 @@ function takeNewRunRequest() {
 }
 function launchNewRun(req) {
   if (req.picker && typeof pickerBuildMode === 'function') MODES.custom = pickerBuildMode(req.picker);
-  ACTIVE_MODE = MODES[req.mode] || MODES.normal;
+  ACTIVE_MODE = (typeof protocolRestore === 'function') ? protocolRestore(req.mode, req.protocol) : (MODES[req.mode] || MODES.normal);
   startGame();
 }
 
@@ -303,7 +303,9 @@ function startGame() {
   // reads the latch (js/tutorial.js).
   if (typeof tutorialArmForRun === 'function') tutorialArmForRun();
   // Record that this mode has been played (js/progress-unlock.js).
-  if (typeof markModeStarted === 'function') markModeStarted(ACTIVE_MODE && ACTIVE_MODE.id);
+  // r747: a protocol other than Standard does not count as playing its base mode,
+  // so that mode's first Standard run still carries its walkthrough.
+  if (typeof markModeStarted === 'function' && !(ACTIVE_MODE && ACTIVE_MODE.protocol)) markModeStarted(ACTIVE_MODE && ACTIVE_MODE.id);
   // Music can differ between the menu and a run (see js/music.js); a track marked
   // 'any' plays through the change, one marked 'menu' hands over here.
   if (typeof musicSetScene === 'function') musicSetScene('game');
@@ -407,6 +409,7 @@ function startGame() {
   if (typeof squaresTeardown === 'function' && !(typeof squaresActive === 'function' && squaresActive())) squaresTeardown();
   // r741: Stacked pins its limits (5x5, hand size 5, 4 swaps, 4 discards) and marks the stage (js/stack-mode.js).
   if (typeof stkSetupRun === 'function') stkSetupRun();
+  if (typeof protocolLimitsSetup === 'function') protocolLimitsSetup();   // r747: Precision's +2 swaps, +2 discards, +1 column (js/protocols.js)
   if (typeof stkStageClasses === 'function') stkStageClasses();
   // Survival: reset its per-run state and flag the stage (shows the shop button).
   document.getElementById('stage')?.classList.toggle('survival-mode', survivalActive());
@@ -731,6 +734,7 @@ function startGame() {
   if (typeof unlockRunStarted === 'function') unlockRunStarted();
   if (typeof moneyResetRun === 'function') moneyResetRun();   // r722: credit flow, Firesale, Buyback (js/money.js)
   if (typeof difficultyRunSetup === 'function') difficultyRunSetup();   // r728: the tier's starting curse card (the deck is built by now)
+  if (typeof protocolRunSetup === 'function') protocolRunSetup();       // r747: Precision starts with Meditation (js/protocols.js)
 }
 
 // ══════════════════════════════════════════════

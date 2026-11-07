@@ -230,6 +230,7 @@ function captureRunCheckpoint() {
       // Without this the restore below falls back to Classic and the run resumes
       // as a different game to the one that was saved.
       picker: ACTIVE_MODE.picker ? { ...ACTIVE_MODE.picker } : null,
+      protocol: ACTIVE_MODE.protocol || null,   // r747: the protocol laid over Flow / the Schedule (js/protocols.js)
       // Taken by mapOpen: resume opens the Schedule instead of replaying a round.
       onMap: typeof mapScreenOpen !== 'undefined' && !!mapScreenOpen,
       level: typeof level === 'number' ? level : 1,
@@ -297,7 +298,7 @@ function resumeSavedRun() {
   if (save.meta.picker && typeof pickerBuildMode === 'function') {
     MODES.custom = pickerBuildMode(save.meta.picker);
   }
-  ACTIVE_MODE = MODES[save.meta.mode] || MODES.normal;
+  ACTIVE_MODE = (typeof protocolRestore === 'function') ? protocolRestore(save.meta.mode, save.meta.protocol) : (MODES[save.meta.mode] || MODES.normal);
   // Re-pin the run's seed so reward grids and shops still follow the same
   // sequence after resuming (they key off runSeed + visit index - see seed.js).
   if (typeof setPendingRunSeed === 'function') setPendingRunSeed(save.state.runSeed || null);

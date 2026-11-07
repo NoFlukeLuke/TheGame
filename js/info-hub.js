@@ -380,11 +380,23 @@ const INFO_TOPICS = [
       'Every obligation raises the goal. The review\'s goal is fixed when the schedule is drawn.',
       () => `Clearing a round offers a pick of three: ${typeof GUIDED_PICK_WEIGHTS !== 'undefined' ? `${GUIDED_PICK_WEIGHTS.trick}% {trick}, ${GUIDED_PICK_WEIGHTS.sleight}% {sleight}, ${GUIDED_PICK_WEIGHTS.knack}% {knack}` : ''} per offer. A priority account or a one-on-one pays ${gridName('reward', { a: true })} instead. An audit pays its challenge cards\u2019 rewards and nothing more.`,
     ] },
+  { id: 'mode_protocols', group: 'modes', title: 'Protocols',
+    body: [
+      'Flow and the Schedule are played under a protocol, chosen after the mode: Standard, Dexterous or Precision. A protocol changes a few rules; the mode stays the same.',
+      'Difficulty belongs to the protocol. A win in Flow or the Schedule unlocks the next tier of that protocol for both.',
+      'Winning a run of Dexterous or Precision unlocks its Knack (Ambidextrous, Measure Twice), which can then be offered in any other run.',
+    ] },
   { id: 'mode_dexterous', group: 'modes', title: 'Dexterous',
     body: [
-      'Flow, with every {sleight} dealt a rank and a suit when it joins your deck. It counts as a card of that rank in a hand and scores its pips.',
+      'A protocol of Flow and the Schedule. Every {sleight} is dealt a rank and a suit when it joins your deck. It counts as a card of that rank in a hand and scores its pips.',
       'A {sleight} played in a hand does what it does when double-tapped, discarded or swapped, as well as scoring. The hand it is in takes Amplifier, Legacy and Siphon. A few only score when played: Magnet, Photocopier, Logistics Assistant, Keeper, Lockbox, Dealer\'s Choice, All Hands, Stopwatch, BOGO, Procrastinate, Shredder, Sequencer, the Idol.',
-      'Sleights are four times as common in the reward chain, the pick of three and the shop. Two random common Sleights start in the deck. Everything else is Flow.',
+      'Sleights are four times as common in rewards. Two random common Sleights start in the deck.',
+    ] },
+  { id: 'mode_precision', group: 'modes', title: 'Precision',
+    body: [
+      () => `A protocol of Flow and the Schedule. The {FOCUS} speed bonus is half as strong, but the same for the first ${PRECISION.speedFlat} seconds after a hand, then it fades over ${PRECISION.speedFade} seconds.`,
+      () => `Every hand but a Pair makes ${PRECISION.focusAdd} more {FOCUS}. A hand loses ${PRECISION.sizeStep} {FOCUS} for every card it is short of your Hand Size, so a short hand can lose {FOCUS}. Kickers do not count toward a hand's length.`,
+      () => `You start with Meditation, +${PRECISION.swaps} swaps, +${PRECISION.discards} discards and +${PRECISION.cols} column. Flow's quarters are ${PRECISION.flowSeconds / 60} minutes longer; the Schedule's rounds are ${PRECISION.mapSeconds / 60} minute longer.`,
     ] },
   { id: 'mode_flow', group: 'modes', title: 'Flow',
     body: [

@@ -108,6 +108,13 @@ player-facing mention prints through `gridName(kind, opts)`.
 the HUD), `{ caps: true }`, `{ plural: true }`, `{ a: true }` / `{ a: 'A' }` add the
 rest. The Schedule's tile keeps its own word, INCENTIVE; what it pays is the grid.
 
+## Protocols (r747)
+
+A **protocol** is a rule set laid over Flow or the Schedule (Standard, Dexterous, Precision).
+Structural, like the Schedule's words: the same in both vocabularies. Code: `ACTIVE_MODE.protocol`,
+`PROTOCOLS` in js/protocols.js; the mode's id stays `flow` / `map`. Its Knack (Ambidextrous,
+Measure Twice) unlocks when a run of it is won. "Mode" is still Flow / the Schedule / Classic...
+
 ## Rarity ladders
 
 Four tiers. Each entity type grades on its own ladder, because a floppy disc and
