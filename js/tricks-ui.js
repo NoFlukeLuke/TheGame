@@ -450,8 +450,8 @@ function onGameWin() {
   if (typeof markModeFinished === 'function') markModeFinished(ACTIVE_MODE && ACTIVE_MODE.id);
   if (typeof hideQuarterCard === 'function') hideQuarterCard();
   if (typeof retireSavedRunIfCurrent === 'function') retireSavedRunIfCurrent();  // the run is over; its save is stale
+  if (typeof protocolOnWin === 'function') protocolOnWin();                      // r748: the protocol's Knack; r749: the next protocol (before the tier, so it can tell what is new)
   if (typeof difficultyOnWin === 'function') difficultyOnWin();                  // r728: the next difficulty tier opens for this mode
-  if (typeof protocolOnWin === 'function') protocolOnWin();                      // r748: the protocol's Knack unlocks (js/protocols.js)
   if (typeof recordRunToHistory === 'function') recordRunToHistory('win');       // log it before the numbers are reset
   if (typeof unlockRunEnded === 'function') unlockRunEnded(true);                   // r706: runs / wins (js/unlocks.js)
   // r634: the finale (js/finale.js) over the board; the old #end-overlay is its fallback.

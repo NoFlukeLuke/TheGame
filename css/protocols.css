@@ -32,3 +32,17 @@
   #picker-overlay.pk-proto .pk-opt-name { font-size: 11px; letter-spacing: .5px; }
   #picker-overlay.pk-proto .pk-opt { padding: 5px 7px; }
 }
+/* r749: a locked protocol, and START RUN while one is chosen. */
+#picker-overlay.pk-proto .pk-opt.pk-locked { opacity: .55; }
+#picker-overlay.pk-proto .pk-opt.pk-locked.on { opacity: .8; }
+.pk-proto-lock { color: var(--cream); font-size: 13px; margin-top: 10px; }
+#picker-foot .pk-next.pk-off { filter: grayscale(1); opacity: .45; }
+/* r749: a Limitless hole on the Balance Sheet / Benefits Package: the empty slot. */
+#grid .rg-hole {
+  position: absolute; box-sizing: border-box; pointer-events: none;
+  border: 1px dashed rgba(255,255,255,.14); border-radius: 4px; background: rgba(0,0,0,.28);
+}
+/* r749: five protocols: the row wraps, each name sits over its tag. */
+#picker-overlay.pk-proto .pk-opts { flex-wrap: wrap; }
+#picker-overlay.pk-proto .pk-opt { flex: 1 1 128px; }
+#picker-overlay.pk-proto .pk-opt-head { flex-direction: column; align-items: flex-start; gap: 0; }

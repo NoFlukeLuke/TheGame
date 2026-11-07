@@ -169,7 +169,9 @@ function SIM_playRound() {
   let clock = roundSeconds;
   let hands = 0, dry = 0, dryActs = 0, fmSum = 0, reshuffles = 0;
   roundStartSeconds = clock;
-  let decayMs = (typeof focusDecayIntervalMs === 'number' && focusDecayIntervalMs > 0) ? focusDecayIntervalMs : 2000;
+  // r749: the live interval (Meditation, Hyperfocus's 3x), as the game's decay timer reads it.
+  let decayMs = (typeof focusDecayIntervalNow === 'function') ? focusDecayIntervalNow()
+              : (typeof focusDecayIntervalMs === 'number' && focusDecayIntervalMs > 0) ? focusDecayIntervalMs : 2000;
   while (clock > 0 && score < roundGoal) {
     let best = SIM_bestHand();
     if (SIM_tryReshuffle(!best)) { reshuffles++; clock = SIM_spend(2); continue; }   // double-tap + the refill
@@ -362,7 +364,7 @@ function SIM_runClassic(goalFn, quarters) {
 }
 
 function SIM_runSchedule(goalFn, quarters, bossMult) {
-  ACTIVE_MODE = MODES.map || MODES.normal; startGame();
+  ACTIVE_MODE = SIM_protoMode('map'); startGame();
   // r683: startGame opens the schedule screen, which lays the board out as the
   // schedule (5 x 4 since r655) over the 4 x 4 play board, so the bot's first
   // hand read a row gridData does not have and every run crashed. Clock in.
@@ -430,8 +432,11 @@ function SIM_flowReward(kind) {
   if (kind === 'shop')     return SIM_grantWeighted({ trick: 50, knack: 20, sleight: 15, limit: 15 });
   return false;
 }
+// r749: a protocol over Flow or the Schedule (`"protocol":"precision"` in the sched json).
+var SIM_PROTOCOL = null;
+function SIM_protoMode(base) { return (SIM_PROTOCOL && typeof protocolMode === 'function') ? protocolMode(base, SIM_PROTOCOL) : (MODES[base] || MODES.normal); }
 function SIM_runFlow(goalFn) {
-  ACTIVE_MODE = MODES.flow; startGame(); SIM_resetCharges();
+  ACTIVE_MODE = SIM_protoMode('flow'); startGame(); SIM_resetCharges();
   roundGoal = goalFn(1);
   for (let guard = 0; guard < 400; guard++) {
     const res = SIM_playRound();

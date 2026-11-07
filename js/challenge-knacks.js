@@ -67,6 +67,11 @@ function veryRewardingBonus() {
 // THE one payout of a completed challenge card (stage `t` of its reward).
 function crrPayCard(q, t, ctx) {
   ctx = ctx || {};
+  // r749: Limitless, an audit pays one card fewer (js/protocols.js).
+  if (typeof limitlessSkipCardPay === 'function' && limitlessSkipCardPay(q)) {
+    if (ctx.el && typeof crrRise === 'function') setTimeout(() => crrRise(ctx.el, 'NO PAY', '#ff7a5c', 1.2), 200);
+    return 'Limitless: this card pays nothing';
+  }
   const has = id => typeof hasKnack === 'function' && hasKnack(id);
   const n = (has('very_rewarding') && BAL.very_rewarding) ? BAL.very_rewarding.times : 1;
   const said = [];

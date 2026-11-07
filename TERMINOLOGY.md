@@ -110,7 +110,7 @@ rest. The Schedule's tile keeps its own word, INCENTIVE; what it pays is the gri
 
 ## Protocols (r748)
 
-A **protocol** is a rule set laid over Flow or the Schedule (Standard, Dexterous, Precision).
+A **protocol** is a rule set laid over Flow or the Schedule (Standard, Dexterous, Precision, Limitless, Hyperfocus; r749: each opens with a win of the one before).
 Structural, like the Schedule's words: the same in both vocabularies. Code: `ACTIVE_MODE.protocol`,
 `PROTOCOLS` in js/protocols.js; the mode's id stays `flow` / `map`. Its Knack (Ambidextrous,
 Measure Twice) unlocks when a run of it is won. "Mode" is still Flow / the Schedule / Classic...

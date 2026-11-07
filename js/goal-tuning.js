@@ -104,6 +104,7 @@ function mapGoalForLevel(lv) {
   const scale = 1 + goalTune('mapGrowth') / 100;
   let g = goalTune('classicBase') * goalTune('globalMult') * Math.pow(scale, Math.max(0, lv - 1));
   if (typeof endlessGoalMult === 'function') g *= endlessGoalMult(lv, scale);   // r680
+  if (typeof limitlessGoalMult === 'function') g *= limitlessGoalMult(lv, scale);   // r749: Limitless's back half
   if (typeof difficultyGoalMult === 'function') g *= difficultyGoalMult();   // r728: tiers 7 and 8
   if (lv <= 1) return Math.max(1, Math.round(g));
   return Math.max(step, Math.round(Math.round(g) / step) * step);

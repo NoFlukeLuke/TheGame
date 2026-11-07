@@ -623,7 +623,9 @@ function flowrMaybeStart() {
   const _crs = (typeof crTakeFlowSteps === 'function') ? crTakeFlowSteps() : [];
   // A cleared Line Quotas round pays at least QUOTA_LINES_REWARDS (js/level-types.js).
   const _qf = (typeof quotaLinesRewardFloor === 'function') ? quotaLinesRewardFloor() : 0;
-  const n = Math.max(_crs.length ? 0 : 1, _qf, Math.min(Math.max(0, FLOWR_MAX - _crs.length), flowrRollCount()));
+  // r749: Limitless pays one reward a level-up (js/protocols.js).
+  const n = (typeof limitlessOn === 'function' && limitlessOn()) ? (_crs.length ? 0 : 1)
+          : Math.max(_crs.length ? 0 : 1, _qf, Math.min(Math.max(0, FLOWR_MAX - _crs.length), flowrRollCount()));
   // EVERY SLOT IS ROLLED ON ITS OWN - a kind's weight is its share of reward
   // screens and says nothing about where it lands - but a kind already drawn in
   // THIS chain is damped (see FLOWR_REPEAT_DAMP), and pick3 to nothing. A kind

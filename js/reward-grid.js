@@ -32,7 +32,8 @@ let RG_GROW_OPEN = 0.5;    // chance an ordinary Classic grid is a growing one
 let RG_GROW_STEP = 0.65;   // chance each roll adds a row or a column
 const RG_GROW_MS = 650, RG_GROW_START = 3;
 let rewardGrow = null, _rgGen = 0;   // { rows, cols, rolling, gen } while a growing grid is up
-function rewardHidden(r, c) { return !!rewardGrow && (r >= rewardGrow.rows || c >= rewardGrow.cols); }
+// r749: a Limitless hole (js/protocols.js limitlessHoles) is hidden the same way.
+function rewardHidden(r, c) { return (!!rewardGrow && (r >= rewardGrow.rows || c >= rewardGrow.cols)) || !!(rewardCells[r]?.[c]?.hole); }
 function rewardGrowEligible() {
   return rewardGridMode === 'normal' && isActMode() && !(typeof mapActive === 'function' && mapActive())
     && !(typeof guidedActive === 'function' && guidedActive())
@@ -1110,6 +1111,7 @@ function openRewardGrid() {
   gameTimerPaused = true;
   if (!penaltyGridActive() && !miniGridActive() && !callItGridActive()) rewardGridsSeen++;   // count this grid (gates the first-5 guaranteed upgrades)
   rewardCells     = generateRewardContent();
+  if (typeof limitlessHoles === 'function') limitlessHoles(rewardCells);   // r749: Limitless, holes among the rewards
   rewardGrow = null;   // r725: half of Classic's ordinary grids start as three tiles and roll for more
   if (rewardGrowEligible() && Math.random() < RG_GROW_OPEN && (rewardCells[0]?.length || 0) >= RG_GROW_START)
     rewardGrow = { rows: 1, cols: RG_GROW_START, rolling: true, gen: ++_rgGen };
@@ -1175,6 +1177,14 @@ function renderRewardTiles(animateIn = false) {
     for (let c = 0; c < COLS; c++) {
       const cell = rewardCells[r][c];
       if (!cell) continue;
+      if (cell.hole) {   // r749: an empty slot where a reward was
+        const h = document.createElement('div');
+        h.className = 'rg-hole';
+        h.style.left = (cellLeft(c) + offX) + 'px'; h.style.top = (cellTop(r) + offY) + 'px';
+        h.style.width = CARD_W + 'px'; h.style.height = CARD_H + 'px';
+        gridEl.appendChild(h);
+        continue;
+      }
       const key    = `${r}-${c}`;
       const isSel   = rewardSelected.has(key);
       const canSel  = isRewardCellSelectable(r, c);

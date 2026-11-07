@@ -36,6 +36,7 @@ function SIM_goal(lv) {
 }
 `);
   if (sched.tiles) G.eval(`var SIM_SCHED_TILES = ${JSON.stringify(sched.tiles)};`);
+  if (sched.protocol) G.eval(`SIM_PROTOCOL = ${JSON.stringify(sched.protocol)};`);   // r749
 
   const results = [];
   for (let i = 0; i < n; i++) {

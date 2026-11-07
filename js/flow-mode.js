@@ -119,7 +119,8 @@ function flowTriggerBoss() {
   const _wiped = score;
   totalScore += Math.max(0, score);
   score = 0;
-  roundGoal = goalForLevel(flowBossGoalLevel());
+  _limBossGoal = true;   // r749: Limitless reads the boss table's level (js/protocols.js)
+  try { roundGoal = goalForLevel(flowBossGoalLevel()); } finally { _limBossGoal = false; }
   // Held while the wipe animates the OLD number down to the new zero - the state
   // above is already correct, so an abort can't strand a half-reset run.
   suppressScoreDisplay = true;

@@ -434,6 +434,8 @@ function applyEntityTiers() {
       BAL[id][k] = Math.round((base[k] + step * steps) * 1000) / 1000;
     }
   });
+  // r749: Attention to Detail scales card-condition Tricks after the tiers (js/protocols.js).
+  if (typeof detailApply === 'function') detailApply();
   // Descriptions are generated from BAL, so an improved entity states its real
   // number with no per-entity string anywhere.
   if (typeof applyBalDescriptions === 'function') applyBalDescriptions();
@@ -447,7 +449,7 @@ function applyEntityTiers() {
      if (!e || !BAL_BASE[e.id]) return;
      if (typeof DESC_TEMPLATES !== 'undefined' && DESC_TEMPLATES[e.id]) return;  // generated already
      if (DESC_BASE[e.id] == null) return;
-     if (!entityTierOf(e.id)) { e.desc = DESC_BASE[e.id]; return; }
+     if (!entityTierOf(e.id) && !(typeof detailBoosted === 'function' && detailBoosted(e.id))) { e.desc = DESC_BASE[e.id]; return; }
      rewriteDescForTier(e);
   }));
   syncOwnedEntityDescs();

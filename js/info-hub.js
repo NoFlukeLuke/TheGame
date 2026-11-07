@@ -385,6 +385,7 @@ const INFO_TOPICS = [
       'Flow and the Schedule are played under a protocol, chosen after the mode: Standard, Dexterous or Precision. A protocol changes a few rules; the mode stays the same.',
       'Difficulty belongs to the protocol. A win in Flow or the Schedule unlocks the next tier of that protocol for both.',
       'Winning a run of Dexterous or Precision unlocks its Knack (Ambidextrous, Measure Twice), which can then be offered in any other run.',
+      'Standard is open from the start. Each protocol after it opens with a won run of the one before it, in Flow or the Schedule: Dexterous, Precision, Limitless, Hyperfocus.',
     ] },
   { id: 'mode_dexterous', group: 'modes', title: 'Dexterous',
     body: [
@@ -395,8 +396,19 @@ const INFO_TOPICS = [
   { id: 'mode_precision', group: 'modes', title: 'Precision',
     body: [
       () => `A protocol of Flow and the Schedule. The {FOCUS} speed bonus is half as strong, but the same for the first ${PRECISION.speedFlat} seconds after a hand, then it fades over ${PRECISION.speedFade} seconds.`,
-      () => `Every hand but a Pair makes ${PRECISION.focusAdd} more {FOCUS}. A hand loses ${PRECISION.sizeStep} {FOCUS} for every card it is short of your Hand Size, so a short hand can lose {FOCUS}. Kickers do not count toward a hand's length.`,
-      () => `You start with Meditation, +${PRECISION.swaps} swaps, +${PRECISION.discards} discards and +${PRECISION.cols} column. Flow's quarters are ${PRECISION.flowSeconds / 60} minutes longer; the Schedule's rounds are ${PRECISION.mapSeconds / 60} minute longer.`,
+      () => `Every hand but a Pair makes ${PRECISION.focusAdd} more {FOCUS}. A hand loses ${PRECISION.sizeStep} {FOCUS} for every card it is short of your Hand Size, so a short hand can lose {FOCUS}, ${PRECISION.lossCap} at most. Kickers do not count toward a hand's length.`,
+      'Attention to Detail: Tricks that pay for a card\'s rank, suit, buffs or position pay 50% more.',
+      () => `You start with Meditation, Attention to Detail, +${PRECISION.swaps} swaps, +${PRECISION.discards} discards and +${PRECISION.cols} column. Flow's quarters are ${PRECISION.flowSeconds / 60} minutes longer; the Schedule's rounds are ${PRECISION.mapSeconds / 60} minute longer.`,
+    ] },
+  { id: 'mode_limitless', group: 'modes', title: 'Limitless',
+    body: [
+      'A protocol of Flow and the Schedule. Every limit starts at its max.',
+      () => `Flow: one reward a level-up, and every pick shows ${LIMITLESS.options} options. After the second boss, goals climb twice as fast, bosses included.`,
+      () => `The Schedule: every pick shows ${LIMITLESS.options} options, an audit pays one card fewer, and the ${gridName('reward', { bare: true })} and the ${gridName('prize', { bare: true })} have holes among their rewards: 1 or 2 in every 4. From Q3, goals climb twice as fast.`,
+    ] },
+  { id: 'mode_hyperfocus', group: 'modes', title: 'Hyperfocus',
+    body: [
+      () => `A protocol of Flow and the Schedule. Every {FOCUS} you make is doubled, and {FOCUS} fades ${HYPERFOCUS.decay} times as fast. The {FOCUS} limits are the usual ones.`,
     ] },
   { id: 'mode_flow', group: 'modes', title: 'Flow',
     body: [

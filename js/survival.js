@@ -158,6 +158,7 @@ function survivalGoalForLevel(lv) {
     const fast = 1 + (scale - 1) * goalTune('endlessAccel');
     g *= Math.pow(fast, lv - survivalEndlessFromLevel);
   }
+  if (typeof limitlessGoalMult === 'function') g *= limitlessGoalMult(lv, scale);   // r749: Limitless's back half
   if (typeof difficultyGoalMult === 'function') g *= difficultyGoalMult();   // r728: tiers 7 and 8
   return Math.max(step, Math.round(g / step) * step);
 }
@@ -239,7 +240,7 @@ function survivalEntityBanned(id) {
   // r646: a fused (INSEPARABLE) Trick exists only through its pair, never as an offer.
   if (typeof inseparableDef === 'function' && inseparableDef(id)) return true;
   // r739: a role-change Knack comes only from its Sleight's 5th improvement.
-  if (typeof KNACK_POOL !== 'undefined' && KNACK_POOL.some(k => k.id === id && k.roleOnly)) return true;
+  if (typeof KNACK_POOL !== 'undefined' && KNACK_POOL.some(k => k.id === id && (k.roleOnly || k.startOnly))) return true;   // r749: startOnly
   // r706: a locked Trick is never offered (js/unlocks.js).
   if (typeof trickLocked === 'function' && trickLocked(id)) return true;
   // r748: a protocol's Knack is locked until a run of that protocol is won, and is
@@ -905,6 +906,7 @@ function survivalTriggerBoss() {
 function survivalBossBookkeeping() {
   if (typeof flowEndBoss === 'function') flowEndBoss(); // Flow: refill the session clock on the next deal
   survivalBossesBeaten++;
+  if (typeof limitlessOnBoss === 'function') limitlessOnBoss();   // r749: Limitless's back half starts at the 2nd boss
   if (typeof asmLineRollover === 'function') asmLineRollover();   // r646: Assembly Line counts the last QUARTER in Flow
   survivalSecondsToBoss = SURVIVAL_BOSS_EVERY_SECONDS; // restart the 5-minute cadence
 }

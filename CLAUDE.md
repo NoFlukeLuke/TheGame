@@ -4497,3 +4497,35 @@ rolled Sleights 57% of pick types (was 25%); save and Continue kept the protocol
 tiers became Standard 3; Measure Twice in Standard Flow read 6 / 6 / 6 / 3, Ambidextrous ranked a granted
 Amplifier. Golden: 838 cases match. No page errors.
 
+## r749 - Limitless and Hyperfocus; protocols open in order; Precision's Attention to Detail (`js/protocols.js`, owner)
+- **Order and locks:** `PROTOCOL_ORDER` is Standard, Dexterous, Precision, Limitless, Hyperfocus. Each opens
+  with a won run of the one before it, in Flow or the Schedule (`protoUnlocked` / `protoWon`: the
+  `lethe.protocolWins.v1` set, or a difficulty tier past the first, which every earlier win opened). The
+  screen shows a lock, says what to win, and START RUN refuses. `protocolOnWin` now runs BEFORE
+  `difficultyOnWin` so it can print what opened. Dev: `protoUnlockAll()`. The carousel's own mode locks
+  (`MODE_LOCKS_ON`) are untouched. Five options wrap (`css/protocols.css`).
+- **Precision:** a hand loses at most `PRECISION.lossCap` (5) Focus. It also starts with **Attention to
+  Detail** (startOnly Knack, never offered: `knackOfferable`, `survivalEntityBanned`): Tricks whose tags are
+  scope `card` plus rank / suit / position / buffed / wild / line (54 today) pay 50% more. `detailApply`
+  runs inside `applyEntityTiers` after the tiers and before the descriptions: a bonus in `IMPROVE_ADD` x1.5
+  (whole numbers stay whole), an `IMPROVE_MUL` bonus's part above x1 x1.5; counts, caps and chances are
+  never scaled (`DETAIL_SKIP`). `detailSync` (from `updateKnackList`) rebuilds BAL when it is gained or
+  lost. Measured: Face Value 20 -> 30 pips, On the Edge 15 -> 23, Rainbow x1.25 -> x1.38; sold, back to 20.
+- **Limitless** (`limitlessOn()`): every limit at its max (`protocolLimitsSetup`; `current` only, so Flow's
+  Focus cap reads the raise: 50). **Every pick shows 2 options** (`protoTrimOffers` in `openGridPick` and
+  `gridPickRefresh`; a forced penalty pick keeps 3). **Flow:** one reward a level-up (`flowrMaybeStart`;
+  a challenge card's steps still join). **Schedule:** an audit pays one card fewer (`limitlessSkipCardPay`
+  in `crrPayCard`: the round's first paying card pays nothing); the Balance Sheet and Benefits Package have
+  holes (`limitlessHoles`, after `generateRewardContent`: reward tiles in a random order, 1 or 2 of every
+  4, 1 of a last 2 or 3, never a guaranteed tile; `cell.hole`, read by `rewardHidden`, drawn as an empty
+  `.rg-hole`). **Back half:** `limitlessGoalMult(lv, scale)` in `mapGoalForLevel` and `survivalGoalForLevel`
+  makes the per-level growth `LIMITLESS.backRate` (2) times as steep past Q3's first level on the Schedule
+  (`2 x mapQuarterLen()`), and in Flow past the level the 2nd boss fell at (`limitlessFlowFrom`, SAVE_VARS,
+  `limitlessOnBoss`); Flow's boss goals 3 and 4 climb from the 2nd boss's table level (`_limBossGoal`, set
+  in `flowTriggerBoss`). Measured on the Schedule: Q3's 5th level 57,000 -> 116,500, Q4's review level
+  111,000 -> 398,000; Flow's 3rd boss 62,450 -> 129,500.
+- **Hyperfocus** (`hyperfocusOn()`): every Focus gain doubled (`addFocus`), decay 3x as fast
+  (`focusDecayIntervalNow`); caps unchanged. A Trick is already named Hyper Focus (`hyper_focus`).
+- tools/sim: `"protocol":"precision"` (any protocol) in the sched json runs Flow or the Schedule under it;
+  the bot's decay reads `focusDecayIntervalNow()`. Limitless's Flow reward count is not modelled by the bot.
+

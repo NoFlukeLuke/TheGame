@@ -1,4 +1,4 @@
-const BUILD = "2026-11-07 · r748 · protocols: Standard, Dexterous and Precision in Flow and the Schedule";
+const BUILD = "2026-11-07 · r749 · Limitless and Hyperfocus; protocols unlock in order; Attention to Detail";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

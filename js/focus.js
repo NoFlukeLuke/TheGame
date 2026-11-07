@@ -337,6 +337,7 @@ if (typeof requestAnimationFrame === 'function') requestAnimationFrame(focusFxLo
 // which point these calls become events rather than immediate effects.
 function addFocus(amount, srcId, srcSource) {
   if (!amount || amount <= 0) return;
+  if (typeof hyperfocusOn === 'function' && hyperfocusOn()) amount *= HYPERFOCUS.gain;   // r749: Hyperfocus
   if (typeof stackedActive === 'function' && stackedActive()) return;   // r730: Stacked has no Focus
   if (srcId && typeof entityEffectFX === 'function') entityEffectFX('focus', amount, { id: srcId, source: srcSource });
   focusGenGame += amount; focusGenRound += amount; // total Focus generated (any source) - Wellspring / Feedback Loop
@@ -548,7 +549,8 @@ function focusDecayTick() {
 function focusDecayIntervalNow() {
   const k = (typeof bossFocusDecayScale === 'function') ? bossFocusDecayScale() : 1;
   const f = (typeof overtimeFocusFade === 'function') ? overtimeFocusFade() : 1;   // Overtime's Restless Focus
-  return Math.max(200, Math.round(focusDecayIntervalMs * k / f));
+  const hf = (typeof hyperfocusOn === 'function' && hyperfocusOn()) ? HYPERFOCUS.decay : 1;   // r749: Hyperfocus fades 3x as fast
+  return Math.max(200, Math.round(focusDecayIntervalMs * k / f / hf));
 }
 
 function startFocusDecay() {

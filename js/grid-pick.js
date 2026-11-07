@@ -864,7 +864,8 @@ function gridPickLeave(i, go) {
 
 // opts: { kicker, title, tone, offers, actions, onChoose(i, offer) }
 function openGridPick(opts) {
-  const offers = opts.offers || [];
+  // r749: Limitless shows two options (js/protocols.js).
+  const offers = (typeof protoTrimOffers === 'function') ? protoTrimOffers(opts.offers || []) : (opts.offers || []);
   if (typeof offerRecentNote === 'function') offerRecentNote(offers);
   gridPickState = {
     offers, actions: opts.actions || [], selected: -1,
@@ -891,6 +892,7 @@ function gridPickRefresh(offers, actions) {
   // under it, so index 1 is a different entity afterwards and holding the mark
   // there would arm CONFIRM on something the player never read. An actions-only
   // refresh (Survival repainting affordability as credits move) keeps it.
+  if (offers && typeof protoTrimOffers === 'function') offers = protoTrimOffers(offers);   // r749: Limitless
   if (offers && typeof offerRecentNote === 'function') offerRecentNote(offers);
   if (offers)  { gridPickState.offers = offers; gridPickState.selected = -1;
                  if (typeof hideEntityTooltip === 'function') hideEntityTooltip(true); }
