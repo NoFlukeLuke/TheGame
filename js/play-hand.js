@@ -8,7 +8,10 @@ function generateHandFocus(hand, handCells, vultureSec) {
     const _fr = focusRateMods();
     // r571: an autoplayed hand (Overdrive, Autopilot) makes no Focus of its own.
     const _auto = typeof autoplayNoFocus === 'function' && autoplayNoFocus();
-    const handFocus = _auto ? 0 : Math.round((HAND_FOCUS[hand] || 0) * _fr.complexity);
+    // r748: Precision adds to the table and takes Focus off hands shorter than the
+    // Hand Size (handFocusValue, js/protocols.js). A negative figure is not scaled.
+    const _hf0 = (typeof handFocusValue === 'function') ? handFocusValue(hand, handLenNoKickers(handCells)) : (HAND_FOCUS[hand] || 0);
+    const handFocus = _auto ? 0 : (_hf0 > 0 ? Math.round(_hf0 * _fr.complexity) : _hf0);
     const now = Date.now();
     const secondsSinceLast = lastHandTime > 0 ? (now - lastHandTime) / 1000 : Infinity;
     // window > 1 DILATES the speed curve: the clock is read as if less time had
@@ -135,6 +138,7 @@ function generateHandFocus(hand, handCells, vultureSec) {
       }
     }
     if (totalFocus > 0) addFocus(totalFocus);
+    else if (totalFocus < 0) removeFocus(-totalFocus);   // r748: only Precision's short hands go below 0
     // Quick Draw: hands played within BAL.quick_draw.window_ms of the previous add +1 Focus limit (max +10)
     if (lastHandTime > 0 && secondsSinceLast * 1000 < BAL.quick_draw.window_ms
         && hasTrick('quick_draw') && (focusCapGains['quick_draw'] || 0) < BAL.quick_draw.cap) {

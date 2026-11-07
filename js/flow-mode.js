@@ -160,7 +160,9 @@ function flowSessionSeconds() {
   const bonus = (typeof limits !== 'undefined' && limits.round_time)
     ? limits.round_time.current - limits.round_time.base : 0;
   // r727: the difficulty tier takes seconds off every session (a quarter).
-  return Math.max(30, FLOW_SESSION_SECONDS + bonus - difficultyTimeCut());
+  // r748: Precision adds two minutes to every quarter (js/protocols.js).
+  const _pr = (typeof precisionClockBonus === 'function') ? precisionClockBonus() : 0;
+  return Math.max(30, FLOW_SESSION_SECONDS + bonus + _pr - difficultyTimeCut());
 }
 
 // r399: Survival and Flow pay a Starting Time pick NOW as well as later. Owner:

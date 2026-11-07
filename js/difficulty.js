@@ -45,12 +45,37 @@ const DIFF_PENALTY_FLOW = 15;   // % of Flow level-ups that add a forced penalty
 const DIFF_PENALTY_MAP = 20;    // % chance of a forced penalty pick after a Schedule round's pick of three (tier 4+)
 const DIFF_MULTI_CUT = 10;      // percentage points off Flow's chance of 2+ rewards (tier 6+)
 
+// r748: one-shot move of Flow's and the Schedule's own tiers onto the Standard
+// protocol (the higher of the two; Dexterous already had its own key). Writes back.
+(function difficultyProtocolMigrate() {
+  try {
+    if (localStorage.getItem('lethe.difficultyProto.v1')) return;
+    [DIFF_MAX_KEY, DIFF_KEY].forEach(key => {
+      const all = JSON.parse(localStorage.getItem(key) || '{}') || {};
+      const v = Math.max(all.flow || 0, all.map || 0);
+      if (v > 1 && !all.standard) all.standard = v;
+      if (Object.keys(all).length) localStorage.setItem(key, JSON.stringify(all));
+    });
+    localStorage.setItem('lethe.difficultyProto.v1', '1');
+  } catch (e) {}
+})();
+
 let runDifficulty = 0;   // the live run's tier (SAVE_VARS); 0 = no run started under this build
 
 function _diffRead(key) { try { return JSON.parse(localStorage.getItem(key) || '{}') || {}; } catch (e) { return {}; } }
 function _diffWrite(key, obj) { try { Object.keys(obj).length ? localStorage.setItem(key, JSON.stringify(obj)) : localStorage.removeItem(key); } catch (e) {} }
 // The carousel's 'picker' card is the Custom mode.
-function difficultyModeId(id) { return id === 'picker' ? 'custom' : (id || (typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE ? ACTIVE_MODE.id : 'normal')); }
+// r748: a Flow or Schedule run keys by its PROTOCOL ('standard', 'dexterous',
+// 'precision'; js/protocols.js), shared by both, so a win in either counts for
+// both. The protocol screen asks with 'proto:<id>'.
+function difficultyModeId(id) {
+  if (id === 'picker') return 'custom';
+  if (typeof id === 'string' && id.startsWith('proto:')) return id.slice(6);
+  if (id) return id;
+  const m = (typeof ACTIVE_MODE !== 'undefined') ? ACTIVE_MODE : null;
+  if (m && typeof PROTOCOL_BASES !== 'undefined' && PROTOCOL_BASES.includes(m.id)) return m.protocol || 'standard';
+  return m ? m.id : 'normal';
+}
 function _diffClamp(n) { n = parseInt(n, 10); return (n >= 1 && n <= DIFF_TIERS.length) ? n : 1; }
 
 // The tier a mode is set to (1 when nothing is stored).
@@ -71,8 +96,9 @@ function difficultyUnlockTo(n, modeId) {
   _diffWrite(DIFF_MAX_KEY, all);
 }
 // The dev select: every mode to tier n, unlocked to it.
-function difficultySetAll(n) { n = _diffClamp(n); Object.keys(MODES || {}).forEach(id => { difficultyUnlockTo(n, id); difficultySet(n, id); }); }
-function difficultyUnlockAll() { DIFF_TIERS.length && Object.keys(MODES || {}).forEach(id => difficultyUnlockTo(DIFF_TIERS.length, id)); }
+function _diffAllIds() { return [...Object.keys(MODES || {}), ...((typeof PROTOCOLS !== 'undefined') ? PROTOCOLS.map(p => 'proto:' + p.id) : [])]; }
+function difficultySetAll(n) { n = _diffClamp(n); _diffAllIds().forEach(id => { difficultyUnlockTo(n, id); difficultySet(n, id); }); }
+function difficultyUnlockAll() { DIFF_TIERS.length && _diffAllIds().forEach(id => difficultyUnlockTo(DIFF_TIERS.length, id)); }
 // A won run unlocks the next tier for its mode (onGameWin). Tours, labs and test
 // drives never count (unlockPaused, js/unlocks.js).
 function difficultyOnWin() {

@@ -7,6 +7,13 @@ The table is `DIFF_TIERS` in `js/difficulty.js`; every reader asks `difficultyTi
 keeps the tiers' changes below it. Dev -> Change the game now sets every mode's tier at once and
 unlocks them.
 
+**r748: Flow and the Schedule key their tier by PROTOCOL** (Standard, Dexterous, Precision;
+`js/protocols.js`), chosen on the protocol screen, and the key is shared: a win in Flow or the
+Schedule unlocks the next tier of that protocol for both. `difficultyModeId` maps a Flow or
+Schedule run to its protocol; the screen asks with `'proto:<id>'`. A one-shot migration gave
+Standard the higher of the old Flow and Schedule tiers (Dexterous already had its own key).
+Classic, Custom and Stacked keep a tier per mode on their cards.
+
 ## The tiers as built
 
 | tier | name | change |

@@ -579,9 +579,11 @@ function guidedPickPools() {
 function guidedPickType(pools) {
   const types = Object.keys(GUIDED_PICK_WEIGHTS).filter(t => pools[t] && pools[t].length);
   if (!types.length) return null;
-  const total = types.reduce((s, t) => s + GUIDED_PICK_WEIGHTS[t], 0);
+  // r748: Dexterous (and Ambidextrous) weigh Sleights up here too (js/dexterous.js).
+  const _w = t => GUIDED_PICK_WEIGHTS[t] * (t === 'sleight' && typeof dexSleightOfferMult === 'function' ? dexSleightOfferMult() : 1);
+  const total = types.reduce((s, t) => s + _w(t), 0);
   let r = Math.random() * total;
-  for (const t of types) { r -= GUIDED_PICK_WEIGHTS[t]; if (r <= 0) return t; }
+  for (const t of types) { r -= _w(t); if (r <= 0) return t; }
   return types[types.length - 1];
 }
 

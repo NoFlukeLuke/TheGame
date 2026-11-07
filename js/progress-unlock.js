@@ -20,7 +20,7 @@ const MODE_UNLOCK_CHAIN = ['flow', 'map'];  // r380: Flow first; Guided hidden
 // r741: modes drawn right after another in the carousel, unlocked from a cold
 // install (modeUnlocked returns true for an id in neither list). Dexterous
 // sits beside Flow, whose engine it runs on.
-const MODE_SIBLINGS = { flow: ['dexterous'] };
+const MODE_SIBLINGS = {};   // r748: Dexterous is a protocol of Flow and the Schedule (js/protocols.js)
 function modeChainWithSiblings() {
   const out = [];
   MODE_UNLOCK_CHAIN.forEach(id => { out.push(id); (MODE_SIBLINGS[id] || []).forEach(s => out.push(s)); });

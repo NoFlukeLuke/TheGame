@@ -4466,3 +4466,34 @@ its whole inline style at the CELL's size (`CARD_W` x `CARD_H`), so every dealt 
 drew the board. The cssText line is gone. **A card copy is sized by `buildCardAnimEl`, never by
 `CARD_W` / `CARD_H`**: since r641 those are the cell, not the card. Cell-sized boxes elsewhere
 (reward tiles, the shop's labels, Poker Squares, Guided) are tiles, not card copies.
+## r748 - protocols: Standard, Dexterous and Precision in Flow and the Schedule (`js/protocols.js`, owner)
+- **Mode, then protocol.** PLAY on the Flow or Schedule card opens the protocol screen (`protoOpen`, the
+  picker overlay, `css/protocols.css`): three options, the chosen one's rules, its difficulty keys. The run's
+  `ACTIVE_MODE` is `protocolMode(base, id)`: the MODES entry itself for Standard, else a copy with
+  `protocol`, the protocol's flag (`dexterous` / `precision`) and `noWalkthrough`. **The id stays `flow` /
+  `map`**, so every id-keyed store reads the base mode. A non-Standard run does not mark its base started.
+  Saves and New Run carry `protocol` (`protocolRestore`; a pre-r748 `dexterous` save is Flow + Dexterous).
+  The Dexterous MODE and its carousel card are gone. Last choice per base: `lethe.protocol.v1`.
+- **Difficulty is per protocol, shared by Flow and the Schedule** (`difficultyModeId`; DIFFICULTY.md).
+- **Dexterous** works in the Schedule too: its 4x reaches the Schedule's pick of three (`guidedPickType`)
+  and the Balance Sheet's Sleight tiles (`makeBuff`).
+- **Precision** (`precisionOn()`, `PRECISION`): the speed bonus is half the formula's 0-second figure, flat
+  for 10s, then fades to 0 over 20s (`speedBonusFromTime` -> `precisionSpeedBonus`; the formula itself is
+  `_speedBonusFormula`). A hand's own Focus is `handFocusValue(hand, n)`: +2 unless a Pair, -2 for every card
+  its length (kickers not counted, `handLenNoKickers`) is short of the Hand Size; a negative figure is not
+  scaled and is taken off with `removeFocus`. Records reads the same function. Start: Meditation, +2 swaps,
+  +2 discards, +1 column (`protocolLimitsSetup` / `protocolRunSetup`); Flow's quarter +2:00
+  (`flowSessionSeconds`), the Schedule's rounds +1:00 (`modeRoundDuration`), through `precisionClockBonus`.
+- **Protocol Knacks** (`PROTO_KNACKS`, `lethe.protocolKnacks.v1`): winning a run of a protocol unlocks its
+  Knack (`protocolOnWin`, from onGameWin). Locked ones are not offerable (`knackOfferable`) or offered
+  (`survivalEntityBanned` -> `protoKnackBanned`), and never inside their own protocol. **Ambidextrous**
+  (Dexterous): the card rules (`dexCardsOn()` = the protocol or the Knack) and Sleights 2x in rewards.
+  **Measure Twice** (Precision): Precision's speed bonus (`precisionSpeedOn`). Dev: `protoKnacksUnlockAll()`.
+Measured in headless Chromium at 1440x820 and 420x900 by real clicks: the cards read Flow, The Schedule,
+Classic, Custom, Stacked, Poker Squares; Precision Flow started with 5 swaps, 5 discards, a 4x5 board,
+Meditation (decay 4s), 7:00 on the clock, speed bonus 6 / 6 / 6 / 4 / 3 / 0 at 0 / 5 / 10 / 15 / 20 / 30s;
+a real Pair took Focus 10 -> 12 (-1, +3 speed); the Schedule under Dexterous dealt two ranked Sleights and
+rolled Sleights 57% of pick types (was 25%); save and Continue kept the protocol; old Flow 3 / Schedule 2
+tiers became Standard 3; Measure Twice in Standard Flow read 6 / 6 / 6 / 3, Ambidextrous ranked a granted
+Amplifier. Golden: 838 cases match. No page errors.
+

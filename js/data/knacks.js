@@ -119,6 +119,9 @@ const KNACK_POOL = [
   { id:'syncopation',      emoji:'🎼', name:'Syncopation',      rarity:'rare', desc:'', tags:['time','hand','streak','pause'] },
   { id:'trickle_charge',   emoji:'🔌', name:'Trickle Charge',   rarity:'rare', desc:'', tags:['charges','other','sleights','chance'] },
   { id:'perpetual_motion', emoji:'🔄', name:'Perpetual Motion', rarity:'rare', desc:'', tags:['charges','card','sleights','replays','chance'] },
+  // ── r748: the PROTOCOL Knacks (js/protocols.js). Locked until a run of the protocol is won. ──
+  { id:'ambidextrous',  emoji:'🃏',  name:'Ambidextrous',     rarity:'rare',   desc:'Every Sleight is dealt a rank and a suit. Sleights count as cards in a hand and do their thing when played. Sleights are twice as common in rewards', tags:['board','other','sleights'] },
+  { id:'measure_twice', emoji:'📏',  name:'Measure Twice',    rarity:'rare',   desc:'The speed bonus is half as strong, but stays the same for 10 seconds after a hand, then fades over 20 seconds', tags:['focus','other','clock'] },
   // ── r739: ROLE CHANGES. A Sleight's 5th improvement turns it into one of these (sleightRoleChange). Never offered
   // (roleOnly: knackOfferable). Each reads the Sleight's own BAL row at its 5th tier. ──
   { id:'rule_faces_k',  emoji:'🫅', name:'In Your Face',    rarity:'rare',      roleOnly:true, desc:'', tags:['time','card','rank','scores'] },
@@ -127,7 +130,8 @@ const KNACK_POOL = [
   { id:'the_ringer_k',  emoji:'🎩', name:'The Ringer',      rarity:'epic',      roleOnly:true, desc:'A hand you submit pulls up to two more cards off the grid (from anywhere) when that makes a better hand. Ignores your selection size.', tags:['board','hand','scores'] },
 ];
 // r739: a role-change Knack exists only through its Sleight's 5th improvement.
-function knackOfferable(k) { return !!k && !k.roleOnly; }
+// r748: a protocol Knack is not offered (nor listed in Builds) while locked.
+function knackOfferable(k) { return !!k && !k.roleOnly && !(typeof protoKnackLocked === 'function' && protoKnackLocked(k.id)); }
 // ── SLEIGHT POOL ──
 // Sleights live in the deck as special cards (_isSleight:true). They fall onto the grid,
 // can be swapped/discarded/selected/played like normal cards.
