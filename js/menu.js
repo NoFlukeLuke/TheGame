@@ -1,4 +1,4 @@
-const BUILD = "2026-11-09 · r751 · records limit circles; key words fall on every change; flat trays outside console; discard falls into the board; pixel art preview";
+const BUILD = "2026-11-09 · r752 · slot reels are drums; Spin to Improve picks clearly; the toys tour";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

@@ -4567,3 +4567,30 @@ Amplifier. Golden: 838 cases match. No page errors.
   stepped notch (`--pxa-notch`), dithered flat fills (outside console mode; a console screen's
   `::before` is its glass dome, never touch it), no image smoothing, and the cards on the pixel pack
   for as long as it is on (`cardFace` swapped, the stored face untouched). Off by default.
+
+
+## r752 - the slot reels are drums; Spin to Improve picks clearly; the toys tour (owner)
+- **Reels** (`js/event-slot-machine.js`, rebuilt; API unchanged: `evSlotMachine(parent, { reels, payRow,
+  itemW, itemH, onPull, lever })`): each reel is a CSS 3D drum, face j at `rotateX(-j x 360/F)
+  translateZ(R)`, R = H / (2 tan(PI / F)), F = the strip repeated to at least `SLOT.faceMin` (12) faces;
+  one transform on `.evt-drum` turns it, the window is the perspective box. Front position `p`
+  (faces) DECREASES as symbols travel down, so row 0 is stop - 1 as `slotGrid` reads. A spin per
+  reel: a kick back up (`kick`, `kickMs`), a run curve (speed up over 14%, flat, down over the last
+  42%, 62% on a tease) to `over` faces past the stop, a damped settle back with a clunk
+  (`sfxSlotStop`, heavier on the last reel) and a frame flash. Reels let go `startGap` apart and stop
+  left to right; a tease dims the stopped reels and crawls the last one in. Per-face shading from the
+  face's angle (`.evt-sh`), motion blur along the reel only (an SVG `feGaussianBlur` "0 s" per reel,
+  s from the speed, off at rest), a tick per face past the payline (`sfxSlotTick`, rate limited to
+  `tickGap`, a rattle at speed). `opts.lever: false` drops the lever. `sfxReelTick` is the score blast's,
+  a different sound: do not reuse the name. Measured (no GPU): desktop 54 -> 49 fps while spinning, all
+  of it the blur (54 with `SLOT.blurMax` 0); a phone at 4x CPU slowdown 60 either way.
+- **Spin to Improve** (`renderDraw`, js/events-upgrade.js): a pick is lit and numbered (`data-pick`,
+  `.ev-draw-opt.selected::before`), the rest dim once three are in (`.ev-draw-full`), a fourth is
+  refused, `#ev-draw-count` (PICKED n / 3 and the picks' names) is pinned under `#event-bar` (its top
+  read from the bar on every sync), PLAY reads PICK N MORE / SPIN, and the preview is the sentence after
+  BOTH improvements (`improvePreview(id, steps)`) with `v1.0 -> v3.0`. The wheel is a one-reel machine
+  with no lever (`spinDrawWheel`). **Why it looked buggy:** in console mode a hovered choice was lit
+  brighter than a picked one, so a picked card looked unpicked once the mouse left, and on a phone the
+  hover stuck to the last card tapped. Console hover is now `@media (hover: hover)` and fainter than a pick.
+- **Toys tour**: `index.html?events=toys` tours the 12 events with a die, a coin, a wheel, a reel or a
+  plinko ball (`TOUR_TOYS`, js/event-tour.js); `?events=id,id` tours a list in order.

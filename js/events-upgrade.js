@@ -180,6 +180,11 @@ function confirmReassignment() {
 // interesting decision is how evenly you spread your loadout's value.
 const DRAW_PICKS = 3;
 
+// r752 (owner: "make it more obvious when the tricks have been selected vs not,
+// it seemed buggy"): a picked offer is lit solid and numbered, the rest dim once
+// three are picked, the count with the picks' names sits pinned at the top of
+// the panel, the PLAY key reads PICK N MORE until it reads SPIN, and the
+// preview shows both improvements, not one.
 function renderDraw() {
   const body = document.getElementById('event-body');
   const ents = evImprovables();
@@ -191,42 +196,65 @@ function renderDraw() {
   eventState.drawPicked = [];
   eventState.drawEnts   = ents;
   eventState.drawDone   = false;
-  const need = Math.min(DRAW_PICKS, ents.length);
-  body.appendChild(evNote(`Choose ${need}. The wheel takes one of them at random and improves it <b>twice</b>.`));
+  const need = Math.min(DRAW_PICKS, ents.length), steps = BAL.the_draw.steps;
+  body.appendChild(evNote(`Pick ${need}. The reel lands on one of them at random and improves it <b>${steps === 2 ? 'twice' : steps + ' times'}</b>.`));
 
+  // The pinned tally: one box per pick, filled with the pick's name.
   const count = document.createElement('div');
   count.id = 'ev-draw-count';
-  count.className = 'ev-label';
+  count.className = 'ev-draw-count';
   body.appendChild(count);
+  // Pinned just under the event's title bar, which is laid out (and in the console
+  // look restyled) after this renderer runs: measured on every sync and next frame.
+  const pin = () => { const bar = document.getElementById('event-bar'); if (bar) count.style.top = bar.offsetHeight + 'px'; };
+  requestAnimationFrame(pin);
+  const list = document.createElement('div');
+  list.className = 'ev-draw-list';
+  body.appendChild(list);
+  const els = [];
   const sync = () => {
-    count.textContent = `${eventState.drawPicked.length} / ${need} CHOSEN`;
-    setEventConfirm(eventState.drawPicked.length === need);
+    pin();
+    const n = eventState.drawPicked.length, full = n === need;
+    count.innerHTML = `<b>PICKED ${n} / ${need}</b>` + Array.from({ length: need }, (_, i) => {
+      const e = eventState.drawPicked[i];
+      return `<span class="edc-box${e ? ' on' : ''}">${e ? `${i + 1} ${e.name}` : `${i + 1} ·`}</span>`;
+    }).join('');
+    count.classList.toggle('full', full);
+    list.classList.toggle('ev-draw-full', full);
+    els.forEach(({ el, ent }) => {
+      const at = eventState.drawPicked.indexOf(ent);
+      el.classList.toggle('selected', at >= 0);
+      el.dataset.pick = at >= 0 ? String(at + 1) : '';
+    });
+    evConfirmBtn(full ? 'SPIN' : `PICK ${need - n} MORE`, full);
   };
 
   ents.forEach(ent => {
     // improve.js rewrites the entity's printed desc from BAL, so the preview is
-    // the real sentence the player will read afterwards, not a generic promise.
+    // the real sentence after BOTH improvements, the moved numbers marked.
     const tier = (typeof entityTierOf === 'function') ? entityTierOf(ent.id) : 0;
-    const prev = (typeof improvePreview === 'function') ? improvePreview(ent.id) : null;
+    const prev = (typeof improvePreview === 'function') ? improvePreview(ent.id, steps) : null;
     const el = makeChoiceEl({
       icon: ent.emoji, rarity: ent.rarity,
       tile: { entity: ent.kind, id: ent.id, emoji: ent.emoji, label: ent.name },
-      name: ent.name + (tier ? ` · improved ×${tier}` : ''),
-      // r281: the sentence once, with the number one more tier would move
-      // marked in place. null (not provably one sentence) keeps the old read.
+      name: ent.name,
       desc: ((prev && prev.after !== prev.before && typeof improveDeltaHTML === 'function')
               ? improveDeltaHTML(prev.before, prev.after) : null)
             || (prev && prev.after !== prev.before ? prev.after : (prev ? prev.before : '')),
-      cost: ent.kind.toUpperCase(),
+      cost: `v${tier + 1}.0 → v${(prev ? prev.tier : tier) + 1}.0`,
+      cls: 'ev-draw-opt',
       onClick: () => {
         if (eventState.drawDone) return;
         const at = eventState.drawPicked.indexOf(ent);
-        if (at >= 0) { eventState.drawPicked.splice(at, 1); el.classList.remove('selected'); }
-        else if (eventState.drawPicked.length < need) { eventState.drawPicked.push(ent); el.classList.add('selected'); }
+        if (at >= 0) eventState.drawPicked.splice(at, 1);
+        else if (eventState.drawPicked.length < need) eventState.drawPicked.push(ent);
+        else { if (typeof refuse === 'function') refuse(); return; }
+        _etSfx('sfxKeyClick', 'down');
         sync();
       }
     });
-    body.appendChild(el);
+    els.push({ el, ent });
+    list.appendChild(el);
   });
   sync();
 }
@@ -265,48 +293,18 @@ function confirmDraw() {
 // that produces it, so an interrupted or janky animation cannot change what you
 // get.
 function spinDrawWheel(picks, winner, done) {
+  // r752: one reel of the slot machine (js/event-slot-machine.js), the picks on
+  // its drum in the order they were picked, landing on the winner.
   const body = document.getElementById('event-body');
   body.innerHTML = '';
-  body.appendChild(evLabel('THE WHEEL'));
-
-  const view = document.createElement('div');
-  view.className = 'ev-wheel';
-  const strip = document.createElement('div');
-  strip.className = 'ev-wheel-strip';
-
-  // Enough repeats that the strip is still moving fast when it passes the early
-  // cells, so the slowdown reads as a wheel rather than as a list scrolling.
-  const LOOPS = 7;
-  const seq = [];
-  for (let i = 0; i < LOOPS; i++) picks.forEach(p => seq.push(p));
-  seq.push(winner);                        // the cell it stops on
-  seq.forEach(ent => {
-    const cell = document.createElement('div');
-    cell.className = 'ev-wheel-cell rar-' + String(ent.rarity || 'common').toLowerCase();
-    cell.innerHTML = `<span class="ewc-icon">${ent.emoji}</span><span class="ewc-name">${ent.name}</span>`;
-    strip.appendChild(cell);
-  });
-  view.appendChild(strip);
-  body.appendChild(view);
-
-  const CELL = 58;
-  view.style.height = CELL + 'px';
-  strip.style.transform = 'translateY(0px)';
-  const travel = (seq.length - 1) * CELL;
-
-  // One long ease-out. requestAnimationFrame before setting the end value, or the
-  // start and end transforms coalesce into one style recalc and the strip jumps
-  // (the same trap js/boss-approach.js documents for the preamble fly-in).
-  requestAnimationFrame(() => {
-    strip.style.transition = `transform ${BAL.the_draw.spin_ms}ms cubic-bezier(.12,.72,.16,1)`;
-    strip.style.transform  = `translateY(${-travel}px)`;
-  });
-  if (typeof sfxFlipShuffle === 'function') try { sfxFlipShuffle(); } catch (e) {}
-
-  setTimeout(() => {
-    view.classList.add('landed');
+  body.appendChild(evLabel('THE REEL'));
+  const strip = picks.map(e => ({ key: e.id, html: `<div class="sl-draw"><div class="sl-ent">${entityTileHTML({ entity: e.kind, id: e.id, emoji: e.emoji, label: e.name }, e.rarity || 'common', { tip: false })}</div><span class="sl-draw-name">${e.name}</span></div>` }));
+  const m = evSlotMachine(body, { reels: [strip], payRow: 1, itemW: 190, itemH: 64, lever: false });
+  m.el.classList.add('evt-slot-draw');
+  m.spin([picks.indexOf(winner)]).then(() => {
+    m.flash([[1, 0]]);
     if (typeof sfxCoin === 'function') try { sfxCoin(); } catch (e) {}
     body.appendChild(evNote(`<b>${winner.name}</b> improved twice.`));
     done();
-  }, BAL.the_draw.spin_ms + 120);
+  });
 }

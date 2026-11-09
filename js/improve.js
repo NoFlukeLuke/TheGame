@@ -620,7 +620,8 @@ function pickImproveTarget(type) {
 // What one more improvement would read as, without leaving anything changed.
 // Temporarily bumping and restoring is safe here: applyEntityTiers is pure over
 // entityTier + BAL_BASE, and JS is single-threaded so nothing observes the gap.
-function improvePreview(id) {
+// steps (r752): how many improvements ahead to read (Spin to Improve gives two).
+function improvePreview(id, steps) {
   const src = () => {
     for (const p of [typeof TRICK_POOL !== 'undefined' ? TRICK_POOL : [],
                      typeof KNACK_POOL !== 'undefined' ? KNACK_POOL : [],
@@ -634,12 +635,13 @@ function improvePreview(id) {
   if (!e) return null;
   const before = e.desc, was = entityTierOf(id);
   if (!canImprove(id)) return { before, after: before, tier: was };
-  entityTier[id] = was + 1;
+  const to = Math.min(IMPROVE_MAX_TIER, was + Math.max(1, steps || 1));
+  entityTier[id] = to;
   applyEntityTiers();
   const after = src().desc;
   entityTier[id] = was;
   applyEntityTiers();
-  return { before, after, tier: was + 1 };
+  return { before, after, tier: to };
 }
 
 // ── THE DELTA, IN ONE SENTENCE (r281) ───────────────────────────────────────

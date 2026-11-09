@@ -96,6 +96,19 @@
     if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, box); else box();
   }
 
+  // r752: ?events=toys tours only the events that throw dice, flip a coin, spin a
+  // wheel or a reel, or drop a plinko ball; ?events=id,id,... tours those events
+  // in that order. Plain ?events is every live event.
+  const TOUR_TOYS = ['luck_dice', 'keep_it', 'hot_streak', 'prize_ladder', 'call_it', 'forge',
+    'static_bonus', 'plinko', 'grid_spinner', 'the_floor', 'the_payline', 'the_draw'];
+  function tourIds() {
+    const live = liveEventIds();
+    const m = location.search.match(/[?&]events=([^&]+)/);
+    if (!m) return live;
+    const want = decodeURIComponent(m[1]) === 'toys' ? TOUR_TOYS : decodeURIComponent(m[1]).split(',').map(x => x.trim());
+    const ok = want.filter(id => live.includes(id));
+    return ok.length ? ok : live;
+  }
   function build() {
     panel = document.createElement('div');
     panel.id = 'event-tour';
@@ -129,7 +142,7 @@
   function start() {
     if (ready) return;
     ready = true;
-    ids = liveEventIds();
+    ids = tourIds();
     try { devStartMode('normal'); } catch (e) {}
     setTimeout(() => {
       try { tutorialEnd(); } catch (e) {}

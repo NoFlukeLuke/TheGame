@@ -209,8 +209,13 @@ body.kb-keys #stage :is(#btn-play, #btn-discard, #swap-indicator).kb-on { transf
   padding: 8px 9px; transition: none; overflow: visible;
 }
 #event-overlay.ev-console .event-choice::after { content: none; }
-#event-overlay.ev-console .event-choice:hover { transform: none; filter: none; background: rgba(255,176,46,.12); border-color: var(--am); }
-#event-overlay.ev-console .event-choice.selected { border-color: var(--am-hi) !important; box-shadow: inset 0 0 0 1px var(--am-hi), 0 0 8px rgba(255,176,46,.35); }
+/* r752: hover only where there is a mouse (a phone kept the glow on the last card tapped,
+   even one just un-picked), and fainter than a pick, so a pick never looks unpicked. */
+@media (hover: hover) {
+  #event-overlay.ev-console .event-choice:hover { transform: none; filter: none; background: rgba(255,176,46,.06); border-color: var(--am); }
+}
+#event-overlay.ev-console .event-choice:hover { transform: none; filter: none; }
+#event-overlay.ev-console .event-choice.selected { border-color: var(--am-hi) !important; background: rgba(255,176,46,.16); box-shadow: inset 0 0 0 1px var(--am-hi), 0 0 8px rgba(255,176,46,.35); }
 #event-overlay.ev-console .event-choice.debuff { background: transparent; border-color: #c0453f; }
 #event-overlay.ev-console .event-choice.debuff .ec-name { color: #ff9a8a; }
 #event-overlay.ev-console .event-choice.locked { filter: none; opacity: .35; }

@@ -92,6 +92,8 @@ const SFX_MIX = {
   coin_flick:    { bus: 'event' },
   coin_hit:      { bus: 'event', gain: 0.6 },   // a -8 dBFS click, brought near the old coin ping's peak
   coin_settle:   { bus: 'event' },
+  slot_tick:     { bus: 'detail', gain: 0.8 },
+  slot_stop:     { bus: 'event' },
   shop_open:     { bus: 'event', gain: 0.90 },
   round_start:   { bus: 'event' },
   countdown:     { bus: 'event' },
