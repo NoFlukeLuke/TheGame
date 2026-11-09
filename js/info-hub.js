@@ -414,7 +414,8 @@ const INFO_TOPICS = [
     body: [
       () => `A ${Math.round((typeof FLOW_SESSION_SECONDS !== 'undefined' ? FLOW_SESSION_SECONDS : 300) / 60)}-minute clock counts down to the review. It does not reset when you level up.`,
       'Clear a {GOAL} to level up. Each level up offers a pick of three, then the next, larger {GOAL} starts. Missing a {GOAL} does not end the run.',
-      () => `When the clock reaches zero the review starts. It has its own ${typeof FLOW_BOSS_WINDOW !== 'undefined' ? FLOW_BOSS_WINDOW : 120}-second clock and its own {GOAL}. Pass it and the clock refills. Fail it and the run ends. After five reviews you can stop or continue with faster-rising goals.`,
+      () => `When the clock reaches zero the review starts. It has its own ${typeof FLOW_BOSS_WINDOW !== 'undefined' ? FLOW_BOSS_WINDOW : 120}-second clock and its own {GOAL}. Pass it and the clock refills. Fail it and the run ends. After ${typeof SURVIVAL_BOSS_COUNT !== 'undefined' ? SURVIVAL_BOSS_COUNT : 4} reviews you can stop or continue with faster-rising goals.`,
+      () => `A review asks the {GOAL} of level ${typeof FLOW_BOSS_GOAL_LEVELS !== 'undefined' ? FLOW_BOSS_GOAL_LEVELS.join(' / ') : '8 / 14 / 20 / 24'}, or of your own level when you are past it. Every level you are past pays ${typeof FLOW_AHEAD_PAY !== 'undefined' ? FLOW_AHEAD_PAY : 10} credits.`,
       () => `Pick of three odds per offer: ${typeof SURVIVAL_PICK_WEIGHTS !== 'undefined' ? `${SURVIVAL_PICK_WEIGHTS.trick}% {trick}, ${SURVIVAL_PICK_WEIGHTS.sleight}% {sleight}, ${SURVIVAL_PICK_WEIGHTS.knack}% {knack}, ${SURVIVAL_PICK_WEIGHTS.limit}% limit` : ''}. At least one limit and one {knack} are offered every four levels.`,
       () => `The shop can be opened at any time for ${typeof SURVIVAL_SHOP_COST !== 'undefined' ? SURVIVAL_SHOP_COST : 5} credits. Swaps and discards cost no time. The {FOCUS} ceiling starts at ${typeof FLOW_FOCUS_CAP !== 'undefined' ? FLOW_FOCUS_CAP : 20}.`,
     ] },

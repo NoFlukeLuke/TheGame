@@ -1077,13 +1077,9 @@ const GOAL_TUNABLES = {
       min: 1, max: 5000, step: 50, dp: 0, unit: '',
       get: () => goalTune('classicRoundTo'), set: v => setGoalTune('classicRoundTo', v) },
   ],
+  // r754: Flow's goals are a table (FLOW_GOALS, edited in the box above these rows);
+  // the old base / growth steppers are gone with the formula.
   survival: [
-    { key: 'survivalBase', label: 'Round 1 goal',
-      min: 100, max: 100000, step: 100, dp: 0, unit: '',
-      get: () => goalTune('survivalBase'), set: v => setGoalTune('survivalBase', v) },
-    { key: 'survivalGrowth', label: 'Harder each round by',
-      min: 0, max: 200, step: 1, dp: 1, unit: '%',
-      get: () => goalTune('survivalGrowth'), set: v => setGoalTune('survivalGrowth', v) },
     { key: 'survivalRoundTo', label: 'Round the goal to the nearest',
       min: 1, max: 5000, step: 10, dp: 0, unit: '',
       get: () => goalTune('survivalRoundTo'), set: v => setGoalTune('survivalRoundTo', v) },
@@ -1157,7 +1153,13 @@ function devRenderGoalPanel(liveLine) {
 
   // survivalGoalForLevel reads the run's endless state, so the preview is the
   // ordinary (pre-endless) curve unless the live run has already switched.
-  fill('dev-goal-survival-preview', _devGoalCurveLine(survivalGoalForLevel, [1, 2, 3, 5, 8, 11, 14, 17]));
+  fill('dev-goal-survival-preview', _devGoalCurveLine(survivalGoalForLevel, [1, 2, 3, 5, 8, 11, 14, 17, 20, 24, 28]));
+  const fg = document.getElementById('dev-flow-goals');
+  if (fg && document.activeElement !== fg) fg.value = flowGoalTable().join(', ');
+  const fgn = document.getElementById('dev-flow-goals-note');
+  if (fgn) fgn.textContent = (flowGoalTableIsDefault() ? 'The shipped table.' : 'Your table (stored in this browser).')
+    + ` Levels past ${flowGoalTable().length} grow by the last step (x${(flowGoalTable().slice(-1)[0] / flowGoalTable().slice(-2)[0]).toFixed(3)} a level).`
+    + ` Reviews ask level ${FLOW_BOSS_GOAL_LEVELS.join(' / ')}, or your level if you are past it (+${FLOW_AHEAD_PAY} credits a level ahead).`;
   if (typeof mapGoalForLevel === 'function') fill('dev-goal-map-preview', _devGoalCurveLine(mapGoalForLevel, [1, 2, 3, 6, 9, 12, 15, 18]));
 
   const live = (typeof roundGoal === 'number' && typeof level === 'number' && typeof gridData !== 'undefined'

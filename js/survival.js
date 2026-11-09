@@ -149,11 +149,14 @@ function modeRoundDuration() {
 // levels before the switch keep the normal curve so the jump isn't retroactive.
 // The four numbers below come from goalTune() (js/goal-tuning.js), which falls
 // back to the constants above unless the dev panel's Goals group has moved them.
+// r754 (owner): the curve is a TABLE now (FLOW_GOALS, js/flow-mode.js, read through
+// flowGoalBase); survivalBase / survivalGrowth are no longer read. Endless grows
+// past its switch level by the table's last step ratio, accelerated as before.
 function survivalGoalForLevel(lv) {
   const step  = Math.max(1, goalTune('survivalRoundTo'));
-  const scale = 1 + goalTune('survivalGrowth') / 100;
-  const base  = Math.pow(scale, Math.min(lv, survivalEndlessFromLevel) - 1);
-  let g = goalTune('survivalBase') * goalTune('globalMult') * base;
+  const from  = Math.min(lv, survivalEndlessFromLevel);
+  let g = flowGoalBase(from) * goalTune('globalMult');
+  const t = flowGoalTable(), scale = t[t.length - 1] / Math.max(1, t[t.length - 2]);
   if (survivalEndless && lv > survivalEndlessFromLevel) {
     const fast = 1 + (scale - 1) * goalTune('endlessAccel');
     g *= Math.pow(fast, lv - survivalEndlessFromLevel);
@@ -351,7 +354,9 @@ function survivalPickOptions(isReroll) {
   const used  = { trick: new Set(), knack: new Set(), sleight: new Set(), limit: new Set() };
   const chosen = [];
 
-  if (!isReroll) {
+  // r754: the guarantee and the early-limit guidance are adaptive odds (Settings -> Run).
+  const _adapt = (typeof rewardAdaptiveOn !== 'function') || rewardAdaptiveOn();
+  if (!isReroll && _adapt) {
     if (survivalLevelsSinceLimit >= SURVIVAL_GUARANTEE_GAP && pools.limit.length) { const o = survivalDrawOne('limit', pools, used); if (o) chosen.push(o); }
     if (survivalLevelsSinceKnack >= SURVIVAL_GUARANTEE_GAP && pools.knack.length) { const o = survivalDrawOne('knack', pools, used); if (o) chosen.push(o); }
     // Early-limit guidance (js/limits.js): while live, one option IS the boosted

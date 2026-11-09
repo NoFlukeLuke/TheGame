@@ -4597,3 +4597,30 @@ Amplifier. Golden: 838 cases match. No page errors.
   hover stuck to the last card tapped. Console hover is now `@media (hover: hover)` and fainter than a pick.
 - **Toys tour**: `index.html?events=toys` tours the 12 events with a die, a coin, a wheel, a reel or a
   plinko ball (`TOUR_TOYS`, js/event-tour.js); `?events=id,id` tours a list in order.
+
+## r754 - Flow's goal table; reviews catch up to your level; adaptive reward odds have a switch (owner)
+- **Flow's level goals are a table** (`FLOW_GOALS`, js/flow-mode.js, the owner's 24 numbers:
+  1,000 · 2,000 · 3,500 · 6,000 · 10,000 · 17,500 · 25,000 · 35,000 · 47,500 · 62,500 · 80,000 ·
+  100,000 · 120,000 · 140,000 · 165,000 · 180,000 · 200,000 · 220,000 · 240,000 · 265,000 ·
+  290,000 · 325,000 · 360,000 · 400,000; past level 24 each level grows by the last step, x1.111).
+  `survivalGoalForLevel` reads `flowGoalBase(lv)` and still lays the global multiplier, Endless
+  (accelerated from the table's last ratio), Limitless, the difficulty tier and the rounding over
+  it. `survivalBase` / `survivalGrowth` are dead (their steppers are gone); dev -> Flow -> "Flow
+  goal table" is a text box for the list (`setFlowGoalsText`, `lethe.flowGoals.v1`, overrides only).
+- **Reviews ask level 8 / 14 / 20 / 24** (`FLOW_BOSS_GOAL_LEVELS`), **or the run's own level when
+  it is past that** (`flowBossGoalLevel` = max of the table's level and `level`;
+  `flowBossTableLevel` is the table alone), and `flowBossAheadPay` (from `flowTriggerBoss`) pays
+  `FLOW_AHEAD_PAY` (10) credits per level ahead with a printed line. Handbook: the Flow entry.
+- **Settings -> Run -> "Reward odds adapt to the run"** (`rewardAdaptive`, default on;
+  `rewardAdaptiveOn()` in js/luck.js is the one reader). Off, every roll is its flat table: Flow's
+  Tricks share is `FLOWR_DEF.trick.flat` (40%, dev -> Flow) instead of the tray-set share, no
+  first-chain Tricks, no shop credit gate, no early-level lean, no dry-spell build-up
+  (`multiStep`), no Knack owed in the boss chain, no four-level limit / Knack guarantee or
+  early-limit guidance on the pick of three, no full-tray Trick-improve boost in Classic, and
+  Tricks for hands you cannot play yet weigh the same as any other. Still on: recent-offer damping,
+  departments, Dexterous, Growth Mindset, Luck, the difficulty tier's multi cut.
+Measured in headless Chromium at 1440x820 and 420x900 (Flow, walkthrough ended): round 1 goal
+1,000; a boss triggered at level 11 asked 80,000 and paid +L¢30 with the notice printed; the
+switch off read the Tricks share 40 and the first-chain roll false, back on 70; the dev box
+printed the table; the Run tab shows the toggle. The 9s sim bot now clears boss 1 13% of the time
+(it meets it at level 3, asked 35,000): the owner's own play at this scale was "not crazy hard".

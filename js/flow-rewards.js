@@ -84,7 +84,8 @@ const FLOWR_DEF  = {
   // a miss makes the next level-up's first reward one. After that the share is
   // `base` minus `step` per Trick in the tray that came from a Tricks screen
   // (one taken from a pick of three does not count), never under `floor`.
-  trick: { first: 90, base: 70, step: 10, floor: 30 },
+  // r754: `flat` is the Tricks share when Settings -> Run -> Reward odds adapt is OFF.
+  trick: { first: 90, base: 70, step: 10, floor: 30, flat: 40 },
   // r548 (owner): the SHOP is offered only with credits over `min`, and over
   // `rich` its weight takes +`richBonus`.
   shop: { min: 25, rich: 50, richBonus: 5 },
@@ -317,6 +318,7 @@ function flowrTrickCount() {
 // Percent of every reward screen that is a Tricks screen, from the tray.
 function flowrTrickShare() {
   const t = flowrCfg().trick;
+  if (!rewardAdaptiveOn()) return Math.max(0, Math.min(100, t.flat));
   return Math.max(0, Math.min(100, Math.max(t.floor, t.base - t.step * flowrTrickCount())));
 }
 // Called from survivalGrant with the Trick just put in the tray: remembers it
@@ -330,6 +332,7 @@ function flowrNoteTrickTaken(trick) {
 // rolls slot 0 from the other kinds and owes the next chain a Tricks first slot.
 // Mutates `queue` and `taken`; returns true when it set the slot.
 function flowrFirstTrickSlot(queue, odds, taken) {
+  if (!rewardAdaptiveOn()) return false;
   if (flowrFirstTrick === 'done' || !queue.length) return false;
   if (!flowrKindViable('tricks')) { flowrFirstTrick = 'done'; return false; }
   const hit = flowrFirstTrick === 'owed' || Math.random() * 100 < flowrCfg().trick.first;
@@ -471,7 +474,7 @@ function flowrMultiChance() {
 function flowrRollCount(state) {
   const st = state || { get m() { return flowrPrdMisses; }, set m(v) { flowrPrdMisses = v; } };
   const { p, ww } = flowrMultiChance();
-  const chance = Math.min(1, p + (flowEcon.multiStep / 100) * st.m);
+  const chance = Math.min(1, p + (rewardAdaptiveOn() ? (flowEcon.multiStep / 100) * st.m : 0));
   if (Math.random() >= chance) { st.m++; return 1; }
   st.m = 0;
   const keys = ww.map((_, i) => i + 1).slice(1);
@@ -488,13 +491,14 @@ function flowrEarly() {
 function flowrOddsNow() {
   const cfg = flowrCfg();
   const o = Object.assign({}, cfg.odds);
-  if (flowrEarly()) Object.assign(o, cfg.early);
+  const adapt = rewardAdaptiveOn();   // r754: off = the flat table (no early lean, no shop gate)
+  if (adapt && flowrEarly()) Object.assign(o, cfg.early);
   // r548 (owner): the SHOP needs credits over shop.min; over shop.rich it takes
   // +richBonus. (The r448 full-tray cap and the r476 first-quarter +5 went with
   // the tray-set Tricks share below.)
   const c = (typeof coins !== 'undefined') ? coins : 0;
-  if (c <= cfg.shop.min) o.shop = 0;
-  else if (c > cfg.shop.rich) o.shop = (o.shop || 0) + cfg.shop.richBonus;
+  if (adapt && c <= cfg.shop.min) o.shop = 0;
+  else if (adapt && c > cfg.shop.rich) o.shop = (o.shop || 0) + cfg.shop.richBonus;
   // r741: Dexterous weighs the Sleights step 4x among the non-Trick kinds (js/dexterous.js).
   if (typeof dexSleightOfferMult === 'function') o.sleights = (o.sleights || 0) * dexSleightOfferMult();
   if (typeof limitOfferMult === 'function') o.limits = (o.limits || 0) * limitOfferMult();   // r750: Growth Mindset
@@ -729,7 +733,7 @@ function flowrStartBossChain(bossName) {
     queue.push(k);
     taken[k] = (taken[k] || 0) + 1;
   }
-  if (!flowrKnacksSeen && !queue.includes('knacks') && flowrKindViable('knacks')) queue[1] = 'knacks';
+  if (rewardAdaptiveOn() && !flowrKnacksSeen && !queue.includes('knacks') && flowrKindViable('knacks')) queue[1] = 'knacks';
   // A new boss cycle starts: the forcing counter resets.
   flowrKnacksSeen = false;
   queue.forEach(flowrNoteSeen);
@@ -2960,7 +2964,7 @@ function flowrDevSync() {
   mk(document.getElementById('dev-flowr-odds'),  'odds',  '');
   mk(document.getElementById('dev-flowr-early'), 'early', '-');
   // r548: the Tricks share and the shop gates.
-  [['trick', 'first'], ['trick', 'base'], ['trick', 'step'], ['trick', 'floor'],
+  [['trick', 'first'], ['trick', 'base'], ['trick', 'step'], ['trick', 'floor'], ['trick', 'flat'],
    ['shop', 'min'], ['shop', 'rich'], ['shop', 'richBonus']].forEach(([f, k]) => {
     const el = document.getElementById(`dev-flowr-${f}-${k}`);
     if (el && document.activeElement !== el) el.value = cfg[f][k];
@@ -2987,6 +2991,7 @@ function flowrDevSync() {
   if (ph) ph.textContent = `${flowrEarly() ? 'EARLY table (level <= ' + FLOWR_EARLY_LEVELS + ')' : 'standard table'}`
     + ` \u00b7 level ${typeof level !== 'undefined' ? level : '?'} \u00b7 ${flowrExtraEarned} extra earned`
     + ` \u00b7 Tricks in tray counted: ${flowrTrickCount()} \u00b7 first Tricks: ${flowrFirstTrick}`
+    + (rewardAdaptiveOn() ? '' : ' \u00b7 ADAPTIVE ODDS OFF (Settings -> Run)')
     + ` \u00b7 live: ` + FLOWR_KIND_IDS.filter(k => (live[k] || 0) > 0).map(k => flowrKindShort(k) + ' ' + (+live[k].toFixed(1))).join(', ');
 }
 function flowrDevSet(field, value, i) {

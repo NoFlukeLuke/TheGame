@@ -1,4 +1,4 @@
-const BUILD = "2026-11-09 · r753 · The synergy probe; the milestone probes rerun on the merged tree";
+const BUILD = "2026-11-09 · r754 · Flow goals are a table; reviews ask your level when you are ahead and pay for it; reward odds can stop adapting";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

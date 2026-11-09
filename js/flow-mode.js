@@ -87,11 +87,63 @@ function flowSessionRunning() { return flowActive() && !bossActive; }
 // r525 (owner): a Flow boss's goal ignores how many levels were cleared.
 // r687 (owner): boss N asks the goal of level FLOW_BOSS_GOAL_LEVELS[N - 1] (was
 // 1 + 5N: 6 / 11 / 16 / 21). An Endless boss past the table adds the last step again.
-const FLOW_BOSS_GOAL_LEVELS = [10, 16, 20, 24];
-function flowBossGoalLevel() {
+// r754 (owner): the table is 8 / 14 / 20 / 24, and a run already PAST the table's
+// level when the review comes is asked its own level's goal instead, and is paid
+// FLOW_AHEAD_PAY credits for every level it is ahead (flowBossAheadPay, below).
+const FLOW_BOSS_GOAL_LEVELS = [8, 14, 20, 24];
+const FLOW_AHEAD_PAY = 10;
+// The level the boss table names for the next review (no live-level term).
+function flowBossTableLevel() {
   const n = (typeof survivalBossesBeaten === 'number' ? survivalBossesBeaten : 0);
   const t = FLOW_BOSS_GOAL_LEVELS, last = t.length - 1;
   return n <= last ? t[n] : t[last] + (n - last) * (t[last] - t[last - 1]);
+}
+function flowBossGoalLevel() {
+  const lv = (typeof level === 'number' && isFinite(level)) ? level : 1;
+  return Math.max(flowBossTableLevel(), lv);
+}
+// Levels the run is past the review's table level (0 when not ahead).
+function flowBossAheadLevels() {
+  const lv = (typeof level === 'number' && isFinite(level)) ? level : 1;
+  return Math.max(0, lv - flowBossTableLevel());
+}
+function flowBossAheadPay() {
+  const n = flowBossAheadLevels();
+  if (!n) return 0;
+  const pay = n * FLOW_AHEAD_PAY;
+  if (typeof grantEntityCoins === 'function') grantEntityCoins(pay, 'flow_ahead', null); else { coins += pay; if (typeof updateCoinsUI === 'function') updateCoinsUI(); }
+  const cr = (typeof creditsTxt === 'function') ? creditsTxt(pay) : pay + ' credits';
+  showMessage(`Ahead of schedule: +${cr} (${n} level${n === 1 ? '' : 's'} past the review's level)`, 'var(--gold)');
+  return pay;
+}
+
+// ── Flow's level goals (r754, owner) ──
+// One number per level, in place of the 900 x 1.25^(lv - 1) curve. Past the end
+// of the table every level grows by the table's last step ratio. Read through
+// flowGoalBase(lv) by survivalGoalForLevel (js/survival.js), which still lays the
+// global multiplier, the Endless acceleration, Limitless, the difficulty tier and
+// the rounding over it. Dev -> Flow -> goal curve edits the table (overrides only,
+// lethe.flowGoals.v1); an empty box tracks this list.
+const FLOW_GOALS = [1000, 2000, 3500, 6000, 10000, 17500, 25000, 35000, 47500, 62500, 80000, 100000,
+  120000, 140000, 165000, 180000, 200000, 220000, 240000, 265000, 290000, 325000, 360000, 400000];
+const FLOW_GOALS_KEY = 'lethe.flowGoals.v1';
+let flowGoalsStore = null;
+try { const v = JSON.parse(localStorage.getItem(FLOW_GOALS_KEY) || 'null'); if (Array.isArray(v) && v.length >= 2 && v.every(n => typeof n === 'number' && n > 0)) flowGoalsStore = v; } catch (e) { flowGoalsStore = null; }
+function flowGoalTable() { return flowGoalsStore || FLOW_GOALS; }
+function flowGoalTableIsDefault() { return !flowGoalsStore; }
+function flowGoalBase(lv) {
+  const t = flowGoalTable(), n = t.length;
+  lv = Math.max(1, Math.round(lv || 1));
+  if (lv <= n) return t[lv - 1];
+  const ratio = t[n - 1] / Math.max(1, t[n - 2]);
+  return t[n - 1] * Math.pow(ratio, lv - n);
+}
+// Dev: a comma or line separated list. Blank, or the shipped list, clears the override.
+function setFlowGoalsText(text) {
+  const nums = String(text || '').split(/[\s,]+/).map(x => parseFloat(x)).filter(x => isFinite(x) && x > 0).map(x => Math.round(x));
+  if (nums.length < 2 || nums.join() === FLOW_GOALS.join()) { flowGoalsStore = null; try { localStorage.removeItem(FLOW_GOALS_KEY); } catch (e) {} return; }
+  flowGoalsStore = nums;
+  try { localStorage.setItem(FLOW_GOALS_KEY, JSON.stringify(nums)); } catch (e) {}
 }
 function flowTriggerBoss() {
   if (bossActive || flowBossFighting) return;
@@ -121,6 +173,7 @@ function flowTriggerBoss() {
   score = 0;
   _limBossGoal = true;   // r749: Limitless reads the boss table's level (js/protocols.js)
   try { roundGoal = goalForLevel(flowBossGoalLevel()); } finally { _limBossGoal = false; }
+  flowBossAheadPay();   // r754: a run past the review's level is paid for every level ahead
   // Held while the wipe animates the OLD number down to the new zero - the state
   // above is already correct, so an abort can't strand a half-reset run.
   suppressScoreDisplay = true;

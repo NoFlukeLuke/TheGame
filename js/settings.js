@@ -261,6 +261,10 @@ const SETTINGS_DEF = [
   // ── Run ── save / resume (see js/save.js). `action` rows are buttons, not a
   // stored preference, so they are skipped by loadSettings/resetSettings.
   // No label or hint: the group title says RUN and the buttons say the rest.
+  // r754 (owner): the reward rolls that read the run's state (rewardAdaptiveOn, js/luck.js).
+  { group: 'Run', id: 'rewardAdaptive', label: 'Reward odds adapt to the run',
+    hint: 'On: Tricks are offered more with a small tray, the shop needs credits, a Knack is owed before a boss, a dry spell makes a second reward likelier, and more. Off: every reward roll uses its flat table.',
+    type: 'toggle', default: true },
   { group: 'Run', id: 'runSave', type: 'action', label: '', hint: '',
     buttons: () => {
       const has = (typeof hasSavedRun === 'function') && hasSavedRun();

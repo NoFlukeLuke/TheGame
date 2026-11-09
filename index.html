@@ -417,8 +417,10 @@
     <div id="dev-goal-classic-preview" class="dev-preview"></div>
   </div>
   <div class="dev-section" data-group="flow modes">
-    <div class="dev-section-title">Survival / Flow curve</div>
-    <div class="dev-note">Flow and Survival share this curve, from a lower start.</div>
+    <div class="dev-section-title">Flow goal table</div>
+    <div class="dev-note">One goal per level, in order. Blank puts the shipped table back.</div>
+    <textarea id="dev-flow-goals" rows="3" style="width:100%;box-sizing:border-box;font-family:'Share Tech Mono',monospace;font-size:11px;" onchange="setFlowGoalsText(this.value); devRenderGoalPanel()"></textarea>
+    <div id="dev-flow-goals-note" class="dev-note"></div>
     <div id="dev-goal-survival-rows"></div>
     <div id="dev-goal-survival-preview" class="dev-preview"></div>
   </div>
@@ -1010,6 +1012,7 @@
       <label>then <input id="dev-flowr-trick-base" type="number" min="0" max="100" step="1" style="width:44px;" onchange="flowrDevSet('trick', this.value, 'base')">%</label>
       <label>minus <input id="dev-flowr-trick-step" type="number" min="0" max="100" step="1" style="width:44px;" onchange="flowrDevSet('trick', this.value, 'step')">% per Trick held</label>
       <label>floor <input id="dev-flowr-trick-floor" type="number" min="0" max="100" step="1" style="width:44px;" onchange="flowrDevSet('trick', this.value, 'floor')">%</label>
+      <label>flat (adaptive odds off) <input id="dev-flowr-trick-flat" type="number" min="0" max="100" step="1" style="width:44px;" onchange="flowrDevSet('trick', this.value, 'flat')">%</label>
     </div>
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);line-height:1.5;">A missed first roll makes the next level-up's first reward a Tricks screen. A Trick taken from a pick of three is held but not counted. The weights below split what Tricks leave.</div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;font-family:'Crimson Pro',serif;font-size:12px;color:var(--cream);align-items:center;" id="dev-flowr-shop">

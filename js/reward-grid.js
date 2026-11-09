@@ -178,6 +178,7 @@ let IMPROVE_FULL_TRAY_MULT = 2;   // r613 (owner): was 1.5
 function rewardImproveBoost(cats) {
   const _classic = isActMode() && !(typeof guidedActive === 'function' && guidedActive())
                                 && !(typeof mapActive === 'function' && mapActive());
+  if (typeof rewardAdaptiveOn === 'function' && !rewardAdaptiveOn()) return cats;   // r754
   if (!_classic || !(typeof trickTrayFull === 'function' && trickTrayFull())) return cats;
   const isImp = c => c.kind === 'improve_trick', M = IMPROVE_FULL_TRAY_MULT;
   const w = cats.reduce((s, c) => s + (isImp(c) ? c.weight : 0), 0);

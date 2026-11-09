@@ -189,8 +189,17 @@ function offerRecentNote(offers) {
   offerRecent.push(ids);
   while (offerRecent.length > Math.max(0, OFFER_RECENT_W.screens | 0)) offerRecent.shift();
 }
+// r754 (owner): Settings -> Run -> "Reward odds adapt to the run". Off, every
+// reward roll is its flat table: no Tricks share from the tray, no first-chain
+// Tricks, no shop credit gate, no early-level lean, no dry-spell build-up, no
+// Knack owed before a boss, no four-level limit / Knack guarantee or early-limit
+// guidance on the pick of three, no full-tray Trick improvement boost in Classic,
+// and Tricks for hands you cannot play yet weigh the same as any other. Entity
+// and protocol effects (Dexterous, Growth Mindset, departments, Luck) still apply.
+function rewardAdaptiveOn() { return typeof SETTINGS === 'undefined' || !SETTINGS || SETTINGS.rewardAdaptive !== false; }
 function offerWeightMult(x) {
   let m = 1;
+  if (!rewardAdaptiveOn()) return m;
   if (x && x.id && offerRecent.some(ids => ids.includes(x.id))
       && !(typeof entityOwnedNow === 'function' && entityOwnedNow(x.id))) m = OFFER_RECENT_W.weight / 100;
   const need = x && x.id && typeof TRICK_NEEDS !== 'undefined' ? TRICK_NEEDS[x.id] : null;
