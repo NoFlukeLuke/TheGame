@@ -1,4 +1,4 @@
-const BUILD = "2026-11-09 · r754 · the score carry looks (r721) land; the ?merge lab is live";
+const BUILD = "2026-11-09 · r755 · run stats in the history; COPY ALL";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

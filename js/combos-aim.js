@@ -423,7 +423,7 @@ let _coinsVal = 0;
 Object.defineProperty(globalThis, 'coins', {
   configurable: true,
   get() { return _coinsVal; },
-  set(v) { const d = v - _coinsVal; _coinsVal = v; if (d && typeof middleManOnCredits === 'function') middleManOnCredits(d); if (d && typeof unlockCoinsChanged === 'function') unlockCoinsChanged(d, v); if (d && typeof moneyOnCredits === 'function') moneyOnCredits(d); },
+  set(v) { const d = v - _coinsVal; _coinsVal = v; if (d && typeof middleManOnCredits === 'function') middleManOnCredits(d); if (d && typeof unlockCoinsChanged === 'function') unlockCoinsChanged(d, v); if (d && typeof moneyOnCredits === 'function') moneyOnCredits(d); if (d && typeof rsCredits === 'function') rsCredits(d); },
 });
 
 // ══════════════════════════════════════════════

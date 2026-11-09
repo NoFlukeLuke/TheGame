@@ -1109,6 +1109,7 @@ function openPrizeGrid() {
 
 let rewardSwapReady = false, rewardSwapLift = null, rewardTapKey = null, rewardTapAt = 0;
 function openRewardGrid() {
+  if (typeof rsScreen === 'function') rsScreen('grid:' + (typeof rewardGridMode !== 'undefined' && rewardGridMode || 'reward'));   // r755: run stats
   gameTimerPaused = true;
   if (!penaltyGridActive() && !miniGridActive() && !callItGridActive()) rewardGridsSeen++;   // count this grid (gates the first-5 guaranteed upgrades)
   rewardCells     = generateRewardContent();

@@ -73,6 +73,7 @@ function startRoundTimer() {
   // roundStartSeconds is overwritten, which is the only reason this sits here.
   if (typeof clockMarksReset === 'function' && roundSeconds > roundStartSeconds) clockMarksReset();
   roundStartSeconds = roundSeconds; // mark the start of the countdown ("how far into the round" reads it)
+  if (typeof rsRoundStart === 'function') rsRoundStart();   // r755: the round's stats row (js/run-stats.js), above the save point
   if (typeof crunchNewRound === 'function') crunchNewRound();  // one write-off per round
   // Suspension resolves HERE, not in triggerLevelUp: it needs roundStartSeconds to
   // know where the round's halfway mark is, and this is the one call site every

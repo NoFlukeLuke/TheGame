@@ -794,6 +794,7 @@ function flowrShowStep() {
   if (!flowrQueue) return;
   animating = false;
   const kind = flowrQueue[flowrIdx];
+  if (typeof rsScreen === 'function') rsScreen('flow:' + kind);   // r755: run stats, one per reward chain step
   flowrOfferFloor = (flowrQueueFloors && flowrQueueFloors[flowrIdx]) || null;
   flowrBossLuckOn = flowrBossChain && FLOWR_PICKY_KINDS.has(kind);
   flowrRenderStack();

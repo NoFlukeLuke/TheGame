@@ -4639,3 +4639,23 @@ x3; the carried copy is the value's size (69 / 69 px desktop, 23 / 26 phone); re
 `playHand` with Rise, Stamp, Stream, Roll and Zap, a 5-hand burst, a hand cut mid-Stream and a
 round-ending hand: no copy left, the three values back at full opacity, no page errors.
 **r754:** r721 was built on its own branch and never deployed; merged onto r753 as it stood.
+
+## r755 - run stats in the history; COPY ALL (`js/run-stats.js`, owner)
+For balance work: every run keeps `runStats` (SAVE_VARS, reset at the top of `startGame`, the
+loadout baseline taken at its end) and `recordRunToHistory` writes `rsFinal()` into the entry as
+`stats`. **Rows**, one per round (a level; a boss window is its own row, `rsRow`): goal, score,
+cleared, live seconds (counted every 250ms only while the round clock could tick: `rsLive`),
+clearSecs, the clock at the start and at the clear, hands, swaps, discards, Focus peak, credits in
+and out, and every hand as `[seconds into the round, score, name, cards, Focus x]`. **Log**: the
+loadout DIFFED once a second and at every screen (`rsDiff`: Tricks / Knacks / Sleights gained or
+lost with rarity and tier, improvements, limit changes) and every reward screen opened
+(`rsScreen`: pick, grid:<mode>, shop, event, flow:<step>). **End**: tray, Knacks, Sleights,
+limits, deck size, buffed cards, family and hand-type plays, Trick fires, quarters. Hooks:
+`rsRoundStart` (startRoundTimer, above the save point), `rsHand` / `rsUnhand` (hand-log.js),
+`rsNote` (doSwap, doDiscard), `rsCredits` (the `coins` setter), `rsScreen` (openGridPick,
+openRewardGrid, openShopGrid, openEvent, guidedOpenNamedEvent, flowrShowStep). Gains are found
+by diffing, so a new grant site needs nothing. History shows the run in progress on top
+(`historyCurrentRun`), a STATS fold per run (summary, a table per round, the gain timeline), COPY
+THIS RUN and COPY ALL (JSON, `lethe-run-history-1`, the live run as `current`). The pause menu
+has a History button. Storage: the newest 25 runs keep every hand, up to 60 keep their rows,
+older runs keep the plain entry; a full store trims harder (`writeRunHistory`).
