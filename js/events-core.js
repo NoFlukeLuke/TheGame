@@ -126,6 +126,7 @@ function eligibleEventIds(ids) {
 
 // opts.exclude: ids this caller cannot host (Flow's chain, r706: events that take the board).
 function openEvent(afterFn, opts) {
+  if (typeof rsScreen === 'function') rsScreen('event');   // r755: run stats
   afterEventFn = afterFn || (() => drainLevelUpQueue());
   const ex = (opts && opts.exclude) || null;
   const pool = liveEventIds().filter(id => !ex || !ex.has(id));

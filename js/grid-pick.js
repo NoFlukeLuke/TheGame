@@ -864,6 +864,7 @@ function gridPickLeave(i, go) {
 
 // opts: { kicker, title, tone, offers, actions, onChoose(i, offer) }
 function openGridPick(opts) {
+  if (typeof rsScreen === 'function') rsScreen('pick');   // r755: run stats
   // r749: Limitless shows two options (js/protocols.js).
   const offers = (typeof protoTrimOffers === 'function') ? protoTrimOffers(opts.offers || []) : (opts.offers || []);
   if (typeof offerRecentNote === 'function') offerRecentNote(offers);

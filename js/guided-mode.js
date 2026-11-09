@@ -305,6 +305,7 @@ function guidedChoose(off) {
 // the same open sequence with the draw replaced, so the no-repeat memory is still
 // fed and every other event behaviour is unchanged.
 function guidedOpenNamedEvent(id, afterFn) {
+  if (typeof rsScreen === 'function') rsScreen('event');   // r755: run stats
   afterEventFn = afterFn || (() => drainLevelUpQueue());
   activeEventId = id;
   recentEventIds.push(id);

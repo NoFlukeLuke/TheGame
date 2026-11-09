@@ -4597,6 +4597,122 @@ Amplifier. Golden: 838 cases match. No page errors.
   hover stuck to the last card tapped. Console hover is now `@media (hover: hover)` and fainter than a pick.
 - **Toys tour**: `index.html?events=toys` tours the 12 events with a die, a coin, a wheel, a reel or a
   plinko ball (`TOUR_TOYS`, js/event-tour.js); `?events=id,id` tours a list in order.
+## r753 - a Trick waits for its flight; Overdrive, Autopilot and All Hands are out (owner)
+- **Held chips** (`trayHold(type, id)` / `trayRelease`, js/tray-fx.js; `.tray-held`, css/improve-anim.css):
+  a Trick or Knack landing in its tray is hidden until its copy lands. Every `renderTrickTray` /
+  `updateKnackList` re-hides every chip of a held id (`trayHeldPaint`, from `trayWatch`), marquee
+  copies included; before this a re-render mid-flight built a fresh visible chip under the copy.
+  **The first take's reveal** (r709: every Trick) holds the chip from `revealNote` (now called before
+  `selectTrick` in `injectTrickAfterReward`) and the queue releases it after `iaPlayReveal`, or when
+  the entry is dropped (FAST FORWARD, Trick screens off); `trayEntityLand` skips its own flight for
+  an id with a reveal queued, since the reveal flies the tile in. With Trick screens off no reveal is
+  queued and the ordinary flight runs. A new screen that flies an entity into its tray holds it the same way.
+- **Retired** (owner, for now: they did not read as working): Overdrive (`retired` on the Knack row;
+  `knackOfferable` now refuses retired rows), Autopilot and All Hands (`retired` Sleight rows).
+  `survivalEntityBanned` refuses any retired Knack or Sleight id, so every offer path drops them.
+  Code and BAL rows stay; a saved run that owns one keeps it. Owner's ask if they come back: play
+  like a match-3 cascade, each hand selected loudly and its cards flying to the preview in quick succession.
+Measured in headless Chromium at 1440x820 and 420x900: a Trick granted from a tapped tile with two
+`renderTrickTray` calls mid-flight read opacity 0 on every chip until the copy landed, then 1; an
+undiscovered Trick stayed at 0 through its whole reveal (re-rendered every second) and showed when it
+ended; none of the three are offerable or pass `survivalEntityBanned`. No page errors.
+
+## r721 - the carry looks; PIPS · MULT · FOCUS share one screen (owner)
+- **Rise** (the default; `auto` is Rise in every skin): at the fuse PIPS rises off its tray and flies
+  to MULT, fading out completely as it arrives; MULT then reads pips x mult. Focus does the same,
+  once per application (r712's copies first, then the figure). Four more **carry looks**
+  (`PMF_CARRY`, `PMF_FLIGHT` in js/pmf-merge.js): **Stamp** (lifts large, slams down, the tray shakes),
+  **Stream** (the digits pour along an arc, the tray counts up), **Zap** (a bolt in the number's colour,
+  the tray scrambles then locks), **Roll** (slides along the foot, the tray rolls like an odometer).
+  The carried number is a copy (`.pmf-carry`) inside `#score-subboxes`; the value it left goes dark.
+  `_pmfCarry` saves and restores the three texts like Hold; a reset bumps `_pmfGen` and lets go of a
+  Stream / Zap wait, so a cut hand never hangs the dance or writes afterwards.
+- **Ends in MIDDLE or FOCUS** (`pmfResolve`, `lethe.pmfResolve.v1`, stored only when FOCUS): MIDDLE
+  carries Focus into MULT; FOCUS carries MULT's product into FOCUS, then each copy into the figure.
+  The fused number flies to SCORE from whichever tray holds it.
+- **Choosing:** dev -> Aesthetics -> Score merge (look, MIDDLE / FOCUS, Open the lab) and
+  **`index.html?merge`** (`pmfLabOpen`: a Classic run, a key per look on the real row, MIDDLE / FOCUS,
+  Focus x1 / x2 / x3, USE THIS). `pmfPreview(look, { pips, mult, focus, focusN })`.
+- **Console mode: one screen for the three numbers** (css/skin-machine.css). `#score-subboxes` is the
+  glass; the three boxes (and the location readout) are clear zones on it; the × separators are bands
+  of live static (`mc-static-band`). No housing between them in either orientation. `MC_SCREENS` and
+  the screen door list `score-subboxes` instead of the three boxes. The pit look is unchanged.
+Measured in headless Chromium at 1440x820 and 420x900: every look in the lab, both ends, Focus x1 and
+x3; the carried copy is the value's size (69 / 69 px desktop, 23 / 26 phone); real hands through
+`playHand` with Rise, Stamp, Stream, Roll and Zap, a 5-hand burst, a hand cut mid-Stream and a
+round-ending hand: no copy left, the three values back at full opacity, no page errors.
+**r754:** r721 was built on its own branch and never deployed; merged onto r753 as it stood.
+
+## r755 - run stats in the history; COPY ALL (`js/run-stats.js`, owner)
+For balance work: every run keeps `runStats` (SAVE_VARS, reset at the top of `startGame`, the
+loadout baseline taken at its end) and `recordRunToHistory` writes `rsFinal()` into the entry as
+`stats`. **Rows**, one per round (a level; a boss window is its own row, `rsRow`): goal, score,
+cleared, live seconds (counted every 250ms only while the round clock could tick: `rsLive`),
+clearSecs, the clock at the start and at the clear, hands, swaps, discards, Focus peak, credits in
+and out, and every hand as `[seconds into the round, score, name, cards, Focus x]`. **Log**: the
+loadout DIFFED once a second and at every screen (`rsDiff`: Tricks / Knacks / Sleights gained or
+lost with rarity and tier, improvements, limit changes) and every reward screen opened
+(`rsScreen`: pick, grid:<mode>, shop, event, flow:<step>). **End**: tray, Knacks, Sleights,
+limits, deck size, buffed cards, family and hand-type plays, Trick fires, quarters. Hooks:
+`rsRoundStart` (startRoundTimer, above the save point), `rsHand` / `rsUnhand` (hand-log.js),
+`rsNote` (doSwap, doDiscard), `rsCredits` (the `coins` setter), `rsScreen` (openGridPick,
+openRewardGrid, openShopGrid, openEvent, guidedOpenNamedEvent, flowrShowStep). Gains are found
+by diffing, so a new grant site needs nothing. History shows the run in progress on top
+(`historyCurrentRun`), a STATS fold per run (summary, a table per round, the gain timeline), COPY
+THIS RUN and COPY ALL (JSON, `lethe-run-history-1`, the live run as `current`). The pause menu
+has a History button. Storage: the newest 25 runs keep every hand, up to 60 keep their rows,
+older runs keep the plain entry; a full store trims harder (`writeRunHistory`).
+## r756 - Starting Time as a time; amber screen cards in the pixel preview; no purple on wilds; the discard does not rise (owner)
+- **Records -> Limits:** Starting Time has no circles; it reads `3:30/5:00` (`recLimTime`).
+- **Pixel art preview cards** (css/pixel-art.css, section 6): the printed face (the preview swaps
+  `cardFace` to `print`, not the Jfred pack) on a pale amber screen: a faint dot grid on the glass,
+  an inner amber glow, no stock 9-slice. Rank and suit keep the suit colours, are fattened by a
+  `-webkit-text-stroke` at least a dot wide and masked into dots (`--pa-dot`, card height / 28),
+  and glow (text-shadow in `currentColor`). The preview's text shadows are 0.5px (were 1px).
+- **Wild cards lose the purple** (css/card-face.css): no lavender ring and no violet wash on the
+  paper looks (print, pixel, classic); the Joker face says what it is.
+- **Fling has no lift** (js/card-anims.js): the card is swapped at once for a stand-in under the other
+  cards that falls away into the board, thrown (`CA_FLING_THROW`: size 1 / (1 + 4t + 7t^2)).
+
+## r757 - pixel preview cards are built like the keys' words (owner)
+r756's amber dot cards are gone. In the pixel art preview (`pxArtOn`) `pxArtFaceHTML(card, opts)`
+(js/pixel-art.js, called beside `cardFaceSpriteHTML` in `renderCardAppearance`, js/card-fall.js;
+the card takes `.has-pxa`, which hides the text rank / suit / wild glyph) draws one SVG per face:
+the rank from the keys' 5x7 letter grid (`kdGlyph(7, ch)`, js/key-dots.js) over the suit on a 7x7
+grid (`PXA_SUITS`: the four suits and the wild star; a wild reads WILD; the six-suit deck's extra
+suits keep the printed face), one rect per lit square with a gap and a dark edge, in the suit's
+colour with a glow (css/pixel-art.css section 6). Two card backgrounds to compare: darkish off-white
+(default, the old suit colours) and black (`html.pxa-dark`, brighter suit colours, a stronger glow):
+dev -> Aesthetics -> "Pixel cards on" (`setPixelArtCards`, `lethe.pixelArtCards.v1` holds 'dark'
+only) or `index.html?pixel=dark`. Verified at 1440x820 and 420x900, both backgrounds, a 10 and a wild.
+
+## r758 - the slot lever is gone; PLAY pulls (owner)
+`evSlotMachine` has no lever (no `onPull`, `lever()` or `opts.lever`; its CSS is gone). In Card Slots and
+Entity Slots the event's CONFIRM button is the pull ("PULL · FREE", "PULL · L¢8", "PULL · 5s"; disabled
+while the reels turn or the price cannot be paid), so in console mode the PLAY key pulls. Skip reads Done
+once you have pulled and is disabled while the reels turn (`slotSkipSync`, js/events-slots.js). Measured
+by click at 1440x820 and tap at 420x900: two pulls each from PLAY, DISCARD refused mid-spin, Done closed.
+## r759 - the LED matrix switch: cards, score, clock, level and credits in lit squares (owner)
+**Settings -> Display -> LED matrix** (`ledOn()` / `setLedMatrix`, js/led-matrix.js, `lethe.ledMatrix.v1`
+holds 'on' only; a settings row with `get`, so the feature owns the store). Off by default.
+- **Cards**: r757's square-by-square faces (`pxArtFaceHTML`, js/pixel-art.js) now draw whenever the
+  switch is on (`pxaCardsOn()` = the pixel preview OR the switch) and win over the Jfred sprite face
+  (card-fall.js asks `_pxa` first). Crowns ♛ and moons ☾ have grids in `PXA_SUITS` and colours
+  (`--pa-crowns` / `--pa-moons`). The squares are smaller (the face is 46% of the card's height, was 62%).
+  The card background (off-white / black) is still dev -> Aesthetics -> "Pixel cards on".
+- **Readouts** (`LED_TARGETS`): SCORE, GOAL, PIPS / MULT / FOCUS, the clock, `.rp-act` / `.rp-lv` /
+  `.rp-lnum` / `#level-display`, the credits chip. The readout keeps its text, hidden (`.led-host`,
+  visibility), and a canvas drawn with the keys' 5x7 grid (`kdGlyph`) sits over where the text was,
+  centred on its Range rect, the 7 rows `LED_CFG.ink` of the line's height, glowing in the readout's
+  colour (`--led-ink`; the clock's console text is transparent, so its row names amber). **The canvas is
+  the readout's SIBLING** (`ledMount`, in the parent, which takes `.led-parent` if static): as a child it
+  counted in the readout's scrollWidth and `chipValFit` (js/hud.js) shrank PIPS / MULT / FOCUS to 0.2px,
+  dropping the page to 1.5 fps. A writer that rewrites the text never touches it. Redrawn on a mutation of
+  the readout (rAF-batched, a signature skips no-ops), every frame while the score rolls (read from
+  `rise.cur`), and a 700ms scan for readouts that come and go. Console's flip clock is hidden under it.
+Measured in headless Chromium at 1440x820 and 420x900, console and flat, both card backgrounds: every
+readout drawn, a hand played with the score rolling at 49 fps (50 with the switch off), every readout's
+font size and width unchanged by the canvas; a crown and a moon card drawn; no page errors.
 
 ## r754 - Flow's goal table; reviews catch up to your level; adaptive reward odds have a switch (owner)
 - **Flow's level goals are a table** (`FLOW_GOALS`, js/flow-mode.js, the owner's 24 numbers:

@@ -228,18 +228,6 @@
               linear-gradient(115deg, rgba(255,255,255,.12) 0 18%, rgba(255,255,255,0) 30%); }
 .evt-tease .evt-reel.evt-reel-last { box-shadow: 0 0 0 2px #ff5a4e, 0 0 16px #ff5a4e; }
 .evt-slot-won .evt-slot-cab { border-color: #f0c040; box-shadow: 0 0 22px rgba(240,192,64,.55), inset 0 2px 0 rgba(255,255,255,.08); }
-/* the lever: a slot, an arm that shortens toward you as it comes down, a red ball */
-.evt-lever { position: relative; width: 52px; height: 140px; perspective: 220px; }
-.evt-lever-slot { position: absolute; left: 50%; top: 62px; width: 14px; height: 16px; margin-left: -7px; border-radius: 4px; background: #08070c; box-shadow: inset 0 2px 4px #000, 0 0 0 2px #3a3046; }
-.evt-lever-arm { --lv: 0; position: absolute; left: 50%; top: 14px; width: 6px; height: 56px; margin-left: -3px; transform-origin: 50% 100%;
-  transform: rotateX(calc(var(--lv) * -165deg)); transform-style: preserve-3d;
-  background: linear-gradient(90deg, #8d8f99, #e8eaf0 45%, #6b6d77); border-radius: 3px; }
-.evt-lever-knob { position: absolute; top: -13px; left: 50%; width: 26px; height: 26px; margin-left: -13px; border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #ffb3aa, #e53b2c 45%, #7a140c 100%); box-shadow: 0 3px 6px rgba(0,0,0,.6);
-  transform: rotateX(calc(var(--lv) * 165deg)); cursor: var(--cur-pointer, grab); touch-action: none; }
-.evt-lever.off .evt-lever-knob { filter: grayscale(.8) brightness(.6); cursor: var(--cur-no, not-allowed); }
-.evt-lever-cap { position: absolute; bottom: 0; left: 0; right: 0; text-align: center; line-height: 1.4; font-family: 'Share Tech Mono', monospace; font-size: 9px; letter-spacing: 1px; color: var(--cream-dim); }
-.evt-lever:not(.off) .evt-lever-cap { color: var(--c-yellow, #f0c040); }
 /* card ranks and entity tiles on the reels */
 .evt-sym .sl-rank { font-size: 24px; }
 .evt-sym .sl-rank.red { color: #c0392b; }

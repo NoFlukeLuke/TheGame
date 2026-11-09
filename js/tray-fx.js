@@ -226,8 +226,28 @@ document.addEventListener('pointerdown', e => {
   const r = t.getBoundingClientRect(); if (!r.width) return;
   _trayLandSrc = { r, at: performance.now() };
 }, true);
+// r753 (owner: "they appear there before they should"). A landing chip is HELD
+// hidden until its copy lands. The tray re-renders often (a payout, a sale, the
+// marquee's copies), and every render built a fresh, visible chip under a copy
+// still in flight; the first take's FILE FOUND screen flew its tile to a chip
+// that had already landed. A held id hides every chip of it after each render.
+const _trayHeld = new Map();   // 'trick:id' / 'knack:id' -> count
+function _trayHeldSel(key) { const i = key.indexOf(':'), t = key.slice(0, i), id = key.slice(i + 1);
+  return t === 'knack' ? `.knack-chip[data-knack-id="${id}"]` : `#trick-tray-list .trick-tray-chip[data-trick-id="${id}"]`; }
+function trayHold(type, id) { const k = type + ':' + id; _trayHeld.set(k, (_trayHeld.get(k) || 0) + 1); trayHeldPaint(); }
+function trayRelease(type, id) {
+  const k = type + ':' + id, n = (_trayHeld.get(k) || 0) - 1;
+  if (n > 0) { _trayHeld.set(k, n); return; }
+  _trayHeld.delete(k);
+  document.querySelectorAll(_trayHeldSel(k)).forEach(ch => ch.classList.remove('tray-held'));
+}
+function trayHeldPaint() { _trayHeld.forEach((n, k) => document.querySelectorAll(_trayHeldSel(k)).forEach(ch => ch.classList.add('tray-held'))); }
+// A reveal waiting on the improvement queue flies its own tile in (js/discovery.js).
+function trayRevealPending(id) { return typeof _iaQueue !== 'undefined' && _iaQueue.some(e => e && e.kind === 'reveal' && e.id === id); }
 function trayEntityLand(chip) {
   if (!chip || !chip.animate || document.body.classList.contains('reduced-motion')) return;
+  const _tid = chip.dataset && chip.dataset.trickId;
+  if (_tid && trayRevealPending(_tid)) { _trayLandSrc = null; return; }   // held by revealNote; the reveal lands it
   const src = (_trayLandSrc && (performance.now() - _trayLandSrc.at) < TRAY_LAND_FROM_MS) ? _trayLandSrc.r : null;
   const dst = chip.getBoundingClientRect();
   if (!src || !dst.width || !chip.offsetWidth) {
@@ -247,7 +267,8 @@ function trayEntityLand(chip) {
   const dx = (src.left + src.width / 2 - (dst.left + dst.width / 2)) / zoom;
   const dy = (src.top + src.height / 2 - (dst.top + dst.height / 2)) / zoom;
   const s0 = Math.max(.6, Math.min(3, src.width / dst.width));   // the tile's size, so it leaves at the size it was tapped
-  chip.style.visibility = 'hidden';
+  const _hk = chip.dataset.trickId ? ['trick', chip.dataset.trickId] : chip.dataset.knackId ? ['knack', chip.dataset.knackId] : null;
+  if (_hk) trayHold(_hk[0], _hk[1]); else chip.style.visibility = 'hidden';
   const a = c.animate([
     { translate: `${dx}px ${dy}px`, scale: s0, opacity: 0, filter: 'brightness(1.6)' },
     { translate: `${dx}px ${dy}px`, scale: s0, opacity: 1, filter: 'brightness(1.6)', offset: .1 },
@@ -257,7 +278,9 @@ function trayEntityLand(chip) {
   let finished = false;
   const done = () => {
     if (finished) return; finished = true;
-    chip.style.visibility = ''; c.remove();
+    if (_hk) trayRelease(_hk[0], _hk[1]); else chip.style.visibility = '';
+    c.remove();
+    chip = (_hk && document.querySelector(_trayHeldSel(_hk[0] + ':' + _hk[1]))) || chip;   // the live chip, after any re-render
     try { chip.animate([{ scale: '1.06', filter: 'brightness(1.3)' }, { scale: '1', filter: 'none' }], { duration: 220, easing: 'ease-out' }); } catch (e) {}
   };
   a.onfinish = done; setTimeout(done, TRAY_LAND_MS * (typeof animSlow === "function" ? animSlow() : 1) + 120);
@@ -295,6 +318,7 @@ function trayWatch(fnName, listSel, itemSel, idKey, trayId, owned) {
         trayEntitySink(b.r, b.html, b.cls, (b.r.width / (b.w || 1)) || 1); });
       if (added.length) trayFxKick(tray, 'in'); else if (gone.length) trayFxKick(tray, 'out');
     }
+    trayHeldPaint();
     prev = now;
     return out;
   };

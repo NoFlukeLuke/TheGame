@@ -126,3 +126,32 @@
   transition: background 0.12s ease, color 0.12s ease;
 }
 #menu-history-btn:hover { background: linear-gradient(180deg, #235055, #12292c); color: #fff; }
+
+/* r755: the run in progress, COPY, and the STATS fold (js/run-stats.js) */
+.hist-live { color: #04201f; background: var(--c-cyan, #7fd4dd); }
+#history-footer { display: flex; gap: 8px; justify-content: flex-end; }
+.hist-copy {
+  font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 10px; letter-spacing: 1.5px;
+  text-transform: uppercase; cursor: var(--cur-pointer, pointer); padding: 8px 12px; border-radius: 7px;
+  color: var(--c-cyan, #7fd4dd); background: transparent; border: 1px solid var(--c-cyan, #7fd4dd);
+}
+.hist-copy:hover { background: rgba(127, 212, 221, 0.12); }
+.hist-more { margin-top: 8px; }
+.hist-more > summary {
+  cursor: var(--cur-pointer, pointer); font-family: 'Share Tech Mono', monospace; font-size: 11px;
+  letter-spacing: 1px; text-transform: uppercase; color: var(--c-cyan, #7fd4dd);
+}
+.hs-lines { margin: 6px 0; font-family: 'Crimson Pro', serif; font-size: 12.5px; color: var(--cream-dim, #8a7d60); }
+.hs-lines b { color: var(--cream, #f4ecd6); }
+.hs-table-wrap { overflow-x: auto; }
+.hs-table { border-collapse: collapse; width: 100%; font-family: 'Share Tech Mono', monospace; font-size: 10.5px; color: var(--cream, #f4ecd6); }
+.hs-table th, .hs-table td { padding: 2px 6px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--border, #2a2418); }
+.hs-table th { color: var(--cream-dim, #8a7d60); font-weight: 400; }
+.hs-table tr.hs-boss td { color: var(--red, #d4574e); }
+.hs-table tr.hs-miss td { opacity: 0.6; }
+.hs-timeline { display: flex; flex-wrap: wrap; gap: 3px; margin: 7px 0; }
+.hs-ev { font-family: 'Share Tech Mono', monospace; font-size: 9px; padding: 1px 5px; border-radius: 3px; border: 1px solid var(--border, #2a2418); }
+.hs-gain { color: var(--c-mint, #6ee7c0); }
+.hs-loss { color: var(--red, #d4574e); }
+.hs-up   { color: var(--gold, #d4a857); }
+#hist-copy-text { width: 100%; height: 120px; margin-top: 6px; font-family: monospace; font-size: 10px; }

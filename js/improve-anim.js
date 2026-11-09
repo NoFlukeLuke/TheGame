@@ -86,8 +86,9 @@ async function improveAnimFlush() {
     try {
       while (_iaQueue.length) {
         const e = _iaQueue.shift();
-        if (_iaSkip || iaOff()) continue;
+        if (_iaSkip || iaOff()) { if (e.kind === 'reveal' && typeof trayRelease === 'function') trayRelease('trick', e.id); continue; }
         try { await ((e.kind === 'fuse' && typeof iaPlayFuse === 'function') ? iaPlayFuse(e) : (e.kind === 'reveal' && typeof iaPlayReveal === 'function') ? iaPlayReveal(e) : iaPlay(e)); } catch (err) { console.error('[IMPROVE-ANIM]', err); }   // r646: a fusion (js/inseparable.js) rides the same queue
+        finally { if (e.kind === 'reveal' && typeof trayRelease === 'function') trayRelease('trick', e.id); }   // r753: the chip shows once the reveal has flown it in
       }
     } finally { _iaRunning = false; _iaSkip = false; iaTeardown(); _done(); }
   })();
@@ -101,6 +102,7 @@ function iaOff() {
 function improveAnimSkip() {
   if (!_iaRunning) return;
   _iaSkip = true;
+  _iaQueue.forEach(e => { if (e && e.kind === 'reveal' && typeof trayRelease === 'function') trayRelease('trick', e.id); });   // r753
   _iaQueue.length = 0;
   if (_iaCurrent && _iaCurrent.skip) _iaCurrent.skip();
 }

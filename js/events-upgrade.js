@@ -299,7 +299,7 @@ function spinDrawWheel(picks, winner, done) {
   body.innerHTML = '';
   body.appendChild(evLabel('THE REEL'));
   const strip = picks.map(e => ({ key: e.id, html: `<div class="sl-draw"><div class="sl-ent">${entityTileHTML({ entity: e.kind, id: e.id, emoji: e.emoji, label: e.name }, e.rarity || 'common', { tip: false })}</div><span class="sl-draw-name">${e.name}</span></div>` }));
-  const m = evSlotMachine(body, { reels: [strip], payRow: 1, itemW: 190, itemH: 64, lever: false });
+  const m = evSlotMachine(body, { reels: [strip], payRow: 1, itemW: 190, itemH: 64 });
   m.el.classList.add('evt-slot-draw');
   m.spin([picks.indexOf(winner)]).then(() => {
     m.flash([[1, 0]]);

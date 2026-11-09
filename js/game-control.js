@@ -289,6 +289,7 @@ document.querySelector('#stats-overlay .overlay-close').addEventListener('click'
 document.querySelector('#deck-overlay .overlay-close').addEventListener('click', () => closeInfoOverlay('deck-overlay'));
 
 function startGame() {
+  if (typeof rsReset === 'function') rsReset();   // r755: run stats start empty (js/run-stats.js); a restore overwrites them
   if (typeof offerRecent !== 'undefined') offerRecent = [];   // r716: a new run remembers no offers
   if (typeof _ulRunLive !== 'undefined') _ulRunLive = false;   // r706: the opening balance is not earned credits
   // Dolly the camera in onto the CRT (js/camera.js). A run starting is the only
@@ -735,6 +736,7 @@ function startGame() {
   if (typeof moneyResetRun === 'function') moneyResetRun();   // r722: credit flow, Firesale, Buyback (js/money.js)
   if (typeof difficultyRunSetup === 'function') difficultyRunSetup();   // r728: the tier's starting curse card (the deck is built by now)
   if (typeof protocolRunSetup === 'function') protocolRunSetup();       // r748: Precision starts with Meditation (js/protocols.js)
+  if (typeof rsDiff === 'function') rsDiff();   // r755: the loadout the run starts with (js/run-stats.js)
 }
 
 // ══════════════════════════════════════════════

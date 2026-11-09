@@ -6,7 +6,9 @@
    2. Soft glows and blurred shadows become hard one-pixel drop shadows.
    3. Square corners with a stepped notch (--pxa-notch), never a curve.
    4. Flat fills with a 2 x 2 dither instead of gradients.
-   5. Images drawn with no smoothing. Cards on the pixel pack (js/pixel-art.js). */
+   5. Images drawn with no smoothing.
+   6. Cards are little pale amber screens (r756): a dot grid on the glass, the rank and
+      suit in the suit colours, glowing and broken into dots like the keys' words. */
 
 html.px-art {
   --pxa-font: 'VT323 Local', 'VT323', monospace;
@@ -37,7 +39,7 @@ html.px-art .dnc-particle .pt-box {
 }
 
 /* 2. No soft light: a hard one-pixel shadow under the words, no blur anywhere on the screens. */
-html.px-art #stage :not(button, button *, #swap-indicator, #swap-indicator *) { text-shadow: 1px 1px 0 rgba(0,0,0,.75) !important; }
+html.px-art #stage :not(button, button *, #swap-indicator, #swap-indicator *, .card *) { text-shadow: .5px .5px 0 rgba(0,0,0,.7) !important; }
 html.px-art #stage :is(#score-center, #score-left, .score-subbox, #screen-location, #pmf-merged, #selected-cards,
   #knack-carousel-wrap, #trick-tray-area, #hand-preview-area, #run-progress, #coin-info, #vclock, .panel-box) {
   box-shadow: 2px 2px 0 rgba(0,0,0,.55) !important;
@@ -72,4 +74,42 @@ html.px-art #stage #focus-bar-outer, html.px-art #stage #focus-bar-outer * { bor
 html.px-art .dnc-particle .pt-box { box-shadow: 2px 2px 0 rgba(0,0,0,.6) !important; }
 
 /* The selection ring: a hard two-pixel outline. */
-html.px-art #grid .card.selected { box-shadow: 0 0 0 2px #7fd6ff, 2px 2px 0 2px rgba(0,0,0,.5) !important; }
+/* 6. The cards (r757, owner: "do the cards like the buttons"): the rank and suit are built
+   square by square (js/pixel-art.js pxArtFaceHTML: the keys' 5x7 letters, the suits on a 7x7
+   grid), each square a little lit block with a gap round it, glowing in the suit colour.
+   Two backgrounds to compare: darkish off-white (default) and black (html.pxa-dark). */
+html .card.has-pxa :is(.rank, .suit, .wild-glyph, .wild-label) { display: none !important; }
+html .card.has-pxa {
+  border-image: none !important; border-radius: 0 !important;
+  border: 1px solid #857c6b !important;
+  background: #c8c0ad !important;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.35), inset 0 0 calc(var(--card-h, 75px) * .1) rgba(80, 70, 50, .18) !important;
+  --pa-hearts: #a0030b; --pa-diamonds: #c47f00; --pa-spades: #111; --pa-clubs: #2255cc; --pa-wild: #6d28d9; --pa-crowns: #a87a10; --pa-moons: #2f7fae;
+  --pa-glow: .45;
+}
+html.pxa-dark .card.has-pxa {
+  border-color: #3a3833 !important;
+  background: #0b0a08 !important;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.05) !important;
+  --pa-hearts: #ff4d4d; --pa-diamonds: #ffb52e; --pa-spades: #ece6d6; --pa-clubs: #5b8fff; --pa-wild: #b58cff; --pa-crowns: #f2c341; --pa-moons: #7cc8f0;
+  --pa-glow: .9;
+}
+html .card.has-pxa { color: var(--pa-spades); }
+html .card.has-pxa.suit-hearts   { color: var(--pa-hearts); }
+html .card.has-pxa.suit-diamonds { color: var(--pa-diamonds); }
+html .card.has-pxa.suit-clubs    { color: var(--pa-clubs); }
+html .card.has-pxa.wild-card     { color: var(--pa-wild); }
+html .card.has-pxa.suit-crowns   { color: var(--pa-crowns); }
+html .card.has-pxa.suit-moons    { color: var(--pa-moons); }
+html .pxa-face {
+  position: absolute; left: 50%; top: 50%; translate: -50% -50%; pointer-events: none; z-index: 0;
+  height: 46%; width: auto; max-width: 74%;   /* r759: smaller squares */ overflow: visible;
+  fill: currentColor; stroke: rgba(0,0,0,.45); stroke-width: .12;
+  filter: drop-shadow(0 0 calc(var(--card-h, 75px) * .025) color-mix(in srgb, currentColor calc(var(--pa-glow) * 100%), transparent))
+          drop-shadow(0 0 calc(var(--card-h, 75px) * .07) color-mix(in srgb, currentColor calc(var(--pa-glow) * 45%), transparent));
+}
+html.pxa-dark .pxa-face { stroke: rgba(0,0,0,.8); }
+html .pxa-face.pxa-long { height: auto; width: 70%; }
+html .card.has-pxa.selected {
+  box-shadow: 0 0 0 2px #4a9eff, 0 0 8px rgba(74,158,255,.6) !important;
+}

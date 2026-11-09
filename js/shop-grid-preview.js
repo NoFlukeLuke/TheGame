@@ -543,6 +543,7 @@ function shopAttachLabelHold(el, cat) {
 // ── Open / close ──
 let _shopPrevPV = null;   // portrait panel view to restore on close
 function openShopGrid() {
+  if (typeof rsScreen === 'function') rsScreen('shop');   // r755: run stats
   shopGridActive = true;
   shopGridMode   = 'buy';
   shopGridSel    = new Set();

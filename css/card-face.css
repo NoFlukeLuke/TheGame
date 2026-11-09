@@ -64,7 +64,8 @@ html:is(.cf-print, .cf-pixel, .cf-classic) .card:not(.stone-card):not(.challenge
   border-image-source: var(--cfs-stock); border-image-slice: 6; border-image-width: calc(6 * var(--k)); border-image-repeat: stretch;
   image-rendering: pixelated;
 }
-html:is(.cf-print, .cf-pixel, .cf-classic) .card.wild-card:not(.stone-card) { box-shadow: 0 0 0 1.5px #c9b7f0; }
+/* r756 (owner): no purple ring or violet wash on a wild; the Joker face says what it is. */
+html:is(.cf-print, .cf-pixel, .cf-classic) .card.wild-card:not(.stone-card) { box-shadow: none; background: var(--card-bg); }
 html:is(.cf-print, .cf-pixel, .cf-classic) .card.wild-card:hover:not(.unreachable) { background: #fffaee; }
 html:is(.cf-print, .cf-pixel, .cf-classic) .card.selected:not(.stone-card):not(.challenge-card):not(.num-card) {
   box-shadow: 0 0 0 1.5px #4a9eff, 0 0 7.5px rgba(74,158,255,.62);

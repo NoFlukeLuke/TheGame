@@ -971,8 +971,8 @@ function injectTrickAfterReward(trick) {
   // Mystery tile), and those have to bounce rather than vanish.
   if (trickTrayFullFor(trick.id)) return refuseTrickCapacity();
   trickTray.push(trick);
+  if (typeof revealNote === 'function') revealNote(trick);   // r706: the first take plays the name's reveal (r753: noted first, so no tray render can land it early)
   selectTrick(trick, true);
-  if (typeof revealNote === 'function') revealNote(trick);   // r706: the first take plays the name's reveal
   if (typeof markDiscovered === 'function') markDiscovered(trick.id);   // r651: its name shows from the moment it is taken
   if (typeof inseparableCheck === 'function') inseparableCheck();   // r646: both halves of a pair in the tray fuse now
   renderTrickTray();
@@ -1110,6 +1110,7 @@ function openPrizeGrid() {
 
 let rewardSwapReady = false, rewardSwapLift = null, rewardTapKey = null, rewardTapAt = 0;
 function openRewardGrid() {
+  if (typeof rsScreen === 'function') rsScreen('grid:' + (typeof rewardGridMode !== 'undefined' && rewardGridMode || 'reward'));   // r755: run stats
   gameTimerPaused = true;
   if (!penaltyGridActive() && !miniGridActive() && !callItGridActive()) rewardGridsSeen++;   // count this grid (gates the first-5 guaranteed upgrades)
   rewardCells     = generateRewardContent();

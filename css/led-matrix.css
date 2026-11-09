@@ -1,0 +1,12 @@
+/* ══ LED MATRIX (r759, js/led-matrix.js) ══
+   A readout's own text is laid out but hidden; its canvas (.led-c) draws the squares
+   where the text was, glowing in the readout's colour (--led-ink). */
+html.led-on .led-host { visibility: hidden !important; filter: none !important; text-shadow: none !important; }
+html.led-on .led-parent { position: relative; }
+html.led-on .led-c {
+  visibility: visible !important; position: absolute; pointer-events: none; z-index: 2;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 0 1.5px var(--led-ink, #fff)) drop-shadow(0 0 4px color-mix(in srgb, var(--led-ink, #fff) 45%, transparent));
+}
+/* The console's flip clock gives way: the clock is drawn in squares instead. */
+html.led-on #mc-flip { display: none !important; }

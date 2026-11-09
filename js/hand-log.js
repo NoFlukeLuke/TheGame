@@ -45,13 +45,14 @@ function logPlayedHand(hand, cells, finalScore, opts) {
     src:   o.src || 'play',
   });
   if (handLog.length > HAND_LOG_MAX) handLog.shift();
+  if (typeof rsHand === 'function') rsHand(hand, cells, finalScore);   // r755: run stats (js/run-stats.js)
   // Keep an open popup live rather than showing a stale list.
   if (document.getElementById('hand-log-popup')?.classList.contains('show')) renderHandLog();
 }
 
 // The one caller that has to take a hand back: playHand's post-goal guard, which
 // unwinds a hand submitted after the goal was already met.
-function unlogLastHand() { handLog.pop(); }
+function unlogLastHand() { handLog.pop(); if (typeof rsUnhand === 'function') rsUnhand(); }
 
 function resetHandLog() { handLog = []; hideHandLogPopup(); }
 

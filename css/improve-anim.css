@@ -112,3 +112,5 @@ body.ia-lab-on #trick-tour { display: none !important; }
 /* r671: a downgrade (a failed challenge takes an improvement back) is the same
    screen with a red header. */
 .ia-scene.ia-down .ia-head { color: #ff6a5c; text-shadow: 0 0 6px #ff6a5c88; }
+/* r753: a Trick or Knack still on its way to the tray (js/tray-fx.js trayHold). */
+#trick-tray-list .trick-tray-chip.tray-held, .knack-chip.tray-held { opacity: 0 !important; }

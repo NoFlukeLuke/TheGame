@@ -15,7 +15,7 @@
       text and adds a phosphor bloom; css/skin-machine.css says which text gets it. */
 
 const MC_FLY_GHOST = 0;      // nothing shows through the housing: it is in front of the screens (owner, r486)
-const MC_SCREENS = ['score-center', 'score-left', 'pips-box', 'mult-box', 'focus-box', 'screen-location', 'pmf-merged',
+const MC_SCREENS = ['score-center', 'score-left', 'score-subboxes', 'pmf-merged',   // r721: PIPS / MULT / FOCUS (and the location readout) share one screen
   'knack-carousel-wrap', 'selected-cards', 'trick-tray-area', 'coin-info', 'vclock', 'run-progress', 'grid',
   'focus-bar-outer', 'clock', 'hand-preview-area'];
 const mcOn = () => typeof trayMachineOn === 'function' && trayMachineOn();

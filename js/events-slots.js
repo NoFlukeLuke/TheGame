@@ -2,7 +2,7 @@
 // SLOT EVENTS (r197, rebuilt r590) - Card Slots · Entity Slots
 // ══════════════════════════════════════════════
 // Both on the shared cabinet (js/event-slot-machine.js): fixed reel strips, a
-// three-row window, staggered snapping stops and a lever to pull.
+// three-row window, staggered snapping stops; PLAY pulls (r753, the lever is gone).
 //
 // THE ODDS ARE SET, NOT EMERGENT (owner: "edit the rolls to achieve this
 // outcome"). Each pull first rolls win or lose at the event's chance, then picks
@@ -36,6 +36,12 @@ function slotLinesWon(grid, lines) {
   return lines.filter(line => { const a = grid[line[0][0]][line[0][1]]; return a && line.every(([r, k]) => grid[r][k].key === a.key); });
 }
 
+// No lever (r753): CONFIRM (the PLAY key) pulls; Skip reads Done once you have
+// pulled, and waits while the reels turn.
+function slotSkipSync(pulls, busy) {
+  const b = document.getElementById('event-skip'); if (!b) return;
+  b.style.display = 'inline-block'; b.textContent = pulls ? 'Done' : 'Skip'; b.disabled = !!busy;
+}
 // ══════════════════════════════════════════════
 // CARD SLOTS (id 'the_floor')
 // ══════════════════════════════════════════════
@@ -52,16 +58,14 @@ function renderFloor() {
   body.appendChild(evNote('Spin for a chance to buff a rank! If you win, buff each card of the winning rank in your deck with a random buff.'));
   const strip = ranks.map(r => ({ key: r, html: `<span class="sl-rank">${r}</span>` }));
   s.floorStrip = strip;
-  s.floorMachine = evSlotMachine(body, { reels: [strip, strip, strip], payRow: 1, itemW: 56, itemH: 44, onPull: floorPull });
+  s.floorMachine = evSlotMachine(body, { reels: [strip, strip, strip], payRow: 1, itemW: 56, itemH: 44 });
   s.floorOut = document.createElement('div'); body.appendChild(s.floorOut);
   floorSync();
 }
 function floorSync() {
   const s = eventState, price = floorPullPrice();
-  s.floorMachine.lever(!s.floorBusy && coins >= price, price ? `PULL · ${price}` : 'PULL · FREE');
-  evConfirmBtn('DONE', !s.floorBusy);
-  setEventConfirm(!s.floorBusy);
-  const skip = document.getElementById('event-skip'); if (skip) skip.style.display = s.floorPulls ? 'none' : 'inline-block';
+  evConfirmBtn(price ? `PULL · ${creditsTxt(price)}` : 'PULL · FREE', !s.floorBusy && coins >= price);
+  slotSkipSync(s.floorPulls, s.floorBusy);
 }
 function floorPull() {
   const s = eventState;
@@ -92,7 +96,7 @@ function floorPull() {
     s.floorBusy = false; floorSync();
   });
 }
-function confirmFloor() { if (!eventState.floorBusy) closeEvent(); }
+function confirmFloor() { floorPull(); }
 
 // ══════════════════════════════════════════════
 // ENTITY SLOTS (id 'the_payline')
@@ -111,7 +115,7 @@ function paylineStrip(ents) {
   return out;
 }
 function paylineCost(pull) { return pull % 2 === 0 ? { credits: priceOf(BAL.the_payline.spin_cost) } : { seconds: BAL.the_payline.spin_secs }; }
-function paylineCostText(c) { return c.credits ? `${c.credits} credits` : `${c.seconds}s`; }
+function paylineCostText(c) { return c.credits ? creditsTxt(c.credits) : `${c.seconds}s`; }
 function renderPayline() {
   const s = eventState, body = evBodyEl();
   const ents = evImprovables();
@@ -121,7 +125,7 @@ function renderPayline() {
   s.plStrips = [0, 1, 2].map(() => paylineStrip(syms));
   s.plChance = paylineWinChance(ents.length);
   body.appendChild(evNote('Three alike in a row, a column or a diagonal improves that entity.'));
-  s.plMachine = evSlotMachine(body, { reels: s.plStrips, payRow: null, itemW: 54, itemH: 60, onPull: paylinePull });
+  s.plMachine = evSlotMachine(body, { reels: s.plStrips, payRow: null, itemW: 54, itemH: 60 });
   if (typeof fitRewardName === 'function') requestAnimationFrame(() => s.plMachine.el.querySelectorAll('.rwd-name').forEach(fitRewardName));
   s.plOut = document.createElement('div'); body.appendChild(s.plOut);
   paylineSync();
@@ -129,9 +133,8 @@ function renderPayline() {
 function paylineSync() {
   const s = eventState, c = paylineCost(s.plPulls);
   const can = !s.plBusy && (!c.credits || coins >= c.credits);
-  s.plMachine.lever(can, `PULL · ${paylineCostText(c)}`);
-  evConfirmBtn('DONE', !s.plBusy);
-  const skip = document.getElementById('event-skip'); if (skip) skip.style.display = s.plPulls ? 'none' : 'inline-block';
+  evConfirmBtn(`PULL · ${paylineCostText(c)}`, can);
+  slotSkipSync(s.plPulls, s.plBusy);
 }
 function paylinePull() {
   const s = eventState;
@@ -170,4 +173,4 @@ function paylinePull() {
     s.plBusy = false; paylineSync();
   });
 }
-function confirmPayline() { if (!eventState.plBusy) closeEvent(); }
+function confirmPayline() { if (eventState.plNone) closeEvent(); else paylinePull(); }

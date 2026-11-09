@@ -112,9 +112,13 @@ each curse card removed; a Sleight that turns a curse card into a buffed card
 instead of removing it; a Trick that makes Gossip spread onto YOUR side (a
 curse card next to a Sleight charges it).
 
-## Open questions for the owner
+## Open questions for the owner (answered)
 
-1. Which two (or more) to build?
+1. Which two (or more) to build? Answered by r723: the four horsemen.
 2. Remove Leaden / Taxing / Snared outright, or keep one as a card curse?
-3. Should curse cards still leave after 120s, or stay until removed (makes
-   removal entities matter more)?
+   Owner (r752): not for good, leave them out for now. They are offered nowhere
+   since r726; the code stays for saved runs and for bringing them back.
+3. Should curse cards still leave after 120s? Answered by the difficulty tiers
+   (r728, DIFFICULTY.md): a horseman in the deck leaves after 4 draws (tiers 1-4),
+   6 draws (5-6), or stays until removed (7-8). The 120s return skips horsemen.
+   A boss's horseman is temp and goes with the boss.

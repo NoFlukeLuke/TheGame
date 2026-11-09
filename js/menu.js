@@ -1,4 +1,4 @@
-const BUILD = "2026-11-09 · r754 · Flow goals are a table; reviews ask your level when you are ahead and pay for it; reward odds can stop adapting";
+const BUILD = "2026-11-09 · r760 · merge main r753-r759 with the Flow goal table, the catch-up reviews and the adaptive-odds switch";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

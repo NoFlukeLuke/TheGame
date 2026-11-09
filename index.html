@@ -102,6 +102,7 @@
 <link rel="stylesheet" href="css/dexterous.css">
 <link rel="stylesheet" href="css/protocols.css">
 <link rel="stylesheet" href="css/pixel-art.css">
+<link rel="stylesheet" href="css/led-matrix.css">
 </head>
 <body class="office-pending">
 <!-- BOOT WATCHDOG (r470). The 126 scripts load with no versioning, so a
@@ -708,6 +709,10 @@
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
       <input type="checkbox" id="dev-pixel-art" onchange="setPixelArt(this.checked)"> Everything but the housing drawn as pixel art (also index.html?pixel)
     </label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
+      Pixel cards on
+      <select id="dev-pixel-cards" onchange="setPixelArtCards(this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-size:12px;cursor: var(--cur-pointer, pointer);"><option value="paper">darkish off-white</option><option value="dark">black</option></select>
+    </label>
 
     <div class="dev-subtitle">Card ratio</div>
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
@@ -785,8 +790,14 @@
     <div class="dev-subtitle">Score merge (how PIPS x MULT x FOCUS become the score)</div>
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
       The chips fuse by
-      <select id="dev-pmf-look" onchange="setPmfLook(this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor: var(--cur-pointer, pointer);"><option value="auto">auto (hold in console mode, slide elsewhere)</option><option value="slide">slide (two steps, the chips melt together)</option><option value="hold">hold (two steps, nothing moves: the next screen takes the number)</option><option value="one">one step (all three at once)</option></select>
+      <select id="dev-pmf-look" onchange="setPmfLook(this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor: var(--cur-pointer, pointer);"><option value="auto">auto (Rise)</option><option value="rise">Rise (each number rises and flies into the next tray, gone as it lands)</option><option value="stamp">Stamp (lifts, slams down into the next tray)</option><option value="stream">Stream (its digits pour across; the tray counts up)</option><option value="zap">Zap (a bolt jumps across; the tray scrambles, then locks)</option><option value="roll">Roll (slides along the foot; the tray rolls like an odometer)</option><option value="hold">hold (nothing moves: the next screen takes the number)</option><option value="slide">melt (two steps, the chips melt together)</option><option value="one">one step (all three at once)</option></select>
       <button class="dev-btn" onclick="pmfPreview()">Preview</button>
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
+      Rise, Stamp, Stream, Zap and Roll end in
+      <button class="dev-btn" data-pmf-resolve="mid" onclick="setPmfResolve('mid')">MIDDLE (MULT)</button>
+      <button class="dev-btn" data-pmf-resolve="focus" onclick="setPmfResolve('focus')">FOCUS</button>
+      <button class="dev-btn" onclick="location.href='index.html?merge'">Open the lab</button>
     </label>
 
     <div class="dev-subtitle">Tray look</div>
@@ -1523,6 +1534,7 @@
     <button id="btn-resume" class="pause-btn pause-btn-primary">▶ Resume</button>
     <button id="btn-pause-settings" class="pause-btn pause-btn-ghost" onclick="openSettings(false)">⚙ Settings</button>
     <button id="btn-pause-builds" class="pause-btn pause-btn-ghost" onclick="pauseBuildsToggle()">★ Builds</button>
+    <button id="btn-pause-history" class="pause-btn pause-btn-ghost" onclick="openHistory(false)">≡ History</button>
     <div id="pause-builds" style="display:none;"></div>
     <button id="btn-pause-newrun" class="pause-btn pause-btn-ghost" onclick="restartRun()">↻ New Run</button>
     <button id="btn-pause-home" class="pause-btn pause-btn-ghost" onclick="quitToMainMenu()">⌂ Home</button>
@@ -1885,9 +1897,11 @@
 <script src="js/stock-bulbs.js"></script>
 <script src="js/key-looks.js"></script>
 <script src="js/key-dots.js"></script>
+<script src="js/led-matrix.js"></script>
 <script src="js/screen-door.js"></script>
 <script src="js/dev-panel.js"></script>
 <script src="js/history.js"></script>
+<script src="js/run-stats.js"></script>
 <script src="js/save.js"></script>
 <script src="js/key-press.js"></script>
 <script src="js/key-fit.js"></script>
