@@ -1,4 +1,4 @@
-const BUILD = "2026-11-09 · r755 · run stats in the history; COPY ALL";
+const BUILD = "2026-11-09 · r756 · Starting Time as a time in Records; amber screen cards in the pixel preview; closer shadows; the discard does not rise";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

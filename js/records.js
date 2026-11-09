@@ -433,7 +433,10 @@ function recordsRenderPersonnel() {
 // ══════════════════════════════════════════════
 // One circle per step up to the limit's max (a step is the limit's own step, so
 // Starting Time's 300s is 20 circles of 15s); lit circles are what you have now.
+const recLimTime = s => (typeof formatTime === 'function') ? formatTime(s) : `${s}s`;
 function recLimDots(def, l, shown) {
+  // r756 (owner): Starting Time is read as a time, not 20 circles.
+  if (def.id === 'round_time') return '';
   const step = l.step || def.step || 1;
   const total = Math.max(1, Math.round(l.max / step));
   const lit = Math.max(0, Math.min(total, Math.floor(shown / step)));
@@ -458,7 +461,7 @@ function recordsRenderLimits() {
     }
     return `<div class="rec-lim${maxed ? ' maxed' : ''}">
       <div class="rec-lim-top"><span><span class="rec-lim-ico">${emGlyph(def.icon)}</span>${def.label}</span>
-        <span class="rec-lim-v">${shown}${dlStr}${def.hideMax ? '' : `<span class="rec-lim-max">/${l.max}</span>`}${maxed ? ' <b>MAX</b>' : ''}</span></div>
+        <span class="rec-lim-v">${def.id === 'round_time' ? recLimTime(shown) : shown}${dlStr}${def.hideMax ? '' : `<span class="rec-lim-max">/${def.id === 'round_time' ? recLimTime(l.max) : l.max}</span>`}${maxed ? ' <b>MAX</b>' : ''}</span></div>
       ${recLimDots(def, l, shown)}
       <div class="rec-lim-desc">${extra}</div></div>`;
   }).join('');

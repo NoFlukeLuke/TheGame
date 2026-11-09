@@ -6,7 +6,9 @@
    2. Soft glows and blurred shadows become hard one-pixel drop shadows.
    3. Square corners with a stepped notch (--pxa-notch), never a curve.
    4. Flat fills with a 2 x 2 dither instead of gradients.
-   5. Images drawn with no smoothing. Cards on the pixel pack (js/pixel-art.js). */
+   5. Images drawn with no smoothing.
+   6. Cards are little pale amber screens (r756): a dot grid on the glass, the rank and
+      suit in the suit colours, glowing and broken into dots like the keys' words. */
 
 html.px-art {
   --pxa-font: 'VT323 Local', 'VT323', monospace;
@@ -37,7 +39,7 @@ html.px-art .dnc-particle .pt-box {
 }
 
 /* 2. No soft light: a hard one-pixel shadow under the words, no blur anywhere on the screens. */
-html.px-art #stage :not(button, button *, #swap-indicator, #swap-indicator *) { text-shadow: 1px 1px 0 rgba(0,0,0,.75) !important; }
+html.px-art #stage :not(button, button *, #swap-indicator, #swap-indicator *, .card *) { text-shadow: .5px .5px 0 rgba(0,0,0,.7) !important; }
 html.px-art #stage :is(#score-center, #score-left, .score-subbox, #screen-location, #pmf-merged, #selected-cards,
   #knack-carousel-wrap, #trick-tray-area, #hand-preview-area, #run-progress, #coin-info, #vclock, .panel-box) {
   box-shadow: 2px 2px 0 rgba(0,0,0,.55) !important;
@@ -72,4 +74,24 @@ html.px-art #stage #focus-bar-outer, html.px-art #stage #focus-bar-outer * { bor
 html.px-art .dnc-particle .pt-box { box-shadow: 2px 2px 0 rgba(0,0,0,.6) !important; }
 
 /* The selection ring: a hard two-pixel outline. */
-html.px-art #grid .card.selected { box-shadow: 0 0 0 2px #7fd6ff, 2px 2px 0 2px rgba(0,0,0,.5) !important; }
+/* 6. The cards (r756, owner): a pale amber screen, the face glowing in the suit colours. */
+html.px-art .card:not(.stone-card):not(.challenge-card):not(.num-card):not(.sleight-card) {
+  --pa-dot: calc(var(--card-h, 75px) / 28);
+  border-image: none !important; border: 1px solid #b98a3c !important; border-radius: 0 !important;
+  background:
+    radial-gradient(circle, rgba(150, 95, 20, .13) 30%, transparent 34%) 0 0 / var(--pa-dot) var(--pa-dot),
+    radial-gradient(ellipse at 50% 45%, #fff1cc 0%, #f6dca0 60%, #e9c27a 100%) !important;
+  box-shadow: inset 0 0 calc(var(--card-h, 75px) * .12) rgba(255, 196, 96, .55), 0 0 5px rgba(255, 190, 90, .35) !important;
+}
+html.px-art .card:not(.stone-card):not(.challenge-card):not(.num-card):not(.sleight-card) :is(.rank, .suit, .wild-glyph, .wild-label) {
+  filter: none !important; font-size-adjust: none !important;
+  -webkit-text-stroke: calc(var(--pa-dot) * .7) currentColor;   /* a stroke at least a dot wide, so every dot on it is lit */
+  paint-order: stroke fill;
+  -webkit-mask: radial-gradient(circle, #000 60%, transparent 64%) 0 0 / var(--pa-dot) var(--pa-dot);
+          mask: radial-gradient(circle, #000 60%, transparent 64%) 0 0 / var(--pa-dot) var(--pa-dot);
+  text-shadow: 0 0 1.5px currentColor, 0 0 5px color-mix(in srgb, currentColor 55%, transparent) !important;
+}
+html.px-art .card:not(.stone-card):not(.challenge-card):not(.num-card) .rank { font-size: calc(var(--card-h, 75px) * 0.42); line-height: .8; }
+html.px-art .card.selected:not(.stone-card):not(.challenge-card):not(.num-card) {
+  box-shadow: inset 0 0 calc(var(--card-h, 75px) * .12) rgba(255, 196, 96, .55), 0 0 0 2px #4a9eff, 0 0 8px rgba(74,158,255,.6) !important;
+}

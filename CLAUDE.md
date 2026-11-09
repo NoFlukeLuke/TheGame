@@ -4659,3 +4659,14 @@ by diffing, so a new grant site needs nothing. History shows the run in progress
 THIS RUN and COPY ALL (JSON, `lethe-run-history-1`, the live run as `current`). The pause menu
 has a History button. Storage: the newest 25 runs keep every hand, up to 60 keep their rows,
 older runs keep the plain entry; a full store trims harder (`writeRunHistory`).
+## r756 - Starting Time as a time; amber screen cards in the pixel preview; no purple on wilds; the discard does not rise (owner)
+- **Records -> Limits:** Starting Time has no circles; it reads `3:30/5:00` (`recLimTime`).
+- **Pixel art preview cards** (css/pixel-art.css, section 6): the printed face (the preview swaps
+  `cardFace` to `print`, not the Jfred pack) on a pale amber screen: a faint dot grid on the glass,
+  an inner amber glow, no stock 9-slice. Rank and suit keep the suit colours, are fattened by a
+  `-webkit-text-stroke` at least a dot wide and masked into dots (`--pa-dot`, card height / 28),
+  and glow (text-shadow in `currentColor`). The preview's text shadows are 0.5px (were 1px).
+- **Wild cards lose the purple** (css/card-face.css): no lavender ring and no violet wash on the
+  paper looks (print, pixel, classic); the Joker face says what it is.
+- **Fling has no lift** (js/card-anims.js): the card is swapped at once for a stand-in under the other
+  cards that falls away into the board, thrown (`CA_FLING_THROW`: size 1 / (1 + 4t + 7t^2)).

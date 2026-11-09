@@ -36,7 +36,7 @@ const CARD_ANIM_KINDS = [
       { id: 'toss',    name: 'A · Toss', step: 6, desc: 'Flicked off the board with a spin.' },
       { id: 'crumple', name: 'B · Crumple', step: 6, desc: 'Squashed into a ball that drops away.' },
       { id: 'sink',    name: 'C · Sink', step: 6, desc: 'Tips onto one corner and sinks into the table with a slight spin; the cards above fall in over it.' },
-      { id: 'fling',   name: 'D · Fling', desc: 'A short lift toward you, then flung down into the board, falling away under the other cards.' },
+      { id: 'fling',   name: 'D · Fling', desc: 'Flung down into the board at once, falling away under the other cards.' },
       { id: 'mech',    name: 'T · Filed', desc: 'Terminal look: pulled straight down into a slot below the board. No spin.' },
     ] },
   { id: 'cut', label: 'Cut from deck', note: 'A card removed from the run for good.',
@@ -385,22 +385,22 @@ CARD_ANIM_RUN.discard.sink = async ({ cards, lab }) => {
   await (lab ? Promise.all(done) : caWait(CARD_EXIT_MS.discard.sink + (cards.length - 1) * 40));
 };
 
-// D (r723, owner, the default): a short lift, then flung down hard.
-// r751 (owner): "down" is INTO the board, away from the viewer, not toward the bottom of
-// the screen. The lift is on the real card (raised, toward you); then a stand-in under
-// every other card (caStandIn, as Sink) falls away: it shrinks as a thing does when its
-// distance grows under gravity (size = 1 / (1 + a t^2)), tips back, dims with depth and
-// drifts only a little downward. The board waits for the lift alone (CARD_EXIT_MS), so
-// the cards above fall in over it while it is still going.
-const CA_FLING_LIFT_MS = 110, CA_FLING_FALL_MS = 620;
-function caFallAway(c, side, h, from, ms, delay) {
+// D (r723, owner, the default): flung down hard.
+// r751 / r756 (owner): "down" is INTO the board, away from the viewer, not toward the bottom
+// of the screen, and it does not rise first. The card is swapped at once for a stand-in under
+// every other card (caStandIn, as Sink) that falls away: it shrinks as a thing does when its
+// distance grows (thrown, then gravity: size = 1 / (1 + v t + a t^2)), tips back, dims with depth and
+// drifts only a little downward. The board waits CARD_EXIT_MS only, so the cards above fall
+// in over it while it is still going.
+const CA_FLING_FALL_MS = 620, CA_FLING_THROW = 4;   // the throw: it leaves the board's face fast (size 1 / (1 + 4t + 7t^2))
+function caFallAway(c, side, h, from, ms, delay, v) {
   const k = caSlow(); ms *= k; delay = (delay || 0) * k;
   const N = 8, A = 7, frames = [];
   for (let n = 0; n <= N; n++) {
-    const t = n / N, size = 1 / (1 + A * t * t), d = 1 - size;   // d: 0 at the board's face, toward 1 far below it
+    const t = n / N, size = 1 / (1 + (v || 0) * t + A * t * t), d = 1 - size;   // d: 0 at the board's face, toward 1 far below it
     frames.push({
       transform: `perspective(520px) rotateX(${(d * 38).toFixed(1)}deg)`,
-      translate: caT(from.x + side * 6 * d, from.y + (h * .16 - from.y) * d),
+      translate: caT(from.x + side * 6 * d, from.y + (h * .12 - from.y) * d),
       rotate: `${(from.r + side * 22 * d).toFixed(1)}deg`,
       scale: (from.s * size).toFixed(3),
       filter: `brightness(${(1 - .7 * d).toFixed(3)})`,
@@ -412,22 +412,13 @@ function caFallAway(c, side, h, from, ms, delay) {
   return new Promise(res => { const end = () => { c.remove(); res(); }; a.onfinish = end; a.oncancel = end; setTimeout(end, ms + delay + 120); });
 }
 CARD_ANIM_RUN.discard.fling = async ({ cards, lab }) => {
-  const lifted = [], gone = [];
-  cards.forEach((el, i) => {
-    caZ(el); const h = el.offsetHeight, side = caRnd() < .5 ? -1 : 1;
-    const from = { x: side * 2, y: -h * .18, r: side * -4, s: 1.06 };
-    const up = caKeep(el, [
-      { translate: '0px 0px', rotate: '0deg', scale: '1', opacity: 1 },
-      { translate: caT(from.x, from.y), rotate: `${from.r}deg`, scale: String(from.s), opacity: 1 }],
-      { duration: CA_FLING_LIFT_MS, delay: i * 30, easing: 'cubic-bezier(.2,.7,.4,1)' });
-    lifted.push(up);
-    gone.push(up.then(() => {
-      if (!el.parentNode) return;
-      const c = caStandIn(el); el.style.opacity = '0';
-      return caFallAway(c, side, h, from, CA_FLING_FALL_MS);
-    }));
+  const gone = cards.map((el, i) => {
+    if (!el.parentNode) return Promise.resolve();
+    const h = el.offsetHeight, side = caRnd() < .5 ? -1 : 1;
+    const c = caStandIn(el); el.style.opacity = '0';
+    return caFallAway(c, side, h, { x: 0, y: 0, r: 0, s: 1 }, CA_FLING_FALL_MS, i * 30, CA_FLING_THROW);
   });
-  await Promise.all(lab ? gone : lifted);
+  await (lab ? Promise.all(gone) : caWait(CARD_EXIT_MS.discard.fling + (cards.length - 1) * 30));
 };
 
 // T: the Terminal look. A 3px dip (the solenoid grabbing it), then pulled

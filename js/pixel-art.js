@@ -6,8 +6,9 @@
 // thresholded away (#pxa-crisp: each pixel fully on or off), hard one-pixel drop
 // shadows instead of soft glows, square corners with a stepped pixel notch,
 // flat fills dithered in a 2 x 2 checker instead of gradients, images scaled
-// with no smoothing, and the cards on the pixel pack (Jfred, r633) for as long
-// as the look is on (the stored card face is left alone).
+// with no smoothing, and the cards as little pale amber screens (r756: the printed
+// face's rank and suit glowing in the suit colours, on a dot grid) for as long as
+// the look is on (the stored card face is left alone).
 // Turn on: `index.html?pixel`, or dev -> HUD & Display -> Aesthetics -> Pixel art.
 // Store `lethe.pixelArt.v1` holds 'on' only.
 const PIXEL_ART_KEY = 'lethe.pixelArt.v1';
@@ -30,7 +31,7 @@ function pxArtFilter() {
 function pxArtApply() {
   document.documentElement.classList.toggle('px-art', pxArtOn);
   if (typeof cardFace !== 'undefined' && typeof cardFaceApply === 'function') {
-    if (pxArtOn && cardFace !== 'pixel') { _pxArtFace = cardFace; cardFace = 'pixel'; cardFaceApply(); }
+    if (pxArtOn && cardFace !== 'print') { _pxArtFace = cardFace; cardFace = 'print'; cardFaceApply(); }
     else if (!pxArtOn && _pxArtFace) { cardFace = _pxArtFace; _pxArtFace = null; cardFaceApply(); }
   }
   if (pxArtOn) pxArtFilter();
