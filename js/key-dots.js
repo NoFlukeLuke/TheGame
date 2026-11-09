@@ -253,6 +253,17 @@ function kdSync(el, instant) {
   const sig = JSON.stringify([L, blocks, W, H]);
   if (sig === st.sig && !sized) return;
   st.sig = sig;
+  // r751 (owner): the fall is for a change of WORDS, every time, and only then. Whether
+  // the words changed is read from the text alone: a key that only moved or resized
+  // (the fitter, a press, a resize, a screen putting its saved markup back) snaps to
+  // place, and words that changed fall out and in even when the key was resized or
+  // rebuilt in the same change (which used to snap, so many screens never showed it).
+  const words = L.map(l => l.text.toUpperCase()).join('|');
+  const wordsChanged = st.words !== undefined && words !== st.words;
+  st.words = words;
+  // A fall still running when only the layout moves (the fitter sizing the new word a
+  // frame later) carries on to the new places instead of snapping.
+  instant = !wordsChanged && !st.anim;
   const lay = kdLayout(L, W, H, s, blocks);
   const next = new Map(kdGlyphs(L, lay).map(g => [g.id, g]));
   st.P = lay.P; st.gap = lay.gap;
@@ -260,7 +271,7 @@ function kdSync(el, instant) {
   st.ink = `rgb(${ph})`;
   const now = performance.now(), reduce = (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)
     || (typeof skipOn === 'function' && skipOn('transitions'));
-  if (instant || reduce || !st.glyphs.size) {
+  if (instant || reduce) {
     st.glyphs = next; st.dots = [];
     next.forEach(g => g.dots.forEach(([x, y]) => st.dots.push({ x, y, g: g.id, a: g.a, st: 'rest' })));
     kdDraw(st); return;

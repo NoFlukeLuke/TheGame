@@ -4543,3 +4543,27 @@ Amplifier. Golden: 838 cases match. No page errors.
 - The owner kept the audit reading (an audit's first paying card pays nothing) and the protocol name
   Hyperfocus beside the Hyper Focus Trick. Hyperfocus has no unlock Knack yet.
 
+## r751 - limit circles; key words fall on every change; flat trays; the discard falls in; pixel art preview (owner)
+- **Records -> Limits** (`recLimDots`, js/records.js): no bar. One circle per step up to the limit's max
+  (the limit's own step, so Starting Time's 300s is 20 circles of 15s), lit for what you have now.
+- **Key dot words** (js/key-dots.js): whether to fall is read from the WORDS alone (`st.words`). A
+  change of words falls out and in every time, even when the key was resized or its markup rebuilt
+  in the same change (both used to snap, so screens that save and restore a key's markup, and keys
+  the fitter resized, never showed it); a change of layout alone snaps, and does not cut a fall
+  already running. Measured: a markup swap to CONFIRM and back fell both ways; a font-size change,
+  a resize and the same word rebuilt did not.
+- **Outside console mode a tray is a thin border** (`html.tray-flat`, js/tray-pit.js + the end of the
+  tray block in css/style.css): no pit, no ring stack, no inner shadow, moulding or halo; 1px in the
+  tray's colour over a flat fill. The pit and the glowing lines are gone (a stored 0 or 1 reads as 1,
+  which is this look); the pit's SVG painter stays but never draws (`trayPitDrawn()` false). The
+  tray reactions are the WAAPI brightness ones in every look (`trayPitOn()` true).
+- **Fling discard falls INTO the board** (js/card-anims.js): the real card lifts toward you
+  (`CA_FLING_LIFT_MS`), then a stand-in under every other card (`caStandIn`) falls away
+  (`caFallAway`: size 1 / (1 + 7t^2), tips back, dims, drifts a little down) for
+  `CA_FLING_FALL_MS`. The board waits for the lift only (`CARD_EXIT_MS.discard.fling` 140).
+- **Pixel art preview** (`js/pixel-art.js`, `css/pixel-art.css`, loaded last): `index.html?pixel` or
+  dev -> Aesthetics -> Pixel art. Everything but the housing and the keys: VT323 everywhere with its
+  anti-aliasing thresholded (`#pxa-crisp`), hard 1px shadows instead of glows, square corners with a
+  stepped notch (`--pxa-notch`), dithered flat fills (outside console mode; a console screen's
+  `::before` is its glass dome, never touch it), no image smoothing, and the cards on the pixel pack
+  for as long as it is on (`cardFace` swapped, the stored face untouched). Off by default.

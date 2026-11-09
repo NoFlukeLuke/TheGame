@@ -5035,6 +5035,31 @@
   #stage:not(.landscape) #hand-preview-area   { --tray-c: var(--c-red);   --tray-set: var(--tray-rings); }
   #stage:not(.landscape) #knack-carousel-wrap { --tray-c: var(--c-magenta); --tray-set: var(--tray-rings); }
 
+  /* r751 (owner): outside console mode (`html.tray-flat`, js/tray-pit.js) a tray has no
+     depth: no ring stack, no inner shadow, no moulding or halo. One thin border in its
+     colour over a flat dark fill. The colours (`--tray-c`) are the rules above. */
+  html.tray-flat #stage.landscape #score-center,
+  html.tray-flat #stage.landscape #score-left,
+  html.tray-flat #stage.landscape #selected-cards,
+  html.tray-flat #stage.landscape #knack-carousel-wrap,
+  html.tray-flat #stage.landscape #trick-tray-area,
+  html.tray-flat #stage.landscape #vclock,
+  html.tray-flat #stage.landscape #run-progress,
+  html.tray-flat #stage.landscape #coin-info,
+  html.tray-flat #stage:not(.landscape) #trick-tray-area,
+  html.tray-flat #stage:not(.landscape) #hand-preview-area,
+  html.tray-flat #stage:not(.landscape) #knack-carousel-wrap,
+  html.tray-flat #stage:not(.landscape) #score-center,
+  html.tray-flat #stage:not(.landscape) #score-left,
+  html.tray-flat #score-subboxes .score-subbox,
+  html.tray-flat #score-subboxes #screen-location,
+  html.tray-flat #score-subboxes #pmf-merged,
+  html.tray-flat .panel-box {
+    box-shadow: none !important;
+    border: 1px solid var(--tray-c) !important;
+    background: #0e0c08 !important;
+  }
+
   /* Readout typography */
   .top-label, .subbox-label, #score-goal-label, #score-total-label, .panel-title,
   #interact-costs .ic-h, #ci-tip .ci-row, #interact-costs .ic-r,

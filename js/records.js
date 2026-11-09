@@ -431,11 +431,20 @@ function recordsRenderPersonnel() {
 // ══════════════════════════════════════════════
 // LIMITS / TIME / PERFORMANCE tabs
 // ══════════════════════════════════════════════
+// One circle per step up to the limit's max (a step is the limit's own step, so
+// Starting Time's 300s is 20 circles of 15s); lit circles are what you have now.
+function recLimDots(def, l, shown) {
+  const step = l.step || def.step || 1;
+  const total = Math.max(1, Math.round(l.max / step));
+  const lit = Math.max(0, Math.min(total, Math.floor(shown / step)));
+  let h = '';
+  for (let i = 0; i < total; i++) h += `<i class="${i < lit ? 'on' : ''}"></i>`;
+  return `<div class="rec-dots" title="${lit} of ${total}">${h}</div>`;
+}
 function recordsRenderLimits() {
   const rows = LIMITS_DEF.map(def => {
     const l = limits[def.id];
     const maxed = l.current >= l.max;
-    const pct = def.hideMax ? 100 : Math.round(((l.current - def.base) / Math.max(1, l.max - def.base)) * 100);
     const shown = limitShownValue(def.id), dl = limitShownDelta(def.id);
     const dlStr = dl ? ` <span style="color:${dl > 0 ? 'var(--gold)' : 'var(--red)'}">${dl > 0 ? '+' : ''}${dl}</span>` : '';
     // Luck is the one limit whose number means nothing on its own, so its row
@@ -450,7 +459,7 @@ function recordsRenderLimits() {
     return `<div class="rec-lim${maxed ? ' maxed' : ''}">
       <div class="rec-lim-top"><span><span class="rec-lim-ico">${emGlyph(def.icon)}</span>${def.label}</span>
         <span class="rec-lim-v">${shown}${dlStr}${def.hideMax ? '' : `<span class="rec-lim-max">/${l.max}</span>`}${maxed ? ' <b>MAX</b>' : ''}</span></div>
-      <div class="rec-bar-track"><span class="rec-bar-fill" style="width:${Math.max(0, Math.min(100, pct))}%"></span></div>
+      ${recLimDots(def, l, shown)}
       <div class="rec-lim-desc">${extra}</div></div>`;
   }).join('');
   return `<div class="rec-note">Operating allowances for this run. Raised at the Mart, by a Limit Break, or as a reward.</div>

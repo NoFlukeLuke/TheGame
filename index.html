@@ -101,6 +101,7 @@
 <link rel="stylesheet" href="css/stack-mode.css">
 <link rel="stylesheet" href="css/dexterous.css">
 <link rel="stylesheet" href="css/protocols.css">
+<link rel="stylesheet" href="css/pixel-art.css">
 </head>
 <body class="office-pending">
 <!-- BOOT WATCHDOG (r470). The 126 scripts load with no versioning, so a
@@ -701,6 +702,11 @@
       <select id="dev-card-face" onchange="setCardFace(this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor: var(--cur-pointer, pointer);"><option value="print">printed (pixel type)</option><option value="pixel">pixel cards (Jfred)</option><option value="phosphor">phosphor screens</option><option value="classic">classic serif</option></select>
     </label>
 
+    <div class="dev-subtitle">Pixel art (a preview)</div>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
+      <input type="checkbox" id="dev-pixel-art" onchange="setPixelArt(this.checked)"> Everything but the housing drawn as pixel art (also index.html?pixel)
+    </label>
+
     <div class="dev-subtitle">Card ratio</div>
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
       In the fixed box a card is
@@ -784,7 +790,7 @@
     <div class="dev-subtitle">Tray look</div>
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
       Trays are
-      <select id="dev-pit-on" onchange="trayPitSet('on', ['lines', 'pit', 'machine', 'machine-cream'].indexOf(this.value))" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor: var(--cur-pointer, pointer);"><option value="lines">glowing lines</option><option value="pit">pits</option><option value="machine">machine panel (charcoal)</option><option value="machine-cream">machine panel (cream)</option></select>
+      <select id="dev-pit-on" onchange="trayPitSet('on', ['lines', 'pit', 'machine', 'machine-cream'].indexOf(this.value))" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor: var(--cur-pointer, pointer);"><option value="pit">thin border</option><option value="machine">machine panel (charcoal)</option><option value="machine-cream">machine panel (cream)</option></select>
     </label>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin:2px 0 4px;">
       <button class="dev-btn" onclick="trayPitPreset('shadow')">Pit: shadow</button>
@@ -1870,6 +1876,7 @@
 <script src="js/chance-count.js"></script>
 <script src="js/machine-skin.js"></script>
 <script src="js/card-face.js"></script>
+<script src="js/pixel-art.js"></script>
 <script src="js/px-icons.js"></script>
 <script src="js/floppy-art.js"></script>
 <script src="js/stock-bulbs.js"></script>

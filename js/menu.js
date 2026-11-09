@@ -1,4 +1,4 @@
-const BUILD = "2026-11-09 · r750 · Limitless: flat x2 back half; the Growth Mindset Knack";
+const BUILD = "2026-11-09 · r751 · records limit circles; key words fall on every change; flat trays outside console; discard falls into the board; pixel art preview";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

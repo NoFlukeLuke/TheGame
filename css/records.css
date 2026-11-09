@@ -200,6 +200,10 @@
 .rec-lim-v { font-size: 19px; color: var(--r-gold); white-space: nowrap; }
 .rec-lim-v b { color: var(--r-mint); font-weight: normal; font-size: 15px; }
 .rec-lim-max { color: var(--am-dim); }
+.rec-dots { display: flex; flex-wrap: wrap; gap: 3px; margin: 2px 0 1px; }
+.rec-dots i { width: 9px; height: 9px; border-radius: 50%; border: 1px solid var(--am-dim); box-sizing: border-box; }
+.rec-dots i.on { background: var(--am); border-color: var(--am); box-shadow: 0 0 5px rgba(255,176,46,.55); }
+.rec-lim.maxed .rec-dots i.on { background: var(--r-mint); border-color: var(--r-mint); box-shadow: 0 0 5px rgba(148,236,176,.5); }
 .rec-lim-desc { font-size: 16px; line-height: 1.15; color: var(--am); margin-top: 4px; }
 
 /* ── generic rows (performance tab) ── */

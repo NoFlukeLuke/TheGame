@@ -34,13 +34,18 @@ let trayPit = (() => {
     }
     const sv = JSON.parse(o); for (const k in sv) if (k in d) d[k] = sv[k];
   } catch (e) {}
+  if (d.on < 1) d.on = 1;   // r751: the glowing lines are gone; outside console mode every tray is the thin border
   return d;
 })();
 // on: 0 = glowing lines, 1 = pit, 2 = machine panel (charcoal), 3 = machine panel (cream).
 // r644 (owner): 3 (console mode) is the default; the store holds only another choice.
 // The machine panel is css/skin-machine.css (r471); it uses the pit's three reactions.
-function trayPitOn() { return trayPit.on >= 1; }
-function trayPitDrawn() { return trayPit.on === 1; }
+// r751 (owner): outside console mode there is no depth at all: no pit, no ring stack,
+// just a thin border in the tray's colour (`html.tray-flat`, css/style.css). on 1 is that
+// look now (0 reads as 1). The pit's SVG painter is kept but never draws.
+function trayPitOn() { return true; }
+function trayPitDrawn() { return false; }
+function trayFlatOn() { return !trayMachineOn(); }
 function trayMachineOn() { return trayPit.on >= 2; }
 function trayPitSave() {
   const o = {}; for (const k in trayPit) if (trayPit[k] !== TRAY_PIT_DEFAULT[k]) o[k] = trayPit[k];
@@ -48,6 +53,7 @@ function trayPitSave() {
 }
 function trayPitSet(key, val) {
   trayPit[key] = key === 'light' ? String(val) : +val;
+  if (key === 'on' && !(trayPit.on >= 1)) trayPit.on = 1;
   trayPitSave(); trayPitApply();
 }
 function trayPitPreset(name) {
@@ -159,6 +165,7 @@ function trayPitPaint(el) {
 function trayPitApply() {
   const html = document.documentElement;
   html.classList.toggle('tray-pit', trayPitDrawn());
+  html.classList.toggle('tray-flat', trayFlatOn());
   html.classList.toggle('skin-machine', trayMachineOn());
   html.classList.toggle('mc-cream', trayPit.on === 3);
   let tag = document.getElementById('tray-pit-style');
@@ -205,7 +212,7 @@ function trayPitTrigger(el) {
 
 function trayPitSync() {
   const set = (id, v) => { const e = document.getElementById(id); if (e && document.activeElement !== e) e.value = String(v); };
-  set('dev-pit-on', ['lines', 'pit', 'machine', 'machine-cream'][trayPit.on] || 'pit'); set('dev-pit-light', trayPit.light);
+  set('dev-pit-on', ['pit', 'pit', 'machine', 'machine-cream'][trayPit.on] || 'pit'); set('dev-pit-light', trayPit.light);
   [['depth', 'px'], ['steps', ''], ['persp', '%'], ['view', '%'], ['tint', '%'], ['floor', '%'], ['ring', '%'], ['ringGlow', '%']].forEach(([k, u]) => {
     set('dev-pit-' + k, trayPit[k]);
     const e = document.getElementById('dev-pit-' + k + '-v'); if (e) e.textContent = trayPit[k] + u;

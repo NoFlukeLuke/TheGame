@@ -1,0 +1,75 @@
+/* ══════════════════════════════════════════════
+   PIXEL ART LOOK (r751, a preview; js/pixel-art.js sets html.px-art)
+   ══════════════════════════════════════════════
+   Everything but the housing. The keys (part of the housing) keep their look.
+   1. One pixel font, no anti-aliasing (#pxa-crisp thresholds every glyph pixel).
+   2. Soft glows and blurred shadows become hard one-pixel drop shadows.
+   3. Square corners with a stepped notch (--pxa-notch), never a curve.
+   4. Flat fills with a 2 x 2 dither instead of gradients.
+   5. Images drawn with no smoothing. Cards on the pixel pack (js/pixel-art.js). */
+
+html.px-art {
+  --pxa-font: 'VT323 Local', 'VT323', monospace;
+  --pxa-notch: polygon(2px 0, calc(100% - 2px) 0, calc(100% - 2px) 1px, calc(100% - 1px) 1px, calc(100% - 1px) 2px, 100% 2px,
+    100% calc(100% - 2px), calc(100% - 1px) calc(100% - 2px), calc(100% - 1px) calc(100% - 1px), calc(100% - 2px) calc(100% - 1px),
+    calc(100% - 2px) 100%, 2px 100%, 2px calc(100% - 1px), 1px calc(100% - 1px), 1px calc(100% - 2px), 0 calc(100% - 2px),
+    0 2px, 1px 2px, 1px 1px, 2px 1px);
+  --pxa-dither: conic-gradient(rgba(255,255,255,.035) 25%, transparent 0 50%, rgba(255,255,255,.035) 0 75%, transparent 0) 0 0 / 2px 2px;
+}
+
+/* 1. The font, everywhere on the screens and in the pop-ups (not the keys). */
+html.px-art #stage :not(button, button *, #swap-indicator, #swap-indicator *, .kd-c),
+html.px-art :is(#entity-tip, #trick-tooltip, #knack-tooltip, #reward-tooltip, #challenge-tooltip, .sleight-tooltip,
+  #sleight-grid-tooltip, #card-enh-tooltip, #ci-tip, #pt-layer, #records-overlay, #settings-overlay, #dev-panel) * {
+  font-family: var(--pxa-font) !important;
+  font-weight: normal !important;
+  letter-spacing: .02em;
+}
+html.px-art:not(.skin-machine) #stage :not(button, button *, #swap-indicator, #swap-indicator *) { font-size-adjust: .5; }
+
+/* Crisp: every readout and label drawn with each pixel fully on or off. */
+html.px-art #stage :is(#score-total-num, #goal-display, #score-to-go, .subbox-val, .subbox-label, .top-label, .top-value,
+  #score-goal-label, #score-total-label, .ci-main, #focus-mult-readout, #trick-tray-count, #hand-name, #clock,
+  .rp-act, .rp-lv, .rp-lnum, .panel-title, .fbg-title, .gp-name, .gp-desc, .gp-body, .rwd-desc, .ec-name, #sel-count),
+html.px-art :is(#entity-tip, #trick-tooltip, #knack-tooltip, .sleight-tooltip, #ci-tip) > *,
+html.px-art .dnc-particle .pt-box {
+  filter: url(#pxa-crisp) !important;
+}
+
+/* 2. No soft light: a hard one-pixel shadow under the words, no blur anywhere on the screens. */
+html.px-art #stage :not(button, button *, #swap-indicator, #swap-indicator *) { text-shadow: 1px 1px 0 rgba(0,0,0,.75) !important; }
+html.px-art #stage :is(#score-center, #score-left, .score-subbox, #screen-location, #pmf-merged, #selected-cards,
+  #knack-carousel-wrap, #trick-tray-area, #hand-preview-area, #run-progress, #coin-info, #vclock, .panel-box) {
+  box-shadow: 2px 2px 0 rgba(0,0,0,.55) !important;
+}
+
+/* 3. Square corners, stepped. Cards keep the pack's own stepped stock (r639). */
+html.px-art #stage :not(button, button *, #swap-indicator, #swap-indicator *, .card, .card *, .rwd-diamond, .rwd-diamond *),
+html.px-art :is(#entity-tip, #trick-tooltip, #knack-tooltip, .sleight-tooltip, #ci-tip, .dnc-particle .pt-box, .dnc-particle) {
+  border-radius: 0 !important;
+}
+html.px-art #stage :is(#score-center, #score-left, .score-subbox, #screen-location, #selected-cards, #knack-carousel-wrap,
+  #trick-tray-area, #hand-preview-area, #run-progress, #coin-info, .panel-box, .gp-head, .gp-body, .reward-cell .rwd-bg),
+html.px-art :is(#entity-tip, #trick-tooltip, #knack-tooltip, .sleight-tooltip, #ci-tip) {
+  clip-path: var(--pxa-notch);
+}
+
+/* 4. Flat dithered fills on the screens. */
+html.px-art:not(.skin-machine) #stage :is(#score-center, #score-left, .score-subbox, #screen-location, #selected-cards,
+  #knack-carousel-wrap, #trick-tray-area, #hand-preview-area, #run-progress, #coin-info, .panel-box) {
+  background: var(--pxa-dither), #0e0c08 !important;
+}
+html.px-art:not(.skin-machine) #grid { background: var(--pxa-dither), #0b0d09 !important; }
+/* Console mode: the screens keep their own glass (their ::before is the dome); no dither there. */
+
+/* 5. No smoothing on anything scaled. */
+html.px-art #stage, html.px-art #stage *, html.px-art .dnc-particle, html.px-art #entity-tip * { image-rendering: pixelated; }
+
+/* The Focus gauge: square cells, no glow. */
+html.px-art #stage #focus-bar-outer, html.px-art #stage #focus-bar-outer * { border-radius: 0 !important; box-shadow: none !important; }
+
+/* Score plates in flight: a square chip with a hard shadow. */
+html.px-art .dnc-particle .pt-box { box-shadow: 2px 2px 0 rgba(0,0,0,.6) !important; }
+
+/* The selection ring: a hard two-pixel outline. */
+html.px-art #grid .card.selected { box-shadow: 0 0 0 2px #7fd6ff, 2px 2px 0 2px rgba(0,0,0,.5) !important; }
