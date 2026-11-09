@@ -1,4 +1,4 @@
-const BUILD = "2026-11-09 · r753 · Tricks wait for their flight to the tray; Overdrive, Autopilot and All Hands are out";
+const BUILD = "2026-11-09 · r754 · the score carry looks (r721) land; the ?merge lab is live";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

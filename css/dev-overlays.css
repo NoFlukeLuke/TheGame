@@ -157,6 +157,7 @@
   .dev-row { display:flex; gap:6px; flex-wrap:wrap; }
   .dev-btn { font-family:'Cinzel',serif; font-size:10px; letter-spacing:1px; padding:7px 10px; background:rgba(244,234,213,0.06); border:1px solid var(--border); border-radius:5px; color:var(--cream); cursor: var(--cur-pointer, pointer); flex:1; min-width:60px; }
   .dev-btn:active { background:rgba(244,234,213,0.14); }
+  .dev-btn[data-pmf-resolve].on { background:rgba(53,213,155,0.22); border-color:#35d59b; color:#35d59b; }   /* r721: the score merge end choice */
 
   /* Spectrum deck tuner (dev panel → Spectrum) - one chip per value / colour. */
   .dev-spec-row { display:flex; flex-wrap:wrap; gap:5px; margin-top:4px; }

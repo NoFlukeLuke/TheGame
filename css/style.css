@@ -757,7 +757,14 @@
     60% { transform: translate(-1px,-1px); } 80% { transform: translate(1px,1px); }
   }
   .subbox-val.pmf-jit-val { animation: pmfJitVal 0.22s ease-in-out 3; display: inline-block; }
-  .subbox-val.pmf-hold-score { color: #f5c042 !important; text-shadow: 0 0 10px rgba(245,192,66,0.6); }
+  .subbox-val.pmf-hold-score, #score-subboxes .subbox-val.pmf-hold-score { color: #f5c042 !important; text-shadow: 0 0 10px rgba(245,192,66,0.6); }
+  /* r721: the carry looks (js/pmf-merge.js): the number that leaves its tray is a copy in
+     #score-subboxes, centred on the value it left; the zap's bolt is an SVG over the row. */
+  #score-subboxes .subbox-val.pmf-carry { position: absolute; z-index: 8; margin: 0; padding: 0; line-height: 1; pointer-events: none;
+    white-space: nowrap; transform: translate(-50%,-50%); will-change: transform, opacity; }
+  .pmf-zap { position: absolute; left: 0; top: 0; width: 100%; height: 100%; z-index: 7; pointer-events: none; overflow: visible;
+    filter: drop-shadow(0 0 3px currentColor) drop-shadow(0 0 7px currentColor); }
+  .pmf-zap polyline { fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
   /* r708: Focus copies, one per extra application, staggered behind the figure (js/pmf-merge.js). */
   #focus-box.pmf-fc-host { position: relative; }
   #focus-box .subbox-val.pmf-fcopy-front { position: relative; z-index: 2; }

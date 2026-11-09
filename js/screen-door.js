@@ -13,7 +13,7 @@ const SD_CFG = { pitch: 3, line: 0.5, dark: 0.13, grille: 0.55 };   // the r511 
 const SD_SCREENS = [
   'html:not(.skin-machine) #cab-screen',   // the pit look: the whole monitor (its padding is the bezel)
   // console mode: every window in the housing (css/skin-machine.css) and the keys' tube look
-  'html.skin-machine #stage :is(#score-center, #score-left, #pips-box, #mult-box, #focus-box, #screen-location, #pmf-merged, #knack-carousel-wrap, #selected-cards, #trick-tray-area, #coin-info, #vclock, #run-progress, #focus-bar-outer)',
+  'html.skin-machine #stage :is(#score-center, #score-left, #score-subboxes, #pmf-merged, #knack-carousel-wrap, #selected-cards, #trick-tray-area, #coin-info, #vclock, #run-progress, #focus-bar-outer)',
   'html.skin-machine #stage:not(.landscape) #hand-preview-area',
   'html.skin-machine body:not(.flowr-deck) #stage #grid',
   'html.skin-machine #mc-flip', 'html.skin-machine #boss-preamble.bp-console',
