@@ -1,4 +1,4 @@
-const BUILD = "2026-11-09 · r756 · Starting Time as a time in Records; amber screen cards in the pixel preview; closer shadows; the discard does not rise";
+const BUILD = "2026-11-09 · r757 · pixel preview cards built square by square like the keys, on black or off-white";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

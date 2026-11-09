@@ -706,6 +706,10 @@
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
       <input type="checkbox" id="dev-pixel-art" onchange="setPixelArt(this.checked)"> Everything but the housing drawn as pixel art (also index.html?pixel)
     </label>
+    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
+      Pixel cards on
+      <select id="dev-pixel-cards" onchange="setPixelArtCards(this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-size:12px;cursor: var(--cur-pointer, pointer);"><option value="paper">darkish off-white</option><option value="dark">black</option></select>
+    </label>
 
     <div class="dev-subtitle">Card ratio</div>
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">

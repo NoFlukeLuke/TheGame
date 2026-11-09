@@ -4670,3 +4670,15 @@ older runs keep the plain entry; a full store trims harder (`writeRunHistory`).
   paper looks (print, pixel, classic); the Joker face says what it is.
 - **Fling has no lift** (js/card-anims.js): the card is swapped at once for a stand-in under the other
   cards that falls away into the board, thrown (`CA_FLING_THROW`: size 1 / (1 + 4t + 7t^2)).
+
+## r757 - pixel preview cards are built like the keys' words (owner)
+r756's amber dot cards are gone. In the pixel art preview (`pxArtOn`) `pxArtFaceHTML(card, opts)`
+(js/pixel-art.js, called beside `cardFaceSpriteHTML` in `renderCardAppearance`, js/card-fall.js;
+the card takes `.has-pxa`, which hides the text rank / suit / wild glyph) draws one SVG per face:
+the rank from the keys' 5x7 letter grid (`kdGlyph(7, ch)`, js/key-dots.js) over the suit on a 7x7
+grid (`PXA_SUITS`: the four suits and the wild star; a wild reads WILD; the six-suit deck's extra
+suits keep the printed face), one rect per lit square with a gap and a dark edge, in the suit's
+colour with a glow (css/pixel-art.css section 6). Two card backgrounds to compare: darkish off-white
+(default, the old suit colours) and black (`html.pxa-dark`, brighter suit colours, a stronger glow):
+dev -> Aesthetics -> "Pixel cards on" (`setPixelArtCards`, `lethe.pixelArtCards.v1` holds 'dark'
+only) or `index.html?pixel=dark`. Verified at 1440x820 and 420x900, both backgrounds, a 10 and a wild.

@@ -148,8 +148,13 @@ function renderCardAppearance(card, r, c, {
     ? cardFaceSpriteHTML(card, { isWild, isNum, dual: _dual,
         fogged: !isWild && typeof bossFogHides === 'function' && bossFogHides(isSel || revealFog) })
     : '';
+  // r757: the pixel art preview builds the face square by square (js/pixel-art.js).
+  const _pxa = (!_pxf && typeof pxArtFaceHTML === 'function')
+    ? pxArtFaceHTML(card, { isWild, isNum, dual: _dual,
+        fogged: !isWild && typeof bossFogHides === 'function' && bossFogHides(isSel || revealFog) })
+    : '';
   const className = [
-    _pxf ? 'has-pxf' : '',
+    _pxf ? 'has-pxf' : '', _pxa ? 'has-pxa' : '',
     'card',
     isWild ? 'wild-card' : '',
     isNum ? 'num-card' : '',
@@ -181,7 +186,7 @@ function renderCardAppearance(card, r, c, {
   const innerHTML = `
     ${curseDef ? `<div class="curse-badge" title="${curseDef.name}: ${curseDef.desc}">${curseDef.icon}<span class="curse-left">${curse.left}</span></div>` : ''}
     ${(typeof cardIsFodder === 'function' && cardIsFodder(card)) ? `<div class="fodder-badge" title="Fodder: swap or discard it free${card._fodderTemp && !permFodder[cardId(card)] ? ' (until it leaves the board)' : ''}">♻</div>` : ''}
-    ${combinedLabel}${_coin}${_pxf}
+    ${combinedLabel}${_coin}${_pxf}${_pxa}
     ${isWild
         // The Fog hides RANKS, and a wild has none to hide - so it is drawn in
         // full even under the Fog rather than reading as a '?' the player would
