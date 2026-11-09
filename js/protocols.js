@@ -279,18 +279,17 @@ function detailSync() {
 //   Flow       one reward a level-up; every pick shows 2 options
 //   Schedule   picks show 2 options; an audit pays one card fewer; the Balance
 //              Sheet and the Benefits Package have holes among their rewards
-//              (1 or 2 in every 4); goals climb twice as fast from Q3
-//   Flow       goals climb twice as fast once 2 bosses are beaten, and bosses 3
-//              and 4 ask the same
+//              (1 or 2 in every 4); goals doubled from Q3
+//   Flow       goals doubled once 2 bosses are beaten, bosses 3 and 4 too (r750)
 // ══════════════════════════════════════════════
-const LIMITLESS = { options: 2, backRate: 2 };
+const LIMITLESS = { options: 2, backMult: 2 };
 let limitlessFlowFrom = Infinity;   // Flow: the level the back half began at (SAVE_VARS)
 let _limBossGoal = false;           // set while Flow's boss goal is computed
 function limitlessOn() { return !!ACTIVE_MODE && ACTIVE_MODE.limitless === true; }
 function limitlessSay(base) {
   return base === 'flow'
-    ? `Every limit starts at its max. One reward a level-up, and every pick shows ${LIMITLESS.options} options. After the second boss, goals climb twice as fast.`
-    : `Every limit starts at its max. Every pick shows ${LIMITLESS.options} options, an audit pays one card fewer, and the ${gridName('reward', { bare: true })} and ${gridName('prize', { bare: true })} have holes among their rewards. From Q3, goals climb twice as fast.`;
+    ? `Every limit starts at its max. One reward a level-up, and every pick shows ${LIMITLESS.options} options. After the second boss, goals are doubled.`
+    : `Every limit starts at its max. Every pick shows ${LIMITLESS.options} options, an audit pays one card fewer, and the ${gridName('reward', { bare: true })} and ${gridName('prize', { bare: true })} have holes among their rewards. From Q3, goals are doubled.`;
 }
 // Every pick of three is a pick of two (openGridPick, gridPickRefresh). A forced
 // penalty pick keeps its three.
@@ -299,10 +298,9 @@ function protoTrimOffers(offers) {
   if (offers.some(o => o && (o.type === 'penalty' || o.rarity === 'penalty'))) return offers;
   return offers.slice(0, LIMITLESS.options);
 }
-// Back-half goals: the per-level growth is `backRate` times as steep past `from`
-// (the shape of endlessGoalMult). The Schedule's back half is Q3 on; Flow's is
-// after the second boss (its level goals from the level it was beaten at, its
-// boss goals from the second boss's table level).
+// Back-half goals are `backMult` (2) times what they would be. The Schedule's back
+// half is Q3 on; Flow's is after the second boss (its level goals from the level
+// it was beaten at; bosses 3 and 4, read from the boss table's levels).
 function limitlessGoalMult(lv, scale) {
   if (!limitlessOn() || !(scale > 1)) return 1;
   let from = Infinity;
@@ -311,9 +309,8 @@ function limitlessGoalMult(lv, scale) {
     if (_limBossGoal) from = (typeof survivalBossesBeaten === 'number' && survivalBossesBeaten >= 2) ? FLOW_BOSS_GOAL_LEVELS[1] : Infinity;
     else from = limitlessFlowFrom;
   }
-  if (!(lv > from)) return 1;
-  const fast = 1 + (scale - 1) * LIMITLESS.backRate;
-  return Math.pow(fast / scale, lv - from);
+  // r750 (owner): a flat x2 on the back half's goals (r749 doubled the growth rate, which compounded).
+  return lv > from ? LIMITLESS.backMult : 1;
 }
 // Flow: the back half starts when the second boss falls (survivalBossBookkeeping).
 function limitlessOnBoss() {
@@ -357,7 +354,12 @@ function hyperfocusOn() { return !!ACTIVE_MODE && ACTIVE_MODE.hyperfocus === tru
 const PROTO_KNACKS = [
   { id: 'ambidextrous',  protocol: 'dexterous' },
   { id: 'measure_twice', protocol: 'precision' },
+  { id: 'growth_mindset', protocol: 'limitless' },   // r750
 ];
+// Growth Mindset (r750, working name): limit rewards twice as common in every
+// reward roll (Flow's chain, the pick of three, the Balance Sheet, the shop's shelf).
+// The owner's other idea, a second random limit on every limit raise, is Knock-On.
+function limitOfferMult() { return (typeof hasKnack === 'function' && hasKnack('growth_mindset')) ? 2 : 1; }
 const PROTO_KNACK_KEY = 'lethe.protocolKnacks.v1';
 function _protoKnackSet() { try { const a = JSON.parse(localStorage.getItem(PROTO_KNACK_KEY) || '[]'); return new Set(Array.isArray(a) ? a : []); } catch (e) { return new Set(); } }
 function protoKnackUnlocked(id) { return _protoKnackSet().has(id); }

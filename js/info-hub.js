@@ -384,7 +384,7 @@ const INFO_TOPICS = [
     body: [
       'Flow and the Schedule are played under a protocol, chosen after the mode: Standard, Dexterous or Precision. A protocol changes a few rules; the mode stays the same.',
       'Difficulty belongs to the protocol. A win in Flow or the Schedule unlocks the next tier of that protocol for both.',
-      'Winning a run of Dexterous or Precision unlocks its Knack (Ambidextrous, Measure Twice), which can then be offered in any other run.',
+      'Winning a run of Dexterous, Precision or Limitless unlocks its Knack (Ambidextrous, Measure Twice, Growth Mindset), which can then be offered in any other run.',
       'Standard is open from the start. Each protocol after it opens with a won run of the one before it, in Flow or the Schedule: Dexterous, Precision, Limitless, Hyperfocus.',
     ] },
   { id: 'mode_dexterous', group: 'modes', title: 'Dexterous',
@@ -403,8 +403,8 @@ const INFO_TOPICS = [
   { id: 'mode_limitless', group: 'modes', title: 'Limitless',
     body: [
       'A protocol of Flow and the Schedule. Every limit starts at its max.',
-      () => `Flow: one reward a level-up, and every pick shows ${LIMITLESS.options} options. After the second boss, goals climb twice as fast, bosses included.`,
-      () => `The Schedule: every pick shows ${LIMITLESS.options} options, an audit pays one card fewer, and the ${gridName('reward', { bare: true })} and the ${gridName('prize', { bare: true })} have holes among their rewards: 1 or 2 in every 4. From Q3, goals climb twice as fast.`,
+      () => `Flow: one reward a level-up, and every pick shows ${LIMITLESS.options} options. After the second boss, goals are doubled, bosses included.`,
+      () => `The Schedule: every pick shows ${LIMITLESS.options} options, an audit pays one card fewer, and the ${gridName('reward', { bare: true })} and the ${gridName('prize', { bare: true })} have holes among their rewards: 1 or 2 in every 4. From Q3, goals are doubled.`,
     ] },
   { id: 'mode_hyperfocus', group: 'modes', title: 'Hyperfocus',
     body: [

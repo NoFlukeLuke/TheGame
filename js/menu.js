@@ -1,4 +1,4 @@
-const BUILD = "2026-11-07 · r749 · Limitless and Hyperfocus; protocols unlock in order; Attention to Detail";
+const BUILD = "2026-11-09 · r750 · Limitless: flat x2 back half; the Growth Mindset Knack";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

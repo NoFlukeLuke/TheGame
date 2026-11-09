@@ -4529,3 +4529,17 @@ Amplifier. Golden: 838 cases match. No page errors.
 - tools/sim: `"protocol":"precision"` (any protocol) in the sched json runs Flow or the Schedule under it;
   the bot's decay reads `focusDecayIntervalNow()`. Limitless's Flow reward count is not modelled by the bot.
 
+## r750 - Limitless: a flat x2 back half; Growth Mindset (owner)
+- **Back half is a flat x2** (`limitlessGoalMult` returns `LIMITLESS.backMult` past `from`): r749 doubled
+  the growth RATE, which compounded (Q4's review 984,000 at a doubled rate would have been ~10x). Now the
+  Schedule's goals from Q3's first level, Flow's level goals after the 2nd boss and Flow's bosses 3 and 4
+  are exactly twice the curve. Measured: Schedule level 19 29,500 -> 59,000, level 36 492,000 -> 984,000;
+  Flow level 25 190,600 -> 381,150, boss 3 62,450 -> 124,900.
+- **Growth Mindset** (rare Knack `growth_mindset`, working name; Limitless's unlock in `PROTO_KNACKS`):
+  limit rewards twice as common (`limitOfferMult()`): Flow's chain `limits` odds, the pick of three's
+  `limit` type, the Balance Sheet's `limit_up` tiles, the shop's Upgrades shelf. The owner's other idea (a
+  second random limit on every raise) is the Knock-On Knack already (r523). Measured: pick types with it
+  limit 21% (was 12%), Flow's chain limits weight 3.4 -> 6.2.
+- The owner kept the audit reading (an audit's first paying card pays nothing) and the protocol name
+  Hyperfocus beside the Hyper Focus Trick. Hyperfocus has no unlock Knack yet.
+

@@ -122,6 +122,7 @@ const KNACK_POOL = [
   // ── r748: the PROTOCOL Knacks (js/protocols.js). Locked until a run of the protocol is won. ──
   { id:'ambidextrous',  emoji:'🃏',  name:'Ambidextrous',     rarity:'rare',   desc:'Every Sleight is dealt a rank and a suit. Sleights count as cards in a hand and do their thing when played. Sleights are twice as common in rewards', tags:['board','other','sleights'] },
   { id:'attention_to_detail', emoji:'🔍', name:'Attention to Detail', rarity:'rare', startOnly:true, desc:'Tricks that pay for a card\'s rank, suit, buffs or position pay 50% more', tags:['pips','mult','other','rank','suit','position'] },
+  { id:'growth_mindset', emoji:'📈',  name:'Growth Mindset',   rarity:'rare',   desc:'Limit rewards are twice as common', tags:['limit','other','reward'] },
   { id:'measure_twice', emoji:'📏',  name:'Measure Twice',    rarity:'rare',   desc:'The speed bonus is half as strong, but stays the same for 10 seconds after a hand, then fades over 20 seconds', tags:['focus','other','clock'] },
   // ── r739: ROLE CHANGES. A Sleight's 5th improvement turns it into one of these (sleightRoleChange). Never offered
   // (roleOnly: knackOfferable). Each reads the Sleight's own BAL row at its 5th tier. ──
