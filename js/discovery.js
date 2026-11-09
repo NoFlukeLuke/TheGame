@@ -113,7 +113,9 @@ function revealNote(def) {
   if (!def || !def.id || typeof _iaQueue === 'undefined') return;
   if (typeof unlockPaused === 'function' && unlockPaused()) return;
   if (!nameHidden(def, 'trick')) return;
+  if (typeof iaOff === 'function' && iaOff()) return;   // r753: Trick screens off: nothing to wait for, the chip flies in as usual
   _iaQueue.push({ kind: 'reveal', id: def.id });
+  if (typeof trayHold === 'function') trayHold('trick', def.id);   // r753: hidden until the reveal flies it in
   if (!_iaHold && !_iaRunning) { clearTimeout(_iaTimer); _iaTimer = setTimeout(() => improveAnimFlush(), 0); }
 }
 async function iaPlayReveal(entry) {

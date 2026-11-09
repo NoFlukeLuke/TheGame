@@ -1,4 +1,4 @@
-const BUILD = "2026-11-09 · r752 · slot reels are drums; Spin to Improve picks clearly; the toys tour";
+const BUILD = "2026-11-09 · r753 · Tricks wait for their flight to the tray; Overdrive, Autopilot and All Hands are out";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

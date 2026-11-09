@@ -4594,3 +4594,22 @@ Amplifier. Golden: 838 cases match. No page errors.
   hover stuck to the last card tapped. Console hover is now `@media (hover: hover)` and fainter than a pick.
 - **Toys tour**: `index.html?events=toys` tours the 12 events with a die, a coin, a wheel, a reel or a
   plinko ball (`TOUR_TOYS`, js/event-tour.js); `?events=id,id` tours a list in order.
+## r753 - a Trick waits for its flight; Overdrive, Autopilot and All Hands are out (owner)
+- **Held chips** (`trayHold(type, id)` / `trayRelease`, js/tray-fx.js; `.tray-held`, css/improve-anim.css):
+  a Trick or Knack landing in its tray is hidden until its copy lands. Every `renderTrickTray` /
+  `updateKnackList` re-hides every chip of a held id (`trayHeldPaint`, from `trayWatch`), marquee
+  copies included; before this a re-render mid-flight built a fresh visible chip under the copy.
+  **The first take's reveal** (r709: every Trick) holds the chip from `revealNote` (now called before
+  `selectTrick` in `injectTrickAfterReward`) and the queue releases it after `iaPlayReveal`, or when
+  the entry is dropped (FAST FORWARD, Trick screens off); `trayEntityLand` skips its own flight for
+  an id with a reveal queued, since the reveal flies the tile in. With Trick screens off no reveal is
+  queued and the ordinary flight runs. A new screen that flies an entity into its tray holds it the same way.
+- **Retired** (owner, for now: they did not read as working): Overdrive (`retired` on the Knack row;
+  `knackOfferable` now refuses retired rows), Autopilot and All Hands (`retired` Sleight rows).
+  `survivalEntityBanned` refuses any retired Knack or Sleight id, so every offer path drops them.
+  Code and BAL rows stay; a saved run that owns one keeps it. Owner's ask if they come back: play
+  like a match-3 cascade, each hand selected loudly and its cards flying to the preview in quick succession.
+Measured in headless Chromium at 1440x820 and 420x900: a Trick granted from a tapped tile with two
+`renderTrickTray` calls mid-flight read opacity 0 on every chip until the copy landed, then 1; an
+undiscovered Trick stayed at 0 through its whole reveal (re-rendered every second) and showed when it
+ended; none of the three are offerable or pass `survivalEntityBanned`. No page errors.

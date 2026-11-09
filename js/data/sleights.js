@@ -48,12 +48,12 @@ const SLEIGHT_POOL = [
   { id:'lockbox',        name:'Lockbox',        emoji:'🔐', rarity:'rare',      activation:'double_tap', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['deck','board','other'],   desc:'' },
   { id:'dealers_choice', name:"Dealer's Choice", emoji:'🃏', rarity:'common', activation:'double_tap', durability:3, defaultRank:null, defaultSuit:null, tags:['board','other','chance','cost'], desc:'' },
   // r572: All Hands plays every hand on the board in reading order (js/sweep.js).
-  { id:'all_hands',      name:'All Hands',      emoji:'🧹', rarity:'legendary', activation:'double_tap', durability:3, defaultRank:null, defaultSuit:null, tags:['other'], desc:'' },
+  { id:'all_hands',      name:'All Hands',      emoji:'🧹', rarity:'legendary', activation:'double_tap', durability:3, retired:true, defaultRank:null, defaultSuit:null, tags:['other'], desc:'' },
   // ── Aim-based (fixtures: tap to rotate aim; cannot be swapped or discarded) ──
   { id:'reflect',     name:'Reflect',     emoji:'🪞', rarity:'epic',   activation:'aim', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['replay','card','rank','position','scores'], desc:'' },
   { id:'soul_mirror', name:'Soul Mirror', emoji:'👁️', rarity:'legendary', activation:'aim', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['replay','card','rank','position','scores'],     desc:'' },
   // ── Adjacency / position sleights (r120) ──
-  { id:'autopilot',  name:'Autopilot',  emoji:'🤖', rarity:'legendary', activation:'passive', durability:15, defaultRank:null, defaultSuit:null, tags:['focus','other','cost','scores'], desc:'' },
+  { id:'autopilot',  name:'Autopilot',  emoji:'🤖', rarity:'legendary', activation:'passive', durability:15, retired:true, defaultRank:null, defaultSuit:null, tags:['focus','other','cost','scores'], desc:'' },
   { id:'whetstone',  name:'Whetstone',  emoji:'🔪', rarity:'epic', activation:'passive', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['mult','hand','position','swap','discard','scores','scaling'], desc:'' },
   { id:'entourage',  name:'Entourage',  emoji:'👥', rarity:'epic', activation:'passive', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['mult','hand','sleights','scores'],            desc:'' },
   { id:'lighthouse', name:'Lighthouse', emoji:'🗼', rarity:'rare', activation:'passive', durability:'infinite', defaultRank:null, defaultSuit:null, tags:['mult','hand','position','scores'], desc:'' },

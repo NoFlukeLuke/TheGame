@@ -970,8 +970,8 @@ function injectTrickAfterReward(trick) {
   // Mystery tile), and those have to bounce rather than vanish.
   if (trickTrayFullFor(trick.id)) return refuseTrickCapacity();
   trickTray.push(trick);
+  if (typeof revealNote === 'function') revealNote(trick);   // r706: the first take plays the name's reveal (r753: noted first, so no tray render can land it early)
   selectTrick(trick, true);
-  if (typeof revealNote === 'function') revealNote(trick);   // r706: the first take plays the name's reveal
   if (typeof markDiscovered === 'function') markDiscovered(trick.id);   // r651: its name shows from the moment it is taken
   if (typeof inseparableCheck === 'function') inseparableCheck();   // r646: both halves of a pair in the tray fuse now
   renderTrickTray();
