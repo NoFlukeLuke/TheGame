@@ -4682,3 +4682,10 @@ colour with a glow (css/pixel-art.css section 6). Two card backgrounds to compar
 (default, the old suit colours) and black (`html.pxa-dark`, brighter suit colours, a stronger glow):
 dev -> Aesthetics -> "Pixel cards on" (`setPixelArtCards`, `lethe.pixelArtCards.v1` holds 'dark'
 only) or `index.html?pixel=dark`. Verified at 1440x820 and 420x900, both backgrounds, a 10 and a wild.
+
+## r758 - the slot lever is gone; PLAY pulls (owner)
+`evSlotMachine` has no lever (no `onPull`, `lever()` or `opts.lever`; its CSS is gone). In Card Slots and
+Entity Slots the event's CONFIRM button is the pull ("PULL · FREE", "PULL · L¢8", "PULL · 5s"; disabled
+while the reels turn or the price cannot be paid), so in console mode the PLAY key pulls. Skip reads Done
+once you have pulled and is disabled while the reels turn (`slotSkipSync`, js/events-slots.js). Measured
+by click at 1440x820 and tap at 420x900: two pulls each from PLAY, DISCARD refused mid-spin, Done closed.

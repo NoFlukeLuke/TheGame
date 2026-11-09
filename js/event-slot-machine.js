@@ -2,7 +2,7 @@
 //
 // The cabinet the slot events use (js/events-slots.js) and Spin to Improve's reel
 // (js/events-upgrade.js). Owner, r590: "look and feel more like an actual slot
-// (like cloverpit)", a lever to pull. Owner, r752: "make it look like there's an
+// (like cloverpit)", a lever to pull (gone r753). Owner, r752: "make it look like there's an
 // actual slot rotating".
 //
 // - Each reel is a DRUM: the strip's symbols sit on the faces of a CSS 3D
@@ -21,16 +21,13 @@
 //   "0 s" on the reel window, s following the reel's speed, off at rest.
 // - A tick for every symbol that passes the payline (rate limited, so at full
 //   speed it is a rattle), a clunk per stop, the last one heavier.
-// - The lever: drag the knob down (or tap it); it pulls, clunks and springs back.
-//   The machine is handed its stops before it moves (the toys' rule,
-//   js/event-toys.js); the lever only starts it.
+// - No lever (owner, r753): the event's PLAY key pulls. The machine is handed its
+//   stops before it moves (the toys' rule, js/event-toys.js).
 //
-// evSlotMachine(parent, opts) -> { el, spin(stops, { tease }) -> Promise, lever(on, label), flash(cells, cls), clear() }
+// evSlotMachine(parent, opts) -> { el, spin(stops, { tease }) -> Promise, flash(cells, cls), clear() }
 //   opts.reels   [strip, strip, ...], a strip being [{ key, html }]
 //   opts.payRow  1 to light the middle row as the only line, or null
 //   opts.itemW / itemH  a symbol's box in stage px
-//   opts.onPull  called when the lever is pulled while it is enabled
-//   opts.lever   false for a machine with no lever (it is spun from code)
 
 const SLOT = {
   faceMin: 12,        // fewest faces on a drum
@@ -67,7 +64,6 @@ function evSlotMachine(parent, opts) {
         ${o.payRow != null ? '<div class="evt-payline"></div>' : ''}
         <div class="evt-slot-glass"></div>
       </div>
-      ${o.lever === false ? '' : '<div class="evt-lever off"><div class="evt-lever-slot"></div><div class="evt-lever-arm"><div class="evt-lever-knob"></div></div><div class="evt-lever-cap"></div></div>'}
     </div>`;
   const reelEls = [...host.querySelectorAll('.evt-reel')];
   reelEls[reelEls.length - 1].classList.add('evt-reel-last');
@@ -103,51 +99,6 @@ function evSlotMachine(parent, opts) {
     } else if (d.blurOn) { d.el.style.filter = ''; d.blurOn = 0; }
   };
   drums.forEach(d => { d.faces.forEach((f, j) => { d.shades[j].style.opacity = '.92'; }); place(d, d.p, 0); });
-
-  // ── the lever ──
-  const lev = host.querySelector('.evt-lever');
-  let enabled = false, pulling = false;
-  if (lev) {
-    const arm = lev.querySelector('.evt-lever-arm'), knob = lev.querySelector('.evt-lever-knob');
-    const TRAVEL = 58;
-    const setArm = d => { arm.style.setProperty('--lv', (d / TRAVEL).toFixed(3)); };
-    const release = from => _etTween(_etFast() ? 0 : 520, (e, t) => {
-      const d = from * Math.exp(-6 * t) * Math.cos(t * Math.PI * 2.6);   // a damped spring back up
-      setArm(Math.max(-10, d));
-    }, t => t).then(() => setArm(0));
-    const fire = () => {
-      pulling = true;
-      _etSfx('sfxScreenLatch');
-      release(TRAVEL).then(() => { pulling = false; });
-      if (o.onPull) o.onPull();
-    };
-    knob.addEventListener('pointerdown', e => {
-      if (!enabled || pulling) return;
-      e.preventDefault();
-      const z = lev.getBoundingClientRect().height / (lev.offsetHeight || 1) || 1;
-      const y0 = e.clientY;
-      let d = 0, moved = false;
-      const move = ev => { d = Math.max(0, Math.min(TRAVEL, (ev.clientY - y0) / z)); if (d > 3) moved = true; setArm(d); };
-      const up = () => {
-        window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up);
-        if (!moved) {   // a tap pulls it for you
-          pulling = true;
-          _etTween(_etFast() ? 0 : 180, e2 => setArm(TRAVEL * e2), t => t * t).then(() => { pulling = false; fire(); });
-          return;
-        }
-        if (d >= TRAVEL * 0.7) { setArm(TRAVEL); fire(); }
-        else release(d);
-      };
-      window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
-    });
-  }
-  function lever(on, label) {
-    if (!lev) return;
-    enabled = !!on;
-    lev.classList.toggle('off', !enabled);
-    // "PULL · 8" prints as two lines, the word over the price
-    lev.querySelector('.evt-lever-cap').innerHTML = String(label || '').split(' · ').map(t => `<div>${t}</div>`).join('');
-  }
 
   // ── a spin ──
   // The main run's speed: up over the first a of it, flat, then down to nothing
@@ -237,7 +188,7 @@ function evSlotMachine(parent, opts) {
     host.querySelectorAll('.evt-sym-win, .evt-sym-near').forEach(el => el.classList.remove('evt-sym-win', 'evt-sym-near'));
     host.classList.remove('evt-slot-won');
   }
-  return { el: host, spin, lever, flash, clear };
+  return { el: host, spin, flash, clear };
 }
 
 // ── sounds ──

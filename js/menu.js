@@ -1,4 +1,4 @@
-const BUILD = "2026-11-09 · r757 · pixel preview cards built square by square like the keys, on black or off-white";
+const BUILD = "2026-11-09 · r758 · the slot lever is gone; PLAY pulls";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
