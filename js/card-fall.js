@@ -144,13 +144,14 @@ function renderCardAppearance(card, r, c, {
   const _coin = (typeof cardCoinHTML === 'function') ? cardCoinHTML(card) : '';
   // r633: the pixel card look draws the face from Jfred's sheet (js/card-face.js); when it
   // has pieces for this card the text rank / suit / wild glyph are hidden by css (.has-pxf).
-  const _pxf = (typeof cardFaceSpriteHTML === 'function')
-    ? cardFaceSpriteHTML(card, { isWild, isNum, dual: _dual,
+  // r757 / r759: the LED matrix (and the pixel art preview) builds the face square by square
+  // (js/pixel-art.js); it wins over the pack's sprite face.
+  const _pxa = (typeof pxArtFaceHTML === 'function')
+    ? pxArtFaceHTML(card, { isWild, isNum, dual: _dual,
         fogged: !isWild && typeof bossFogHides === 'function' && bossFogHides(isSel || revealFog) })
     : '';
-  // r757: the pixel art preview builds the face square by square (js/pixel-art.js).
-  const _pxa = (!_pxf && typeof pxArtFaceHTML === 'function')
-    ? pxArtFaceHTML(card, { isWild, isNum, dual: _dual,
+  const _pxf = (!_pxa && typeof cardFaceSpriteHTML === 'function')
+    ? cardFaceSpriteHTML(card, { isWild, isNum, dual: _dual,
         fogged: !isWild && typeof bossFogHides === 'function' && bossFogHides(isSel || revealFog) })
     : '';
   const className = [

@@ -4689,3 +4689,24 @@ Entity Slots the event's CONFIRM button is the pull ("PULL · FREE", "PULL · L�
 while the reels turn or the price cannot be paid), so in console mode the PLAY key pulls. Skip reads Done
 once you have pulled and is disabled while the reels turn (`slotSkipSync`, js/events-slots.js). Measured
 by click at 1440x820 and tap at 420x900: two pulls each from PLAY, DISCARD refused mid-spin, Done closed.
+## r759 - the LED matrix switch: cards, score, clock, level and credits in lit squares (owner)
+**Settings -> Display -> LED matrix** (`ledOn()` / `setLedMatrix`, js/led-matrix.js, `lethe.ledMatrix.v1`
+holds 'on' only; a settings row with `get`, so the feature owns the store). Off by default.
+- **Cards**: r757's square-by-square faces (`pxArtFaceHTML`, js/pixel-art.js) now draw whenever the
+  switch is on (`pxaCardsOn()` = the pixel preview OR the switch) and win over the Jfred sprite face
+  (card-fall.js asks `_pxa` first). Crowns ♛ and moons ☾ have grids in `PXA_SUITS` and colours
+  (`--pa-crowns` / `--pa-moons`). The squares are smaller (the face is 46% of the card's height, was 62%).
+  The card background (off-white / black) is still dev -> Aesthetics -> "Pixel cards on".
+- **Readouts** (`LED_TARGETS`): SCORE, GOAL, PIPS / MULT / FOCUS, the clock, `.rp-act` / `.rp-lv` /
+  `.rp-lnum` / `#level-display`, the credits chip. The readout keeps its text, hidden (`.led-host`,
+  visibility), and a canvas drawn with the keys' 5x7 grid (`kdGlyph`) sits over where the text was,
+  centred on its Range rect, the 7 rows `LED_CFG.ink` of the line's height, glowing in the readout's
+  colour (`--led-ink`; the clock's console text is transparent, so its row names amber). **The canvas is
+  the readout's SIBLING** (`ledMount`, in the parent, which takes `.led-parent` if static): as a child it
+  counted in the readout's scrollWidth and `chipValFit` (js/hud.js) shrank PIPS / MULT / FOCUS to 0.2px,
+  dropping the page to 1.5 fps. A writer that rewrites the text never touches it. Redrawn on a mutation of
+  the readout (rAF-batched, a signature skips no-ops), every frame while the score rolls (read from
+  `rise.cur`), and a 700ms scan for readouts that come and go. Console's flip clock is hidden under it.
+Measured in headless Chromium at 1440x820 and 420x900, console and flat, both card backgrounds: every
+readout drawn, a hand played with the score rolling at 49 fps (50 with the switch off), every readout's
+font size and width unchanged by the canvas; a crown and a moon card drawn; no page errors.

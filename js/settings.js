@@ -233,6 +233,12 @@ const SETTINGS_DEF = [
     type: 'toggle', default: true,   // r644: console mode ships on
     get: () => typeof trayMachineOn === 'function' && trayMachineOn(),
     apply: v => { if (typeof trayPitSet === 'function') trayPitSet('on', v ? 3 : 1); } },
+  // r759 (owner): one switch for the lit-square look: cards, score, clock, level and credits.
+  { group: 'Display', id: 'ledMatrix', label: 'LED matrix',
+    hint: 'Cards, the score, the clock, the level and credits are drawn in lit squares, like the keys.',
+    type: 'toggle', default: false,
+    get: () => typeof ledOn === 'function' && ledOn(),
+    apply: v => { if (typeof setLedMatrix === 'function') setLedMatrix(v); } },
   { group: 'Display', id: 'stockBulbs', label: 'Stock display',
     hint: 'How swaps, discards, hand size and Trick slots left are shown. Squares: lit is free, hollow is used, faint is not unlocked yet.',
     type: 'select', default: 'numbers', options: [['numbers','Numbers'], ['bulbs','Squares']],

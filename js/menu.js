@@ -1,4 +1,4 @@
-const BUILD = "2026-11-09 · r758 · the slot lever is gone; PLAY pulls";
+const BUILD = "2026-11-09 · r759 · the LED matrix switch: cards, score, clock, level and credits in lit squares";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

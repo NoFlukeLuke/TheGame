@@ -23,7 +23,10 @@ let pxArtCards = (() => {
   try { const m = /[?&]pixel=(dark|paper)\b/.exec(location.search); return m ? m[1] : (localStorage.getItem(PIXEL_CARDS_KEY) === 'dark' ? 'dark' : 'paper'); }
   catch (e) { return 'paper'; }
 })();
-let _pxArtFace = null;   // the card face to give back when the look goes off
+let _pxArtFace = null;
+// r759: the square-by-square card faces belong to the LED matrix switch (js/led-matrix.js)
+// as well as to this preview.
+function pxaCardsOn() { return pxArtOn || (typeof ledOn === 'function' && ledOn()); }   // the card face to give back when the look goes off
 
 function pxArtFilter() {
   if (document.getElementById('pxa-svg')) return;
@@ -37,7 +40,7 @@ function pxArtFilter() {
 
 function pxArtApply() {
   document.documentElement.classList.toggle('px-art', pxArtOn);
-  document.documentElement.classList.toggle('pxa-dark', pxArtOn && pxArtCards === 'dark');
+  document.documentElement.classList.toggle('pxa-dark', pxaCardsOn() && pxArtCards === 'dark');
   if (typeof cardFace !== 'undefined' && typeof cardFaceApply === 'function') {
     if (pxArtOn && cardFace !== 'print') { _pxArtFace = cardFace; cardFace = 'print'; cardFaceApply(); }
     else if (!pxArtOn && _pxArtFace) { cardFace = _pxArtFace; _pxArtFace = null; cardFaceApply(); }
@@ -68,12 +71,14 @@ const PXA_SUITS = {
   '\u2660': '...x... ..xxx.. .xxxxx. xxxxxxx xx.x.xx ...x... ..xxx..',
   '\u2663': '..xxx.. ..xxx.. xx.x.xx xxxxxxx xx.x.xx ...x... ..xxx..',
   '\u2736': 'x..x..x .x.x.x. ..xxx.. xxxxxxx ..xxx.. .x.x.x. x..x..x',
+  '\u265B': '...x... x..x..x xx.x.xx xxxxxxx xxxxxxx .xxxxx. xxxxxxx',   // crowns (r759)
+  '\u263E': '..xxx.. .xx.... xx..... xx..... xx..... .xx.... ..xxx..',   // moons (r759)
 };
 const _pxaGrid = src => src.split(' ').map(r => [...r].map(c => c === 'x'));
 function pxArtFaceHTML(card, { isWild = false, isNum = false, dual = false, fogged = false } = {}) {
-  if (!pxArtOn || !card || isNum || dual || typeof kdGlyph !== 'function') return '';
+  if (!pxaCardsOn() || !card || isNum || dual || typeof kdGlyph !== 'function') return '';
   const suitSrc = PXA_SUITS[isWild ? WILD_RANK : card.suit];
-  if (!suitSrc) return '';   // a six-suit deck's extra suits keep the printed face
+  if (!suitSrc) return '';
   const word = isWild ? 'WILD' : fogged ? '?' : String(card.rank);
   const glyphs = [...word].map(ch => kdGlyph(7, ch)).filter(Boolean);
   if (!glyphs.length) return '';
