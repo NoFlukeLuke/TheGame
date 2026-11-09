@@ -1,4 +1,4 @@
-const BUILD = "2026-11-09 · r752 · slot reels are drums; Spin to Improve picks clearly; the toys tour";
+const BUILD = "2026-11-09 · r753 · The synergy probe; the milestone probes rerun on the merged tree";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

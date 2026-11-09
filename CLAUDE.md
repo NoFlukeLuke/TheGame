@@ -3889,6 +3889,9 @@ scaling stays family based and hand-counted; no legendary names one hand type.
   r731: rounds 17-20 are 3:00 on a 5 x 6 board (`PLAN` rows carry `len` and `grid`; the panel's
   4x5 / 5x6 keys override the next round). Deployed to main at r732.
 - **`named`** (js/data/tags.js, WHEN): a Trick that names one hand type; six rows carry it.
+- **r733:** `probes/synergy.js` (4 Tricks: random / sharing a tag / at v3 / with buffed cards / with
+  limits), MILESTONES.md 8e. Improving Tricks is the bot's strongest lever (x2.7 at 9s); a shared tag
+  does nothing on average (run / position x2.5, flush x0.16); buffed deck cards read as nothing.
 - Layer math for 6-7 card hands is MILESTONES.md 8b: "every sub-hand counts" explodes (a typical
   7-card hand has 14 layers at min 4); "every distinct hand" stays at 3-6 with a ceiling of 11.
 ## r722-r724 numbering

@@ -437,3 +437,55 @@ asks for a decision. Those four are what the recording has to calibrate before t
 price them. The deck-editor buff values themselves are small against the ladder (a +10 pip
 card is one rung's worth on one card); if buffed cards are to be a 25% lever, the buff values
 or the count of buffs a run can gather have to grow.
+
+### 8e. Rerun on the merged tree (r732: the horsemen, difficulty tiers), and the levers side by side
+
+The r724 probes were taken on r723. On r732 (40 runs each, 6s and 9s a hand):
+
+| | Q1 review | Q2 review | Q3 review | Q4 review |
+|---|---|---|---|---|
+| Schedule, 6s: bot median / clear | 42,600 / 100% | 130,000 / 100% | 268,000 / 88% | 406,000 / 40% |
+| Schedule, 9s: bot median / clear | 17,900 / 100% | 54,000 / 90% | 121,000 / 55% | 170,000 / 13% |
+| goal | 5,500 | 25,000 | 111,000 | 492,000 |
+
+Same shape as r724 (within the noise of 40 runs). The 9s bot clears round 1 only 18% of the time
+(median 1,233 against 2,000). Flow at 6s: 38 of 40 won (boss 1 at level 11, 100%; boss 4 95%);
+at 9s 17 of 40 (boss 1 at level 6, 58%; the three later bosses 96 / 100 / 77% for the runs that
+reach them). The bot ignores the difficulty tier's swap and discard seconds (it charges its own
+fixed costs) and never meets a horseman, so the tiers change nothing it measures.
+
+**The levers, one at a time** (`tools/sim/probes/synergy.js`: a 3-minute round at level 1 with
+4 Tricks, 150 rounds a row; median, with the 25th and 75th percentile):
+
+| build | 9s a hand | 6s a hand |
+|---|---|---|
+| 4 random Tricks | 8,600 (4,100 to 16,200) | 32,300 (17,000 to 54,900) |
+| 4 Tricks sharing one tag | 8,800 (4,000 to 17,000) | 30,900 (17,900 to 63,200) |
+| 4 random Tricks at v3 | 22,900 (9,500 to 60,500) | 106,900 (40,200 to 208,400) |
+| 4 random + 15 buffed deck cards | 7,800 (4,100 to 15,000) | 28,300 (15,000 to 48,900) |
+| 4 random + Selection +1, +1 row, +1 column | 20,600 (11,800 to 35,100) | 63,400 (41,000 to 121,700) |
+| all three: v3, buffs, limits | 45,900 (25,300 to 118,400) | 206,000 (108,000 to 490,000) |
+
+By the shared tag at 9s (median, rounds): position 18,000 (19), run 21,500 (22), set 13,900
+(23), size 8,700 (21), suit 7,700 (16), rank 6,900 (28), flush 1,400 (21).
+
+Reading it:
+- **Improving the Tricks is the strongest single lever the bot can use:** two improvements on
+  each of four Tricks is x2.7 at 9s and x3.3 at 6s. That is in line with the owner's wish that
+  improvements carry a run, and with v6 in 25% of runs mattering.
+- **Selection +1 with one more row and column is x2.4 / x2.0.** Mostly the Selection step (8d);
+  the extra row and column add little for a bot that plays a fixed number of hands.
+- **Sharing a keyword does nothing on average for this bot**, and the spread by tag says why:
+  four run Tricks or four position Tricks are x2.5 better than random, four flush Tricks are x0.16
+  (the bot rarely plays a flush at Selection 3, so four flush Tricks are four dead slots), four
+  rank Tricks x0.8. "Synergy" in this game is a HAND you can reach often, not a shared word: a
+  tag is a hint, and the flush and rank tags are traps until the hand size and the deck support
+  them. A real player who steers toward the hand would read higher on run / set / position and
+  still low on flush.
+- **15 buffed deck cards read as nothing** (x0.9, noise): a deck-editor buff on a random card is
+  one rung's worth on one of 52 cards, and the bot does not steer toward buffed cards. If buffed
+  cards are to be a lever a player can lean on (section 8's 25%), the values need to be bigger,
+  the buffs need to land on cards the player plays (the Finishing Touch pattern: buff the board,
+  not the deck), or the player needs a way to find them (Card Counter).
+- **Stacked, the three levers multiply** (x5.3 / x6.4): the game's growth is multiplicative, so
+  a goal curve has to be too.
