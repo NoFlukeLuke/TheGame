@@ -4760,8 +4760,29 @@ first row) is gone; its shape lives on as the Balatro-like column with the owner
 Measured in headless Chromium at 1440x820 and 420x900: the taper pick stored and a fresh Flow run
 asked 1,000 then 1,900; back to Goldilocks the key was removed and level 2 read 1,750; the Schedule
 pick stored and cleared; the dev selects list 4 and 5 options; the Run tab draws both rows; no page errors.
+## r762 - LED cards: stepped pixel corners; the card background in Settings (owner)
+- **Settings -> Display -> LED card background** (Off-white / Black): a `get` row over
+  `pxArtCards` / `setPixelArtCards` (js/pixel-art.js), the same store as dev -> Aesthetics ->
+  "Pixel cards on" (`lethe.pixelArtCards.v1`).
+- **The square-by-square card has rounded corners in steps** (css/pixel-art.css section 6): the
+  card is a 9-slice (`border-image ... 4 fill`) of a 9 x 9 SVG card, a corner of 3 / 1 / 1 squares
+  in from the edge and a one-square border, each square `--pxa-u` (3% of the card's height, at
+  least 2px), so it scales with the card and stays crisp. The 1px border box is kept (nothing moves),
+  the background is none and the stock carries both colours (`--pxa-stock`, one per background).
+  A selected card is ringed by four chained 2px drop shadows of that shape (blue, red on a penalty),
+  never a square box-shadow. Verified at 1440x820 (console and flat) and 420x900, both backgrounds.
 
-## r762 - past a goal table's end: x1.25, then 0.1 more each level (owner)
+## r763 - Lucky Dice; the coin lands on a table (owner)
+- **Lucky Dice** is the dice event's name (id `luck_dice`). Its double-or-flip button reads PUSH YOUR LUCK
+  (`evDoubleOrFlip(parent, n, add, paint, label)`; Static Bonus keeps FLIP FOR IT); prices print with L¢.
+- **The coin is thrown on a table** (`evCoin`, js/event-toys.js; css/event-toys.css): a felt plane leaning
+  back `COIN_TABLE_TILT` (50) degrees in its own perspective, a wooden rim and a front edge. The coin and its
+  shadow are children of the table, so the sim's lift is `translateZ` off the felt, its depth runs down the
+  table (local y) and its turn is end over end about the table's x axis; a coin at rest is a flat div. The
+  throw skids more (coin-sim's `vz` / `vx` doubled); the in-air drift undo still brings it to rest in the
+  middle. Console mode tints the felt amber like the dice tray.
+
+## r764 - past a goal table's end: x1.25, then 0.1 more each level (owner)
 `goalTableAt` (js/flow-mode.js): level 25 asks x1.25 the table's last row, level 26 x1.35 that, level
 27 x1.45, and so on (`GOAL_PAST_BASE` 1.25, `GOAL_PAST_STEP` 0.1), for every scale in Flow and on the
 Schedule. r761's "last step repeats" rule is gone; `goalTableRatio` returns the 1.25 for the Endless

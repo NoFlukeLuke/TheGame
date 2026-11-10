@@ -1,4 +1,4 @@
-const BUILD = "2026-11-10 · r762 · past a goal table's end: x1.25, then 0.1 more each level";
+const BUILD = "2026-11-10 · r764 · past a goal table's end: x1.25, then 0.1 more each level";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

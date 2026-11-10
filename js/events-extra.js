@@ -307,15 +307,16 @@ function confirmStaticBonus() {
   });
 }
 
-// ── Double or flip (r590, owner): after a Static Bonus or Luck Dice result, pay a
+// ── Double or flip (r590, owner): after a Static Bonus or Lucky Dice result, pay a
 // quarter of your credits (the amount is printed, never the fraction) to flip a
-// coin: heads doubles the result, tails turns it the other way round.
+// coin: heads doubles the result, tails turns it the other way round. `label` is the
+// button's word (Lucky Dice: PUSH YOUR LUCK, r763).
 function doubleFlipPrice() { return Math.max(1, Math.round(coins / 4)); }
-function evDoubleOrFlip(parent, n, add, paint) {
+function evDoubleOrFlip(parent, n, add, paint, label) {
   if (!n || coins < 1) return;
   const price = doubleFlipPrice();
   const row = evRow(parent);
-  const btn = evButton(`FLIP FOR IT · ${price} credits`, () => {
+  const btn = evButton(`${label || 'FLIP FOR IT'} · ${creditsTxt(price)}`, () => {
     if (coins < price) return;
     coins -= price; updateCoinsUI?.();
     row.innerHTML = '';
@@ -336,7 +337,7 @@ function evDoubleOrFlip(parent, n, add, paint) {
 }
 
 // ══════════════════════════════════════════════
-// LUCK DICE - two dice, multiplied, onto Luck
+// LUCKY DICE - two dice, multiplied, onto Luck
 // ══════════════════════════════════════════════
 // Moves luckModifiers, like Fortune and Jinx, so it can take Luck below zero.
 const LUCK_DIE_A = [-1, -2, -3, 1, 2, 3];
@@ -370,7 +371,7 @@ function confirmLuckDice() {
     evDoubleOrFlip(s.ldOut, n, d => { luckModifiers += d; }, v => {
       res.className = 'evt-big ' + (v > 0 ? 'win' : 'lose'); res.textContent = `${fmtSigned(v)} LUCK`;
       line.innerHTML = `Luck ${was} → ${luckTotal()}`;
-    });
+    }, 'PUSH YOUR LUCK');
   });
 }
 

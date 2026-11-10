@@ -135,7 +135,7 @@ other pool, so the department can be learned by it.
 | IT | **Grid Spinner**, **Entity Slots**, Line Shift |
 | Procurement | **Card Slots**, Card Market, Deck Trim, Pairs |
 | Customer Support | **Extra Rep**, Pairs, Clean Up |
-| Communications | **Wild Cards**, **Luck Dice**, Theme Draft, Call It |
+| Communications | **Wild Cards**, **Lucky Dice**, Theme Draft, Call It |
 
 ## Small extras (option B, for later; owner to decide if worth building)
 

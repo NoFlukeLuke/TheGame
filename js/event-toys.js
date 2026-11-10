@@ -51,30 +51,37 @@ function evReveal(el) {
 // side is 'heads' or 'tails'.
 // r590 (owner: "more physics based, 3dish"): a disc with a rim (stacked edge
 // layers) over its shadow. r744: thrown by coinSimulate (js/coin-sim.js).
-const COIN_TILT = 16;                 // resting lean toward you, so the rim shows
+// r763 (owner): it is thrown on a TABLE seen from above at an angle. The table
+// is a plane turned back COIN_TABLE_TILT degrees in its own perspective; the
+// coin and its shadow live in the table's plane, so "up" is off the felt
+// (translateZ), the sim's depth runs down the table toward you (local y) and
+// its turn is end over end about the table's x axis. A flat coin is a flat div.
+const COIN_TABLE_TILT = 50;           // degrees the table leans back from facing you
 const COIN_EDGE = 8;                  // edge layers (the coin's thickness in px)
 function evCoin(parent) {
   const host = _etHost('evt-coin-host', parent);
   const edge = Array.from({ length: COIN_EDGE }, (_, i) =>
     `<i class="evt-edge" style="transform: translateZ(${(i - (COIN_EDGE - 1) / 2).toFixed(1)}px)"></i>`).join('');
-  host.innerHTML = `<div class="evt-coin-stage"><div class="evt-coin-shadow"></div><div class="evt-coin-lift"><div class="evt-coin">${edge}
+  host.innerHTML = `<div class="evt-coin-stage"><div class="evt-coin-table" style="transform: rotateX(${COIN_TABLE_TILT}deg)">
+      <i class="evt-coin-felt"></i><i class="evt-coin-front"></i>
+      <div class="evt-coin-shadow"></div><div class="evt-coin-lift"><div class="evt-coin">${edge}
       <div class="evt-face evt-heads" style="transform: translateZ(${COIN_EDGE / 2}px)"><span>H</span></div>
       <div class="evt-face evt-tails" style="transform: rotateX(180deg) translateZ(${COIN_EDGE / 2}px)"><span>T</span></div>
-    </div></div></div><div class="evt-coin-cap"></div>`;
+    </div></div></div></div><div class="evt-coin-cap"></div>`;
   const coin = host.querySelector('.evt-coin'), lift = host.querySelector('.evt-coin-lift');
   const shadow = host.querySelector('.evt-coin-shadow'), cap = host.querySelector('.evt-coin-cap');
   if (typeof coinSoundsWarm === 'function') coinSoundsWarm();
   let rest = 'heads';
   // f: one frame of coinSimulate (js/coin-sim.js). th turns it end over end, wx / wy
-  // tilt it as it settles; y lifts it off the table, z is depth (toward you is down
-  // the screen a little), x a sideways drift.
+  // tilt it as it settles, yaw spins it on the felt; y lifts it off the table, z
+  // runs down the table toward you, x across it.
   const D = 180 / Math.PI;
   const pose = f => {
-    coin.style.transform = `rotateX(${-COIN_TILT}deg) rotateY(${((f.yaw + f.wy) * D).toFixed(2)}deg) rotateX(${((f.th + f.wx) * D).toFixed(2)}deg)`;
-    lift.style.transform = `translate(${f.x.toFixed(2)}px, ${(-f.y + f.z * 0.2).toFixed(2)}px)`;
-    const k = Math.max(0, 1 - f.y / 110);
-    shadow.style.transform = `translateX(${f.x.toFixed(2)}px) scale(${(0.45 + 0.55 * k).toFixed(3)})`;
-    shadow.style.opacity = (0.25 + 0.5 * k).toFixed(2);
+    lift.style.transform = `translate3d(${f.x.toFixed(2)}px, ${f.z.toFixed(2)}px, ${(f.y + COIN_EDGE / 2).toFixed(2)}px)`;
+    coin.style.transform = `rotateZ(${(f.yaw * D).toFixed(2)}deg) rotateX(${((f.th + f.wx) * D).toFixed(2)}deg) rotateY(${(f.wy * D).toFixed(2)}deg)`;
+    const k = Math.max(0, 1 - f.y / 120);
+    shadow.style.transform = `translate(${(f.x + f.y * 0.18).toFixed(2)}px, ${(f.z + f.y * 0.12).toFixed(2)}px) scale(${(0.55 + 0.45 * k).toFixed(3)})`;
+    shadow.style.opacity = (0.2 + 0.6 * k).toFixed(2);
   };
   const flatPose = side => ({ y: 0, z: 0, x: 0, th: side === 'tails' ? Math.PI : 0, yaw: 0, wx: 0, wy: 0 });
   const show = side => { rest = side === 'tails' ? 'tails' : 'heads'; pose(flatPose(rest)); };

@@ -616,7 +616,7 @@ Replay, second suit and second rank are event-only (`EVENT_ONLY_OPS`).
 | Reschedule (`reschedule`) | events-extra.js | act modes: this quarter's and next quarter's boss; 16 credits rerolls both |
 | Grid Spinner (`grid_spinner`) | events-extra.js | stop a light over A A A 2 2 2 3 3 4; place that many rows and columns; past the max, random limits |
 | Static Bonus (`static_bonus`) | events-extra.js | two wheels: pips or mult, quarter x 4/5/6 (x3 for pips); added to every hand's base for the run |
-| Luck Dice (`luck_dice`) | events-extra.js | (-3..3) x (-2,-1,3,4,5,6) added to Luck |
+| Lucky Dice (`luck_dice`) | events-extra.js | (-3..3) x (-2,-1,3,4,5,6) added to Luck |
 | State Change (`state_change`) | events-extra.js | structural: buy a card state (priced by tier) for a card you choose |
 | Rewire (`rewire`) | events-extra.js | structural: a replay on two cards, or a second suit / rank; costs 2 junk cards |
 
@@ -682,7 +682,7 @@ line is blank and `renderEventShell` hides it.
 | Reschedule | up to 10 rerolls, 16 then +2 each; skipping pays 20 |
 | Grid Spinner | 16 cards (A x4, 2 x5, 3 x3, 4 x2, stone x2), a new path every spin, 10% faster, a fading trail |
 | Static Bonus | type wheel +PIPS, +MULT, +PIPS, +MULT, BLANK, -PIPS; blank ends it; then double or flip |
-| Luck Dice | "Faces:"; skipping costs 20 (or all you have); then double or flip |
+| Lucky Dice | "Faces:"; skipping costs 20 (or all you have); then double or flip |
 | State Change | the deck picker; Deadline's Tricks are "force-triggered" |
 | Rewire | the deck picker, up to three times, 2 junk cards each |
 

@@ -279,7 +279,7 @@ const EVENT_META = {
   reschedule:  { name:'Reschedule',      flavor:'' },
   grid_spinner:{ name:'Grid Spinner',    flavor:'' },
   static_bonus:{ name:'Static Bonus',    flavor:'' },
-  luck_dice:   { name:'Luck Dice',       flavor:'' },
+  luck_dice:   { name:'Lucky Dice',      flavor:'' },
   // r580: the structural events
   state_change:{ name:'State Change',    flavor:'Buy a card state and choose the card it goes on.' },
   rewire:      { name:'Rewire',          flavor:'A replay, a second suit or a second rank. Up to three times.' },

@@ -48,8 +48,8 @@ function coinSimulate(th0, seed) {
   const H = C.apex[0] + rnd() * (C.apex[1] - C.apex[0]);
   let vy = Math.sqrt(2 * C.g * H), T = 2 * vy / C.g;
   let w = (C.turns[0] + rnd() * (C.turns[1] - C.turns[0])) * 2 * Math.PI / T;
-  let y = hh, z = 0, vz = (rnd() - 0.5) * 60, th = th0;
-  let x = 0, vx = (rnd() - 0.5) * 40;
+  let y = hh, z = 0, vz = (rnd() - 0.5) * 120, th = th0;   // r763: it skids on the table
+  let x = 0, vx = (rnd() - 0.5) * 70;
   const yawAmp = (rnd() - 0.5) * 0.6;
   const dt = 1 / 480, frames = [], hits = [];
   let t = 0, acc = 0, landed = false, handover = null;
