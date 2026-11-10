@@ -3,12 +3,25 @@
 .evt-host { display: flex; flex-direction: column; align-items: center; gap: 6px; margin: 6px auto; }
 .evt-row  { display: flex; gap: 18px; justify-content: center; align-items: flex-start; flex-wrap: wrap; width: 100%; }
 
-/* coin (r590): a disc with a rim, tossed over its own shadow */
-.evt-coin-stage { position: relative; perspective: 380px; width: 120px; height: 150px; display: flex; align-items: flex-end; justify-content: center; }
-.evt-coin-shadow { position: absolute; bottom: 4px; left: 50%; width: 62px; height: 12px; margin-left: -31px; border-radius: 50%;
-  background: radial-gradient(ellipse at center, rgba(0,0,0,.75), rgba(0,0,0,0) 70%); transform-origin: 50% 50%; }
-.evt-coin-lift { position: relative; width: 66px; height: 66px; margin-bottom: 10px; transform-style: preserve-3d; }
+/* coin (r590; on a table r763): a disc with a rim, tossed on a felt table seen
+   from above at an angle. The table is a plane leaning back (js/event-toys.js
+   COIN_TABLE_TILT); the coin and its shadow are children of it, so they sit in
+   its 3D space. */
+.evt-coin-stage { position: relative; perspective: 460px; perspective-origin: 50% 0%; width: 190px; height: 168px; }
+.evt-coin-table { position: absolute; left: 0; right: 0; bottom: 6px; height: 150px; transform-style: preserve-3d; transform-origin: 50% 100%; }
+.evt-coin-felt { position: absolute; inset: 0; border-radius: 8px;
+  background: radial-gradient(ellipse at 50% 45%, #2c6b48, #17402a 62%, #0b2216 100%);
+  box-shadow: inset 0 0 0 5px #4a2c14, inset 0 0 0 6px #6e4520, inset 0 0 18px 8px rgba(0,0,0,.45); }
+.evt-coin-front { position: absolute; left: 0; right: 0; top: 100%; height: 12px; transform-origin: 50% 0; transform: rotateX(-90deg);
+  border-radius: 0 0 4px 4px; background: linear-gradient(180deg, #5a3618, #2a170a); }
+.evt-coin-shadow { position: absolute; left: 50%; top: 50%; width: 64px; height: 64px; margin: -32px 0 0 -32px; border-radius: 50%;
+  background: radial-gradient(circle at center, rgba(0,0,0,.8), rgba(0,0,0,.35) 55%, rgba(0,0,0,0) 72%); transform-origin: 50% 50%; }
+.evt-coin-lift { position: absolute; left: 50%; top: 50%; width: 66px; height: 66px; margin: -33px 0 0 -33px; transform-style: preserve-3d; }
 .evt-coin { position: relative; width: 66px; height: 66px; transform-style: preserve-3d; }
+#event-overlay.ev-console .evt-coin-felt {
+  background: radial-gradient(ellipse at 50% 45%, rgba(90,60,14,.75), rgba(30,20,4,.92) 70%, #0c0802 100%);
+  box-shadow: inset 0 0 0 1px rgba(255,176,60,.5), inset 0 0 0 5px rgba(40,26,6,.9), inset 0 0 18px 8px rgba(0,0,0,.5); }
+#event-overlay.ev-console .evt-coin-front { background: linear-gradient(180deg, #3a260a, #120c03); }
 .evt-edge { position: absolute; inset: 0; border-radius: 50%; background: linear-gradient(180deg, #8a6206, #5d4103 55%, #3b2902); }
 .evt-face {
   position: absolute; inset: 0; border-radius: 50%; backface-visibility: hidden;

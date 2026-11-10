@@ -95,7 +95,7 @@ events are still in at least one pool.
 | department | pool |
 |---|---|
 | Sales | Hot Streak, Prize Ladder, Keep It, Static Bonus, Extra Rep |
-| Marketing | Plinko, Spin to Improve, Theme Draft, Free Pick, Luck Dice |
+| Marketing | Plinko, Spin to Improve, Theme Draft, Free Pick, Lucky Dice |
 | Accounting | The Investment, Card Market, Deck Trim, Pairs |
 | HR | Trade a Trick, Tray Order, Trick Gamble, Free Pick |
 | Legal | Overtime, Reschedule, Clean Slate, Call It |

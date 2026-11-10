@@ -4771,3 +4771,13 @@ pick stored and cleared; the dev selects list 4 and 5 options; the Run tab draws
   the background is none and the stock carries both colours (`--pxa-stock`, one per background).
   A selected card is ringed by four chained 2px drop shadows of that shape (blue, red on a penalty),
   never a square box-shadow. Verified at 1440x820 (console and flat) and 420x900, both backgrounds.
+
+## r763 - Lucky Dice; the coin lands on a table (owner)
+- **Lucky Dice** is the dice event's name (id `luck_dice`). Its double-or-flip button reads PUSH YOUR LUCK
+  (`evDoubleOrFlip(parent, n, add, paint, label)`; Static Bonus keeps FLIP FOR IT); prices print with L¢.
+- **The coin is thrown on a table** (`evCoin`, js/event-toys.js; css/event-toys.css): a felt plane leaning
+  back `COIN_TABLE_TILT` (50) degrees in its own perspective, a wooden rim and a front edge. The coin and its
+  shadow are children of the table, so the sim's lift is `translateZ` off the felt, its depth runs down the
+  table (local y) and its turn is end over end about the table's x axis; a coin at rest is a flat div. The
+  throw skids more (coin-sim's `vz` / `vx` doubled); the in-air drift undo still brings it to rest in the
+  middle. Console mode tints the felt amber like the dice tray.

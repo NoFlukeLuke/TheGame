@@ -1,4 +1,4 @@
-const BUILD = "2026-11-10 · r762 · LED cards: stepped pixel corners; the card background in Settings";
+const BUILD = "2026-11-10 · r763 · Lucky Dice; the coin lands on a table";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
