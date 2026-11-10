@@ -448,3 +448,125 @@ renamed or reworked several Tricks: One Twain, To The Nines, Nickel Saved, Corne
 Order from here: the owner fills the sheet; the names land (display strings, v6 names, every
 text that prints an old name); the approved fusion bonuses and both-lines rule are built; the
 wording pass; the loose pairs are replaced; then the id sweep (section 7).
+
+---
+
+## 10. Names landed (r767): Tricks and Knacks
+
+The owner's YOUR PICK column for the Trick and Knack sheets, applied as display names (ids
+frozen; section 7's id sweep is still to come). Sleights and fused pairs are not in this pass.
+Decided with the owner while landing:
+- **Men of Repute is Men of Means**; the fused Trick that held that name (Face Value + Men of
+  Repute, `men_of_means`) is **Old Money**.
+- **Critical is Corporate Culture** (the sheet's alt): All Hands is the legendary Sleight's name.
+- **v6 names:** Express Lane's is **Express Elevator** (was Cataract), Joint Venture's is
+  **Strategic Alliance** (was Metashock).
+- **District** was typed "Undisctricted"; it ships as **Undistricted**.
+- **Names in another script** are the script alone (the pick for Jury-Rig, Life Lessons and
+  Meditation carried a romanised word in brackets); the pronunciation is a "say:" line under
+  the name in every tooltip (`NAME_SAY` / `nameSay`, js/labels.js, keyed by the display name).
+  Latin-script foreign names (Vestir a Camisa, Pé-de-Meia, El Tiempo es Oro, Água mole, pedra
+  dura, Jeitinho) take none.
+- Kept as typed, lower case: inflation, eeruh eeruh, Growth curve. Shared with something else on
+  purpose: Blackjack (also a hand type), Crunch (also a hidden mode), Overtime (also an event).
+
+Changes the sheet carried beside the names (its What it does / Note columns):
+- Numbers: Perk Package (Rich Soil) +6 mult (was 3), Eagle Eye +15 (was 10), Night Owl +16 (was
+  10), Five Stack +15 pips +20 mult (was 20 / 5).
+- Straight Shot counts buffed pips from v1; its one improvement goes straight to the 6-line shape (v6).
+- The Vulture is a Knack (same id; the Trick row is retired; its unlock row is gone).
+- Clockmaker is removed (`retired` on the Knack row; `knackOfferable` refuses retired Knacks).
+- Free Range (Jeitinho) SETS the round's swap stock to 2 (`BAL.free_range_t.swaps`; it was base
+  swaps - 1). Its improvement adds 1.
+- Traveler (Well-Rounded) grants +1 swap and +1 discard.
+- Wording: Every Day Essentials, Middle Man ("during play"), The Vulture, Card Counter.
+- Notices and preview labels that typed a name read it now (`trickNameOf(id)`, js/improve.js;
+  `knackName(id)`).
+
+| id | was | now |
+|---|---|---|
+| `aces_absorb` | Ace Absorb | Aceimilation |
+| `acorns` | Acorns | Pé-de-Meia |
+| `pair_pips` | Aftershock | Joint Venture |
+| `balanced_diet` | Balance | Work-Life |
+| `rare_bloom` | Bedrock | Board of Directors |
+| `monochrome` | Blood Diamonds | Red Water Diamonds |
+| `card_counter` | Card Counter | 看板 |
+| `overgrowth` | Cascade | Express Lane |
+| `challenge_dial` | Challenge Dial | Juggernaut |
+| `charged_card` | Charged Card | Morning Brew |
+| `chorus` | Chorus | Sonic Logo |
+| `carry_time` | Clock Tower | Comp Time |
+| `full_house_streak` | Collapsing Columns | Booked |
+| `combo_keeper` | Combo Keeper | Consistency |
+| `combo_score` | Combo Score | Hybrid Approach |
+| `discard_pips` | Compost | Waste Specialist |
+| `critical` | Critical | Corporate Culture |
+| `cull` | Cull | Downsizing |
+| `dam_holding` | Dam Holding | Please Hold |
+| `spade_flood` | Dark Matter | In the Black |
+| `deluge` | Deluge | Company Time |
+| `district` | District | Undistricted |
+| `number_crunch` | Diversity | Equal Opportunity |
+| `two_pair_mult` | Double Dutch | Água mole, pedra dura |
+| `rowcol_retrigger` | Echo Location | Second Opinion |
+| `echo_hand` | Echoes | Same Old |
+| `encore` | Encore | Cringe On |
+| `humble_roots` | Every Day Essentials | Cogs and Counters |
+| `expanse` | Expanse | Expansion |
+| `eye_of_storm` | Eye of the Storm | Midlife Crisis |
+| `first_fruits` | First Fruits | First Impressions |
+| `first_light` | First Light | Cash Cow |
+| `five_fodder` | For Fodder | Burn the Books |
+| `four_horseman` | Four Horse-man | Four Times a Zombie |
+| `free_discards` | Free Discards | Decisiveness |
+| `free_range_t` | Free Range | Jeitinho |
+| `free_swaps` | Free Swaps | Politicians |
+| `before_the_tide` | Gnomes | The Grindset |
+| `green_station` | Green Station | Resourcefulness |
+| `growth_spurt` | Growth Spurt | Stretch Goal |
+| `royal_trio` | Heads of State | Nepo, Baby |
+| `heartwood` | Heartwood | UVP |
+| `jury_rig` | Jury-Rig | जुगाड़ |
+| `kindling` | Kindling | Tried and True |
+| `landfill` | Landfill | Paper Trail |
+| `rowcol_perm_double` | Ley Line | Matrix Management |
+| `life_lessons` | Life Lessons | 改善 |
+| `double_bloom` | Magnitude | Partnered |
+| `meditation` | Meditation | ध्यान |
+| `men_of_means` | Men of Means | Old Money |
+| `king_guard` | Men of Repute | Men of Means |
+| `closing_time` | Near Extinction | Crunch |
+| `light_touch` | Nimble | Agile |
+| `old_growth` | Old Growth | Equity Experience |
+| `patient_rulers` | Patient Rulers | True Leader |
+| `kindred` | Quake | Esprit de Corps |
+| `full_color` | Rainbow | DEI |
+| `high_pair` | Resonance | Twynergy |
+| `replay_rewind` | Rewound Echo | eeruh eeruh |
+| `rich_soil` | Rich Soil | Perk Package |
+| `richter` | Richter | Director's Cut |
+| `ripple` | Ripple | 关系 |
+| `rising_tide` | Rising Tide | inflation |
+| `correct_run` | Rogue Wave | Chain of Command |
+| `sands_of_time` | Sands of Time | El Tiempo es Oro |
+| `sediment` | Sediment | Seniority |
+| `shaky_foundation` | Shaky Foundation | Semi-Dependable |
+| `short_change` | Short Change | Frugality |
+| `eights_retrigger` | Sideways to Infinity | Sideways Infinity |
+| `long_road` | Storm | Climb the Ladder |
+| `suggestive` | Suggestive | 根回し |
+| `sundial` | Sundial | Vertical Thinking |
+| `tidal_force` | Tidal Forces | Vestir a Camisa |
+| `tide_table` | Tide Table | Growth curve |
+| `time_bank` | Time Bank | Punctuality |
+| `river_run` | Torrent | Baby Steps |
+| `mockingbird` | Traveler | Well-Rounded |
+| `blackjack_bonus` | Twenty-One | Blackjack |
+| `undertow` | Undertow | Better Bigger |
+| `summit` | Unsummit | The Go-to Gal |
+| `wave_amp` | Wave Amplification | Upswing |
+| `wellspring` | Wellspring | 生きがい |
+| `what_odds` | What are The Odds | Never Tell Me |
+| `wildfire` | Wildfire | 加油 |
+| `yoked` | Yoked | Overachiever |

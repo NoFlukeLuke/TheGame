@@ -377,7 +377,7 @@ function onFocusMaxed() {
   if (hasTrick('expanse') && (focusCapGains['expanse'] || 0) < BAL.expanse.cap) {
     const _ex = gainFocusCap('expanse', BAL.expanse.cap_gain * trickFires('expanse'), BAL.expanse.cap);
     if (_ex > 0) {
-      showMessage(`🌌 Expanse - Focus limit +${_ex}`, 'var(--gold)');
+      showMessage(`🌌 ${trickNameOf('expanse')} - Focus limit +${_ex}`, 'var(--gold)');
       keepFrac = Math.min(keepFrac ?? 1, BAL.expanse.keep_fraction);
     }
   }
@@ -398,7 +398,7 @@ function onFocusMaxed() {
     // Each max lowers the ceiling by 5 (permanent, floored in focusCapNodes); the random
     // limit is banked once and granted at round end (triggerLevelUp) if you maxed at all.
     growthSpurtMaxedThisRound = true;
-    showMessage(`🌱 Growth Spurt - max Focus −${BAL.growth_spurt.cap_reduction}`, 'var(--gold)');
+    showMessage(`🌱 ${knackName('growth_spurt')} - max Focus −${BAL.growth_spurt.cap_reduction}`, 'var(--gold)');
   }
   if (keepFrac !== null || dropFlat > 0 || _gs) setTimeout(() => {
     if (_gs) growthSpurtCapPenalty += BAL.growth_spurt.cap_reduction;

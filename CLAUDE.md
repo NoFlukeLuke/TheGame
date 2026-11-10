@@ -4818,3 +4818,19 @@ and Limitless terms. Goldilocks: level 25 2,187,500, 26 2,953,100, 28 5,673,900,
   tucked to fit (Records' rule), wilds and other suits on rows of their own, `EDP_ROWS_SHOWN` (4) rows in
   view; a pick lifts with a gold ring and its number, a blocked card greys, a mouse over a card shows
   what it carries (`recordsCardLines`). The API (`picks`, `sync`, `el`) is unchanged.
+## r767 - the owner's Trick and Knack names (RENAMES.md section 10)
+The YOUR PICK columns of the Trick and Knack sheets are the display names (ids frozen; the id
+sweep is still to come). Men of Repute is Men of Means and the fused `men_of_means` is Old
+Money; Critical is Corporate Culture (All Hands is the Sleight's); v6 Express Elevator and
+Strategic Alliance. **A name in another script** (关系, 加油, 根回し, 生きがい, 看板, 改善, जुगाड़,
+ध्यान) prints a "say:" pronunciation line under the name in every tooltip: `NAME_SAY` /
+`nameSay(name)` / `nameSayHTML(name)` in js/labels.js, keyed by the DISPLAY name, so it never
+shows under UNDISCOVERED. A notice or preview label never types an entity's name: it reads
+`trickNameOf(id)` (js/improve.js; the owned copy, so v6 names show) or `knackName(id)`.
+Beside the names: Perk Package +6 mult, Eagle Eye +15, Night Owl +16, Five Stack +15 / +20;
+Straight Shot counts buffs from v1 and improves once, to v6; **The Vulture is a Knack** (same id,
+the Trick retired); **Clockmaker is retired** (`knackOfferable` refuses `retired`, r753); Free
+Range (Jeitinho) sets the round's swap stock to `BAL.free_range_t.swaps` (2); Traveler
+(Well-Rounded) also grants a discard. The golden baseline was rewritten in the next commit: the
+Vulture leaving the Trick pool moves the harness's random line placement, so line Tricks' cases
+change with no scoring change (checked by putting the Vulture back: all match).

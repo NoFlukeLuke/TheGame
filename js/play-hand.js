@@ -160,7 +160,7 @@ function generateHandFocus(hand, handCells, vultureSec) {
         const _ddNow = Date.now();
         _ddPairTimes.push(_ddNow);
         _ddPairTimes = _ddPairTimes.filter(t => _ddNow - t <= BAL.two_pair_mult.window_ms);
-        if (_ddPairTimes.length >= BAL.two_pair_mult.need_count) { const _ddf = BAL.two_pair_mult.focus * trickFires('two_pair_mult'); addFocus(_ddf, 'two_pair_mult'); _ddPairTimes = []; noteMessage('Double Dutch! +' + _ddf + ' Focus', '#5aa9e6'); }
+        if (_ddPairTimes.length >= BAL.two_pair_mult.need_count) { const _ddf = BAL.two_pair_mult.focus * trickFires('two_pair_mult'); addFocus(_ddf, 'two_pair_mult'); _ddPairTimes = []; noteMessage(trickNameOf('two_pair_mult') + ' +' + _ddf + ' Focus', '#5aa9e6'); }
       } else { _ddPairTimes = []; }
     }
     // (Ripple's 30s cooldown is gone, r344: each adjacent-rank card rolls its own
@@ -358,7 +358,7 @@ function playHand() {
     let _rw = 0;
     // COUNTABLE: each replay rolls, and past 100% one replay can pay twice.
     for (let i = 0; i < _lastHandRetrigs; i++) _rw += luckRoll(BAL.replay_rewind.chance) * BAL.replay_rewind.seconds;
-    if (_rw > 0) rewindTime(_rw, `🔂 Rewound Echo - rewound ${_rw}s`);
+    if (_rw > 0) rewindTime(_rw, `🔂 ${knackName('replay_rewind')} - rewound ${_rw}s`);
   }
   // Vulture: retrigger-aware pause-seconds from buffed cards in this hand (same fresh snapshot).
   const _vultureSec = _lastHandVultureSeconds;
@@ -465,7 +465,7 @@ function playHand() {
       coins += _scN;
       updateCoinsUI();
       if (typeof entityEffectFX === 'function') entityEffectFX('credits', _scN, { id: 'short_change', source: 'knack' });
-      noteMessage(`Short Change: +${_scN} credit${_scN === 1 ? '' : 's'}`, 'var(--gold)');
+      noteMessage(`${knackName('short_change')}: +${_scN} credit${_scN === 1 ? '' : 's'}`, 'var(--gold)');
     }
   }
 
@@ -712,7 +712,7 @@ function playHand() {
   // timeManipRound - doing both would double-count them in the payout's
   // "Time manipulation" row (scoring.js sums the two).
   // Deluge: Flushes rewind the clock
-  if (hand === 'Flush') { const _dl = BAL.deluge.seconds * trickFires('deluge'); if (_dl > 0) rewindTime(_dl, `🌊 Deluge - rewound ${_dl}s`); }
+  if (hand === 'Flush') { const _dl = BAL.deluge.seconds * trickFires('deluge'); if (_dl > 0) rewindTime(_dl, `🌊 ${trickNameOf('deluge')} - rewound ${_dl}s`); }
   // Overtime (r182): a REWIND, and now routed through the real rewind path.
   // It used to add raw seconds straight onto roundSeconds, which meant it was a
   // rewind that the game did not know was a rewind - it never showed the ⏪
@@ -747,7 +747,7 @@ function playHand() {
         const _bdCoins = BAL.monochrome.coins * _bdf, _bdSecs = BAL.monochrome.seconds * _bdf;
         grantEntityCoins(_bdCoins, 'trick', 'monochrome');
         roundSeconds = Math.max(1, roundSeconds - _bdSecs); updateClockUI();
-        showMessage(`💎 Blood Diamonds - +${_bdCoins} credits, -${_bdSecs}s`, 'var(--gold)');
+        showMessage(`💎 ${trickNameOf('monochrome')} - +${_bdCoins} credits, -${_bdSecs}s`, 'var(--gold)');
         if (typeof showTimeCost === 'function') showTimeCost(`-${_bdSecs}s`);
       }
     }
@@ -824,7 +824,7 @@ function playHand() {
   // every 3 such "no-streak" hands grants +1 swap. Feeds resource-hoarding Tricks (Hyperphagia).
   if ((hasTrick('mockingbird') || hasKnack('mockingbird')) && streakCount === 1) {   // a Knack since r708
     _altSwapCount++;
-    if (_altSwapCount >= 4) { _altSwapCount = 0; swaps = Math.min(99, swaps + 1); noteMessage('🧳 Traveler - +1 swap', '#8fbfd9'); }
+    if (_altSwapCount >= 4) { _altSwapCount = 0; swaps = Math.min(99, swaps + 1); discards = Math.min(99, discards + 1); noteMessage(`🧳 ${knackName('mockingbird')} - +1 swap, +1 discard`, '#8fbfd9'); }
   }
 
   // Hyperphagia (was Hoarder House): playing a hand rewinds the clock 1s per 2 unspent manipulate actions (swaps + discards).
@@ -907,7 +907,7 @@ function playHand() {
   // Bedrock: Four of a Kind permanently buffs its 4 cards
   if (hand === 'Four of a Kind' && hasTrick('rare_bloom')) {
     result.handCells.forEach(cl => { const card = cellCard(cl); if (!card || !card.rank) return; const k = cardId(card); permPips[k] = (permPips[k]||0) + yokeGain('pips', BAL.rare_bloom.perm_pips); });
-    showMessage('Bedrock! +' + BAL.rare_bloom.perm_pips + ' pips to those cards', '#e8c56b');
+    showMessage(trickNameOf('rare_bloom') + ': +' + BAL.rare_bloom.perm_pips + ' pips to those cards', '#e8c56b');
   }
 
   // First Fruits (r624): the first `hands` hands of a round (handsPlayedRound already
@@ -1129,7 +1129,7 @@ function scalingCount(hand, handCells, reps) {
       const t = lineSlotTrick(b, 'suggestive'); if (!t) return;
       const ch = (b._extra || b._fixed) ? BAL.suggestive.chance2 : BAL.suggestive.chance;
       let n = 0; for (let k = 0; k < x.n; k++) n += luckRoll(ch);
-      if (n > 0 && primeTrick(t, n, { src: 'suggestive' })) noteMessage(`+ Suggestive primed ${t.name}`, '#cf8cff');
+      if (n > 0 && primeTrick(t, n, { src: 'suggestive' })) noteMessage(`+ ${trickNameOf('suggestive')} primed ${t.name}`, '#cf8cff');
     });
   }
   // Separation Anxiety (r651 knack): a fused Trick that fired this hand has `chance` of priming the Tricks beside it.
@@ -1171,7 +1171,7 @@ function scalingCount(hand, handCells, reps) {
     _cells.forEach(x => {
       if (isEffectIntersection(x.r, x.c) && x.card.rank) { const _lk = cardId(x.card); permMult[_lk] = (permMult[_lk] || 0) + yokeGain('mult', BAL.rowcol_perm_double.perm_mult * x.n); _ln += x.n; }
     });
-    if (_ln) showMessage('Ley Line! +' + (BAL.rowcol_perm_double.perm_mult * _ln) + ' mult', '#a25cd8');
+    if (_ln) showMessage(trickNameOf('rowcol_perm_double') + ': +' + (BAL.rowcol_perm_double.perm_mult * _ln) + ' mult', '#a25cd8');
   }
   // Penny Saved: 5s scored also count.
   if (hasTrick('fives_discard')) {

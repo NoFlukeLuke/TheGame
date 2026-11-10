@@ -273,7 +273,7 @@ function render() {
     const cardPipsTotal = cards.reduce((sum, card) => sum + cardPips(card.rank) + (permPips[cardId(card)]||0), 0);
 
     const bonusLines = [];
-    if (hasTrick('rich_soil')) bonusLines.push({ label:'Rich Soil', val:`+${BAL.rich_soil.mult*handCells.length} mult`, type:'mult' });
+    if (hasTrick('rich_soil')) bonusLines.push({ label:trickNameOf('rich_soil'), val:`+${BAL.rich_soil.mult*handCells.length} mult`, type:'mult' });
     if (hasTrick('court_of_leaves') && cards.some(c=>['J','Q','K'].includes(c.rank))) bonusLines.push({ label:'Court of Leaves', val:'+pips', type:'pip' });
     if (hasTrick('still_water')) {
       const elapsedSinceSwap = lastSwapRoundSeconds !== null
@@ -285,7 +285,7 @@ function render() {
     if (hasTrick('swift')) { const _e = Math.max(0, roundStartSeconds - roundSeconds); const _sw = Math.floor(_e / BAL.swift.interval_seconds) * BAL.swift.mult_per_interval; if (_sw > 0) bonusLines.push({ label:'The Swift', val:`+${_sw} mult`, type:'mult' }); }
     if (hasTrick('hummingbird') && pauseInstanceGame + rewindInstanceGame > 0) bonusLines.push({ label:'Hummingbird', val:`+${(pauseInstanceGame+rewindInstanceGame)*BAL.hummingbird.mult_per_pause} mult`, type:'mult' });
     if (hasTrick('albatross') && pausedSecondsRound > 0) bonusLines.push({ label:'Albatross', val:`+${pausedSecondsRound*BAL.albatross.pips_per_second} pips`, type:'pip' });
-    if (hasTrick('sediment')) { const _el = Math.max(0, roundStartSeconds - roundSeconds); const _sp = Math.floor(_el/BAL.sediment.interval_seconds)*BAL.sediment.pips_per_interval; if (_sp > 0) bonusLines.push({ label:'Sediment', val:`+${_sp} pips`, type:'pip' }); }
+    if (hasTrick('sediment')) { const _el = Math.max(0, roundStartSeconds - roundSeconds); const _sp = Math.floor(_el/BAL.sediment.interval_seconds)*BAL.sediment.pips_per_interval; if (_sp > 0) bonusLines.push({ label:trickNameOf('sediment'), val:`+${_sp} pips`, type:'pip' }); }
     if (hasTrick('kingfisher')) { const _km = Math.floor((pausedSecondsRound+rewoundSecondsRound)/BAL.kingfisher.interval_seconds)*BAL.kingfisher.mult_per_interval; if (_km > 0) bonusLines.push({ label:'The Kingfisher', val:`+${_km} mult`, type:'mult' }); }
     if (pendingHandPips > 0) bonusLines.push({ label:'Quarter Chime', val:`+${pendingHandPips} pips`, type:'pip' });
     if (pendingCardPips > 0) bonusLines.push({ label:'Second Hand', val:`+${pendingCardPips} pips`, type:'pip' });
@@ -293,15 +293,15 @@ function render() {
     if (hasTrick('minute_hand') && minuteHandCharges > 0) bonusLines.push({ label:'Minute Hand', val:`x${BAL.minute_hand.mult_mult} mult`, type:'mult' });
     const _isRunLine = ['Run of 3','Run of 4','Straight','Straight Flush'].includes(hand);
     const _setMax = (() => { const m = {}; cards.forEach(c => m[c.rank] = (m[c.rank]||0)+1); return Math.max(0, ...Object.values(m)); })();
-    if (hasTrick('overgrowth') && _isRunLine) bonusLines.push({ label:'Cascade', val:`+${BAL.overgrowth.pips_per_card*cards.length} pips`, type:'pip' });
-    if (hasTrick('kindred') && _setMax >= 2) bonusLines.push({ label:'Quake', val:`+${BAL.kindred.mult_per_card*_setMax} mult`, type:'mult' });
-    if (hasTrick('long_road') && _isRunLine) bonusLines.push({ label:'Storm', val:`+${BAL.long_road.mult_per_card*cards.length} mult`, type:'mult' });
+    if (hasTrick('overgrowth') && _isRunLine) bonusLines.push({ label:trickNameOf('overgrowth'), val:`+${BAL.overgrowth.pips_per_card*cards.length} pips`, type:'pip' });
+    if (hasTrick('kindred') && _setMax >= 2) bonusLines.push({ label:trickNameOf('kindred'), val:`+${BAL.kindred.mult_per_card*_setMax} mult`, type:'mult' });
+    if (hasTrick('long_road') && _isRunLine) bonusLines.push({ label:trickNameOf('long_road'), val:`+${BAL.long_road.mult_per_card*cards.length} mult`, type:'mult' });
     if (hasTrick('patience_reward') && typeof heronMult === 'function') { const _hm = heronMult(); if (_hm > 0) bonusLines.push({ label:'The Heron', val:`+${_hm} mult`, type:'mult' }); }
-    if (hasTrick('correct_run') && _isRunLine && canBeOrderedRun(handCells)) { const _crp = trickPickOne(0, handCells); bonusLines.push(_crp === 0 ? { label:'Rogue Wave', val:`+${BAL.correct_run.pips} pips`, type:'pip' } : _crp === 1 ? { label:'Rogue Wave', val:`+${BAL.correct_run.mult} mult`, type:'mult' } : { label:'Rogue Wave', val:`+${BAL.correct_run.focus} Focus`, type:'focus' }); }
+    if (hasTrick('correct_run') && _isRunLine && canBeOrderedRun(handCells)) { const _crp = trickPickOne(0, handCells); bonusLines.push(_crp === 0 ? { label:trickNameOf('correct_run'), val:`+${BAL.correct_run.pips} pips`, type:'pip' } : _crp === 1 ? { label:trickNameOf('correct_run'), val:`+${BAL.correct_run.mult} mult`, type:'mult' } : { label:trickNameOf('correct_run'), val:`+${BAL.correct_run.focus} Focus`, type:'focus' }); }
     if (hasTrick('early_bird') && roundFractionRemaining()>2/3) bonusLines.push({ label:'Early Bird', val:`+${BAL.early_bird.pips_per_card*cards.length} pips`, type:'pip' });
     if (hasTrick('kindling')) {
       const _previewStreak = (lastHandType !== null && hand === lastHandType) ? streakCount + 1 : 1;
-      if (_previewStreak > 1) bonusLines.push({ label:`Kindling ×${_previewStreak}`, val:`+${BAL.kindling.mult_per_streak*_previewStreak} mult`, type:'mult' });
+      if (_previewStreak > 1) bonusLines.push({ label:`${trickNameOf('kindling')} ×${_previewStreak}`, val:`+${BAL.kindling.mult_per_streak*_previewStreak} mult`, type:'mult' });
     }
 
     // Suits neutral by default - preview only shows active Trick effects

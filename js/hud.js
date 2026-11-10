@@ -434,7 +434,7 @@ function showKnackTooltip(chip, id) {
   const _reveal = _live.slice((knack.desc || '').length);
   tt.innerHTML = `
     <button class="tt-close" aria-label="Close">✕</button>${kwMoreHTML(knack.desc)}
-    <div class="knack-tooltip-name">${knack.emoji} ${knack.name}</div>
+    <div class="knack-tooltip-name">${knack.emoji} ${knack.name}</div>${nameSayHTML(knack.name)}
     <div class="knack-tooltip-desc">${colorizeKeywords(knack.desc)}${_reveal}</div>
     ${kwDefsHTML(knack.desc)}
     <div class="knack-tooltip-actions"><button class="knack-tooltip-sell" id="knack-tooltip-sell-btn">Sell ${creditsTxt(_sv)}</button></div>

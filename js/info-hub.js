@@ -398,7 +398,7 @@ const INFO_TOPICS = [
       () => `A protocol of Flow and the Schedule. The {FOCUS} speed bonus is half as strong, but the same for the first ${PRECISION.speedFlat} seconds after a hand, then it fades over ${PRECISION.speedFade} seconds.`,
       () => `Every hand but a Pair makes ${PRECISION.focusAdd} more {FOCUS}. A hand loses ${PRECISION.sizeStep} {FOCUS} for every card it is short of your Hand Size, so a short hand can lose {FOCUS}, ${PRECISION.lossCap} at most. Kickers do not count toward a hand's length.`,
       'Attention to Detail: Tricks that pay for a card\'s rank, suit, buffs or position pay 50% more.',
-      () => `You start with Meditation, Attention to Detail, +${PRECISION.swaps} swaps, +${PRECISION.discards} discards and +${PRECISION.cols} column. Flow's quarters are ${PRECISION.flowSeconds / 60} minutes longer; the Schedule's rounds are ${PRECISION.mapSeconds / 60} minute longer.`,
+      () => `You start with ${knackName('meditation')}, ${knackName('attention_to_detail')}, +${PRECISION.swaps} swaps, +${PRECISION.discards} discards and +${PRECISION.cols} column. Flow's quarters are ${PRECISION.flowSeconds / 60} minutes longer; the Schedule's rounds are ${PRECISION.mapSeconds / 60} minute longer.`,
     ] },
   { id: 'mode_limitless', group: 'modes', title: 'Limitless',
     body: [

@@ -310,7 +310,7 @@ function showTrickTrayTooltip(trick, anchorEl, { actions = true } = {}) {
   const liveDesc = trickLiveDesc(trick);
   const _sv = (typeof trickSellValue === 'function') ? trickSellValue(trick) : 0;
   // The + and its rail (r288). Definitions never open unasked, here or anywhere.
-  tip.innerHTML = `<button class="tt-close" aria-label="Close">✕</button>${kwMoreHTML(liveDesc)}<div class="trick-tooltip-name">${trick.name}</div><div class="trick-tooltip-desc">${colorizeKeywords(withSuitHalo(liveDesc))}</div>${kwDefsHTML(liveDesc)}`
+  tip.innerHTML = `<button class="tt-close" aria-label="Close">✕</button>${kwMoreHTML(liveDesc)}<div class="trick-tooltip-name">${trick.name}</div>${nameSayHTML(trick.name)}<div class="trick-tooltip-desc">${colorizeKeywords(withSuitHalo(liveDesc))}</div>${kwDefsHTML(liveDesc)}`
                 + (actions
                     ? `<div class="trick-tooltip-actions"><button class="trick-tooltip-sell" id="trick-tooltip-sell-btn">Sell ${creditsTxt(_sv)}</button></div>`
                     : '');

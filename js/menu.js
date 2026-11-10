@@ -1,4 +1,4 @@
-const BUILD = "2026-11-10 · r766 · shop prices up; a one-on-one pays an improvement you pick";
+const BUILD = "2026-11-10 · r767 · the owner's Trick and Knack names land; pronunciation in the tooltip";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

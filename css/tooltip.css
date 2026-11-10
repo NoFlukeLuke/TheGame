@@ -184,3 +184,8 @@
    bubble fits the band above a CENTRED pick board instead of needing the board
    pushed to the slot's foot. Width only; everything else is the normal card. */
 #entity-tip.et-wide .et-card { width: min(392px, 96vw); }
+
+/* r767: a name in another script prints how to say it under the name (NAME_SAY, js/labels.js). */
+.name-say { font-size: 9px; letter-spacing: .5px; color: #b8ab88; font-style: italic; margin-top: 1px; }
+#entity-tip .et-say { margin-top: 2px; }
+#trick-tooltip .name-say { text-align: center; }

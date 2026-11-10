@@ -249,7 +249,7 @@ function greenStationRecharge() {
     n += card._usesLeft - was;
     if (was <= 0) woke++;
   });
-  if (n) showMessage(`Green Station: +${n} Sleight charge${n > 1 ? 's' : ''}${woke ? ` (${woke} back in the deck)` : ''}`, '#6aaa6a');
+  if (n) showMessage(`${knackName('green_station')}: +${n} Sleight charge${n > 1 ? 's' : ''}${woke ? ` (${woke} back in the deck)` : ''}`, '#6aaa6a');
 }
 
 // double_tap / on_swap sleights fire at most once per round, then sit locked on the
@@ -503,7 +503,7 @@ function juryRigRoll(cells) {
     if (_jrN <= 0) return;
     let _got = 0;
     for (let i = 0; i < _jrN * BAL.jury_rig.charges; i++) if (restoreSleightCharge(card)) _got++;
-    if (_got) showMessage(`🔧 Jury-Rig - ${sleightDef(card)?.name || 'Sleight'} +${_got} charge${_got > 1 ? 's' : ''}`, '#6aaa6a');
+    if (_got) showMessage(`🔧 ${knackName('jury_rig')} - ${sleightDef(card)?.name || 'Sleight'} +${_got} charge${_got > 1 ? 's' : ''}`, '#6aaa6a');
   });
 }
 

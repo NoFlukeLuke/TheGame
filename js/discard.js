@@ -80,7 +80,8 @@ function doDiscard() {
   // The Vulture: cards discarded during the round's first clock pause gain a permanent "pause on score" buff (stacks)
   // Time buffs do not stack (r342): a card already carrying one is skipped.
   // r625 (owner): a card takes the Vulture's pause once; a time buff from another source does not block it.
-  if (hasTrick('vulture') && firstPauseActive) discardedCards.forEach(c => { if (c && !c._vulturePause) c._vulturePause = yokeGain('time', BAL.vulture.pause_seconds); });
+  if ((hasTrick('vulture') || hasKnack('vulture')) && firstPauseActive)   // a Knack since r767
+    discardedCards.forEach(c => { if (c && !c._vulturePause) c._vulturePause = yokeGain('time', BAL.vulture.pause_seconds); });
   // on_discard sleights fire with their grid position before removal.
   // Snapshot the non-sleight cards discarded alongside so Sandbagger can check for a low pair.
   _discardContextCards = discardedCards.filter(c => c && c.rank && !c._isSleight);
@@ -165,7 +166,7 @@ function doDiscard() {
   if (_fodderHand) {
     const _fc = _fodderHand * BAL.five_fodder.credits_per_card;
     grantEntityCoins(_fc, hasKnack('five_fodder') ? 'knack' : 'trick', 'five_fodder');
-    noteMessage('For Fodder! +' + _fc + ' credits', 'var(--gold)');
+    noteMessage(knackName('five_fodder') + ': +' + _fc + ' credits', 'var(--gold)');
   }
   // Penny Saved: each 5 discarded adds +5 pips to trick
   if (hasTrick('fives_discard')) {

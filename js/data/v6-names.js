@@ -7,12 +7,12 @@
 // syncOwnedEntityDescs copies it onto the owned copies. Ids stay frozen.
 // V6_NAMES.xlsx at the repo root holds suggestions for the rest.
 const V6_NAMES = {
-  pair_pips:      'Metashock',             // Aftershock (Trick)
+  pair_pips:      'Strategic Alliance',    // Joint Venture (Trick; Metashock until r767)
   alignment:      'Perfect Alignment',     // Knack
   bellhop:        'Bell Captain',          // Sleight
   muscle_memory:  'Friends with Benefits', // Buddy System (Knack)
   // capacitor: 'Supercapacitor' was dropped (r739): the Sleight is Theta now.
-  overgrowth:     'Cataract',              // Cascade (Trick)
+  overgrowth:     'Express Elevator',      // Express Lane (Trick; Cataract until r767)
   coin_toss:      'Weighted Coin',         // Knack
   carry_discards: 'Hoarder',               // Collector (Knack); the old Hoarder knack is Spoiled
   four_by_four:   '4x4 Queen',             // Knack
