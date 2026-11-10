@@ -101,8 +101,11 @@ function classicGoalForLevel(lv) {
 // played rounds. Same rounding rules as the classic curve.
 function mapGoalForLevel(lv) {
   const step  = Math.max(1, goalTune('classicRoundTo'));
-  const scale = 1 + goalTune('mapGrowth') / 100;
-  let g = goalTune('classicBase') * goalTune('globalMult') * Math.pow(scale, Math.max(0, lv - 1));
+  // r761: dev -> Schedule / Settings -> Run can point the Schedule at one of Flow's goal tables.
+  const tbl = (typeof mapGoalScale === 'function' && mapGoalScale() !== 'curve') ? goalScaleRows(mapGoalScale()) : null;
+  const scale = tbl ? goalTableRatio(tbl) : 1 + goalTune('mapGrowth') / 100;
+  let g = tbl ? goalTableAt(tbl, lv) * goalTune('globalMult')
+              : goalTune('classicBase') * goalTune('globalMult') * Math.pow(scale, Math.max(0, lv - 1));
   if (typeof endlessGoalMult === 'function') g *= endlessGoalMult(lv, scale);   // r680
   if (typeof limitlessGoalMult === 'function') g *= limitlessGoalMult(lv, scale);   // r749: Limitless's back half
   if (typeof difficultyGoalMult === 'function') g *= difficultyGoalMult();   // r728: tiers 7 and 8

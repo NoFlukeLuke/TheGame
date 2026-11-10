@@ -117,33 +117,75 @@ function flowBossAheadPay() {
   return pay;
 }
 
-// ── Flow's level goals (r754, owner) ──
-// One number per level, in place of the 900 x 1.25^(lv - 1) curve. Past the end
-// of the table every level grows by the table's last step ratio. Read through
-// flowGoalBase(lv) by survivalGoalForLevel (js/survival.js), which still lays the
-// global multiplier, the Endless acceleration, Limitless, the difficulty tier and
-// the rounding over it. Dev -> Flow -> goal curve edits the table (overrides only,
-// lethe.flowGoals.v1); an empty box tracks this list.
-const FLOW_GOALS = [1000, 2000, 3500, 6000, 10000, 17500, 25000, 35000, 47500, 62500, 80000, 100000,
-  120000, 140000, 165000, 180000, 200000, 220000, 240000, 265000, 290000, 325000, 360000, 400000];
+// ── Flow's level goals: four scales to test (r754, r761, owner) ──
+// One number per level. `GOAL_SCALES` holds the owner's four tables (the owner
+// ranks Goldilocks first, so it is the shipped one); Settings -> Run or dev ->
+// Flow picks one (`lethe.flowGoalScale.v1`, stored only off the default), and
+// dev -> Flow's text box can replace the rows with a custom list
+// (`lethe.flowGoals.v1`, overrides only). Past the end of a table every level
+// grows by its last step ratio. Read through flowGoalBase(lv) by
+// survivalGoalForLevel (js/survival.js), which still lays the global multiplier,
+// the Endless acceleration, Limitless, the difficulty tier and the rounding over
+// it. The Schedule can read the same tables (mapGoalScale, js/goal-tuning.js).
+const GOAL_SCALES = {
+  goldilocks: { name: 'Goldilocks', rows: [1000, 1750, 2850, 5000, 8750, 15000, 25000, 37500, 50000, 80000, 100000, 130000,
+    165000, 210000, 250000, 320000, 400000, 475000, 600000, 800000, 1000000, 1250000, 1500000, 1750000] },
+  balatro: { name: 'Balatro-like', rows: [1000, 2000, 3750, 6750, 12500, 20000, 30000, 40000, 50000, 65000, 90000, 115000,
+    140000, 165000, 200000, 240000, 265000, 290000, 325000, 360000, 400000, 440000, 485000, 550000] },
+  step: { name: '1.5x then 1.25x', rows: [1000, 1500, 2250, 3375, 5000, 7500, 11250, 16875, 25000, 37500, 56250, 85000,
+    106250, 133000, 166250, 210000, 262500, 330000, 412500, 515000, 650000, 815000, 1000000, 1250000] },
+  taper: { name: 'xN minus 0.1', rows: [1000, 1900, 3600, 6500, 11700, 20000, 34000, 54400, 87000, 130500, 195750, 275000,
+    385000, 500500, 650000, 845000, 1000000, 1200000, 1350000, 1600000, 1750000, 1925000, 2150000, 2150000] },
+};
+const GOAL_SCALE_ORDER = ['goldilocks', 'balatro', 'step', 'taper'];
+function goalScaleRows(id) { return (GOAL_SCALES[id] || GOAL_SCALES.goldilocks).rows; }
+// The value a table gives a level; past its end the last step ratio repeats.
+function goalTableAt(t, lv) {
+  const n = t.length;
+  lv = Math.max(1, Math.round(lv || 1));
+  if (lv <= n) return t[lv - 1];
+  const ratio = goalTableRatio(t);
+  return t[n - 1] * Math.pow(ratio, lv - n);
+}
+function goalTableRatio(t) { const n = t.length; return Math.max(1.01, t[n - 1] / Math.max(1, t[n - 2])); }
+function goalScaleBase(id, lv) { return goalTableAt(goalScaleRows(id), lv); }
+
+const FLOW_GOAL_SCALE_DEFAULT = 'goldilocks';
+const FLOW_GOAL_SCALE_KEY = 'lethe.flowGoalScale.v1';
+let flowGoalScaleStore = null;
+try { const v = localStorage.getItem(FLOW_GOAL_SCALE_KEY); if (v && GOAL_SCALES[v]) flowGoalScaleStore = v; } catch (e) {}
+function flowGoalScale() { return flowGoalScaleStore || FLOW_GOAL_SCALE_DEFAULT; }
+// Picking a scale drops a custom list (the list was written against another scale).
+function setFlowGoalScale(id) {
+  if (!GOAL_SCALES[id]) return;
+  flowGoalScaleStore = id === FLOW_GOAL_SCALE_DEFAULT ? null : id;
+  try { if (flowGoalScaleStore) localStorage.setItem(FLOW_GOAL_SCALE_KEY, id); else localStorage.removeItem(FLOW_GOAL_SCALE_KEY); } catch (e) {}
+  flowGoalsStore = null; try { localStorage.removeItem(FLOW_GOALS_KEY); } catch (e) {}
+}
 const FLOW_GOALS_KEY = 'lethe.flowGoals.v1';
 let flowGoalsStore = null;
 try { const v = JSON.parse(localStorage.getItem(FLOW_GOALS_KEY) || 'null'); if (Array.isArray(v) && v.length >= 2 && v.every(n => typeof n === 'number' && n > 0)) flowGoalsStore = v; } catch (e) { flowGoalsStore = null; }
-function flowGoalTable() { return flowGoalsStore || FLOW_GOALS; }
+function flowGoalTable() { return flowGoalsStore || goalScaleRows(flowGoalScale()); }
 function flowGoalTableIsDefault() { return !flowGoalsStore; }
-function flowGoalBase(lv) {
-  const t = flowGoalTable(), n = t.length;
-  lv = Math.max(1, Math.round(lv || 1));
-  if (lv <= n) return t[lv - 1];
-  const ratio = t[n - 1] / Math.max(1, t[n - 2]);
-  return t[n - 1] * Math.pow(ratio, lv - n);
-}
-// Dev: a comma or line separated list. Blank, or the shipped list, clears the override.
+function flowGoalBase(lv) { return goalTableAt(flowGoalTable(), lv); }
+// Dev: a comma or line separated list. Blank, or the chosen scale's own list, clears the override.
 function setFlowGoalsText(text) {
   const nums = String(text || '').split(/[\s,]+/).map(x => parseFloat(x)).filter(x => isFinite(x) && x > 0).map(x => Math.round(x));
-  if (nums.length < 2 || nums.join() === FLOW_GOALS.join()) { flowGoalsStore = null; try { localStorage.removeItem(FLOW_GOALS_KEY); } catch (e) {} return; }
+  if (nums.length < 2 || nums.join() === goalScaleRows(flowGoalScale()).join()) { flowGoalsStore = null; try { localStorage.removeItem(FLOW_GOALS_KEY); } catch (e) {} return; }
   flowGoalsStore = nums;
   try { localStorage.setItem(FLOW_GOALS_KEY, JSON.stringify(nums)); } catch (e) {}
+}
+
+// ── The Schedule's goal scale (r761, owner: "maybe applicable to schedule") ──
+// 'curve' is the 18%-a-level curve (mapGoalForLevel); a scale id reads the same
+// table as Flow, by the tile's level. Stored only when not the curve.
+const MAP_GOAL_SCALE_KEY = 'lethe.mapGoalScale.v1';
+let mapGoalScaleStore = null;
+try { const v = localStorage.getItem(MAP_GOAL_SCALE_KEY); if (v && GOAL_SCALES[v]) mapGoalScaleStore = v; } catch (e) {}
+function mapGoalScale() { return mapGoalScaleStore || 'curve'; }
+function setMapGoalScale(id) {
+  mapGoalScaleStore = GOAL_SCALES[id] ? id : null;
+  try { if (mapGoalScaleStore) localStorage.setItem(MAP_GOAL_SCALE_KEY, id); else localStorage.removeItem(MAP_GOAL_SCALE_KEY); } catch (e) {}
 }
 function flowTriggerBoss() {
   if (bossActive || flowBossFighting) return;

@@ -267,6 +267,19 @@ const SETTINGS_DEF = [
   // ── Run ── save / resume (see js/save.js). `action` rows are buttons, not a
   // stored preference, so they are skipped by loadSettings/resetSettings.
   // No label or hint: the group title says RUN and the buttons say the rest.
+  // r761 (owner): the four goal scales to test. Views of the feature's own stores (js/flow-mode.js).
+  { group: 'Run', id: 'flowGoalScale', label: 'Flow goal scale',
+    hint: 'Which table of level goals Flow asks. Takes effect from the next goal.',
+    type: 'select', default: 'goldilocks',
+    options: [['goldilocks', 'Goldilocks'], ['balatro', 'Balatro-like'], ['step', '1.5x then 1.25x'], ['taper', 'xN minus 0.1']],
+    get: () => typeof flowGoalScale === 'function' ? flowGoalScale() : 'goldilocks',
+    apply: v => { if (typeof setFlowGoalScale === 'function') setFlowGoalScale(v); } },
+  { group: 'Run', id: 'mapGoalScale', label: 'Schedule goal scale',
+    hint: 'The Schedule\'s own curve, or one of Flow\'s tables read by the tile\'s level. Takes effect at the next schedule.',
+    type: 'select', default: 'curve',
+    options: [['curve', 'Curve'], ['goldilocks', 'Goldilocks'], ['balatro', 'Balatro-like'], ['step', '1.5x then 1.25x'], ['taper', 'xN minus 0.1']],
+    get: () => typeof mapGoalScale === 'function' ? mapGoalScale() : 'curve',
+    apply: v => { if (typeof setMapGoalScale === 'function') setMapGoalScale(v); } },
   // r754 (owner): the reward rolls that read the run's state (rewardAdaptiveOn, js/luck.js).
   { group: 'Run', id: 'rewardAdaptive', label: 'Reward odds adapt to the run',
     hint: 'On: Tricks are offered more with a small tray, the shop needs credits, a Knack is owed before a boss, a dry spell makes a second reward likelier, and more. Off: every reward roll uses its flat table.',

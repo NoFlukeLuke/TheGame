@@ -1154,13 +1154,18 @@ function devRenderGoalPanel(liveLine) {
   // survivalGoalForLevel reads the run's endless state, so the preview is the
   // ordinary (pre-endless) curve unless the live run has already switched.
   fill('dev-goal-survival-preview', _devGoalCurveLine(survivalGoalForLevel, [1, 2, 3, 5, 8, 11, 14, 17, 20, 24, 28]));
+  const opt = (id, cur) => `<option value="${id}"${id === cur ? ' selected' : ''}>${id === 'curve' ? 'Curve (18% a level)' : GOAL_SCALES[id].name}</option>`;
+  const fs = document.getElementById('dev-flow-scale');
+  if (fs) fs.innerHTML = GOAL_SCALE_ORDER.map(id => opt(id, flowGoalScale())).join('');
+  const ms = document.getElementById('dev-map-scale');
+  if (ms) ms.innerHTML = ['curve', ...GOAL_SCALE_ORDER].map(id => opt(id, mapGoalScale())).join('');
   const fg = document.getElementById('dev-flow-goals');
   if (fg && document.activeElement !== fg) fg.value = flowGoalTable().join(', ');
   const fgn = document.getElementById('dev-flow-goals-note');
-  if (fgn) fgn.textContent = (flowGoalTableIsDefault() ? 'The shipped table.' : 'Your table (stored in this browser).')
+  if (fgn) fgn.textContent = (flowGoalTableIsDefault() ? `The ${GOAL_SCALES[flowGoalScale()].name} table.` : 'Your table (stored in this browser).')
     + ` Levels past ${flowGoalTable().length} grow by the last step (x${(flowGoalTable().slice(-1)[0] / flowGoalTable().slice(-2)[0]).toFixed(3)} a level).`
     + ` Reviews ask level ${FLOW_BOSS_GOAL_LEVELS.join(' / ')}, or your level if you are past it (+${FLOW_AHEAD_PAY} credits a level ahead).`;
-  if (typeof mapGoalForLevel === 'function') fill('dev-goal-map-preview', _devGoalCurveLine(mapGoalForLevel, [1, 2, 3, 6, 9, 12, 15, 18]));
+  if (typeof mapGoalForLevel === 'function') fill('dev-goal-map-preview', _devGoalCurveLine(mapGoalForLevel, [1, 2, 3, 6, 9, 12, 15, 18, 27, 36]));
 
   const live = (typeof roundGoal === 'number' && typeof level === 'number' && typeof gridData !== 'undefined'
                 && Array.isArray(gridData) && gridData.length)

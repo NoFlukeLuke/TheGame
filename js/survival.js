@@ -156,7 +156,7 @@ function survivalGoalForLevel(lv) {
   const step  = Math.max(1, goalTune('survivalRoundTo'));
   const from  = Math.min(lv, survivalEndlessFromLevel);
   let g = flowGoalBase(from) * goalTune('globalMult');
-  const t = flowGoalTable(), scale = t[t.length - 1] / Math.max(1, t[t.length - 2]);
+  const scale = goalTableRatio(flowGoalTable());
   if (survivalEndless && lv > survivalEndlessFromLevel) {
     const fast = 1 + (scale - 1) * goalTune('endlessAccel');
     g *= Math.pow(fast, lv - survivalEndlessFromLevel);

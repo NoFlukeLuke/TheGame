@@ -4740,3 +4740,23 @@ Measured in headless Chromium at 1440x820 and 420x900 (Flow, walkthrough ended):
 switch off read the Tricks share 40 and the first-chain roll false, back on 70; the dev box
 printed the table; the Run tab shows the toggle. The 9s sim bot now clears boss 1 13% of the time
 (it meets it at level 3, asked 35,000): the owner's own play at this scale was "not crazy hard".
+
+## r761 - four goal scales to test; Goldilocks ships; the Schedule can read them (owner)
+`GOAL_SCALES` (js/flow-mode.js): the owner's four 24-row tables, **goldilocks** (the owner's first
+pick, the shipped Flow scale: 1,000 · 1,750 · 2,850 · 5,000 · 8,750 · 15,000 · 25,000 · 37,500 ·
+50,000 · 80,000 · 100,000 · 130,000 · 165,000 · 210,000 · 250,000 · 320,000 · 400,000 · 475,000 ·
+600,000 · 800,000 · 1,000,000 · 1,250,000 · 1,500,000 · 1,750,000), **balatro** (Balatro-like),
+**step** (1.5x then 1.25x) and **taper** (xN minus 0.1). `goalTableAt(t, lv)` reads a table, past
+its end by its last step ratio (`goalTableRatio`, floored at 1.01: taper's last two rows are equal).
+**Flow:** `flowGoalScale()` / `setFlowGoalScale(id)` (`lethe.flowGoalScale.v1`, stored only off
+goldilocks; picking a scale drops r754's custom list, which is now read against the chosen scale).
+**Schedule:** `mapGoalScale()` / `setMapGoalScale(id)` (`lethe.mapGoalScale.v1`, 'curve' = the 18%
+curve, stored only when a table): `mapGoalForLevel` reads the table by the tile's level, with the
+global multiplier, Endless, Limitless, the tier and the 500 rounding over it. Note the tables stop at
+24 and the Schedule asks levels to 36, so Q3 and Q4 extrapolate (Goldilocks: level 27 2,779,000, level
+36 11,127,500). Settings -> Run has both pickers (`get` rows: views of these stores); dev -> Flow and
+dev -> Schedule have the same selects beside the goal previews. r754's FLOW_GOALS table (the owner's
+first row) is gone; its shape lives on as the Balatro-like column with the owner's later numbers.
+Measured in headless Chromium at 1440x820 and 420x900: the taper pick stored and a fresh Flow run
+asked 1,000 then 1,900; back to Goldilocks the key was removed and level 2 read 1,750; the Schedule
+pick stored and cleared; the dev selects list 4 and 5 options; the Run tab draws both rows; no page errors.

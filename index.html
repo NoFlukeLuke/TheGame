@@ -419,7 +419,7 @@
   </div>
   <div class="dev-section" data-group="flow modes">
     <div class="dev-section-title">Flow goal table</div>
-    <div class="dev-note">One goal per level, in order. Blank puts the shipped table back.</div>
+    <div class="dev-note">Scale: <select id="dev-flow-scale" onchange="setFlowGoalScale(this.value); devRenderGoalPanel()"></select> One goal per level, in order; the box can replace the rows. Blank puts the scale's own list back.</div>
     <textarea id="dev-flow-goals" rows="3" style="width:100%;box-sizing:border-box;font-family:'Share Tech Mono',monospace;font-size:11px;" onchange="setFlowGoalsText(this.value); devRenderGoalPanel()"></textarea>
     <div id="dev-flow-goals-note" class="dev-note"></div>
     <div id="dev-goal-survival-rows"></div>
@@ -427,7 +427,7 @@
   </div>
   <div class="dev-section" data-group="map">
     <div class="dev-section-title">Schedule goal curve</div>
-    <div class="dev-note">The Schedule advances the level on every obligation, so it has its own, gentler growth rate. The review's quota is fixed when the map is drawn.</div>
+    <div class="dev-note">The Schedule advances the level on every obligation, so it has its own, gentler growth rate. The review's quota is fixed when the map is drawn. Scale: <select id="dev-map-scale" onchange="setMapGoalScale(this.value); devRenderGoalPanel()"></select> (a table is read by the tile's level and ignores the growth rate below).</div>
     <div id="dev-goal-map-rows"></div>
     <div id="dev-goal-map-preview" class="dev-preview"></div>
   </div>

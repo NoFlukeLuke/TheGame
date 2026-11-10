@@ -1,4 +1,4 @@
-const BUILD = "2026-11-09 · r760 · merge main r753-r759 with the Flow goal table, the catch-up reviews and the adaptive-odds switch";
+const BUILD = "2026-11-10 · r761 · four Flow goal scales to test, Goldilocks shipped; the Schedule can read them too";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
