@@ -91,9 +91,12 @@ function shopEffPrice(p) {
 // ── Sell-back values (owner spec) ──
 // knacks 30% of price · tricks 60% (floored) · sleights .75 × price × (charges left / max).
 function trickSellValue(t)   {
-  // r722: King Pawn sells at the shop's price (BAL.king_pawn.pct of it).
-  const share = (typeof hasKnack === 'function' && hasKnack('king_pawn') && BAL.king_pawn) ? BAL.king_pawn.pct / 100 : 0.60;
-  return Math.floor((SHOP_TRICK_PRICES[t.tier] || 8) * share) + (typeof focusGrowerSellBonus === 'function' ? focusGrowerSellBonus(t) : 0);
+  // r722: King Pawn sells at the shop's price (BAL.king_pawn.pct of it): the price the
+  // shop ASKS, so the raised one (r765). Without it a sale is 60% of the table.
+  const kp = typeof hasKnack === 'function' && hasKnack('king_pawn') && BAL.king_pawn;
+  const share = kp ? BAL.king_pawn.pct / 100 : 0.60;
+  const base = SHOP_TRICK_PRICES[t.tier] || 8;
+  return Math.floor((kp ? shopRaised(base) : base) * share) + (typeof focusGrowerSellBonus === 'function' ? focusGrowerSellBonus(t) : 0);
 }
 function knackSellValue()    { return Math.round(SHOP_KNACK_PRICE * 0.30); }
 function sleightSellValue(card, def) {
@@ -239,21 +242,21 @@ function shopgKnackPayloads(n) {
   const owned = new Set(acquiredKnacks.map(t => t.id));
   return shuffle(KNACK_POOL.filter(t => knackOfferable(t) && !owned.has(t.id))).slice(0, n)
     .map(k => ({ entity:'knack', label:k.name, desc:k.desc, emoji:k.emoji, rarity:k.rarity || 'common',
-                 price: SHOP_KNACK_PRICE, buy: () => { acquiredKnacks.push({ ...k }); updateKnackList?.(); } }));
+                 price: shopRaised(SHOP_KNACK_PRICE, 'knack'), buy: () => { acquiredKnacks.push({ ...k }); updateKnackList?.(); } }));
 }
 function shopgTrickPayloads(n) {
   const owned = new Set(acquiredTricks.map(b => b.id));
   const bb = (typeof buybackPayload === 'function') ? buybackPayload() : null;   // r722: Buyback takes the first shelf
   const out = shuffle(TRICK_POOL.filter(b => !owned.has(b.id) && !(bb && b.id === buybackItem.id))).slice(0, bb ? n - 1 : n)
     .map(t => ({ entity:'trick', label:shownEntityName(t, 'trick'), desc:t.desc, emoji:trickEmoji(t), rarity:t.tier || 'common', tier:t.tier || 'common',
-                 price: SHOP_TRICK_PRICES[t.tier] || 8, buy: () => injectTrickAfterReward(t) }));
+                 price: shopRaised(SHOP_TRICK_PRICES[t.tier] || 8), buy: () => injectTrickAfterReward(t) }));
   return bb && n > 0 ? [bb, ...out] : out;
 }
 function shopgSleightPayloads(n) {
   return pickSleightByRarity(n, _grantedSleightSet())
     .map(s => ({ entity:'sleight', label:s.name, desc:s.desc, emoji:s.emoji || '🃏',
                  uses: s.durability === 'infinite' ? '∞' : `${s.durability}×`, rarity:s.rarity || 'common',
-                 price: SHOP_SLEIGHT_PRICES[s.rarity] || 12, buy: () => grantSleight(s) }));
+                 price: shopRaised(SHOP_SLEIGHT_PRICES[s.rarity] || 12), buy: () => grantSleight(s) }));
 }
 function shopgLimitPayloads(n) {
   // `reroll` is excluded: shop rerolls are rationed by leftover swaps now, so
@@ -277,7 +280,7 @@ function shopgLimitPayloads(n) {
     // own readouts, everything else at the Records chip (where Limits lives).
     const flyTo = d.id === 'round_time' ? 'clock' : d.id === 'swaps' ? 'swaps' : d.id === 'discards' ? 'discards' : 'deck';
     return { _upgrade:true, icon:d.icon, label:d.label, desc:d.desc, sub:`${cur}${u} → ${cur + gain}${u}`, rarity:'common', flyTo,
-             price: shopLimitPrice(d), buy: () => { incrementLimit(d.id); onLimitChanged?.(d.id); } };
+             price: shopRaised(shopLimitPrice(d)), buy: () => { incrementLimit(d.id); onLimitChanged?.(d.id); } };
   });
 }
 // Buffed cards: a NAMED card from the live deck, carrying one permanent effect.
@@ -299,7 +302,7 @@ function shopgCardPayloads(n) {
       desc: buffOfferLine(buff.e, `this ${face} in your deck`, false),
       sub: buffOfferName(buff.e),
       rarity: buff.e.growMult ? 'epic' : buff.e.mult ? 'rare' : 'common',
-      price: buff.price,
+      price: shopRaised(buff.price),
       buy: () => {
         const t = resolveDeckCard(card);
         if (t && typeof enhanceCardKey === 'function') enhanceCardKey(cardId(t), buff.e);
@@ -328,7 +331,7 @@ function shopgImprovePayloads(n) {
           desc: delta ? `Raise ${target.name} one tier.<br>${delta}`
               : prev  ? `Raise ${target.name} one tier.<br><b>Now:</b> ${prev.before}<br><b>After:</b> ${prev.after}`
                       : `Raise ${target.name} one tier.`,
-          rarity: target.rarity || 'rare', price: 30,
+          rarity: target.rarity || 'rare', price: shopRaised(30, 'improve'),
           buy: () => { if (canImprove(target.id)) improveEntity(target.id); },
         });
         left -= 2;
@@ -339,7 +342,7 @@ function shopgImprovePayloads(n) {
     out.push({
       _improve: true, icon: '⬆', label: `Random ${typeWord}`,
       desc: `Improve a random owned ${typeWord} one tier. Which one is decided when you buy.`,
-      rarity: 'rare', price: 20,
+      rarity: 'rare', price: shopRaised(20, 'improve'),
       buy: () => { const t = pickImproveTarget(type); if (t) { improveEntity(t.id); noteMessage(`⬆ ${t.name} improved`, 'var(--c-mint)'); } },
     });
     left -= 1;

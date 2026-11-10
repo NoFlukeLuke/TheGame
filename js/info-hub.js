@@ -378,7 +378,7 @@ const INFO_TOPICS = [
       `Obligations: client accounts (rounds), priority accounts (hard rounds), one-on-ones (a review\u2019s modifier at half strength), audits (challenge cards), the shop, events and raise requests (Limit Break). IT\u2019s quarter adds incentive programs (${gridName('reward', { plural: true })}).`,
       `An unconfirmed obligation (???) is a round, an audit, a priority account, an event, a one-on-one or ${gridName('reward', { a: true })}. You find out when you commit to it.`,
       'Every obligation raises the goal. The review\'s goal is fixed when the schedule is drawn.',
-      () => `Clearing a round offers a pick of three: ${typeof GUIDED_PICK_WEIGHTS !== 'undefined' ? `${GUIDED_PICK_WEIGHTS.trick}% {trick}, ${GUIDED_PICK_WEIGHTS.sleight}% {sleight}, ${GUIDED_PICK_WEIGHTS.knack}% {knack}` : ''} per offer. A priority account or a one-on-one pays ${gridName('reward', { a: true })} instead. An audit pays its challenge cards\u2019 rewards and nothing more.`,
+      () => `Clearing a round offers a pick of three: ${typeof GUIDED_PICK_WEIGHTS !== 'undefined' ? `${GUIDED_PICK_WEIGHTS.trick}% {trick}, ${GUIDED_PICK_WEIGHTS.sleight}% {sleight}, ${GUIDED_PICK_WEIGHTS.knack}% {knack}` : ''} per offer. A priority account pays ${gridName('reward', { a: true })} instead; a one-on-one pays an improvement you pick. An audit pays its challenge cards\u2019 rewards and nothing more.`,
     ] },
   { id: 'mode_protocols', group: 'modes', title: 'Protocols',
     body: [

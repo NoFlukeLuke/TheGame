@@ -1,4 +1,4 @@
-const BUILD = "2026-11-10 · r765 · Card Slots read every line; slot wins held a beat; Plinko bigger; card events use Records rows";
+const BUILD = "2026-11-10 · r766 · shop prices up; a one-on-one pays an improvement you pick";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
