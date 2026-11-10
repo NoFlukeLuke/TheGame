@@ -1,4 +1,4 @@
-const BUILD = "2026-11-10 · r767 · the owner's Trick and Knack names land; pronunciation in the tooltip";
+const BUILD = "2026-11-10 · r768 · scoring golden baseline rewritten for r767";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
@@ -139,8 +139,24 @@ const MODES = {
     survival: true,
     flow: true
   },
-  // DEXTEROUS is a PROTOCOL since r748 (js/protocols.js): protocolMode('flow' or
-  // 'map', 'dexterous') adds the `dexterous` flag js/dexterous.js reads.
+  // DEXTEROUS (r730, js/dexterous.js): Flow's engine with Sleights as playing
+  // cards. Carries flow + survival so every Flow reader holds; `dexterous` is
+  // what js/dexterous.js reads.
+  dexterous: {
+    id: 'dexterous',
+    name: 'Dexterous',
+    desc: 'Flow, with every Sleight dealt a rank and a suit. Sleights count as cards in a hand and do their thing when played. They are four times as common in rewards. Two start in the deck.',
+    winCondition: 'endless',
+    enableBosses: true,
+    enableShops: true,
+    enableEvents: false,
+    autoRefillGrid: true,
+    timeIsCurrency: true,
+    autoPlayHands: false,
+    survival: true,
+    flow: true,
+    dexterous: true
+  },
   // Match-3 auto-play mode. A full 5×5 board of cards: straight-line flushes,
   // runs, and sets of 3+ AUTO-PLAY the instant they exist, then cascade (candy-
   // crush style). The player only swaps & discards to set matches up - the
@@ -311,6 +327,8 @@ const MODE_META = {
               blurb: `Each quarter is eight slots and then a review. Before each slot you choose from four offers: a round, a hard round, the shop, ${gridName('reward', { a: true })}, a pick of three or an event. Rounds are free. Most other offers cost credits. The goal rises with every slot.` },
   spectrum: { accent: '#ff9d3c',        suits: '🔴 🟡 🔵 🟢 🟣 🟠 ⚫ ⚪',
               blurb: 'No suits and no face cards. Seven colours, values 0 to 11, plus a single 15 and 20 in each colour. 9s, 10s and 11s are white and never count toward a flush. Four payout cards are in the deck: score two hands next to one and it pays out.' },
+  dexterous: { accent: '#c07aee',        suits: '5:00 · SLEIGHTS ARE CARDS',
+              blurb: 'Flow, with every Sleight dealt a rank and a suit. A Sleight counts as a card of that rank in a hand, scores its pips and does its thing when played. Sleights are four times as common in every reward. Two start in your deck.' },
   flow:     { accent: '#6fd0ff',         suits: '5:00 · ONE CLOCK',
               blurb: 'You have 5 minutes until the review. Level up as many times as you can before it starts. Each level up offers a pick of three, and you can enter the shop for a fee at any time. Pass the review and the clock refills.' },
   climb:    { accent: '#f2c14e',        suits: '1 → 15',
@@ -396,7 +414,6 @@ function buildModeCard(id) {
   // 'picker' carries the same tier control as the rest (the tier is a property
   // of the RUN, not of the mode); PLAY opens the questions instead of starting.
   const isPicker = id === 'picker';
-  const isProtoBase = typeof PROTOCOL_BASES !== 'undefined' && PROTOCOL_BASES.includes(id);
   if (!isPicker && !MODES[id]) return null;
   const card = document.createElement('div');
   card.className = 'mode-card' + (open ? '' : ' mode-locked');
@@ -404,8 +421,7 @@ function buildModeCard(id) {
   card.innerHTML =
     `<div class="mode-card-name">${modeDisplayName(id)}</div>` +
     `<div class="mode-card-suits">${open ? (meta.suits || '') : '\u{1F512}'}</div>` +
-    // r748: Flow and the Schedule choose a protocol first; the tier is on that screen.
-    (open ? (isProtoBase ? `<div class="mode-card-diff-say mode-card-proto">${PROTOCOLS.map(p => p.name).join(' · ')}</div>` : modeDiffHTML(id)) : '') +
+    (open ? modeDiffHTML(id) : '') +
     `<div class="mode-card-blurb">${meta.blurb || MODES[id].desc}` +
       (typeof infoTopic === 'function' && infoTopic('mode_' + id)
         ? ` <a class="mode-card-more" href="#">Read more in the handbook.</a>` : '') +
@@ -414,9 +430,9 @@ function buildModeCard(id) {
           : `<div class="mode-lock-note">Finish a run of <b>${modeDisplayName(modeUnlockedBy(id))}</b> to unlock</div>`);
   const more = card.querySelector('.mode-card-more');
   if (more) more.onclick = (e) => { e.preventDefault(); e.stopPropagation(); openInfoHub('mode_' + id); };
-  if (open && !isProtoBase) modeDiffBind(card, id);
+  if (open) modeDiffBind(card, id);
   if (open) {
-    card.querySelector('.mode-card-play').onclick = () => isPicker ? openPickerMode() : isProtoBase ? protoOpen(id) : (id === 'stacks' && typeof stkOpenStart === 'function') ? stkOpenStart() : chooseMode(id);
+    card.querySelector('.mode-card-play').onclick = () => isPicker ? openPickerMode() : (id === 'stacks' && typeof stkOpenStart === 'function') ? stkOpenStart() : chooseMode(id);
   }
   return card;
 }
@@ -425,21 +441,20 @@ function buildModeCard(id) {
 // Sideways keys step the tier, a $ per tier, the tier's name and what it does.
 // A tier opens for a mode by winning a run of that mode at the tier below it;
 // the right key dims at the highest tier unlocked and a tap on it says why.
-// `sayId` picks the wording (the protocol screen passes its base mode, 'flow' or 'map').
-function modeDiffHTML(id, sayId = id) {
+function modeDiffHTML(id) {
   const t = difficultySetting(id), max = difficultyMax(id);
   return `<div class="mode-card-diff">` +
     `<button class="mdf-arrow mdf-l${t <= 1 ? ' mdf-off' : ''}" aria-label="Easier">\u2039</button>` +
     `<div class="mdf-mid"><div class="mdf-dollars">${difficultyDollars(t)}</div><div class="mdf-name">${difficultyName(t)}</div></div>` +
     `<button class="mdf-arrow mdf-r${t >= max ? ' mdf-off' : ''}" aria-label="Harder">\u203a</button>` +
-    `</div><div class="mode-card-diff-say">${difficultySay(t, sayId)}</div>`;
+    `</div><div class="mode-card-diff-say">${difficultySay(t, id)}</div>`;
 }
-function modeDiffBind(card, id, sayId = id) {
+function modeDiffBind(card, id) {
   const paint = () => {
     const t = difficultySetting(id), max = difficultyMax(id);
     card.querySelector('.mdf-dollars').textContent = difficultyDollars(t);
     card.querySelector('.mdf-name').textContent = difficultyName(t);
-    card.querySelector('.mode-card-diff-say').textContent = difficultySay(t, sayId);
+    card.querySelector('.mode-card-diff-say').textContent = difficultySay(t, id);
     card.querySelector('.mdf-l').classList.toggle('mdf-off', t <= 1);
     card.querySelector('.mdf-r').classList.toggle('mdf-off', t >= max);
   };
