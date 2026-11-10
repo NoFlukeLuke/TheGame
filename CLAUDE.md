@@ -4760,3 +4760,14 @@ first row) is gone; its shape lives on as the Balatro-like column with the owner
 Measured in headless Chromium at 1440x820 and 420x900: the taper pick stored and a fresh Flow run
 asked 1,000 then 1,900; back to Goldilocks the key was removed and level 2 read 1,750; the Schedule
 pick stored and cleared; the dev selects list 4 and 5 options; the Run tab draws both rows; no page errors.
+## r762 - LED cards: stepped pixel corners; the card background in Settings (owner)
+- **Settings -> Display -> LED card background** (Off-white / Black): a `get` row over
+  `pxArtCards` / `setPixelArtCards` (js/pixel-art.js), the same store as dev -> Aesthetics ->
+  "Pixel cards on" (`lethe.pixelArtCards.v1`).
+- **The square-by-square card has rounded corners in steps** (css/pixel-art.css section 6): the
+  card is a 9-slice (`border-image ... 4 fill`) of a 9 x 9 SVG card, a corner of 3 / 1 / 1 squares
+  in from the edge and a one-square border, each square `--pxa-u` (3% of the card's height, at
+  least 2px), so it scales with the card and stays crisp. The 1px border box is kept (nothing moves),
+  the background is none and the stock carries both colours (`--pxa-stock`, one per background).
+  A selected card is ringed by four chained 2px drop shadows of that shape (blue, red on a penalty),
+  never a square box-shadow. Verified at 1440x820 (console and flat) and 420x900, both backgrounds.

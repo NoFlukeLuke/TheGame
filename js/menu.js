@@ -1,4 +1,4 @@
-const BUILD = "2026-11-10 · r761 · four Flow goal scales to test, Goldilocks shipped; the Schedule can read them too";
+const BUILD = "2026-11-10 · r762 · LED cards: stepped pixel corners; the card background in Settings";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
