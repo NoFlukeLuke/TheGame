@@ -85,7 +85,7 @@ const EVENT_REQUIRES = {
   // r576: Theme Draft needs one engine with a Trick and a Sleight left to offer.
   confluence:   () => confluenceThemes().length > 0,
   // Needs cards to work on.
-  the_floor:    () => floorRanks().length >= 2,
+  the_floor:    () => floorCards().length >= 9,
   bench:        () => drawPile.some(c => c && c.rank && !c._isSleight),
   deck_trim:    () => everyDeckCard().length > 0 && coins >= priceOf(BAL.deck_trim.step),
   market:       () => coins >= marketCardPrice(),   // r576: one card is the least you can buy

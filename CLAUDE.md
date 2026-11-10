@@ -4787,3 +4787,34 @@ pick stored and cleared; the dev selects list 4 and 5 options; the Run tab draws
 27 x1.45, and so on (`GOAL_PAST_BASE` 1.25, `GOAL_PAST_STEP` 0.1), for every scale in Flow and on the
 Schedule. r761's "last step repeats" rule is gone; `goalTableRatio` returns the 1.25 for the Endless
 and Limitless terms. Goldilocks: level 25 2,187,500, 26 2,953,100, 28 5,673,900, 36 about 1.7 billion.
+## r765 - Card Slots read every line; slot wins are held a beat; Plinko bigger and saner; card events use Records' rows (owner)
+- **Card Slots** (js/events-slots.js): the reels hold your own cards (`floorCards`: no Sleights or stones),
+  dealt in a random order across the three reels, each card once; the stops are random, so the odds are
+  what the cards make. Every row, column and diagonal (`SLOT_LINES_3`) is read by `floorHand`: Three of a
+  Kind (a wild completes it), Run of 3 (A low or high), Flush of 3 when flushes are active; each line's
+  cards take one event buff, a card once a pull. `CARD_SLOT_PAIRS` (false) lets a pair in a line pay.
+  Measured over 200,000 pulls on the 56-card deck: rows only 15%, rows + diagonals 23%, all eight lines
+  34% (54% with flushes); with pairs 76% / 86% / 94%. Needs 9 cards (`EVENT_REQUIRES`).
+- **Entity Slots**: a row or a diagonal pays, never a column (`PAYLINE_LINES`); strips hold every entity in
+  a block of 1 or 2, so a column can never show three alike. The odds stay SET (1 in 3 at 5 entities to 1
+  in 7 at 14). Natural odds for reference (random stops, 200,000 pulls): rows + diagonals 17% / 9% / 4.5% /
+  2.4% at 5 / 7 / 10 / 14 entities; with columns (r590's triple blocks) 44% / 32% / 22% / 16%.
+- **The win beat** (`celebrate(lines)` in js/event-slot-machine.js): `SLOT.winPre` (380ms) after the reels
+  rest, each winning line is drawn through its cells (`.evt-winline`, an SVG polyline that draws in and
+  glows) and lit, `SLOT.winLine` apart with a rising tone (`sfxQuotaLine`), then `sfxChallengeWin` and a
+  `SLOT.winHold` (1100ms) hold; the buffs / the improvement are paid when it resolves.
+- **Spins are longer**: `SLOT.base` 1800 (was 1500), `stagger` 440 (was 380); `spin(stops, { len })`
+  multiplies a spin, and Spin to Improve's reel takes 1.6x and its own win beat.
+- **Plinko** (`evPlinko`, js/event-toys.js): the board is as wide as the event body allows up to
+  `PLINKO_MAX_W` (380) and every size scales with it (`plS`, `--pl-s`: rows, pegs, ball, bins, slide);
+  the body can be hidden when it is built, so it lays out again on the next frames at the real width.
+  Gravity is `PL_G x plS / 1.1`, so a drop on a 1.2x board takes about 5% longer (2.6s measured). A peg
+  is struck on the side the ball leaves by, and how far round the shoulder follows from where it came:
+  carrying on, it glances just past the top; turning back, it knocks the shoulder facing it. Measured
+  over 12 drops at both sizes: the ball never came closer than 0.04px to a peg's surface.
+- **Card events** (`evDeckPicker`, js/event-picker.js; every card event: Card Upgrade, Deck Trim, State
+  Change, Rewire, Spring, the Plinko edit, the challenge card pick): Records' card rows. Every card is its
+  board face (`renderCardAppearance`), one row per suit with the suit and its count, sorted by rank and
+  tucked to fit (Records' rule), wilds and other suits on rows of their own, `EDP_ROWS_SHOWN` (4) rows in
+  view; a pick lifts with a gold ring and its number, a blocked card greys, a mouse over a card shows
+  what it carries (`recordsCardLines`). The API (`picks`, `sync`, `el`) is unchanged.

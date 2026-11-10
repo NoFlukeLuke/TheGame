@@ -24,15 +24,20 @@
 // - No lever (owner, r753): the event's PLAY key pulls. The machine is handed its
 //   stops before it moves (the toys' rule, js/event-toys.js).
 //
-// evSlotMachine(parent, opts) -> { el, spin(stops, { tease }) -> Promise, flash(cells, cls), clear() }
+// evSlotMachine(parent, opts) -> { el, spin(stops, { tease, len }) -> Promise, flash(cells, cls),
+//   celebrate(lines) -> Promise, clear() }
+//   spin's len multiplies every reel's run (Spin to Improve's single reel takes longer).
+//   celebrate (r764): after a short rest each winning line is drawn through its cells
+//   and lit, one at a time with a rising tone, then the cabinet holds a beat; the
+//   caller pays once it resolves, so the win is seen before what it gives.
 //   opts.reels   [strip, strip, ...], a strip being [{ key, html }]
 //   opts.payRow  1 to light the middle row as the only line, or null
 //   opts.itemW / itemH  a symbol's box in stage px
 
 const SLOT = {
   faceMin: 12,        // fewest faces on a drum
-  base: 1500,         // first reel's spin, ms
-  stagger: 380,       // each later reel stops this much later
+  base: 1800,         // first reel's spin, ms (r764: 1500 -> 1800)
+  stagger: 440,       // each later reel stops this much later (r764: 380 -> 440)
   tease: 1700,        // the last reel's extra time on a near miss
   startGap: 55,       // reels let go this far apart
   kick: 0.22,         // the pull back up before the spin, in faces
@@ -41,6 +46,9 @@ const SLOT = {
   settleMs: 380,
   blurMax: 5,         // stage px of blur at full speed
   tickGap: 26,        // fewest ms between two ticks
+  winPre: 380,        // r764: the reels rest this long before a win is shown
+  winLine: 420,       // each winning line drawn this far after the last
+  winHold: 1100,      // the celebration holds this long before the payout
 };
 let _slotUid = 0;
 
@@ -164,8 +172,9 @@ function evSlotMachine(parent, opts) {
   function spin(stops, so) {
     clear();
     const last = stops.length - 1, tease = !!(so && so.tease) && last > 0;
+    const len = (so && so.len) || 1;
     return Promise.all(stops.map((s, k) => {
-      let ms = SLOT.base + k * SLOT.stagger;
+      let ms = (SLOT.base + k * SLOT.stagger) * len;
       if (tease && k === last) {
         ms += SLOT.tease;
         setTimeout(() => {
@@ -184,11 +193,39 @@ function evSlotMachine(parent, opts) {
     });
     host.classList.add('evt-slot-won');
   }
+  // r764: draw each winning line through its cells' centres (window px: 6 pad, 6 gap).
+  const win = host.querySelector('.evt-slot-window');
+  function lineSvg(cells) {
+    const n = drums.length, Wd = 12 + n * W + (n - 1) * 6, Hd = 12 + 3 * H;
+    const pts = cells.map(([r, k]) => `${(6 + k * (W + 6) + W / 2).toFixed(1)},${(6 + H * (r + 0.5)).toFixed(1)}`);
+    const [a, b] = [pts[0].split(',').map(Number), pts[pts.length - 1].split(',').map(Number)];
+    const one = cells.length < 2, dx = one ? 1 : b[0] - a[0], dy = one ? 0 : b[1] - a[1], L = Math.hypot(dx, dy) || 1, ex = dx / L * W * 0.42, ey = dy / L * H * 0.42;
+    const ends = `${(a[0] - ex).toFixed(1)},${(a[1] - ey).toFixed(1)} ${pts.join(' ')} ${(b[0] + ex).toFixed(1)},${(b[1] + ey).toFixed(1)}`;
+    const el = document.createElement('div');
+    el.className = 'evt-winline';
+    el.innerHTML = `<svg viewBox="0 0 ${Wd} ${Hd}" width="${Wd}" height="${Hd}"><polyline points="${ends}" pathLength="1"/></svg>`;
+    win.appendChild(el);
+    return el;
+  }
+  function celebrate(lines) {
+    if (!lines || !lines.length) return Promise.resolve();
+    const fast = _etFast();
+    return _etWait(fast ? 0 : SLOT.winPre).then(() => new Promise(res => {
+      lines.forEach((cells, i) => setTimeout(() => {
+        lineSvg(cells);
+        flash(cells);
+        _etSfx('sfxQuotaLine', i + 1);
+      }, fast ? 0 : i * SLOT.winLine));
+      setTimeout(() => { _etSfx('sfxChallengeWin'); }, fast ? 0 : lines.length * SLOT.winLine);
+      setTimeout(res, fast ? 0 : (lines.length - 1) * SLOT.winLine + SLOT.winHold);
+    }));
+  }
   function clear() {
     host.querySelectorAll('.evt-sym-win, .evt-sym-near').forEach(el => el.classList.remove('evt-sym-win', 'evt-sym-near'));
+    host.querySelectorAll('.evt-winline').forEach(el => el.remove());
     host.classList.remove('evt-slot-won');
   }
-  return { el: host, spin, flash, clear };
+  return { el: host, spin, flash, celebrate, clear };
 }
 
 // ── sounds ──

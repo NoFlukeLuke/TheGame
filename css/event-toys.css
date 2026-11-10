@@ -62,6 +62,10 @@
 
 /* plinko */
 .evt-plinko { position: relative; margin: 0 auto; }
+/* r764: the board's sizes scale with --pl-s (js/event-toys.js evPlinko) */
+.evt-plinko-host .evt-peg { width: calc(6px * var(--pl-s, 1)); height: calc(6px * var(--pl-s, 1)); margin: calc(-3px * var(--pl-s, 1)) 0 0 calc(-3px * var(--pl-s, 1)); }
+.evt-plinko-host .evt-ball { width: calc(14px * var(--pl-s, 1)); height: calc(14px * var(--pl-s, 1)); margin-left: calc(-7px * var(--pl-s, 1)); }
+.evt-plinko-host .evt-bin { height: calc(30px * var(--pl-s, 1)); font-size: calc(10px * var(--pl-s, 1)); }
 .evt-peg { position: absolute; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%;
   background: #8b83a8; box-shadow: 0 0 4px rgba(154,108,255,.5); }
 .evt-ball { position: absolute; width: 14px; height: 14px; margin-left: -7px; border-radius: 50%; z-index: 2;
@@ -176,6 +180,26 @@
 .edp-card.picked[data-n]:not([data-n=""])::after { content: attr(data-n); position: absolute; top: -7px; right: -6px; width: 13px; height: 13px; border-radius: 50%;
   background: var(--c-yellow, #f0c040); color: #1a1408; font-size: 8px; line-height: 13px; border: 0; }
 .edp-card.blocked { opacity: .3; filter: grayscale(1); cursor: var(--cur-no, not-allowed); }
+/* r764: Records' card rows (css/records.css .rec-card-*): real faces, a row a suit, tucked to fit */
+.edp-rec { max-width: 480px; --card-w: 36px; --card-h: 48px; }
+.edp-rec .edp-view { padding: 10px 2px 2px; scroll-snap-type: y proximity; }
+.edp-crow { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 2px 0 4px; scroll-snap-align: start; }
+.edp-suit { flex: 0 0 26px; display: flex; flex-direction: column; align-items: center; font-size: 20px; line-height: 1; color: #e9e2cc; }
+.edp-suit.suit-hearts, .edp-suit.suit-diamonds { color: #ff6a5c; }
+.edp-suit b { font-weight: normal; font-size: 12px; opacity: .7; margin-top: 3px; }
+.edp-fan { flex: 1; min-width: 0; display: flex; padding: 6px 0 2px; }
+.edp-slot { position: relative; flex: 0 0 var(--card-w); height: var(--card-h); cursor: var(--cur-pointer, pointer); transition: transform .12s ease; text-shadow: none; }
+.edp-slot + .edp-slot { margin-left: var(--rc-gap, 4px); }
+.edp-slot .card { position: relative !important; top: 0; left: 0; cursor: var(--cur-pointer, pointer); transition: none; }
+.edp-slot:hover { transform: translateY(-6px); z-index: 50; }
+.edp-slot.picked { transform: translateY(-9px); z-index: 60; }
+.edp-slot.picked .card { box-shadow: 0 0 0 2px var(--c-yellow, #f0c040), 0 0 12px 1px rgba(240,192,64,.85) !important; }
+.edp-slot.picked[data-n]:not([data-n=""])::after { content: attr(data-n); position: absolute; top: -6px; right: -5px; z-index: 2;
+  width: 15px; height: 15px; border-radius: 50%; background: var(--c-yellow, #f0c040); color: #1a1408;
+  font: 900 10px/15px 'Orbitron', sans-serif; text-align: center; }
+.edp-slot.blocked { filter: brightness(.38) grayscale(1); cursor: var(--cur-no, not-allowed); }
+.edp-slot.blocked:hover { transform: none; }
+.edp-rec .edp-arrows { width: 22px; }
 .edp-arrows { display: none; flex-direction: column; gap: 4px; width: 22px; }
 .edp-scrolls .edp-arrows { display: flex; }
 .edp-arrows button { flex: 1; min-height: 24px; padding: 0; border-radius: 5px; border: 1px solid #4b4370; background: #1d1930; color: #e9e2cc; font-size: 9px; cursor: var(--cur-pointer, pointer); }
@@ -240,10 +264,26 @@
   background: linear-gradient(180deg, rgba(0,0,0,.35) 0%, rgba(0,0,0,0) 22%, rgba(0,0,0,0) 78%, rgba(0,0,0,.35) 100%),
               linear-gradient(115deg, rgba(255,255,255,.12) 0 18%, rgba(255,255,255,0) 30%); }
 .evt-tease .evt-reel.evt-reel-last { box-shadow: 0 0 0 2px #ff5a4e, 0 0 16px #ff5a4e; }
+/* r764: a winning line drawn through its cells, then held a beat before the payout */
+.evt-winline { position: absolute; left: 0; top: 0; z-index: 6; pointer-events: none; }
+.evt-winline svg { display: block; overflow: visible; }
+.evt-winline polyline { fill: none; stroke: #f0c040; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round;
+  stroke-dasharray: 1; stroke-dashoffset: 1; filter: drop-shadow(0 0 4px rgba(240,192,64,.9));
+  animation: evt-winline-draw .32s ease-out forwards, evt-winline-glow .5s ease-in-out .32s 3 alternate; }
+@keyframes evt-winline-draw { to { stroke-dashoffset: 0; } }
+@keyframes evt-winline-glow { to { stroke: #fff4c4; filter: drop-shadow(0 0 9px rgba(255,236,170,1)); } }
 .evt-slot-won .evt-slot-cab { border-color: #f0c040; box-shadow: 0 0 22px rgba(240,192,64,.55), inset 0 2px 0 rgba(255,255,255,.08); }
 /* card ranks and entity tiles on the reels */
 .evt-sym .sl-rank { font-size: 24px; }
 .evt-sym .sl-rank.red { color: #c0392b; }
+/* r764: Card Slots shows real cards: rank and suit in the suit's colour */
+.evt-sym .sl-rank i { font-style: normal; font-size: .72em; margin-left: 1px; }
+.evt-sym .sl-rank.suit-hearts, .evt-sym .sl-rank.suit-diamonds { color: #c0392b; }
+.evt-sym .sl-rank.suit-spades { color: #1a1622; }
+.evt-sym .sl-rank.suit-clubs { color: #1d4f8c; }
+.evt-sym .sl-rank.suit-crowns { color: #8a6206; }
+.evt-sym .sl-rank.suit-moons { color: #5b3f8f; }
+.evt-sym .sl-rank.sl-wild { color: #a0307a; }
 .evt-sym .sl-ent { pointer-events: none; display: flex; align-items: center; justify-content: center; }
 .evt-sym .sl-ent .reward-cell { position: relative; width: 42px; height: 56px; margin: 0; }
 .evt-sym .sl-ent .entity-knack { zoom: .8; }

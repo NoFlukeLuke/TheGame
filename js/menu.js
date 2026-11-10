@@ -1,4 +1,4 @@
-const BUILD = "2026-11-10 · r764 · past a goal table's end: x1.25, then 0.1 more each level";
+const BUILD = "2026-11-10 · r765 · Card Slots read every line; slot wins held a beat; Plinko bigger; card events use Records rows";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
