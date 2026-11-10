@@ -4760,3 +4760,9 @@ first row) is gone; its shape lives on as the Balatro-like column with the owner
 Measured in headless Chromium at 1440x820 and 420x900: the taper pick stored and a fresh Flow run
 asked 1,000 then 1,900; back to Goldilocks the key was removed and level 2 read 1,750; the Schedule
 pick stored and cleared; the dev selects list 4 and 5 options; the Run tab draws both rows; no page errors.
+
+## r762 - past a goal table's end: x1.25, then 0.1 more each level (owner)
+`goalTableAt` (js/flow-mode.js): level 25 asks x1.25 the table's last row, level 26 x1.35 that, level
+27 x1.45, and so on (`GOAL_PAST_BASE` 1.25, `GOAL_PAST_STEP` 0.1), for every scale in Flow and on the
+Schedule. r761's "last step repeats" rule is gone; `goalTableRatio` returns the 1.25 for the Endless
+and Limitless terms. Goldilocks: level 25 2,187,500, 26 2,953,100, 28 5,673,900, 36 about 1.7 billion.

@@ -139,15 +139,20 @@ const GOAL_SCALES = {
 };
 const GOAL_SCALE_ORDER = ['goldilocks', 'balatro', 'step', 'taper'];
 function goalScaleRows(id) { return (GOAL_SCALES[id] || GOAL_SCALES.goldilocks).rows; }
-// The value a table gives a level; past its end the last step ratio repeats.
+// The value a table gives a level. Past its end (r762, owner): the first level
+// after the table is x1.25 the last row, and every level after multiplies by 0.1
+// more than the one before (x1.35, x1.45, x1.55...), whichever table it is.
+const GOAL_PAST_BASE = 1.25, GOAL_PAST_STEP = 0.1;
 function goalTableAt(t, lv) {
   const n = t.length;
   lv = Math.max(1, Math.round(lv || 1));
   if (lv <= n) return t[lv - 1];
-  const ratio = goalTableRatio(t);
-  return t[n - 1] * Math.pow(ratio, lv - n);
+  let g = t[n - 1];
+  for (let k = n + 1; k <= lv; k++) g *= GOAL_PAST_BASE + GOAL_PAST_STEP * (k - n - 1);
+  return g;
 }
-function goalTableRatio(t) { const n = t.length; return Math.max(1.01, t[n - 1] / Math.max(1, t[n - 2])); }
+// The growth rate the Endless and Limitless terms read: the first step past the table.
+function goalTableRatio(t) { return GOAL_PAST_BASE; }
 function goalScaleBase(id, lv) { return goalTableAt(goalScaleRows(id), lv); }
 
 const FLOW_GOAL_SCALE_DEFAULT = 'goldilocks';
