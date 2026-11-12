@@ -4834,3 +4834,16 @@ Range (Jeitinho) sets the round's swap stock to `BAL.free_range_t.swaps` (2); Tr
 (Well-Rounded) also grants a discard. The golden baseline was rewritten in the next commit: the
 Vulture leaving the Trick pool moves the harness's random line placement, so line Tricks' cases
 change with no scoring change (checked by putting the Vulture back: all match).
+
+## r769 - a big pop-up pauses the clock while it is read (`js/read-hold.js`, `css/read-hold.css`, owner)
+A walkthrough bubble or a tip that covers the board, or runs to `READ_HOLD.minWords` (25) words or more,
+holds the round clock for its words at 3 a second (about 180 a minute, slower than a typical reader)
+plus 2s (4s to 40s), then shows CLOCK STARTS IN 5 4 3 2 1 on the pop-up (a beep a second) and lets the
+clock go, whether the pop-up is still up or not. Closing it sooner lets the clock go at once. A
+walkthrough step marked `hold` holds whatever its size; **r769 makes those holds timed** (they used to
+hold until the step ended). The hold is a claim on `gameTimerPaused`, taken only when nothing else holds
+it and no between-rounds screen has the board (`readHoldScreenUp`), and given back only under the same
+test; the pause menu and a hidden tab stop the reading time too. One hold at a time:
+`readHoldBegin(owner, el, text, { force })` / `readHoldEnd(owner)`. A new pop-up that should hold calls
+the pair. Measured at 1440x820 and 420x900: the welcome bubble held 17s + 5, the select-cards step 13s
++ 5, the clock then ran; a tip over the board held and Got it released it; the pause menu froze the count.

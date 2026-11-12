@@ -391,12 +391,16 @@ function showInsight(row) {
 
   els.layer.classList.add('show');
   insightPlace(row);
+  // r769: a tip over the board, or a long one, holds the clock while it is read.
+  if (typeof readHoldBegin === 'function'
+   && readHoldBegin('tip', els.card, `${els.title.textContent} ${els.body.textContent}`)) insightPlace(row);
   if (typeof sfxClockTick === 'function') { try { sfxClockTick(); } catch (e) {} }
 }
 
 function dismissInsight() {
   if (!insightEls) return;
   insightEls.layer.classList.remove('show');
+  if (typeof readHoldEnd === 'function') readHoldEnd('tip');
   if (insightCurrent) insightLastAt = Date.now();
   insightCurrent = null;
 }

@@ -1,4 +1,4 @@
-const BUILD = "2026-11-10 · r768 · scoring golden baseline rewritten for r767";
+const BUILD = "2026-11-12 · r769 · big pop-ups pause the clock while read, then count down";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
