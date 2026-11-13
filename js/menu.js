@@ -1,4 +1,4 @@
-const BUILD = "2026-11-13 · r771 · the Schedule bridges a goal table x1.15 a level to 36 before the growing rule";
+const BUILD = "2026-11-13 · r772 · scoring preview (?lab); score chips leave one at a time; gentler speed-up; primes read the scored cards";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

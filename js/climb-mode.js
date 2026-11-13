@@ -43,8 +43,8 @@ function climbTopBonus(card) { return climbAtTop(card) ? CLIMB_TOP_PIPS : 0; }
 function climbAfterHand(cells) {
   if (!climbActive() || !cells) return;
   const seen = new Set();
-  for (const [r, c] of cells) {
-    const card = gridData[r] && gridData[r][c];
+  for (const cl of cells) {
+    const card = cellCard(cl);   // r772: the hand's own card (the board has moved on)
     if (!climbCard(card) || seen.has(card)) continue;
     seen.add(card);
     // MARKED, not moved: the rank changes when the card leaves the board

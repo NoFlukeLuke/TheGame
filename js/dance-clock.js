@@ -88,22 +88,44 @@ function dncSetPaused(on) {
 }
 
 // ── Acceleration ────────────────────────────────────────────────────────────
-// Compounding, so the wind-up is felt rather than merely measured: at +4% a
-// tick, 54 payouts reach the 8x ceiling (r610, owner: 20% gentler than +5%,
-// which took 43). An ordinary hand pays out a handful of
-// ticks and barely moves; a long one through a full tray runs away, which is the
-// point.
-const DNC_ACCEL_STEP = 0.02;  // +2% of the CURRENT pace per payout tick (r691, owner: half of r610's 4%)
-const DNC_ACCEL_MAX  = 8;     // ceiling, as a multiple of this dance's base pace
+// Compounding: every payout tick speeds the REST of the dance up by `accelStep`%,
+// to at most `accelMax` times this dance's base pace.
+// r772 (owner: "late game it gets sped up too much"): the step is 1% (was 2%) and
+// the ceiling 2x (was 8x), and Focus lifts the tally to at most `focusMax` 1.5x
+// (was 2x). Together the wind-up tops out at 3x where it reached 16x. The scoring
+// queue and the preview's SPEED UP are the player's own doing and are untouched.
+//
+// TALLY_CFG also holds how a card's score chips leave it (js/score-dance.js):
+//   hold   ms a chip sits at its source before it flies (carved out of the flight,
+//          so a chip takes no longer than before)
+//   gap    ms between one chip and the next in the same beat
+//   order  'ltr' the card first, then Tricks left to right across the tray;
+//          'rtl' right to left; 'emit' the order the score is worked out in
+// Dev -> HUD & Display -> Score tally pacing. Store lethe.tallyPace.v1, overrides only.
+const TALLY_DEFAULT = { accelStep: 1, accelMax: 2, focusMax: 1.5, hold: 300, gap: 140, order: 'ltr' };
+const TALLY_CFG = Object.assign({}, TALLY_DEFAULT);
+(function () { try {
+  const o = JSON.parse(localStorage.getItem('lethe.tallyPace.v1') || 'null'); if (!o) return;
+  Object.keys(TALLY_DEFAULT).forEach(k => { if (typeof o[k] === typeof TALLY_DEFAULT[k]) TALLY_CFG[k] = o[k]; });
+} catch (e) {} })();
+function tallyCfgSet(k, v) {
+  if (!(k in TALLY_DEFAULT)) return;
+  TALLY_CFG[k] = (typeof TALLY_DEFAULT[k] === 'number') ? +v : String(v);
+  try {
+    const o = {}; Object.keys(TALLY_DEFAULT).forEach(x => { if (TALLY_CFG[x] !== TALLY_DEFAULT[x]) o[x] = TALLY_CFG[x]; });
+    if (Object.keys(o).length) localStorage.setItem('lethe.tallyPace.v1', JSON.stringify(o)); else localStorage.removeItem('lethe.tallyPace.v1');
+  } catch (e) {}
+}
+function tallyCfgReset() { Object.assign(TALLY_CFG, TALLY_DEFAULT); try { localStorage.removeItem('lethe.tallyPace.v1'); } catch (e) {} }
 let dncAccel = 1;
 
 // r491: Focus speeds the tally up too, read ONCE per hand (caFocusPace, js/card-anims.js:
 // x`tally2` at Focus x2, linear from x1) so a hand never changes speed mid-tally.
 let dncFocusPace = 1;
-function dncResetAccel() { dncAccel = 1; dncFocusPace = typeof caFocusPace === 'function' ? caFocusPace('tally2') : 1; }
+function dncResetAccel() { dncAccel = 1; dncFocusPace = Math.min(TALLY_CFG.focusMax, typeof caFocusPace === 'function' ? caFocusPace('tally2') : 1); }
 function dncBumpAccel(n = 1) {
   if (!(n > 0)) return;
-  dncAccel = Math.min(DNC_ACCEL_MAX, dncAccel * Math.pow(1 + DNC_ACCEL_STEP, n));
+  dncAccel = Math.min(TALLY_CFG.accelMax, dncAccel * Math.pow(1 + TALLY_CFG.accelStep / 100, n));
 }
 // The live pace: this dance's base speed times everything it has paid out so far.
 // Every duration in the dance divides by THIS, never by dncSpeed directly.

@@ -1485,6 +1485,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     const _fAx  = Math.sqrt(_fcX) - 1;
     let _fpLeft = Math.max(0, totalPips * _fAx);
     let _fmLeft = Math.max(0, mult * _fAx);
+    const _fT0 = _tl ? _tl.length : 0;   // r772: forced events are marked, for the scoring preview's list
     _forceIds.forEach(fid => {
       const fp = trickForcedPayout(fid, cards.length);
       const _fpAdd = Math.min(fp.pips, _fpLeft); _fpLeft -= _fpAdd;
@@ -1494,6 +1495,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
       if (fp.pipX !== 1)  { const _pre = totalPips; totalPips = Math.round(totalPips * fp.pipX);        bPipX(fid, fp.pipX,  totalPips - _pre); }
       if (fp.multX !== 1) { const _pre = mult;      mult      = Math.round(mult * fp.multX * 10) / 10;  bMultX(fid, fp.multX, mult - _pre); }
     });
+    if (_tl) for (let i = _fT0; i < _tl.length; i++) _tl[i].forced = true;
   }
 
   // Move as One: if 3+ owned Tricks share a keyword (tag), the lowest-rarity Trick carrying a

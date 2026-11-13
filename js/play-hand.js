@@ -1000,10 +1000,18 @@ function playHand() {
   commitRoundContrib(_contribSnapshot); // committed (non-goal) hand counts toward the tally
   // Kick off the score dance - it handles updateScoreUI, removeAndFall, levelUp.
   // r572: a All Hands hand is recorded instead; the sweep's finale flies, falls and tallies.
+  // r772: the dance takes the cards off the board at once (r661), so the hand's own cards
+  // are held for the work below. Before this, Inspirato, Prime Times and everything in
+  // scalingCount read whatever cards had fallen into the hand's cells.
+  const _fz = new Map();
+  handCells.concat(_scoredCells).forEach(cl => { if (!cl[2]) { const cd = gridData[cl[0]] && gridData[cl[0]][cl[1]]; if (cd) _fz.set(cl[0] + '-' + cl[1], cd); } });
   if (_sweeping) sweepRecord(result, toRemove); else dncPlayOrQueue(result, toRemove, false);
-  runHandPriming(hand, handCells, result._bankContrib);
-  scalingCount(hand, _scoredCells, _handRetrigByCell);
-  climbAfterHand(_scoredCells);   // r398
+  cellCardFrozen = _fz;
+  try {
+    runHandPriming(hand, handCells, result._bankContrib);
+    scalingCount(hand, _scoredCells, _handRetrigByCell);
+    climbAfterHand(_scoredCells);   // r398
+  } finally { cellCardFrozen = null; }
 }
 
 // ── Priming, settled (Inspirato / Prime Times) ────────────────────────────────
@@ -1192,7 +1200,7 @@ function scalingCount(hand, handCells, reps) {
   }
   // Fours perm: a 4-card hand permanently gives its 4th card +4 pips.
   if (hasTrick('fours_perm') && handCells.length === 4) {
-    const _fc = gridData[handCells[3][0]]?.[handCells[3][1]];
+    const _fc = cellCard(handCells[3]);
     if (_fc) { const k = cardId(_fc); permPips[k] = (permPips[k] || 0) + yokeGain('pips', BAL.fours_perm.pips); }
   }
   // To The Nines (was Perfect Ten; r708 owner): each 9 played adds mult, once per time it scores.

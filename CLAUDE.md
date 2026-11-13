@@ -4869,3 +4869,47 @@ the board close it; no page errors.
 r764 rule (x1.25, +0.1 a level) only starts at 37. Flow passes none and keeps r764 from 25.
 `goalTableRatio(t, past)` returns the bridge's rate for the Endless and Limitless terms.
 Goldilocks on the Schedule: level 27 2,661,000, 36 9,363,000 (r764 had 1.6 billion).
+## r772 - the scoring preview; chips leave one at a time; gentler speed-up; primes read the scored cards (owner)
+- **Scoring preview** (`index.html?lab`, js/score-lab.js, css/score-lab.css; dev -> Bonuses -> Trick Tour row):
+  a Classic run, walkthrough ended, goal out of reach, clock held, quarter limits (QRL) off in memory. A
+  400px panel on the left; on a window 1100px or wider the game is fitted beside it (`camReserveLeft`,
+  js/camera.js, read by `camLayout` and `camPlaceScene`), narrower it folds. Search over every Trick,
+  Knack and Sleight (name, id, or every typed word in name or description); + grants through the game's
+  own paths (a Sleight goes to the top of the draw pile). Each Trick row: P (primes), PP (`_rank`), F
+  (armed forced fires, `armForcedTrick`), move left / right, v+ (`improveEntity`), remove. Tools: clock
+  held / running, REFILL, quarter limits, "Deal 3 of <rank>" (rewrites three top-row cards). `playHand`
+  and `dncPlayOrQueue` are wrapped (window properties): every played hand's banked ledger is walked with
+  the dance's arithmetic (`trace`) and printed one line per event with the running pips and mult, then
+  the total, then what the hand did to primes and forced fires (`aftermath`, from tray snapshots before
+  and after). A walk that misses the ledger's finals prints a warning. COPY gives the log as text
+  (`scoreLabText()`). Nothing stored. `unlockPaused` knows `?lab`.
+- **A forced event is marked** (`ev.forced` on the timeline, calcScore's force block). Display only; the
+  golden fingerprint does not read it.
+- **Score chips leave one after another** (js/score-dance.js; r221's "all at once" is superseded). In a
+  card's beat the card's own plate leaves first, then each Trick's, `TALLY_CFG.gap` (140ms at 1x) apart.
+  Order: `dncOrderAdds` sorts each run of adds between two multiplies (adds commute; a multiply is never
+  moved): no tray tile first, then tiles by screen x, left to right (`order: 'ltr'`; 'rtl', 'emit'). Whole-
+  hand adds are ordered the same way. A plate applies its number as it lands; one loop walks every launch
+  and landing in time order (`marks`). A chip pops AT its source, sits `TALLY_CFG.hold` (300ms of the
+  1440ms flight, the same share at any pace; `ptHoldFrames`, `ptLaunch` opts.hold, dance plates only) and
+  then flies. A pips chip starts left of its source's centre and a mult chip right, so two from one source
+  do not cover each other.
+- **Speed-up** (`TALLY_CFG`, js/dance-clock.js; dev -> HUD & Display -> Score tally pacing,
+  `lethe.tallyPace.v1` overrides only): +1% a payout (was 2%), ceiling 2x (was 8x), Focus lifts the tally
+  at most 1.5x (was 2x). The queue's lift and SPEED UP are unchanged. `DNC_ACCEL_STEP` / `_MAX` are gone.
+- **Bug fixed: after-score work read the wrong cards.** Since r661 the dance takes an ordinary hand's cards
+  out of gridData at once, so `runHandPriming` (Inspirato, Prime Times), `scalingCount` (scaling buffs,
+  Suggestive, Coin and the Sword, To The Nines, Small Change, the unlock counters...) and `climbAfterHand`
+  read the cards that had FALLEN INTO the hand's cells. Measured: A A A played, priming saw 4 10 2.
+  `cellCardFrozen` (js/hand-detect.js, a Map 'r-c' -> card read by `cellCard`) holds the hand's own cards
+  while playHand runs that work. Goal hands were not affected (their cards stay for the finale).
+- **How priming works, as measured in the preview** (nothing changed): a prime granted by a hand is
+  granted after that hand scores, so it waits; all of a Trick's primes pay on the next hand it goes off
+  in (5 primes = 5 more payouts on one hand), each a whole-hand repeat of its pips and mult added at the
+  end of the hand, after the multiplies; a hand it does not go off in keeps them. A forced fire pays the
+  Trick's BAL value once, after the primes, and is not repeated by them. **Open, owner's call:** a Trick
+  that goes off ONLY because it was forced still loses its primes, and they pay nothing.
+Measured in headless Chromium at 1440x820 and 420x900, dev mode on: chips in a 4-chip beat appeared
+110-150ms apart, sat 420-500ms, then flew; a 24-event hand with x pips, x mult and replays, a 4-hand
+burst, a Flow goal hand: no timeline drift, no page errors; pace after 24 payouts 1.24 (was 1.6). Golden:
+838 cases match. Stage without ?lab unchanged (1436 x 807).

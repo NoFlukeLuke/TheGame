@@ -81,6 +81,7 @@
 <link rel="stylesheet" href="css/dice.css">
 <link rel="stylesheet" href="css/event-tour.css">
 <link rel="stylesheet" href="css/trick-tour.css">
+<link rel="stylesheet" href="css/score-lab.css">
 <link rel="stylesheet" href="css/chance-count.css">
 <link rel="stylesheet" href="css/event-grid-lab.css">
 <link rel="stylesheet" href="css/cr-fx-lab.css">
@@ -533,6 +534,33 @@
     </div>
   </div>
 
+  <!-- SCORE TALLY PACING (r772) -->
+  <div class="dev-section" data-group="hud" data-affects-info="1">
+    <div class="dev-section-title">Score tally pacing</div>
+    <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:4px;">
+      How a card's score chips leave it, and how far a long hand may speed itself up.
+    </div>
+    <div class="dev-slider-row"><span>Chip sits at its source <b id="dev-tally-hold-val">300</b>ms</span>
+      <input id="dev-tally-hold" type="range" min="0" max="700" value="300" step="10" oninput="devSetTally('hold', this.value)"></div>
+    <div class="dev-slider-row"><span>Gap between chips <b id="dev-tally-gap-val">140</b>ms</span>
+      <input id="dev-tally-gap" type="range" min="0" max="400" value="140" step="10" oninput="devSetTally('gap', this.value)"></div>
+    <div class="dev-row"><span style="font-size:11px;color:var(--cream-dim)">Chip order</span>
+      <select id="dev-tally-order" onchange="devSetTally('order', this.value)">
+        <option value="ltr">Card, then Tricks left to right</option>
+        <option value="rtl">Card, then Tricks right to left</option>
+        <option value="emit">As the score is worked out</option>
+      </select></div>
+    <div class="dev-slider-row"><span>Each payout speeds the rest up <b id="dev-tally-accelStep-val">1</b>%</span>
+      <input id="dev-tally-accelStep" type="range" min="0" max="5" value="1" step="0.25" oninput="devSetTally('accelStep', this.value)"></div>
+    <div class="dev-slider-row"><span>Speed-up ceiling <b id="dev-tally-accelMax-val">2</b>&times;</span>
+      <input id="dev-tally-accelMax" type="range" min="1" max="8" value="2" step="0.25" oninput="devSetTally('accelMax', this.value)"></div>
+    <div class="dev-slider-row"><span>Focus speeds the tally at most <b id="dev-tally-focusMax-val">1.5</b>&times;</span>
+      <input id="dev-tally-focusMax" type="range" min="1" max="2" value="1.5" step="0.05" oninput="devSetTally('focusMax', this.value)"></div>
+    <div class="dev-row">
+      <button class="dev-btn" onclick="devResetTally()">Reset to default</button>
+    </div>
+  </div>
+
   <!-- CHANNEL CHANGE -->
   <div class="dev-section" data-group="hud">
     <div class="dev-section-title">Channel Change - screen transition</div>
@@ -618,6 +646,7 @@
       <button class="dev-btn" onclick="location.search='?tricks=epic'">epic</button>
       <button class="dev-btn" onclick="location.search='?tricks=legendary'">legendary</button>
       <button class="dev-btn" onclick="location.search='?tricks=all'">all</button>
+      <button class="dev-btn" onclick="location.search='?lab'">Scoring preview</button>
     </div>
     <input id="dev-trick-search" type="text" placeholder="Search trick name..." oninput="devFilterTricks(this.value)"
       style="width:100%;background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--cream);font-family:'Crimson Pro',serif;font-size:13px;padding:6px 8px;border-radius:4px;margin-bottom:6px;">
@@ -1914,6 +1943,7 @@
 <script src="js/event-grid-lab.js"></script>
 <script src="js/cr-fx-lab.js"></script>
 <script src="js/record-mode.js"></script>
+<script src="js/score-lab.js"></script>
 <script src="js/bootstrap.js"></script>
 </div><!-- /#stage -->
 

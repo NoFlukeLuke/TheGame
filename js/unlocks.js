@@ -40,7 +40,7 @@ function ulSave() {
 // Counting stops in the tours, the labs and a test drive (their hands are not play).
 function unlockPaused() {
   try {
-    if (typeof location !== 'undefined' && /[?&](tricks|events|evgrid|improve|blank)\b/.test(location.search || '')) return true;
+    if (typeof location !== 'undefined' && /[?&](tricks|events|evgrid|improve|blank|lab)\b/.test(location.search || '')) return true;
     if (typeof testDriveActive === 'function' && testDriveActive()) return true;
   } catch (e) {}
   return false;

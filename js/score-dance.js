@@ -560,6 +560,24 @@ function ptFrames(dx, dy, scale){
     { transform:`${B} translate(${dx}px,${dy}px) scale(${.8*scale}) rotate(${end}deg)` },
   ];
 }
+// r772 (owner): a score chip appears AT its source, pops, sits there for `hold` ms,
+// then flies. The hold is carved out of `dur`, so the chip takes no longer than
+// before. The timing is linear and each stretch carries its own easing, or one
+// ease over the whole flight would smear the hold into a slow drift.
+function ptHoldFrames(dx, dy, scale, hold, dur){
+  const C = PARTICLE_CFG, B = 'translate(-50%,-50%)';
+  const pop = ((C.pop === undefined) ? 1.2 : C.pop) * scale;
+  const arc = C.arc || 0, mid = C.spin || 0;
+  const end = (C.spinEnd === undefined) ? 0 : C.spinEnd;
+  const h = Math.max(.05, Math.min(.6, hold / dur)), pIn = Math.min(h * .4, 90 / dur), m = h + (1 - h) * .45;
+  return [
+    { transform:`${B} scale(${.5*scale}) rotate(0deg)`, easing:'ease-out' },
+    { transform:`${B} scale(${pop}) rotate(0deg)`, offset:pIn, easing:'ease-in-out' },
+    { transform:`${B} scale(${(pop+scale)/2}) rotate(0deg)`, offset:h, easing:'cubic-bezier(.5,0,.8,.6)' },
+    { transform:`${B} translate(${dx*.5}px,${dy*.5 - arc}px) scale(${scale}) rotate(${mid}deg)`, offset:m, easing:'cubic-bezier(.2,.5,.4,1)' },
+    { transform:`${B} translate(${dx}px,${dy}px) scale(${.8*scale}) rotate(${end}deg)` },
+  ];
+}
 // The fade has its OWN linear clock (r531). Inside the flight's keyframes it rode the
 // flight's ease-out, which spends most of the real time on the last stretch of the
 // path, so a fade meant for the very end covered three quarters of the flight
@@ -583,8 +601,9 @@ function ptLaunch(a, b, kind, label, color, dur, opts){
   const scale = (o.scale === undefined) ? 1 : o.scale;
   const x = a.left + a.width/2,  y = a.top + a.height/2;
   const dx = (b.left + b.width/2) - x, dy = (b.top + b.height/2) - y;
-  const frames = ptFrames(dx, dy, scale), fades = ptFadeFrames(dur);
-  const tw = { duration: dur, easing:'cubic-bezier(.3,.7,.4,1)', fill:'forwards' };
+  const held = o.hold > 0;
+  const frames = held ? ptHoldFrames(dx, dy, scale, o.hold, dur) : ptFrames(dx, dy, scale), fades = ptFadeFrames(dur);
+  const tw = { duration: dur, easing: held ? 'linear' : 'cubic-bezier(.3,.7,.4,1)', fill:'forwards' };
   const fw = { duration: dur, easing:'linear', fill:'forwards' };
   // GHOSTS. A rewind is the one payout that means "this already happened, and it
   // is happening again", so it is the one that gets an after-image. Appended
@@ -634,13 +653,19 @@ function dncFly(srcEl, boxEl, label, color, onLand, durOverride, kind){
   // has to reproduce calcScore exactly - what may vary is only what is drawn.
   const liveB = b.width > 0 && b.height > 0;
   if(!a || !a.width || !a.height) a = b;
+  // r772: a pips chip sits on the left of its source and a mult chip on the right (as the
+  // PIPS and MULT boxes do), so two chips from one card or one Trick do not cover each other.
+  else if(!dncFF && kind){ const sx = a.width * (kind.startsWith('pip') ? -.2 : kind.startsWith('mult') ? .2 : 0);
+    if(sx) a = { left: a.left + sx, top: a.top, width: a.width, height: a.height }; }
   const base = ptBaseFlight();
   const dur = durOverride || (dncFF ? Math.max(60, base/DANCE_CFG.ff) : Math.max(60, base/dncPace()));
   // The blip counter advances whether or not a plate is drawn, so a skipped one
   // does not shrink the next visible plate back down the growth curve.
   const _blip = dncBlipScale();
+  // r772: the chip sits at its source first (TALLY_CFG.hold, the same share of any flight).
+  const _hold = dncFF ? 0 : dur * Math.min(.5, TALLY_CFG.hold / base);
   if(liveB) ptLaunch(a, b, kind, label, color, dur,
-    { scale: _blip, animate: dncAnimate, timeout: dncTimeout });
+    { scale: _blip, animate: dncAnimate, timeout: dncTimeout, hold: _hold });
   // This particle IS a payout tick - a card's pips, a Trick's pips or mult, a
   // Sleight firing. Bump AFTER dur is read so the speed-up lands on what is
   // still to come, not on the flight that earned it.
@@ -1145,6 +1170,30 @@ function dncPlayOrQueue(result, toRemove, isGoalHand){
   result._q.ready = wait(FLY + 60);   // the strip's dance waits for the copies to land
 }
 
+// r772: the order score chips leave in. Adds commute, so a run of adds between two
+// multiplies may be played in any order without changing a number; a multiply is
+// never moved. Within such a run: whatever has no tray tile (the card itself) first,
+// then tiles by their place on screen, left to right ('ltr') or right to left
+// ('rtl'). 'emit' leaves the order the score was worked out in.
+function dncOrderAdds(list, elOf, evOf){
+  const mode = TALLY_CFG.order;
+  if(mode !== 'ltr' && mode !== 'rtl') return list;
+  const isAdd = x => { const e = evOf(x); return e && (e.op === 'pip+' || e.op === 'mult+') && !e.prime; };
+  const key = x => { const el = elOf(x); if(!el) return -Infinity;
+    const r = el.getBoundingClientRect(); if(!r.width) return Infinity;
+    const cx = r.left + r.width / 2; return mode === 'rtl' ? -cx : cx; };
+  for(let i = 0; i < list.length;){
+    if(!isAdd(list[i])){ i++; continue; }
+    let j = i; while(j < list.length && isAdd(list[j])) j++;
+    if(j - i > 1){
+      // Compared, not subtracted: -Infinity - -Infinity is NaN. Ties keep their own order.
+      const run = list.slice(i, j).map((x, n) => ({ x, n, k: key(x) })).sort((a, b) => (a.k === b.k ? a.n - b.n : a.k < b.k ? -1 : 1));
+      for(let n = 0; n < run.length; n++) list[i + n] = run[n].x;
+    }
+    i = j;
+  }
+  return list;
+}
 async function playPreviewDance(result, toRemove, isGoalHand = false){
   // "Did this hand interrupt another?" - true if a dance is still live, OR if one
   // was cut microseconds ago by the caller (playHand does exactly that).
@@ -1707,6 +1756,9 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   // The preview's SKIP (dncSkipReq) cuts them on any hand, the winning hand included.
   const flushed = () => dncSkipReq || (!isGoalHand && (!!dncGoalJumpState || (typeof blastQueueDeep === 'function' && blastQueueDeep())));
   let beatsCut = false;
+  // r772: whole-hand adds play in the same order as a card's (dncOrderAdds). Card steps
+  // and primes stay where they are.
+  dncOrderAdds(steps, st => st.kind === 'hand' ? dncEntEl(st.event) : null, st => st.kind === 'hand' && !st.prime ? st.event : null);
   for(let si=0; !skipBeats && si<steps.length; si++){
     if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
     if(flushed()){ beatsCut = true; break; }
@@ -1785,13 +1837,36 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
         if(!(ev.op==='pip+'||ev.op==='mult+')){ open[chip] = null; plan.push({ ev }); return; }
         const fromCard = !dncEntEl(ev);
         if(fromCard && open[chip]){ open[chip].sum += ev.value; plan.push({ ev, ride: true }); return; }
-        const g = { ev, sum: ev.value, chip }; if(fromCard) open[chip] = g; plan.push(g);
+        const g = { ev, sum: ev.value, chip, own: fromCard }; if(fromCard) open[chip] = g; plan.push(g);
       });
-      const applies = plan.map(g => fireEvent(g.ev, cardEl, subRef, false, true, beatDur, true,
-        g.ride ? false : (g.sum !== undefined && g.sum !== g.ev.value) ? '+' + (g.chip === 'p' ? Math.round(g.sum) : fmtM(g.sum)) : undefined));
-      await dncWait(beatDur);
-      if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
-      applies.forEach(fn => { if(fn) fn(); });
+      // ONE AFTER ANOTHER (r772, owner; r221's "all at once" is superseded). The card's own
+      // plate leaves first, then each Trick's, TALLY_CFG.gap apart, in the order
+      // dncOrderAdds gives (left to right across the tray by default). A plate applies its
+      // number as it lands. One loop walks every launch and landing in time order, so the
+      // arithmetic stays strictly ordered whatever the timers do. A skip launches together.
+      dncOrderAdds(plan, g => g.ride || !dncEntEl(g.ev) ? null : dncEntEl(g.ev), g => g.ev);
+      const vis = []; let head = {};
+      plan.forEach(g => {
+        const chip = (g.ev.op==='pip+'||g.ev.op==='pip*') ? 'p' : 'm';
+        if(g.ride && head[chip]){ head[chip].rides.push(g); return; }
+        g.rides = []; vis.push(g); if(g.own) head[chip] = g; else if(g.sum === undefined) head[chip] = null;
+      });
+      const gap = (dncFF || vis.length < 2) ? 0 : TALLY_CFG.gap / dncPace();
+      const marks = [];
+      vis.forEach((g, i) => { marks.push({ t: i * gap, g, go: true }); marks.push({ t: i * gap + beatDur, g }); });
+      marks.sort((a, b) => a.t - b.t || (a.go ? 0 : 1) - (b.go ? 0 : 1));
+      let _now = 0, _cut = false;
+      for(const mk of marks){
+        if(mk.t > _now){ await dncWait(mk.t - _now); _now = mk.t; }
+        if(aborted()){ _cut = true; break; }
+        if(mk.go){
+          const g = mk.g;
+          g.fns = [fireEvent(g.ev, cardEl, subRef, false, true, beatDur, true,
+            (g.sum !== undefined && g.sum !== g.ev.value) ? '+' + (g.chip === 'p' ? Math.round(g.sum) : fmtM(g.sum)) : undefined)]
+            .concat(g.rides.map(r => fireEvent(r.ev, cardEl, subRef, false, true, beatDur, true, false)));
+        } else (mk.g.fns || []).forEach(fn => { if(fn) fn(); });
+      }
+      if(_cut || aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
       // The card's pips join the hand total once its own beat has resolved, so a
       // card-scoped multiply has something of its own to multiply.
       rp += subRef.v; showPips(0);

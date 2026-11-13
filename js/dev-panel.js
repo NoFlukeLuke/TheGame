@@ -79,6 +79,7 @@ function openDevPanel() {
   devSyncFloatSliders();
   if (typeof iaDevSync === 'function') iaDevSync();   // r627: the improvement animation controls
   devSyncBlipSliders();
+  devSyncTallySliders();
   devSyncNs();
   devSyncCcSliders();
   devSyncDisco();
@@ -468,6 +469,20 @@ function devSyncBlipSliders() {
     const el = document.getElementById('dev-blip-' + k), lab = document.getElementById('dev-blip-' + k + '-val');
     if (el) el.value = PARTICLE_CFG[k];
     if (lab) lab.textContent = String(PARTICLE_CFG[k]);
+  });
+}
+// ── Score tally pacing (r772) - TALLY_CFG lives in js/dance-clock.js ──
+function devSetTally(k, v) {
+  if (typeof tallyCfgSet !== 'function') return;
+  tallyCfgSet(k, v); devSyncTallySliders();
+}
+function devResetTally() { if (typeof tallyCfgReset === 'function') tallyCfgReset(); devSyncTallySliders(); }
+function devSyncTallySliders() {
+  if (typeof TALLY_CFG === 'undefined') return;
+  Object.keys(TALLY_CFG).forEach(k => {
+    const el = document.getElementById('dev-tally-' + k), lab = document.getElementById('dev-tally-' + k + '-val');
+    if (el) el.value = TALLY_CFG[k];
+    if (lab) lab.textContent = String(TALLY_CFG[k]);
   });
 }
 // The shipped values, kept before any stored tuning is laid over them (Reset reads these).

@@ -78,6 +78,9 @@ function camScale() {
 // Place the cabinet so the STAGE (not the housing) is centred in the viewport,
 // and glue the room's canvas to the same point. Measured rather than derived
 // from the bezel/marquee paddings, so a CSS change to the housing can't drift it.
+// r772: px kept clear at the viewport's left for a side panel (the scoring preview,
+// js/score-lab.js). The stage is fitted into and centred on what is left.
+let camReserveLeft = 0;
 function camPlaceScene() {
   const cam = camEl(), cab = document.getElementById('cabinet'), stage = document.getElementById('stage');
   if (!cam || !cab || !stage) return;
@@ -87,7 +90,7 @@ function camPlaceScene() {
   cab.style.left = '0px';
   cab.style.top  = '0px';
   const r = stage.getBoundingClientRect();
-  const W = window.innerWidth, H = window.innerHeight;
+  const W = window.innerWidth + camReserveLeft, H = window.innerHeight;   // centre of the free area = reserve + (width - reserve) / 2
   // Viewport-px delta, converted into the cabinet's own px (it carries the zoom).
   const dx = (W / 2 - (r.left + r.width  / 2)) / camPlayZoom;
   const dy = (H / 2 - (r.top  + r.height / 2)) / camPlayZoom;
@@ -109,7 +112,7 @@ function camPlaceScene() {
 // resize handler - it owns the landscape decision, we own the numbers.
 function camLayout(isLandscape) {
   const d = CAM_DESIGN[isLandscape ? 'landscape' : 'portrait'];
-  const W = window.innerWidth, H = window.innerHeight;
+  const W = window.innerWidth - camReserveLeft, H = window.innerHeight;
   // Play: fit the STAGE, and let the housing fall off the edges.
   camPlayZoom = Math.min((W - CAM_PLAY_PAD * 2) / d.stageW, (H - CAM_PLAY_PAD * 2) / d.stageH);
   // Wide: fit the whole cabinet into CAM_WIDE_FIT of the viewport, leaving the

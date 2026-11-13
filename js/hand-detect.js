@@ -352,7 +352,16 @@ function _withTagalongs(res) {
 // every CARD read goes through cellCard, and every per-cell map is keyed by
 // cellKey, so a surface card and the card pulled from under it never collide.
 // `[...cell]` and `cell.slice()` keep the third element; a rebuilt `[r, c]` drops it.
-function cellCard(cell) { return cell[2] || (gridData[cell[0]] ? gridData[cell[0]][cell[1]] : undefined); }
+// r772: `cellCardFrozen` (a Map 'r-c' -> card) holds a played hand's own cards while
+// playHand settles it. Since r661 the cards leave gridData the moment the dance takes
+// the hand, so the after-score work (runHandPriming, scalingCount) was reading the
+// cards that FELL INTO those cells. playHand sets it around that work and clears it.
+let cellCardFrozen = null;
+function cellCard(cell) {
+  if (cell[2]) return cell[2];
+  if (cellCardFrozen) { const f = cellCardFrozen.get(cell[0] + '-' + cell[1]); if (f) return f; }
+  return gridData[cell[0]] ? gridData[cell[0]][cell[1]] : undefined;
+}
 function cellKey(cell) { return cell[2] ? cell[0] + '-' + cell[1] + '~' + cell[2]._id : cell[0] + '-' + cell[1]; }
 function cellIsPulled(cell) { return !!(cell && cell[2]); }
 function _handShape(cells) {
