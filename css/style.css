@@ -6423,3 +6423,38 @@ body.gp-fillhead #stage.landscape.grid-fill #flowr-stack {
   box-shadow: inset 0 0 46px rgba(255,176,46,0.05), inset 0 0 0 1px rgba(0,0,0,.6);
   border-radius: 6px; overflow: hidden;
 }
+
+
+/* ══ r777 (owner): THE QUARTER AND THE LEVEL, ALWAYS ════════════════════════
+   The progress block reads Qn on the left and LVn on the right in every mode and
+   both orientations (js/hud.js updateRunProgressUI). Under them: the round pips
+   (quarter modes), one pip a quarter (Flow), or the boss sigil. Poker Squares has
+   no quarter (.rp-noq) and reads the level alone. */
+.rp-block .rp-top { display: flex; align-items: baseline; justify-content: space-between; gap: 5px; align-self: stretch; }
+.rp-block .rp-lnum, .rp-block .rp-top .rp-act {
+  font-family: 'Orbitron', sans-serif; font-weight: 700; line-height: 1; letter-spacing: .5px; white-space: nowrap;
+}
+.rp-block .rp-lnum { color: #fff; text-shadow: 0 0 8px rgba(255,255,255,0.25); opacity: 1; letter-spacing: 0; }
+.rp-block .rp-lnum b { font-weight: inherit; margin-left: 1px; letter-spacing: .5px; }
+.rp-block.rp-noq .rp-top { justify-content: center; }
+.rp-block .rp-qpips { display: none; gap: 4px; align-items: center; }
+.rp-block.rp-flowq .rp-nodes { display: none; }
+.rp-block.rp-flowq .rp-qpips { display: flex; }
+.rp-block .rp-qpips span { width: 6px; height: 6px; border-radius: 50%; box-sizing: border-box;
+  background: #241d12; border: 1px solid var(--c-magenta, #ff2f8e); }
+.rp-block .rp-qpips span.on  { background: var(--c-magenta, #ff2f8e); }
+.rp-block .rp-qpips span.cur { background: var(--c-yellow, #ffd23f); border-color: var(--c-yellow, #ffd23f); box-shadow: 0 0 6px var(--c-yellow, #ffd23f); }
+/* Landscape: r544's big LEVEL readout is folded into the row. */
+#stage.landscape #run-progress.rp-lvl .rp-lv { display: none; }
+#stage.landscape #run-progress.rp-lvl .rp-sigil { display: none; }
+#stage.landscape #run-progress.rp-lvl .rp-nodes { display: none; }
+#stage.landscape #run-progress { gap: 4px; padding: 3px 6px; }
+#stage.landscape #run-progress .rp-lnum,
+#stage.landscape #run-progress .rp-top .rp-act { font-size: 11px; }
+#stage.landscape #run-progress.boss-sigil .rp-sigil { font-size: 13px; }
+/* Portrait: bigger type; the block now also stands in for the LEVEL stat. */
+#stage:not(.landscape) #run-progress-pt .rp-lnum,
+#stage:not(.landscape) #run-progress-pt .rp-top .rp-act { font-size: 12px; }
+#stage:not(.landscape) #run-progress-pt .rp-lnum { letter-spacing: 0; }
+#stage:not(.landscape) #run-progress-pt.rp-live { gap: 4px; min-width: 70px; margin-right: auto; }
+#stage:not(.landscape) #top-bar:has(#run-progress-pt.rp-live) > .top-stat:has(#level-display) { display: none; }

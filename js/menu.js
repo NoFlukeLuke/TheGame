@@ -1,4 +1,4 @@
-const BUILD = "2026-11-13 · r776 · Past Capacity is a protocol of Flow and the Schedule";
+const BUILD = "2026-11-13 · r777 · the quarter and the level, always on show";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

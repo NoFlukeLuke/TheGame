@@ -263,15 +263,24 @@ function updateRunProgressUI() {
   // r544: outside the quarter modes (Flow) the block reads LEVEL n; it lived in
   // the credits bar, which is gone. Poker Squares counts rounds instead.
   const lvlOn = !actMode && !bossOn && !(typeof squaresActive === 'function' && squaresActive());
+  // r777 (owner): the quarter and the level are always on show. Flow's quarter is the review it is
+  // working toward (one a quarter); Poker Squares has no quarters and shows the level alone.
+  const flowQ = (typeof flowActive === 'function') && flowActive();
+  const quarter = actMode ? actNumber
+    : flowQ ? ((typeof survivalBossesBeaten === 'number' ? survivalBossesBeaten : 0) + 1) : 0;
   document.querySelectorAll('.rp-block').forEach(rp => {
     rp.classList.toggle('boss-sigil', bossOn);
     rp.classList.toggle('rp-lvl', lvlOn);
+    rp.classList.toggle('rp-flowq', flowQ && !bossOn);
+    rp.classList.toggle('rp-noq', !quarter);
     const lv = rp.querySelector('.rp-lv'); if (lv) lv.textContent = level;
-    const ln = rp.querySelector('.rp-lnum'); if (ln) ln.textContent = 'L' + level;   // r738: the phone's level, left of Q1
+    const ln = rp.querySelector('.rp-lnum'); if (ln) ln.innerHTML = 'LV<b>' + level + '</b>';
     const act = rp.querySelector('.rp-act');
-    // Outside the quarter structure (Survival) "Qn" is meaningless, but a boss
-    // still needs a name over its mark.
-    if (act) act.textContent = actMode ? ('Q' + actNumber) : bossOn ? 'BOSS' : lvlOn ? 'LEVEL' : '';
+    if (act) act.textContent = quarter ? ('Q' + quarter) : bossOn ? 'BOSS' : '';
+    rp.querySelectorAll('.rp-qpips span').forEach((s, i) => {
+      s.classList.toggle('on', i < quarter - 1 || quarter > 4);
+      s.classList.toggle('cur', i === quarter - 1);
+    });
     rp.querySelectorAll('.rp-nodes span:not(.boss)').forEach((s, i) => {
       s.classList.toggle('on', i < nodeInAct);
       s.classList.toggle('cur', i === nodeInAct);
@@ -281,7 +290,7 @@ function updateRunProgressUI() {
   // - an act-mode run, or ANY mode's boss round. Otherwise that slot stays the
   // legacy game timer.
   if (typeof bindBossPeek === 'function') bindBossPeek();
-  const live = actMode || bossOn;
+  const live = actMode || bossOn || flowQ;
   document.getElementById('run-progress-pt')?.classList.toggle('rp-live', live);
   document.getElementById('game-timer-stat')?.classList.toggle('rp-yielded', live);
 }

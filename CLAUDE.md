@@ -5017,3 +5017,14 @@ Difficulty is its own (`proto:capacity`); no protocol Knack. The protocol screen
 to a row (css/protocols.css). Measured in headless Chromium at 1440x820 and 420x900 through the real
 protocol screen: Flow and the Schedule each started with 73 cards (8 Crowns, 13 Crescents, no wilds),
 audit 73/73, Short Suit owned, Flush of 3 live, `ACTIVE_MODE.id` flow / map; no page errors.
+
+## r777 - the quarter and the level are always on show (owner)
+The progress block (`.rp-block`: `#run-progress` landscape, `#run-progress-pt` portrait) reads **Qn on the
+left and LVn on the right** in every mode and both orientations (`updateRunProgressUI`, js/hud.js; the
+level is `LV<b>n</b>`, the number 1px off the letters). Quarter: `actNumber` in the quarter modes, the
+review being worked toward in Flow (`survivalBossesBeaten + 1`, with one pip a quarter, `.rp-qpips` /
+`.rp-flowq`, in place of the round pips); Poker Squares has none (`.rp-noq`, the level alone, centred).
+Landscape folds r544's big LEVEL readout into the row; on a phone the block is shown in Flow too
+(`rp-live`) and stands in for the top bar's LEVEL stat. A boss shows its sigil under the row. Measured at
+1440x820, 420x900, 375x667 and 360x740 in Flow, the Schedule, Classic and Stacked at levels 3, 12 and
+37: every part inside the block, quarter and level never touching, nothing over the clock, bar or credits.
