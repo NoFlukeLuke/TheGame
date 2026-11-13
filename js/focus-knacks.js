@@ -89,7 +89,7 @@ function chargedCardApply(handCells) {
   if (!e) return;
   chargedCardPending = false;
   enhanceCardKey(cardId(card), e);
-  noteMessage(`Charged Card: ${card.rank}${card.suit} ${typeof buffOfferName === 'function' ? buffOfferName(e) : ''}`);
+  noteMessage(`${knackName('charged_card')}: ${card.rank}${card.suit} ${typeof buffOfferName === 'function' ? buffOfferName(e) : ''}`);
   focusChipSync();
 }
 function focusShuffleUp() {

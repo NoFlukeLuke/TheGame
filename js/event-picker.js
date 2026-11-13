@@ -1,12 +1,14 @@
-// ── THE DECK PICKER (r590) ──────────────────────────────────────────────────
+// ── THE DECK PICKER (r590; Records' card rows r764) ─────────────────────────
 //
-// The card selector every card event uses (owner: "scroll through the grid
-// organized by suit", the event layouts lab's cut screen, r589): the whole deck
-// in one column per suit, a rank to a row from the Ace down, wilds on a last
-// row, about six rows in view and the rest a scroll away (wheel, drag, or the
-// arrows). A card with buffs wears a gold corner, a cursed one a red corner;
-// pointing at it lists what it carries. Two copies of one face sit side by side
-// in their cell. Cards are targets by identity, never by face.
+// The card selector every card event uses. r764 (owner: "use the card array we
+// have in records"): the cards are drawn as Records' Deck tab draws them, every
+// physical card with the board's own face (renderCardAppearance, so its buff
+// bands, curse and marks show), one row per suit with the suit and its count
+// on the left, the row sorted by rank and tucked to fit its width; wilds and
+// anything else on rows of their own. About EDP_ROWS_SHOWN rows show and the
+// rest scroll (wheel, drag, or the arrows). Pointing at a card (a mouse) lists
+// what it carries, as Records does. A pick lifts with a gold ring (and its
+// number with opts.ordered). Cards are targets by identity, never by face.
 //
 // evDeckPicker(parent, opts) -> { picks, sync(), el }
 //   opts.cards    the cards to offer (default every deck card)
@@ -16,42 +18,32 @@
 //   opts.onChange(picks)
 //   opts.locked() -> true while the picker should ignore taps
 
-const EDP_ROWS_SHOWN = 6;
+const EDP_ROWS_SHOWN = 4;
 
 function evDeckPicker(parent, opts) {
   const o = opts || {};
   const cards = (o.cards || everyDeckCard()).filter(Boolean);
   const max = o.max || 1;
   const picks = [];
-  const suits = [];
-  cards.forEach(c => { if (!isWildCard(c) && !suits.includes(c.suit)) suits.push(c.suit); });
-  const order = (typeof ACTIVE_SUITS !== 'undefined') ? ACTIVE_SUITS : [];
-  suits.sort((a, b) => (order.indexOf(a) + 99) % 99 - (order.indexOf(b) + 99) % 99);
-  const val = r => r === 'A' ? 14 : (RANK_ORDER[r] || 0);
-  const ranks = [...new Set(cards.filter(c => !isWildCard(c)).map(c => c.rank))].sort((a, b) => val(b) - val(a));
-  const wilds = cards.filter(c => isWildCard(c));
+  const shown = (typeof deckSuitsShown === 'function') ? deckSuitsShown(cards)
+    : (typeof ACTIVE_SUITS !== 'undefined' && ACTIVE_SUITS.length ? ACTIVE_SUITS : SUITS);
+  const rankIdx = rk => { const i = (typeof ACTIVE_RANKS !== 'undefined' ? ACTIVE_RANKS : []).indexOf(rk); return i < 0 ? 99 : i; };
+  const rows = [];
+  shown.forEach(st => rows.push({ label: st, cls: suitClass(st), list: cards.filter(c => !isWildCard(c) && c.suit === st) }));
+  rows.push({ label: '✶', cls: 'rec-wild', list: cards.filter(c => isWildCard(c)) });
+  rows.push({ label: '?', cls: '', list: cards.filter(c => !isWildCard(c) && !shown.includes(c.suit)) });
 
   const host = document.createElement('div');
-  host.className = 'edp';
-  host.style.setProperty('--edp-cols', suits.length || 1);
-  const head = `<div class="edp-head">${suits.map(s =>
-    `<span class="${['♥', '♦'].includes(s) ? 'red' : ''}">${s}</span>`).join('')}</div>`;
-  host.innerHTML = `${head}<div class="edp-wrap"><div class="edp-view"></div>
+  host.className = 'edp edp-rec';
+  host.innerHTML = `<div class="edp-wrap"><div class="edp-view"></div>
     <div class="edp-arrows"><button type="button" class="edp-up">▲</button><button type="button" class="edp-dn">▼</button></div></div>`;
   const view = host.querySelector('.edp-view');
 
-  const chip = card => {
-    const el = document.createElement('span');
-    const k = cardId(card);
-    const buffs = (typeof cardBuffLines === 'function') ? cardBuffLines(k, card) : [];
-    const curse = cardCurses && cardCurses[k];
-    el.className = 'edp-card' + (['♥', '♦'].includes(card.suit) ? ' red' : '')
-      + (buffs.length ? ' buffed' : '') + (curse ? ' cursed' : '') + (isWildCard(card) ? ' wild' : '');
-    el.textContent = isWildCard(card) ? WILD_RANK : ((typeof cardLabel === 'function') ? cardLabel(card) : `${card.rank}${card.suit}`);
-    const tip = [...buffs];
-    if (curse && typeof CURSE_DEFS !== 'undefined' && CURSE_DEFS[curse.id]) tip.push(`Cursed: ${CURSE_DEFS[curse.id].name}`);
-    if (card.suit2 || card.rank2) tip.push(`Also ${card.rank2 || card.rank}${card.suit2 || card.suit}`);
-    if (tip.length) el.title = tip.join('\n');
+  const slotOf = card => {
+    const el = document.createElement('div');
+    el.className = 'edp-slot';
+    const { className, innerHTML } = renderCardAppearance(card, -1, -1, { revealFog: true });
+    el.innerHTML = `<div class="${className}">${innerHTML}</div>`;
     el._card = card;
     el.addEventListener('click', () => {
       if (o.locked && o.locked()) return;
@@ -62,33 +54,44 @@ function evDeckPicker(parent, opts) {
       else if (picks.length < max) picks.push(card);
       else if (max === 1) picks.splice(0, 1, card);
       else return;
+      if (typeof sfxKeyClick === 'function') try { sfxKeyClick('down'); } catch (e) {}
       sync();
       if (o.onChange) o.onChange(picks);
     });
+    el.addEventListener('mouseenter', () => {
+      if (!matchMedia('(hover: hover)').matches || typeof showEntityTooltip !== 'function') return;
+      const lines = (typeof recordsCardLines === 'function') ? recordsCardLines(card) : cardBuffLines(cardId(card), card);
+      const why = o.blocked && o.blocked(card);
+      if (why) lines.unshift(why);
+      showEntityTooltip(el, { label: isWildCard(card) ? 'Wild card' : `${card.rank}${card.suit}`, desc: lines.length ? lines.join('<br>') : 'No buffs.' });
+      const rar = document.querySelector('#entity-tip .et-rar');
+      if (rar && typeof recordsDeckWhere === 'function') { const w = recordsDeckWhere()(card); rar.textContent = w === 'grid' ? 'ON BOARD' : w === 'played' ? 'PLAYED' : 'IN DECK'; }
+    });
+    el.addEventListener('mouseleave', () => { if (typeof hideEntityTooltip === 'function') hideEntityTooltip(); });
     return el;
   };
-  const row = (list, cls) => {
+  rows.forEach(rw => {
+    if (!rw.list.length) return;
+    rw.list.sort((a, b) => rankIdx(a.rank) - rankIdx(b.rank));
     const r = document.createElement('div');
-    r.className = 'edp-row' + (cls ? ' ' + cls : '');
-    list.forEach(cell => {
-      const c = document.createElement('div');
-      c.className = 'edp-cell' + (cell.length ? '' : ' empty');
-      cell.forEach(card => c.appendChild(chip(card)));
-      r.appendChild(c);
-    });
+    r.className = 'edp-crow';
+    r.innerHTML = `<span class="edp-suit ${rw.cls}">${rw.label}<b>${rw.list.length}</b></span><div class="edp-fan"></div>`;
+    const fan = r.querySelector('.edp-fan');
+    rw.list.forEach(card => fan.appendChild(slotOf(card)));
     view.appendChild(r);
-  };
-  ranks.forEach(rk => row(suits.map(s => cards.filter(c => !isWildCard(c) && c.rank === rk && c.suit === s))));
-  if (wilds.length) {
-    const r = document.createElement('div');
-    r.className = 'edp-row edp-wilds';
-    wilds.forEach(card => r.appendChild(chip(card)));
-    view.appendChild(r);
-  }
+  });
+
+  // Tuck each row so it fits its width (Records' rule).
+  const tuck = () => host.querySelectorAll('.edp-fan').forEach(fan => {
+    const n = fan.children.length; if (!n) return;
+    const w = fan.children[0].offsetWidth, avail = fan.clientWidth;
+    const gap = n > 1 ? Math.min(4, (avail - w) / (n - 1) - w) : 4;
+    fan.style.setProperty('--rc-gap', Math.floor(gap) + 'px');
+  });
 
   // Scrolling: the wheel and touch come from overflow; the arrows step one row
   // and repeat while held.
-  const rowH = () => (view.querySelector('.edp-row') || {}).offsetHeight || 24;
+  const rowH = () => (view.querySelector('.edp-crow') || {}).offsetHeight || 60;
   const step = d => view.scrollBy({ top: d * rowH(), behavior: 'smooth' });
   let hold = null;
   const press = d => { step(d); clearInterval(hold); hold = setInterval(() => step(d), 180); };
@@ -116,7 +119,7 @@ function evDeckPicker(parent, opts) {
   });
 
   function sync() {
-    view.querySelectorAll('.edp-card').forEach(el => {
+    view.querySelectorAll('.edp-slot').forEach(el => {
       const at = picks.indexOf(el._card);
       el.classList.toggle('picked', at >= 0);
       el.dataset.n = (o.ordered && at >= 0) ? String(at + 1) : '';
@@ -124,10 +127,14 @@ function evDeckPicker(parent, opts) {
     });
   }
   parent.appendChild(host);
-  requestAnimationFrame(() => {
-    view.style.maxHeight = (rowH() * EDP_ROWS_SHOWN) + 'px';
+  const fit = () => {
+    tuck();
+    const rh = rowH();
+    view.style.maxHeight = (rh * EDP_ROWS_SHOWN + 6) + 'px';
     host.classList.toggle('edp-scrolls', view.scrollHeight > view.clientHeight + 2);
-  });
+  };
+  requestAnimationFrame(fit);
+  if (typeof ResizeObserver === 'function') new ResizeObserver(() => tuck()).observe(view);
   sync();
   return { picks, sync, el: host };
 }

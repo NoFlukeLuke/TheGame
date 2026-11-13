@@ -396,7 +396,7 @@ const MAP_KIND_META = {
                 blurb: `A round with a raised goal and one extra ask. Pays credits and ${gridName('reward', { a: true })}.` },
   // r690: a priority account whose ask is a boss handicap (CHALLENGE_DEFS' `mini`).
   mini:       { icon: '⚔\uFE0E', name: '1-ON-1', full: 'One-on-One', cls: 'mk-mini',
-                blurb: `A round with a raised goal and a review\u2019s handicap at half strength. Pays credits and ${gridName('reward', { a: true })}.` },
+                blurb: 'A round with a raised goal and a review\u2019s handicap at half strength. Pays credits and an improvement you pick.' },
   // r444: half the challenge tiles are an AUDIT instead - a challenge round
   // (js/challenge-round.js). Same tile kind; `t.audit` picks the face.
   audit:      { icon: '⚑\uFE0E', name: 'AUDIT', full: 'Audit', cls: 'mk-audit',
@@ -440,7 +440,7 @@ function mapTileDesc(t, legalIds) {
     case 'level':      return `Play a round.${goal} Clear it for the payout and a pick of three.`;
     case 'challenge':  if (t.audit) return MAP_KIND_META.audit.blurb + goal;
                        return (t.challenge ? t.challenge.label + ' ' : '')
-      + `${G} +${Math.round(((t.challenge?.goalMult || 1.2) - 1) * 100)}%.${goal} Pays +${t.challenge?.credits || 0} credits and ${gridName('reward', { a: true })} (a path of up to ${mapRewardPath()}).`;
+      + `${G} +${Math.round(((t.challenge?.goalMult || 1.2) - 1) * 100)}%.${goal} Pays +${t.challenge?.credits || 0} credits and ` + (mapTileIsMini(t) ? 'an improvement you pick (1 of 3).' : `${gridName('reward', { a: true })} (a path of up to ${mapRewardPath()}).`);
     case 'shop':       return `The company store. Buy Tricks, Sleights, Knacks and upgrades. You hold ${coins} credits.`;
     case 'reward':     return `A ${limits.grid_rows.current}x${limits.grid_cols.current} ${gridName('reward')}. Take a connected path of up to ${mapRewardPath()} tiles.`;
     case 'event':      return t.eventFlavor || 'Something happens.';
@@ -508,8 +508,8 @@ function mapTileStake(t, legalIds) {
     case 'level': case 'challenge': {
       const now = !!(legalIds && legalIds.has(t.id));   // bookable now: the count is exact
       const g = mapGoalPreview(t, k, now);
-      // r690: a priority account (and a one-on-one) pays the reward board; its line says how long a path.
-      const path = (t.kind === 'challenge' && !t.audit) ? `PATH OF ${mapRewardPath()}` : null;
+      // r690: a priority account pays the reward board (its line says how long a path); r765: a one-on-one pays a pick.
+      const path = mapTileIsMini(t) ? 'PICK +1 TIER' : (t.kind === 'challenge' && !t.audit) ? `PATH OF ${mapRewardPath()}` : null;
       return { short: `${mapGoalWord()} ${mapNum(g)}`, path, goal: g, k };
     }
     case 'shop':       return { short: creditsTxt(coins) };
@@ -1708,7 +1708,7 @@ function mapAfterTile() {
 // After a cleared LEVEL: payout has run (startInterlude), challenge settled.
 // r690 (owner): what the round pays is its tile's (mapPosTileId, saved, so a
 // resumed round pays the same). A round: the pick of three. A priority account
-// or a one-on-one: the reward board (the r684 brief's REWARD tile, folded in; its
+// (and, until r765, a one-on-one): the reward board (the r684 brief's REWARD tile, folded in; its
 // knack pick of two and the pick of three are gone). An audit: its cards, nothing
 // more. The reward board closes back to the map (finishInterludeRoute).
 function mapAfterLevel() {
@@ -1721,6 +1721,9 @@ function mapAfterLevel() {
   // An audit (js/challenge-round.js) pays no prize grid (owner, r666). crTakePrize
   // is still called so the round's state is cleared.
   if (typeof crTakePrize === 'function') crTakePrize();
+  // r765 (owner): a one-on-one pays an improvement you pick (pick 1 of 3), not the Balance
+  // Sheet. With nothing to improve it pays the Balance Sheet as a priority account does.
+  if (mapTileIsMini(t) && typeof CRR !== 'undefined' && CRR.improve.can(1)) { crrScreen('improve'); crrRunScreens().then(done); return; }
   if (t && t.kind === 'challenge' && !t.audit) { rewardGridContext = 'interlude'; openRewardGrid(); return; }
   if (t && t.kind === 'challenge') { done(); return; }
   // r728: at difficulty tier 4+ the pick of three is followed by a forced penalty pick DIFF_PENALTY_MAP % of the time.

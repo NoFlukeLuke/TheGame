@@ -14,6 +14,15 @@ const SHOP_SLEIGHT_PRICES = scalePriceTable({ common: 8, rare: 12, epic: 16, leg
 const SHOP_LIMIT_BASE     = priceOf(15);        // coins; + SHOP_LIMIT_STEP per upgrade already purchased
 const SHOP_LIMIT_STEP     = priceOf(5);
 
+// r765 (owner): the shop's BUY prices are raised on top of the tables above: 10% on
+// everything, 25% on improvements, 5% on Knacks. Sell values still read the tables,
+// so selling pays what it did. shopRaised is the one place a buy price is raised.
+const SHOP_RAISE = { all: 1.10, improve: 1.25, knack: 1.05 };
+function shopRaised(n, kind) {
+  if (typeof n !== 'number' || !isFinite(n) || n <= 0) return n;
+  return Math.max(1, Math.round(n * (SHOP_RAISE[kind] || SHOP_RAISE.all)));
+}
+
 // ── Selling (r127) ──
 // Owner decision: Tricks and Knacks can be sold ANYWHERE (tray / HUD), any time.
 // Sleights are NOT sellable - they leave only by being played, discarded, or removed in the shop.

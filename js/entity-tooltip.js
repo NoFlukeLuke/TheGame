@@ -23,6 +23,7 @@ function ensureEntityTooltip() {
   _etEl.id = 'entity-tip';
   _etEl.innerHTML = `<div class="et-card">
       <div class="et-head"><span class="et-name"></span><span class="et-rar"></span></div>
+      <div class="et-say name-say"></div>
       <div class="et-more-slot"></div>
       <div class="et-type"></div>
       <div class="et-desc"></div>
@@ -84,6 +85,7 @@ function showEntityTooltip(anchorEl, p, opts = {}) {
   el.classList.toggle('et-wide', !!opts.wide);
   el.style.setProperty('--rc', `var(${ET_RARITY_COLOR[rar]})`);
   el.querySelector('.et-name').textContent = p.label || p.name || '';
+  { const sy = el.querySelector('.et-say'), s = nameSay(p.label || p.name); sy.textContent = s ? 'say: ' + s : ''; sy.style.display = s ? '' : 'none'; }   // r767
   el.querySelector('.et-rar').textContent  = tierLabel(p.type || p.entity, rar);
   const typeEl = el.querySelector('.et-type');
   typeEl.textContent = (p.type || p.entity || '').toString().toUpperCase();

@@ -226,3 +226,20 @@ function applyLexiconToDOM() {
     try { renderTrickTray(); } catch (e) {}
   }
 }
+
+// ── r767: how to say a name in another script (owner, r714: the name in its own script,
+// the English pronunciation in the tooltip). Keyed by the DISPLAY name, so it shows only
+// while that name does (never under UNDISCOVERED) and follows a v6 name. A new name in
+// another script adds a row here.
+const NAME_SAY = {
+  '关系':  'GWAHN-shee',          // Chinese guānxi: connections (Ripple)
+  '加油':  'jyah-YOH',            // Chinese jiāyóu: go for it, "add oil" (Wildfire)
+  '根回し': 'neh-mah-WAH-shee',    // Japanese nemawashi: lobbying before the meeting (Suggestive)
+  '生きがい': 'ee-kee-GAI',        // Japanese ikigai: a reason to get up in the morning (Wellspring)
+  '看板':  'KAHN-bahn',           // Japanese kanban: the card on the board (Card Counter)
+  '改善':  'KAI-zen',             // Japanese kaizen: continuous improvement (Life Lessons)
+  'जुगाड़': 'joo-GAAR',            // Hindi jugaad: a clever fix with what is to hand (Jury-Rig)
+  'ध्यान': 'DHYAHN',              // Hindi dhyaan: meditation, focus (Meditation)
+};
+function nameSay(name) { return (name && NAME_SAY[String(name).trim()]) || ''; }
+function nameSayHTML(name, cls) { const s = nameSay(name); return s ? `<div class="${cls || 'name-say'}">say: ${s}</div>` : ''; }

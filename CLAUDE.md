@@ -4787,8 +4787,83 @@ pick stored and cleared; the dev selects list 4 and 5 options; the Run tab draws
 27 x1.45, and so on (`GOAL_PAST_BASE` 1.25, `GOAL_PAST_STEP` 0.1), for every scale in Flow and on the
 Schedule. r761's "last step repeats" rule is gone; `goalTableRatio` returns the 1.25 for the Endless
 and Limitless terms. Goldilocks: level 25 2,187,500, 26 2,953,100, 28 5,673,900, 36 about 1.7 billion.
+## r765 - Card Slots read every line; slot wins are held a beat; Plinko bigger and saner; card events use Records' rows (owner)
+- **Card Slots** (js/events-slots.js): the reels hold your own cards (`floorCards`: no Sleights or stones),
+  dealt in a random order across the three reels, each card once; the stops are random, so the odds are
+  what the cards make. Every row, column and diagonal (`SLOT_LINES_3`) is read by `floorHand`: Three of a
+  Kind (a wild completes it), Run of 3 (A low or high), Flush of 3 when flushes are active; each line's
+  cards take one event buff, a card once a pull. `CARD_SLOT_PAIRS` (false) lets a pair in a line pay.
+  Measured over 200,000 pulls on the 56-card deck: rows only 15%, rows + diagonals 23%, all eight lines
+  34% (54% with flushes); with pairs 76% / 86% / 94%. Needs 9 cards (`EVENT_REQUIRES`).
+- **Entity Slots**: a row or a diagonal pays, never a column (`PAYLINE_LINES`); strips hold every entity in
+  a block of 1 or 2, so a column can never show three alike. The odds stay SET (1 in 3 at 5 entities to 1
+  in 7 at 14). Natural odds for reference (random stops, 200,000 pulls): rows + diagonals 17% / 9% / 4.5% /
+  2.4% at 5 / 7 / 10 / 14 entities; with columns (r590's triple blocks) 44% / 32% / 22% / 16%.
+- **The win beat** (`celebrate(lines)` in js/event-slot-machine.js): `SLOT.winPre` (380ms) after the reels
+  rest, each winning line is drawn through its cells (`.evt-winline`, an SVG polyline that draws in and
+  glows) and lit, `SLOT.winLine` apart with a rising tone (`sfxQuotaLine`), then `sfxChallengeWin` and a
+  `SLOT.winHold` (1100ms) hold; the buffs / the improvement are paid when it resolves.
+- **Spins are longer**: `SLOT.base` 1800 (was 1500), `stagger` 440 (was 380); `spin(stops, { len })`
+  multiplies a spin, and Spin to Improve's reel takes 1.6x and its own win beat.
+- **Plinko** (`evPlinko`, js/event-toys.js): the board is as wide as the event body allows up to
+  `PLINKO_MAX_W` (380) and every size scales with it (`plS`, `--pl-s`: rows, pegs, ball, bins, slide);
+  the body can be hidden when it is built, so it lays out again on the next frames at the real width.
+  Gravity is `PL_G x plS / 1.1`, so a drop on a 1.2x board takes about 5% longer (2.6s measured). A peg
+  is struck on the side the ball leaves by, and how far round the shoulder follows from where it came:
+  carrying on, it glances just past the top; turning back, it knocks the shoulder facing it. Measured
+  over 12 drops at both sizes: the ball never came closer than 0.04px to a peg's surface.
+- **Card events** (`evDeckPicker`, js/event-picker.js; every card event: Card Upgrade, Deck Trim, State
+  Change, Rewire, Spring, the Plinko edit, the challenge card pick): Records' card rows. Every card is its
+  board face (`renderCardAppearance`), one row per suit with the suit and its count, sorted by rank and
+  tucked to fit (Records' rule), wilds and other suits on rows of their own, `EDP_ROWS_SHOWN` (4) rows in
+  view; a pick lifts with a gold ring and its number, a blocked card greys, a mouse over a card shows
+  what it carries (`recordsCardLines`). The API (`picks`, `sync`, `el`) is unchanged.
+## r767 - the owner's Trick and Knack names (RENAMES.md section 10)
+The YOUR PICK columns of the Trick and Knack sheets are the display names (ids frozen; the id
+sweep is still to come). Men of Repute is Men of Means and the fused `men_of_means` is Old
+Money; Critical is Corporate Culture (All Hands is the Sleight's); v6 Express Elevator and
+Strategic Alliance. **A name in another script** (关系, 加油, 根回し, 生きがい, 看板, 改善, जुगाड़,
+ध्यान) prints a "say:" pronunciation line under the name in every tooltip: `NAME_SAY` /
+`nameSay(name)` / `nameSayHTML(name)` in js/labels.js, keyed by the DISPLAY name, so it never
+shows under UNDISCOVERED. A notice or preview label never types an entity's name: it reads
+`trickNameOf(id)` (js/improve.js; the owned copy, so v6 names show) or `knackName(id)`.
+Beside the names: Perk Package +6 mult, Eagle Eye +15, Night Owl +16, Five Stack +15 / +20;
+Straight Shot counts buffs from v1 and improves once, to v6; **The Vulture is a Knack** (same id,
+the Trick retired); **Clockmaker is retired** (`knackOfferable` refuses `retired`, r753); Free
+Range (Jeitinho) sets the round's swap stock to `BAL.free_range_t.swaps` (2); Traveler
+(Well-Rounded) also grants a discard. The golden baseline was rewritten in the next commit: the
+Vulture leaving the Trick pool moves the harness's random line placement, so line Tricks' cases
+change with no scoring change (checked by putting the Vulture back: all match).
 
-## r765 - the Schedule bridges a goal table at x1.15 to level 36 (owner)
+## r769 - a big pop-up pauses the clock while it is read (`js/read-hold.js`, `css/read-hold.css`, owner)
+A walkthrough bubble or a tip that covers the board, or runs to `READ_HOLD.minWords` (25) words or more,
+holds the round clock for its words at 3 a second (about 180 a minute, slower than a typical reader)
+plus 2s (4s to 40s), then shows CLOCK STARTS IN 5 4 3 2 1 on the pop-up (a beep a second) and lets the
+clock go, whether the pop-up is still up or not. Closing it sooner lets the clock go at once. A
+walkthrough step marked `hold` holds whatever its size; **r769 makes those holds timed** (they used to
+hold until the step ended). The hold is a claim on `gameTimerPaused`, taken only when nothing else holds
+it and no between-rounds screen has the board (`readHoldScreenUp`), and given back only under the same
+test; the pause menu and a hidden tab stop the reading time too. One hold at a time:
+`readHoldBegin(owner, el, text, { force })` / `readHoldEnd(owner)`. A new pop-up that should hold calls
+the pair. Measured at 1440x820 and 420x900: the welcome bubble held 17s + 5, the select-cards step 13s
++ 5, the clock then ran; a tip over the board held and Got it released it; the pause menu froze the count.
+
+## r770 - tap to see the next boss, in every mode; the boss bubble draws again (owner)
+- **A tap on the quarter block** (`.rp-block`: `#run-progress` / `#run-progress-pt`, `bindBossPeek`,
+  js/boss.js) pins the next-boss bubble, as Flow's clock skull does (r376): a second tap or a tap
+  anywhere else closes it (the dismiss listener in `bindClockBossPeek` now spares `.rp-block`), a
+  mouse still shows it on hover, and during a live boss the tap reopens the brief as before. It used
+  to answer only a hover or a 420ms press-and-hold that closed on lift. `showBossPeek` returns
+  whether it showed. Pin state is shared with the skull (`_clockBossOpen` / `_clockBossHover`).
+- **`#boss-peek-popup` was never in the shared `.time-popup.show` rule** (css/style.css, with the
+  hand log, Time and Limits bubbles), so in every mode it drew in the page flow under the board: no
+  position, no layer, no fill. It is in the rule now (280 wide at most). Flow's skull had the same
+  invisible bubble.
+Measured in headless Chromium at 1440x820 (click) and 420x900 (touch) in Classic, the Schedule, Flow
+and Stacked: a tap opens it on top (elementFromPoint is the bubble, z 320), a second tap and a tap on
+the board close it; no page errors.
+
+## r771 - the Schedule bridges a goal table at x1.15 to level 36 (owner)
 `goalTableAt(t, lv, past)` takes an optional bridge `{ mult, until }`: `mapGoalForLevel` passes
 `MAP_PAST` (1.15, 36), so on the Schedule levels 25 to 36 of a table grow x1.15 a level and the
 r764 rule (x1.25, +0.1 a level) only starts at 37. Flow passes none and keeps r764 from 25.

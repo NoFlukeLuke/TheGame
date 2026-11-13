@@ -201,7 +201,7 @@ function precisionClockBonus() {
 }
 function precisionSay(base) {
   const clock = base === 'flow' ? `Every quarter's clock is ${PRECISION.flowSeconds / 60} minutes longer.` : `Every round is ${PRECISION.mapSeconds / 60} minute longer.`;
-  return `The speed bonus is half as strong but the same for the first ${PRECISION.speedFlat} seconds, then fades slowly. Every hand but a Pair makes ${PRECISION.focusAdd} more Focus, and loses ${PRECISION.sizeStep} for every card it is short of your Hand Size, ${PRECISION.lossCap} at most. Start with Meditation, Attention to Detail, +${PRECISION.swaps} swaps, +${PRECISION.discards} discards and +${PRECISION.cols} column. ${clock}`;
+  return `The speed bonus is half as strong but the same for the first ${PRECISION.speedFlat} seconds, then fades slowly. Every hand but a Pair makes ${PRECISION.focusAdd} more Focus, and loses ${PRECISION.sizeStep} for every card it is short of your Hand Size, ${PRECISION.lossCap} at most. Start with ${knackName('meditation')}, ${knackName('attention_to_detail')}, +${PRECISION.swaps} swaps, +${PRECISION.discards} discards and +${PRECISION.cols} column. ${clock}`;
 }
 
 // ── Run start (startGame) ──

@@ -378,7 +378,7 @@ const INFO_TOPICS = [
       `Obligations: client accounts (rounds), priority accounts (hard rounds), one-on-ones (a review\u2019s modifier at half strength), audits (challenge cards), the shop, events and raise requests (Limit Break). IT\u2019s quarter adds incentive programs (${gridName('reward', { plural: true })}).`,
       `An unconfirmed obligation (???) is a round, an audit, a priority account, an event, a one-on-one or ${gridName('reward', { a: true })}. You find out when you commit to it.`,
       'Every obligation raises the goal. The review\'s goal is fixed when the schedule is drawn.',
-      () => `Clearing a round offers a pick of three: ${typeof GUIDED_PICK_WEIGHTS !== 'undefined' ? `${GUIDED_PICK_WEIGHTS.trick}% {trick}, ${GUIDED_PICK_WEIGHTS.sleight}% {sleight}, ${GUIDED_PICK_WEIGHTS.knack}% {knack}` : ''} per offer. A priority account or a one-on-one pays ${gridName('reward', { a: true })} instead. An audit pays its challenge cards\u2019 rewards and nothing more.`,
+      () => `Clearing a round offers a pick of three: ${typeof GUIDED_PICK_WEIGHTS !== 'undefined' ? `${GUIDED_PICK_WEIGHTS.trick}% {trick}, ${GUIDED_PICK_WEIGHTS.sleight}% {sleight}, ${GUIDED_PICK_WEIGHTS.knack}% {knack}` : ''} per offer. A priority account pays ${gridName('reward', { a: true })} instead; a one-on-one pays an improvement you pick. An audit pays its challenge cards\u2019 rewards and nothing more.`,
     ] },
   { id: 'mode_protocols', group: 'modes', title: 'Protocols',
     body: [
@@ -398,7 +398,7 @@ const INFO_TOPICS = [
       () => `A protocol of Flow and the Schedule. The {FOCUS} speed bonus is half as strong, but the same for the first ${PRECISION.speedFlat} seconds after a hand, then it fades over ${PRECISION.speedFade} seconds.`,
       () => `Every hand but a Pair makes ${PRECISION.focusAdd} more {FOCUS}. A hand loses ${PRECISION.sizeStep} {FOCUS} for every card it is short of your Hand Size, so a short hand can lose {FOCUS}, ${PRECISION.lossCap} at most. Kickers do not count toward a hand's length.`,
       'Attention to Detail: Tricks that pay for a card\'s rank, suit, buffs or position pay 50% more.',
-      () => `You start with Meditation, Attention to Detail, +${PRECISION.swaps} swaps, +${PRECISION.discards} discards and +${PRECISION.cols} column. Flow's quarters are ${PRECISION.flowSeconds / 60} minutes longer; the Schedule's rounds are ${PRECISION.mapSeconds / 60} minute longer.`,
+      () => `You start with ${knackName('meditation')}, ${knackName('attention_to_detail')}, +${PRECISION.swaps} swaps, +${PRECISION.discards} discards and +${PRECISION.cols} column. Flow's quarters are ${PRECISION.flowSeconds / 60} minutes longer; the Schedule's rounds are ${PRECISION.mapSeconds / 60} minute longer.`,
     ] },
   { id: 'mode_limitless', group: 'modes', title: 'Limitless',
     body: [

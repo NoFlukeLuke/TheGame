@@ -1,0 +1,29 @@
+/* r769 - the reading pause's line on a pop-up (js/read-hold.js).
+   CLOCK PAUSED over a bar that drains with the reading time, then
+   CLOCK STARTS IN 5 4 3 2 1. */
+.rh-pill {
+  position: relative;
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  margin: 9px 0 2px; padding: 4px 8px 6px;
+  border: 1px solid rgba(255, 196, 80, 0.35);
+  background: rgba(255, 196, 80, 0.06);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 10px; letter-spacing: 2px; text-transform: uppercase;
+  color: rgba(255, 210, 120, 0.8);
+  overflow: hidden;
+}
+.rh-num { font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 15px; line-height: 1; letter-spacing: 0; }
+.rh-bar {
+  position: absolute; left: 0; bottom: 0; height: 2px;
+  width: calc(var(--rh-p, 1) * 100%);
+  background: rgba(255, 196, 80, 0.7);
+  transition: width .1s linear;
+}
+.rh-pill.rh-count { border-color: #ffc450; background: rgba(255, 196, 80, 0.16); color: #ffd27a; }
+.rh-pill.rh-count .rh-bar { display: none; }
+.rh-num.rh-pop { animation: rh-pop .45s ease-out; }
+@keyframes rh-pop {
+  from { transform: scale(1.7); opacity: .4; }
+  to   { transform: none; opacity: 1; }
+}
+body.reduced-motion .rh-num.rh-pop { animation: none; }

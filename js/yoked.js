@@ -50,5 +50,5 @@ function yokedImprove(tier) {
       n++;
     }
   });
-  if (n) noteMessage(`Yoked - ${n} card buff${n === 1 ? '' : 's'} ${dbl ? 'doubled' : 'grown'}`, 'var(--gold)');
+  if (n) noteMessage(`${knackName('yoked')} - ${n} card buff${n === 1 ? '' : 's'} ${dbl ? 'doubled' : 'grown'}`, 'var(--gold)');
 }

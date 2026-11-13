@@ -1,5 +1,5 @@
 const BAL = {
-  rich_soil: { mult: 3 },
+  rich_soil: { mult: 6 },   // r767 (owner): was 3
   court_of_leaves: { pips: 3 },
   low_tide: { pips: 6 },
   first_light: { worth: 42 },
@@ -80,7 +80,7 @@ const BAL = {
   flow_state: { pips_per_card: 15 },
   hyper_focus: { focus_mult: 2 },
   club_double: { base: 1 },
-  night_owl: { mult_per_card: 10 },
+  night_owl: { mult_per_card: 16 },   // r767 (owner): was 10
   wildfire: { focus: 5 },
   frozen_moment: { focus: 10 },
   swift: { mult_per_interval: 6, interval_seconds: 10 },   // r624: improvements alternate +2 mult / -2s (IMPROVE_PLAN)
@@ -124,7 +124,7 @@ const BAL = {
   even_score: { pips_per_card: 16 },
   odd_squad: { mult_per_card: 7 },
   long_road: { mult_per_card: 10 },
-  still_water: { mult_per_interval: 10, interval_seconds: 5 },
+  still_water: { mult_per_interval: 15, interval_seconds: 5 },   // r767 (owner): was 10
   wild_heart: { primes: 1, extra_ranks: 0 },   // r625: primes per Ace; extra ranks are rolled on the Trick when improved
   same_kind: { mult_per_match: 2 },
   column_rush: { mult_per_card: 5 },
@@ -134,7 +134,7 @@ const BAL = {
   overtime:      { seconds_per_3: 1 },
   shift_change:  { consolation_credits: 15 },   // Shift Change event, when you hold under 2 Tricks
   feng_shui:     { pips_per_hand: 3 },
-  five_stack:    { pips: 20, mult: 5, focus_per_card: 1 },
+  five_stack:    { pips: 15, mult: 20, focus_per_card: 1 },   // r767 (owner): was 20 / 5
   little_guys:   { cap_gain: 1, cap: 15 },
   five_fodder:   { credits_per_card: 1 },   // r623: any valid hand discarded pays its size in credits
   five_second:   { pause_seconds: 5 },
@@ -181,7 +181,7 @@ const BAL = {
   royal_trio: { mult_mult: 2 },
   prime_time: { pips_per_card: 29 },
   shape_square: { focus: 16, mult: 24 },
-  shape_line: { buffs: 0, span6: 0 },         // r625: buffs = count buffed pips; span6 = 6 rows + columns in all count as a line
+  shape_line: { buffs: 1, span6: 0 },   // r767 (owner): buffed pips count from v1         // r625: buffs = count buffed pips; span6 = 6 rows + columns in all count as a line
   perfect_timing: { chance2: 0, extra_line: 0 },   // r625: a second replay chance; a second marked line at the 5th
   kaleidoscope: { extra: 0 },                 // r625: applications past the suit count
   marathon: { extra: 1, flush: 0, sets: 0 },  // r625: extra applications on runs; flush / sets extend them
@@ -325,6 +325,7 @@ const BAL = {
   replay_rewind: { chance: 0.25, seconds: 2 },
   deja_vu: { seconds: 15 },
   clockmaker: { goal_fraction: 0.30, seconds: 15 },
+  free_range_t: { swaps: 2 },   // r767 (owner): sets the round's swap stock
   time_bank: { seconds: 30 },
   inheritance: { coins: 5 },
   lucky_seven: { interval_hands: 7, swaps: 1 },
@@ -551,7 +552,7 @@ const DESC_TEMPLATES = {
   double_jeopardy: '{cells} cells are secretly marked at round start; the first time you score from those cells, pause the clock for {pause_seconds}s[[prime_random: and prime a random Trick]]',
   rain_check: 'Skipping a reward: the next round starts with +{seconds}s (in Flow, rewind the clock {seconds}s)',
   temporal_rift: 'A card scored where a row and column effect intersect force triggers the Trick in position 3[[chance_extra:, with a {chance_extra_pct}% chance of a second trigger]]',
-  vulture: 'Cards discarded during the round’s first pause permanently gain a {pause_seconds}s pause (cannot stack from a single source)',
+  vulture: 'Cards discarded during a round’s first pause permanently gain a {pause_seconds}s pause (cannot stack from this source)',
   wait_four_it: '4-card hands permanently buff their 4th card: it pauses the clock for {pause}s when scored (time buffs do not stack)',
   sundial: 'Hands where every card shares a column pause the clock for {seconds}s.',
   metronome: 'Each round a hand type you can make is chosen; playing that hand type pauses the clock for {seconds}s.',
@@ -561,6 +562,8 @@ const DESC_TEMPLATES = {
   ninesong: "If the hand's pip total is divisible by 3, one of the following happens: rewind the clock {seconds}s, +{mult} mult, +{focus} Focus, or all three",
   deja_vu: 'Playing the same ranks in two hands in a row rewinds the clock {seconds}s.',
   clockmaker: 'Any time a single hand scores at least 30% of the round goal, rewind the clock {seconds}s.',
+  free_range_t: 'Can swap any two non-adjacent cards, but sets your swap stock to {swaps} each round.',
+  mockingbird: 'Every 4 hands you play without a same-type streak grants +1 swap and +1 discard',
   piggy_bank: 'Double-tap: gain {coins} credits, once per round. Becomes inert on use: it can no longer be swapped or discarded. (5 charges)',
   steady_hand: 'Swaps no longer count against the swap limit, but cost {swap_mult}x the time.',
   hoarder: 'Discards no longer count against the discard limit, but cost {discard_mult}x the time.',
@@ -571,7 +574,7 @@ const DESC_TEMPLATES = {
   second_hand: 'Every time the clock passes a multiple of 10s, your next hand scores either +{mult} mult or +{pips} pips',
   sediment: 'Scores +{pips_per_interval} pips for every {interval_seconds} seconds elapsed this round',
   rising_tide: 'Each level you pass while holding this adds +{mult_min} to +{mult_max} mult to it',
-  middle_man: 'Each time you gain or [[anywhere<1:lose credits during a round]][[anywhere:spend credits, anywhere]], this gains +{mult_per} mult',
+  middle_man: 'Each time you gain or [[anywhere<1:lose credits during play]][[anywhere:spend credits, anywhere]], this gains +{mult_per} mult',
   ready_set_go: 'A 3-card hand containing a 3, 6 or 9 scores +{mult} mult',
   minute_hand: 'Every time the clock passes a multiple of {interval_seconds}s, your next hand scores ×{mult_mult} mult',
   // r623: the common Tricks the owner's sheet renumbered, so an improvement prints its number

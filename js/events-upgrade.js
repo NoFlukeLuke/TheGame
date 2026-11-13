@@ -301,9 +301,8 @@ function spinDrawWheel(picks, winner, done) {
   const strip = picks.map(e => ({ key: e.id, html: `<div class="sl-draw"><div class="sl-ent">${entityTileHTML({ entity: e.kind, id: e.id, emoji: e.emoji, label: e.name }, e.rarity || 'common', { tip: false })}</div><span class="sl-draw-name">${e.name}</span></div>` }));
   const m = evSlotMachine(body, { reels: [strip], payRow: 1, itemW: 190, itemH: 64 });
   m.el.classList.add('evt-slot-draw');
-  m.spin([picks.indexOf(winner)]).then(() => {
-    m.flash([[1, 0]]);
-    if (typeof sfxCoin === 'function') try { sfxCoin(); } catch (e) {}
+  // r764: a longer spin than the slot events, then the winner is lit and held a beat.
+  m.spin([picks.indexOf(winner)], { len: 1.6 }).then(() => m.celebrate([[[1, 0]]])).then(() => {
     body.appendChild(evNote(`<b>${winner.name}</b> improved twice.`));
     done();
   });

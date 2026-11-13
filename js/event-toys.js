@@ -194,36 +194,59 @@ function evDie(faces, parent, label) {
 // (offset() is -1..1; evPlinkoRoll leans the odds that way, a little). The flight
 // itself is plinkoRoute / plinkoPlay (r742).
 const PLINKO_SLIDE = 20, PLINKO_LEAN = 0.12;
+// r764 (owner): everything bigger. The board is as wide as the event body allows up
+// to PLINKO_MAX_W, and every size (rows, pegs, ball, slide) scales with it (plS).
+const PLINKO_MAX_W = 380;
+let plS = 1;
 function evPlinko(bins, parent) {
   const host = _etHost('evt-plinko-host', parent);
-  const R = bins.length - 1, W = 300, binW = W / (R + 1), rowH = 26, top = 30;
-  const H = top + (R + 1) * rowH + 8;
-  let pegs = '';
-  for (let k = 0; k < R; k++)
-    for (let j = 0; j <= k; j++) {
-      const x = W / 2 + (j - k / 2) * binW, y = top + (k + 1) * rowH - 6;
-      pegs += `<i class="evt-peg" style="left:${x}px;top:${y}px"></i>`;
-    }
-  host.innerHTML = `<div class="evt-drop-hint">Slide the ball, then drop it</div><div class="evt-plinko" style="width:${W}px;height:${H + 34}px">${pegs}
-      <div class="evt-drop-track" style="left:${W / 2 - PLINKO_SLIDE}px;width:${PLINKO_SLIDE * 2}px"></div>
-      <div class="evt-ball evt-ball-drag" style="left:${W / 2}px;top:6px"></div>
+  const bodyEl = document.getElementById('event-body');
+  const R = bins.length - 1;
+  let W, binW, rowH, top, H, SL, board, ball, off = 0, armed = true;
+  // Lay the board out at width w. The event body can still be hidden when the
+  // board is built (width 0); then it is laid out again at the real width on the
+  // next frames, before the ball can be dropped.
+  const roomNow = () => Math.max((parent && parent.clientWidth) || 0, (bodyEl && bodyEl.clientWidth) || 0) - 12;
+  const layout = w => {
+    W = Math.max(300, Math.min(PLINKO_MAX_W, w)); plS = W / 300;
+    host.style.setProperty('--pl-s', plS.toFixed(3));
+    binW = W / (R + 1); rowH = 26 * plS; top = 30 * plS; SL = PLINKO_SLIDE * plS;
+    H = top + (R + 1) * rowH + 8;
+    let pegs = '';
+    for (let k = 0; k < R; k++)
+      for (let j = 0; j <= k; j++) {
+        const x = W / 2 + (j - k / 2) * binW, y = top + (k + 1) * rowH - 6 * plS;
+        pegs += `<i class="evt-peg" style="left:${x}px;top:${y}px"></i>`;
+      }
+    host.innerHTML = `<div class="evt-drop-hint">Slide the ball, then drop it</div><div class="evt-plinko" style="width:${W}px;height:${H + 34 * plS}px">${pegs}
+      <div class="evt-drop-track" style="left:${W / 2 - SL}px;width:${SL * 2}px"></div>
+      <div class="evt-ball evt-ball-drag" style="left:${W / 2 + off * SL}px;top:6px"></div>
       <div class="evt-bins" style="top:${H}px">${bins.map((b, i) =>
         `<div class="evt-bin ${b.cls || ''}" style="width:${binW}px" data-i="${i}">${b.label}</div>`).join('')}</div></div>`;
-  const board = host.querySelector('.evt-plinko'), ball = host.querySelector('.evt-ball');
-  let off = 0, armed = true;
-  // Drag the ball along its track; the board is in stage px, the pointer in viewport px.
-  ball.addEventListener('pointerdown', e => {
-    if (!armed) return;
-    e.preventDefault();
-    const z = board.getBoundingClientRect().width / (board.offsetWidth || 1) || 1;
-    const x0 = e.clientX, o0 = off;
-    const move = ev => {
-      off = Math.max(-1, Math.min(1, o0 + (ev.clientX - x0) / z / PLINKO_SLIDE));
-      ball.style.left = (W / 2 + off * PLINKO_SLIDE) + 'px';
-    };
-    const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); };
-    window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
-  });
+    board = host.querySelector('.evt-plinko'); ball = host.querySelector('.evt-ball');
+    // Drag the ball along its track; the board is in stage px, the pointer in viewport px.
+    ball.addEventListener('pointerdown', e => {
+      if (!armed) return;
+      e.preventDefault();
+      const z = board.getBoundingClientRect().width / (board.offsetWidth || 1) || 1;
+      const x0 = e.clientX, o0 = off;
+      const move = ev => {
+        off = Math.max(-1, Math.min(1, o0 + (ev.clientX - x0) / z / SL));
+        ball.style.left = (W / 2 + off * SL) + 'px';
+      };
+      const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); };
+      window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
+    });
+  };
+  layout(roomNow() > 0 ? roomNow() : 300);
+  let tries = 0;
+  const refit = () => {
+    if (!armed || !host.isConnected) return;
+    const r = roomNow();
+    if (r > 0) { if (Math.abs(Math.min(PLINKO_MAX_W, Math.max(300, r)) - W) > 1) layout(r); return; }
+    if (++tries < 30) requestAnimationFrame(refit);
+  };
+  requestAnimationFrame(refit);
   return {
     el: host,
     offset: () => off,
@@ -239,7 +262,7 @@ function evPlinko(bins, parent) {
         _etSfx('sfxRewardReveal');
         return binIndex;
       };
-      const place = (x, y) => { ball.style.left = x + 'px'; ball.style.top = (y - PL_BR) + 'px'; };
+      const place = (x, y) => { ball.style.left = x + 'px'; ball.style.top = (y - PL_BR * plS) + 'px'; };
       if (_etFast()) { const e = route.end; place(e.x, e.y); ball.style.transform = ''; return Promise.resolve(done()); }
       return plinkoPlay(route, place, ball).then(done);
     },
@@ -253,7 +276,8 @@ function evPlinko(bins, parent) {
 // plinks (louder when it hits harder, higher down the board). In the bin it
 // rattles off the floor and the walls until it settles. The path still lands on
 // the bin the roll chose; the physics only shape the trip.
-const PL_G = 0.0016;              // gravity, px per ms^2 (a hop between rows ~0.3s)
+const PL_G = 0.0016;              // gravity, px per ms^2 at plS 1 (a hop between rows ~0.3s);
+                                  // r764: x plS / 1.1, so a bigger board drops only a touch slower
 const PL_BR = 7, PL_PR = 3;       // ball and peg radius, px (css/event-toys.css)
 const PL_E = [0.40, 0.56];        // a peg's bounce: share of the strike speed kept
 const PL_FLOOR_E = 0.42, PL_FLOOR_F = 0.55; // the bin floor's bounce, and sideways speed kept
@@ -264,7 +288,8 @@ function plinkoRoute(R, W, binW, rowH, top, H, binIndex, off, pegEl) {
   const rnd = (a, b) => a + (b - a) * _etRnd();
   const steps = Array.from({ length: R }, (_, i) => i < binIndex);
   for (let i = steps.length - 1; i > 0; i--) { const j = Math.floor(_etRnd() * (i + 1)); [steps[i], steps[j]] = [steps[j], steps[i]]; }
-  const x0 = W / 2 + off * PLINKO_SLIDE, y0 = 6 + PL_BR, lean = x0 - W / 2, CD = PL_BR + PL_PR;
+  const S = plS, G = PL_G * S / 1.1, BR = PL_BR * S, CD = (PL_BR + PL_PR) * S;
+  const x0 = W / 2 + off * PLINKO_SLIDE * S, y0 = 6 + BR, lean = x0 - W / 2;
   // The first strike goes the way the ball was slid: put a step that way first.
   if (Math.abs(lean) > 1.5 && steps[0] !== (lean > 0)) {
     const i = steps.findIndex(r => r === (lean > 0));
@@ -272,44 +297,53 @@ function plinkoRoute(R, W, binW, rowH, top, H, binIndex, off, pegEl) {
   }
   // Slid well off the top peg, the ball misses it and falls onto the next row.
   const skip = R > 1 && Math.abs(lean) > CD * 0.7 && steps[0] === (lean > 0);
+  // r764 (owner: "the direction the ball goes makes more sense"). The side a peg is
+  // struck on is the side the ball leaves by, and how far round the shoulder
+  // follows from where the ball comes from: carrying on the way it was going it
+  // clips the peg just past the top (a glance); turning back it meets the
+  // shoulder facing it, further round (a real knock), so it never passes over
+  // a peg to strike its far side.
   const contacts = [];
-  let j = 0;
+  let j = 0, dir = 0;
   for (let k = 0; k < R; k++) {
     const side = steps[k] ? 1 : -1;
     if (!(skip && k === 0)) {
-      const px = W / 2 + (j - k / 2) * binW, py = top + (k + 1) * rowH - 6;
-      // A straight fall hits where it falls; a hop hits a random point on the shoulder.
-      const s = contacts.length ? rnd(1.5, 4) : Math.max(1, Math.min(7, side * (x0 - px)));
-      const dy = Math.sqrt(CD * CD - s * s);
-      contacts.push({ x: px + side * s, y: py - dy, peg: pegEl(k, j), nx: side * s / CD, ny: -dy / CD, k });
+      const px = W / 2 + (j - k / 2) * binW, py = top + (k + 1) * rowH - 6 * S;
+      const s = !contacts.length ? Math.max(1, Math.min(7 * S, side * (x0 - px)))
+        : (dir === side ? rnd(0.6, 2.2) : rnd(3, 6.5)) * S;
+      const dy = Math.sqrt(Math.max(1, CD * CD - s * s));
+      contacts.push({ x: px + side * s, y: py - dy, peg: pegEl(k, j), nx: side * s / CD, ny: -dy / CD, k, turn: dir && dir !== side });
     }
+    dir = side;
     if (steps[k]) j++;
   }
   const segs = [];
   let px = x0, py = y0, up = 0, vyIn = 0;
   const fly = (to, extra) => {
-    const t = (up + Math.sqrt(up * up + 2 * PL_G * (to.y - py))) / PL_G;
-    const seg = { x: px, y: py, vx: (to.x - px) / t, vy: -up, ms: t, ...extra };
+    const t = (up + Math.sqrt(up * up + 2 * G * (to.y - py))) / G;
+    const seg = { x: px, y: py, vx: (to.x - px) / t, vy: -up, ms: t, g: G, ...extra };
     segs.push(seg);
-    vyIn = -up + PL_G * t; px = to.x; py = to.y;
+    vyIn = -up + G * t; px = to.x; py = to.y;
     return seg;
   };
-  const vMax = Math.sqrt(2 * PL_G * rowH * 2.2);
+  const vMax = Math.sqrt(2 * G * rowH * 2.2);
   contacts.forEach(c => {
     fly(c, { peg: c.peg, nx: c.nx, ny: c.ny, k: c.k });
     segs[segs.length - 1].hit = Math.min(1, vyIn / vMax);
-    up = vyIn * rnd(PL_E[0], PL_E[1]);
+    // The rebound comes off the surface: a knock on the shoulder throws the ball up
+    // less than a glance near the top (the normal's upward share), within PL_E.
+    up = vyIn * rnd(PL_E[0], PL_E[1]) * (c.turn ? 0.85 + 0.15 * -c.ny : 1);
   });
   // Into the bin, then rattle on the floor and off the walls until it rests.
-  const bx = W / 2 + (binIndex - R / 2) * binW, fy = H + 8 + PL_BR;
-  const lo = bx - binW / 2 + PL_BR + 1, hi = bx + binW / 2 - PL_BR - 1;
+  const bx = W / 2 + (binIndex - R / 2) * binW, fy = H + 8 + BR;
+  const lo = bx - binW / 2 + BR + 1, hi = bx + binW / 2 - BR - 1;
   const inSeg = fly({ x: bx + rnd(-2, 2), y: fy }, { floor: true, k: R });
   inSeg.hit = Math.min(1, vyIn / vMax);
   let vx = inSeg.vx * PL_FLOOR_F;
   up = vyIn * PL_FLOOR_E;
-  while (up * up / (2 * PL_G) > 0.4) {
-    const t = 2 * up / PL_G;
-    const seg = { x: px, y: py, vx, vy: -up, ms: t, lo, hi, floor: true, hit: Math.min(1, up / vMax), k: R };
+  while (up * up / (2 * G) > 0.4) {
+    const t = 2 * up / G;
+    const seg = { x: px, y: py, vx, vy: -up, ms: t, g: G, lo, hi, floor: true, hit: Math.min(1, up / vMax), k: R };
     segs.push(seg);
     const e = plinkoFold(px + vx * t, lo, hi);
     px = e.x; if (e.flip) vx = -vx;
@@ -339,7 +373,7 @@ function plinkoPlay(route, place, ball) {
       const s = segs[i], t = now - t0;
       let x = s.x + s.vx * t;
       if (s.lo != null) x = plinkoFold(x, s.lo, s.hi).x;
-      place(x, s.y + s.vy * t + 0.5 * PL_G * t * t);
+      place(x, s.y + s.vy * t + 0.5 * (s.g || PL_G) * t * t);
       if (sq) {
         const a = sq.a * Math.exp(-(now - sq.at) / PL_SQUASH_MS);
         if (a < 0.01) { sq = null; ball.style.transform = ''; }

@@ -167,7 +167,7 @@ const IMPROVE_PLAN = {
   // +8 mult, +4 Focus, alternating; the 5th does both
   shape_square:     t => ({ mult: 24 + 8 * [0, 1, 1, 2, 2, 3][t], focus: 16 + 4 * [0, 0, 1, 1, 2, 3][t] }),
   // improves only twice: the first jumps to tier 3 (buffed pips count), the second to tier 5 (6 rows + columns count)
-  shape_line:       t => ({ buffs: t >= 3 ? 1 : 0, span6: t >= 5 ? 1 : 0 }),
+  shape_line:       t => ({ buffs: 1, span6: t >= 1 ? 1 : 0 }),   // r767 (owner): buffs count from v1; the one improvement is the 6-line shape
   // +4 Focus, +4 credits, alternating; the 5th does both
   clean_sweep:      t => ({ focus: 8 + 4 * [0, 1, 1, 2, 2, 3][t], credits: 4 + 4 * [0, 0, 1, 1, 2, 3][t] }),
   // +2 mult per 9 and 3 more 9s a tier (the 9s land through IMPROVE_HOOKS); the 5th stops it deleting itself
@@ -278,7 +278,7 @@ const IMPROVE_PLAN = {
 // the owned Trick, cards into the deck. Run by improveEntity after the tiers are
 // applied, with the tier just reached. The owned Trick object (if any) is passed.
 const IMPROVE_HOOKS = {
-  shape_line: (tier, t) => { if (tier === 1 || tier === 2) return 3; if (tier === 4) return 5; },   // two improvements: 3, then 5
+  shape_line: tier => (tier >= 1 && tier < 5) ? 5 : undefined,   // r767: one improvement, straight to v6 (buffs count from the start)
   undue_influence: tier => (tier >= 1 && tier < 5) ? 5 : undefined,
   nines_mult: () => { if (typeof cloudNineAddNines === 'function') cloudNineAddNines(3); },
   to_the_clouds: () => { if (typeof cloudNineAddNines === 'function') cloudNineAddNines(3); },
@@ -741,3 +741,12 @@ function improveDeltaFor(id) {
 // already run applyBalDescriptions() by the time this file loads, so what is
 // captured here is the real base wording for both templated and typed entities.
 captureDescBase();
+
+// r767: a Trick's display name by id: the owned copy (so a v6 name shows), else the pool row.
+// Notices and preview labels read this, never a typed name, so a rename lands everywhere.
+function trickNameOf(id) {
+  const o = ownedTrickObj(id);
+  if (o && o.name) return o.name;
+  const p = (typeof TRICK_POOL_ALL !== 'undefined') && TRICK_POOL_ALL.find(t => t.id === id);
+  return p ? p.name : id;
+}

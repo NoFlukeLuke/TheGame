@@ -170,7 +170,6 @@ const TRICK_UNLOCKS = {
   wild_heart:         { s: 'rank:A', n: 140, unique: 1 },
   royal_trio:         { s: 'faces', n: 400, unique: 1 },
   frozen_moment:      { s: 'pausedhands', n: 8, unique: 1 },
-  vulture:            { s: 'pausediscards', n: 12, unique: 1 },
   patient_rulers:     { s: 'timedrounds', n: 15, unique: 1 },
   monochrome:         { s: 'redhands', n: 25, unique: 1 },
   rowcol_perm_double: { s: 'crosscards', n: 15, unique: 1 },

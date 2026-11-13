@@ -25,7 +25,7 @@
 const LINE_FX_META = {
   rowcol_triple_pips: { color: '#3a6fca', glyph: '◆', name: 'Right Place' },
   rowcol_mult:        { color: '#c0392b', glyph: '✕', name: 'Power Line' },
-  rowcol_retrigger:   { color: '#e0ddd0', glyph: '↻', name: 'Echo Location' },
+  rowcol_retrigger:   { color: '#e0ddd0', glyph: '↻', name: 'Second Opinion' },
   perfect_timing:     { color: '#d9a129', glyph: '↻', name: 'Perfect Timing' },
   right_time:         { color: '#5aa9e6', glyph: '⏸', name: 'Right Time' },
   study_hall:         { color: '#8a5cf0', glyph: '◉', name: 'Study Hall' },
@@ -37,7 +37,7 @@ const LINE_FX_META = {
   line_xpips:         { color: '#f2c94c', glyph: '×', name: 'Live Wire' },
   line_xmult:         { color: '#ff6a52', glyph: '×', name: 'High Voltage' },
   obligatory:         { color: '#7fd6c2', glyph: '!', name: 'Obligatory' },
-  suggestive:         { color: '#cf8cff', glyph: '+', name: 'Suggestive' },
+  suggestive:         { color: '#cf8cff', glyph: '+', name: '根回し' },
   coin_sword:         { color: '#d4a017', glyph: '¢', name: 'Coin and the Sword' },
   // r651: the fused line Tricks (red, like their discs)
   right_place_time:   { color: '#ff3b3b', glyph: '◆', name: 'Right Place & Time' },
@@ -60,7 +60,7 @@ const CARD_MARK_META = {
     covers: (r, c) => typeof hallmarkCardId !== 'undefined' && hallmarkCardId
                       && gridData[r]?.[c] && gridData[r][c].rank
                       && cardId(gridData[r][c]) === hallmarkCardId },
-  rowcol_perm_double: { color: '#f0c040', glyph: '\u2726', name: 'Ley Line',
+  rowcol_perm_double: { color: '#f0c040', glyph: '\u2726', name: 'Matrix Management',
     covers: (r, c) => hasTrick('rowcol_perm_double') && isEffectIntersection(r, c) },
   temporal_rift:      { color: '#7ec8e3', glyph: '\u23f8', name: 'Temporal Rift',
     covers: (r, c) => hasTrick('temporal_rift') && isEffectIntersection(r, c) },
@@ -69,7 +69,7 @@ const CARD_MARK_META = {
   // Heartwood's cell is Math.floor(rows/2) x Math.floor(cols/2) - the same
   // expression play-hand.js uses, so the mark can never point at a different
   // cell from the one that actually gets the buff.
-  heartwood:          { color: '#b8823a', glyph: '\u2764', name: 'Heartwood',
+  heartwood:          { color: '#b8823a', glyph: '\u2764', name: 'UVP',
     covers: (r, c) => hasTrick('heartwood')
                       && r === Math.floor(gridRows / 2) && c === Math.floor(gridCols / 2) },
 };

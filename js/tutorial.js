@@ -187,7 +187,7 @@ let tutorialRaf      = null;
 let tutorialEls      = null;  // { layer, dim, rings, bubble, arrow, step, title, body, btns }
 let _tutShown        = false; // is the current step's bubble on screen (past its `when`)?
 let _tutWaitFrom     = 0;     // when the current step started waiting on `when`
-let _tutClockHeld    = false; // this file's claim on gameTimerPaused
+let _tutClockHeld    = false; // this step holds the clock (js/read-hold.js owns the claim)
 let tutorialTeachCells = null;  // the hand the board step points at, [[r,c],…]
 let tutorialRewardPlan = null;  // { trick:[r,c], debuff:[r,c], dest:[r,c] } for the scripted grid
 let _tutLastHoles      = [];    // last non-empty hole set, held across re-render gaps
@@ -299,7 +299,8 @@ function tutSelMin() { try { return handMinSelection(); } catch (e) { return 1; 
 //             card) or 'float' (no dim at all, bubble parked in a corner)
 // corner:     'left' (default) | 'right' - which corner a float step parks in
 // gate:       block every click outside the holes (forces the taught action)
-// hold:       freeze the round clock while this step is up (read-only steps)
+// hold:       freeze the round clock while this step is read, whatever its size
+//             (r769: timed, js/read-hold.js; a step over the board holds anyway)
 // noAutoPlay: suppress the 2s auto-submit so the player presses PLAY themselves
 // next:       show a CONTINUE button;  actions: custom buttons instead
 // when:       predicate - hold the step back until true (whenTimeoutMs escape)
@@ -913,10 +914,14 @@ function tutorialBuildLayer() {
 // Freeze/unfreeze the round clock. Wrapped so the tutorial only ever RELEASES a
 // pause it took itself - the reward grid and the Shop own gameTimerPaused during
 // their own steps and must not be un-paused from under them.
+// r769: the hold is TIMED (js/read-hold.js): the step's words at a slow reading
+// pace, then a 5 4 3 2 1 on the bubble, then the clock goes again. Every step
+// that covers the board holds; a `hold` step holds whatever its size.
 function tutorialHoldClock(on) {
-  if (on === _tutClockHeld) return;
-  _tutClockHeld = on;
-  gameTimerPaused = on;
+  if (!on) { readHoldEnd('tut'); _tutClockHeld = false; return; }
+  const st = tutorialScript()[tutorialStepIdx], E = tutorialEls;
+  if (!st || !E) return;
+  _tutClockHeld = readHoldBegin('tut', E.bubble, `${E.title.textContent} ${E.body.textContent}`, { force: !!st.hold });
 }
 
 function tutorialStart() {
@@ -960,9 +965,9 @@ function tutorialShowStep() {
   });
   E.layer.classList.toggle('gated', !!st.gate);
   E.layer.classList.add('show');
-  if (st.hold) tutorialHoldClock(true);
   if (st.onEnter) { try { st.onEnter(); } catch (e) { console.error('[TUT] onEnter', e); } }
   tutorialPosition();
+  tutorialHoldClock(true);   // after placing, so "does it cover the board" reads where it is
 }
 
 // Per-frame: run the state machine and keep the holes glued to their anchors.

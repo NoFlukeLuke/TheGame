@@ -60,7 +60,7 @@ function crChanceMult() {
 function crDialFlip() {
   challengeDial = challengeDial < 0 ? 1 : -1;
   const pct = (BAL.challenge_dial && BAL.challenge_dial.pct) || 25;
-  if (typeof showMessage === 'function') showMessage(challengeDial > 0 ? `Challenge Dial: ${pct}% more challenges` : `Challenge Dial: ${pct}% fewer challenges`, 'var(--gold)');
+  if (typeof showMessage === 'function') showMessage(challengeDial > 0 ? `${knackName('challenge_dial')}: ${pct}% more challenges` : `${knackName('challenge_dial')}: ${pct}% fewer challenges`, 'var(--gold)');
 }
 // Does this mode deal challenge cards at all (Flow's level cards, the node modes'
 // spot cards and challenge rounds)? The dial is a dead pick anywhere else.

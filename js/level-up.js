@@ -22,7 +22,7 @@ function computeRoundResources() {
   // the number the Limits screen prints. Discards used to seed from a hardcoded 4 against
   // a limit base of 3, which handed out one discard more than the limit every round.
   const baseDiscards = limits.discards.base + limitDiscardBonus + (hasKnack('extra_discards') ? BAL.extra_discards.discards + knackBossGrowth.extra_discards : 0);
-  const baseSwaps    = (limits.swaps.base - (hasKnack('free_range_t') ? 1 : 0)) + limitSwapBonus + (hasKnack('extra_swaps') ? BAL.extra_swaps.swaps + knackBossGrowth.extra_swaps : 0);
+  const baseSwaps    = limits.swaps.base + limitSwapBonus + (hasKnack('extra_swaps') ? BAL.extra_swaps.swaps + knackBossGrowth.extra_swaps : 0);
   // Round-time cap = full duration minus permanent penalties, plus any limit-break trick.
   const baseSeconds  = startingTimeSeconds();
 
@@ -38,6 +38,8 @@ function computeRoundResources() {
   // Swap Shop / Harvest are already in baseSwaps / baseDiscards above. They were
   // also added here until r525, so each paid twice what it said (+4, not +2).
   if (hasKnack('time_bank'))      sec += BAL.time_bank.seconds;
+  // r767 (owner): Free Range (Jeitinho) SETS the round's swap stock (was base swaps - 1).
+  if (hasKnack('free_range_t'))   s = BAL.free_range_t.swaps;
 
   // NOTE: Tempo is NOT special-cased here. It sets limits.swaps/discards.current to 2 once
   // (applyTempoLimitOnce), so the normal computation above already reflects it via the
@@ -62,7 +64,7 @@ function triggerLevelUp() {
   goalReachedThisRound = false;
   roundEnded = false;
   // Growth Spurt: if the player reached max Focus at all this round, bank a random limit now.
-  if (hasKnack('growth_spurt') && growthSpurtMaxedThisRound) grantRandomLimit('🌱 Growth Spurt');
+  if (hasKnack('growth_spurt') && growthSpurtMaxedThisRound) grantRandomLimit('🌱 ' + knackName('growth_spurt'));
   growthSpurtMaxedThisRound = false;
 
   // Apply any pending grid-size changes for the new round, then resize cards.
