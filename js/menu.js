@@ -1,4 +1,4 @@
-const BUILD = "2026-11-13 · r775 · slots scan every line, 3+ lines x2, 5+ x5; repulls 15 up; 4 wins and out; Past Capacity";
+const BUILD = "2026-11-13 · r776 · Past Capacity is a protocol of Flow and the Schedule";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
@@ -188,30 +188,6 @@ const MODES = {
     scoringModel: 'classic',
     clock: 'stacked'
   },
-  // PAST CAPACITY (r775, owner): Classic on an overfull deck. No wilds; 8 Crowns
-  // (J J J Q Q Q K K) and 13 Crescents (A to K) on top of the 52, and Short Suit
-  // from the start (Flush of 3 and Flush of 4). Crowns and Crescents keep their
-  // suit rules (js/suit-packs.js). Everything else is Classic's.
-  capacity: {
-    id: 'capacity',
-    name: 'Past Capacity',
-    desc: 'Classic on an overfull deck: no wilds, 8 Crowns and 13 Crescents on top of the 52, and Short Suit from the start.',
-    winCondition: 'boss_defeat',
-    enableBosses: true,
-    enableShops: true,
-    enableEvents: true,
-    autoRefillGrid: true,
-    timeIsCurrency: true,
-    autoPlayHands: false,
-    actStructure: true,
-    challengeNode: 3,
-    suitCount: 4,
-    wilds: 0,
-    noWalkthrough: true,
-    extraCards: [['J', '♛'], ['J', '♛'], ['J', '♛'], ['Q', '♛'], ['Q', '♛'], ['Q', '♛'], ['K', '♛'], ['K', '♛'],
-                 ...['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'].map(r => [r, '☾'])],
-    startKnacks: ['short_suit']
-  },
   squares: {
     id: 'squares',
     name: 'Poker Squares',
@@ -359,8 +335,6 @@ const MODE_META = {
               blurb: 'Four suits, values 1 to 13, no face cards. Every card that scores goes up one rank, up to 15. A 15 that scores pays +75 pips, then goes back to the rank it started at. Otherwise plays like Classic.' },
   stacks:   { accent: '#e0b07a',        suits: '5 × 5 · IN STACKS',
               blurb: 'The whole deck dealt onto the board in stacks. Nothing falls: when a card is played the one beneath it comes up. Hover a stack to see what is under it, tap a card there to bring it up. Swaps move whole stacks. Hand size 5, four swaps, four discards, no Focus. With or without a clock.' },
-  capacity: { accent: '#d9a84a',        suits: '♠ ♥ ♦ ♣ ♛ ☾',
-              blurb: 'Classic on an overfull deck: 73 cards. No wilds. Eight Crowns (three Jacks, three Queens, two Kings) and thirteen Crescents (Ace to King) on top of the 52. You start with Short Suit, so Flush of 3 and Flush of 4 score.' },
   squares:  { accent: '#7fb2ff',        suits: '5 × 5 · 10 LINES',
               blurb: 'Poker Squares. Three cards at a time, placed one by one on a 5x5 board, with a trick pick between every other deal. The best hand of 3+ cards in every row and column pays, once mid-grid and once at the end, times your Focus. Two grids, five minutes each, one score. The 3x3 and 4x4 are quick daily puzzles.' },
   match3:   { accent: '#ff7ad0',         suits: '5 × 5',

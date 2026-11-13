@@ -12,6 +12,7 @@
 //   dexterous  Sleights are playing cards (js/dexterous.js reads `dexterous`)
 //   precision  no rush: a flat, weaker speed bonus, bigger hands make Focus,
 //              smaller ones lose it, more stock, a wider board, longer clocks
+//   capacity   Past Capacity (r776): 73 cards, Crowns and Crescents, no wilds, Short Suit
 //
 // DIFFICULTY IS PER PROTOCOL, shared by Flow and the Schedule (owner: a win on
 // either counts for both). difficultyModeId maps a Flow or Schedule run to its
@@ -33,10 +34,19 @@ const PROTOCOLS = [
     say: { flow: () => limitlessSay('flow'), map: () => limitlessSay('map') } },
   { id: 'hyperfocus', name: 'Hyperfocus', accent: '#cf8cff', flag: 'hyperfocus', short: 'Focus you make is doubled. It fades 3x as fast.',
     say: { any: () => `Every Focus you make is doubled. Focus fades ${HYPERFOCUS.decay} times as fast. Focus limits are the usual ones.` } },
+  // r776 (owner): Past Capacity, an overfull deck. Open from the start (`open`: not in
+  // the unlock chain). `mode` is laid over the base mode: no wilds, the extra cards
+  // (modeExtraCards, js/data/cards.js) and Short Suit at the start (startKnacks).
+  { id: 'capacity', name: 'Past Capacity', accent: '#d9a84a', flag: 'capacity', open: true, short: 'An overfull deck: Crowns and Crescents, no wilds.',
+    say: { any: 'No wild cards. Eight Crowns (three Jacks, three Queens, two Kings) and thirteen Crescents (Ace to King) on top of the 52: 73 cards. Start with Short Suit, so Flush of 3 and Flush of 4 score.' },
+    mode: { wilds: 0, startKnacks: ['short_suit'],
+      extraCards: [['J', '♛'], ['J', '♛'], ['J', '♛'], ['Q', '♛'], ['Q', '♛'], ['Q', '♛'], ['K', '♛'], ['K', '♛'],
+        ...['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'].map(r => [r, '☾'])] } },
 ];
 // r749 (owner): each protocol opens with a won run of the one before it, in this
-// order. A win in Flow or the Schedule counts for both (protoWon).
-const PROTOCOL_ORDER = PROTOCOLS.map(p => p.id);
+// order. A win in Flow or the Schedule counts for both (protoWon). An `open`
+// protocol is outside the chain: unlocked from the start.
+const PROTOCOL_ORDER = PROTOCOLS.filter(p => !p.open).map(p => p.id);
 function protocolDef(id) { return PROTOCOLS.find(p => p.id === id) || PROTOCOLS[0]; }
 function protocolSay(id, base) {
   const s = protocolDef(id).say; const v = s[base] || s.any || '';
@@ -54,6 +64,7 @@ function protocolMode(baseId, protoId) {
   if (p.id === 'standard') return base;
   const m = { ...base, protocol: p.id, name: `${base.name} · ${p.name}`, noWalkthrough: true };
   if (p.flag) m[p.flag] = true;
+  if (p.mode) Object.assign(m, p.mode);
   return m;
 }
 

@@ -4994,7 +4994,7 @@ every run; no timeline drift, no page errors. Golden: 834 cases match.
 - **Card Slots**: a Flush of 3 counts only with the Short Suit knack (`floorFlushOn`); no pairs
   (the `CARD_SLOT_PAIRS` code is gone). **Entity Slots**: columns pay again (`PAYLINE_LINES` is
   `SLOT_LINES_3`; each strip has one entity in a block of 3 again); every paying line pays.
-- **PAST CAPACITY** (mode `capacity`, carousel after Stacked): Classic's flags, `wilds: 0`,
+- **PAST CAPACITY** (superseded by r776: a protocol, not a mode) (mode `capacity`, carousel after Stacked): Classic's flags, `wilds: 0`,
   `noWalkthrough`, `extraCards` (8 Crowns J J J Q Q Q K K, 13 Crescents A to K) and
   `startKnacks: ['short_suit']`. `modeExtraCards()` (js/data/cards.js) is the one reader:
   `freshShuffledDeck` deals them and both deck-total sites count them; `startKnacks` are granted
@@ -5005,3 +5005,15 @@ live; Card Slots priced FREE / 15 / 20 / 25 / 30 / 40 / 50 / 60 / 70 / 80 / 90 a
 4th win, red lines on every losing pull, blue on wins; a staged 5-line scan showed the gold banner;
 Entity Slots FREE / 15 / 20 / 25 and closed at 4 wins, column triples possible (711 of 3,000 random
 stops). No page errors.
+
+## r776 - Past Capacity is a protocol of Flow and the Schedule (owner)
+r775's Classic carousel mode is gone (`MODES.capacity`, its card row and its `MODE_EXTRA_LIST` entry).
+It is now the sixth protocol (`PROTOCOLS`, js/protocols.js: id `capacity`, flag `capacity`), offered
+on Flow's and the Schedule's protocol screen. A protocol row may carry `mode`, laid over the base mode
+by `protocolMode` (`Object.assign`): here `wilds: 0`, `extraCards` and `startKnacks`, read as before by
+`modeExtraCards()` and startGame. A row with `open: true` is outside the unlock chain
+(`PROTOCOL_ORDER` filters it out, so `protoBefore` is null): Past Capacity is open from the start.
+Difficulty is its own (`proto:capacity`); no protocol Knack. The protocol screen lays its options three
+to a row (css/protocols.css). Measured in headless Chromium at 1440x820 and 420x900 through the real
+protocol screen: Flow and the Schedule each started with 73 cards (8 Crowns, 13 Crescents, no wilds),
+audit 73/73, Short Suit owned, Flush of 3 live, `ACTIVE_MODE.id` flow / map; no page errors.
