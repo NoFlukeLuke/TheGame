@@ -135,6 +135,7 @@ function cardAt(el) {
 
 function doSwap(r1, c1, r2, c2) {
   if (typeof bossJumpRunning === 'function' && bossJumpRunning()) return;   // r606
+  if (typeof cascadeRunning === 'function' && cascadeRunning()) return;   // r773: a cascade has the board
   // A boss may refuse the action outright (The Turnstile with no fare). Checked
   // FIRST, before anything commits - bossOnInteract runs after the swap has
   // already happened, which is right for a cost and useless for a gate.
@@ -375,9 +376,8 @@ let _dtBefore = null;   // the selection before the first tap of a possible doub
 // ── Tap handler (called on pointerup when pointer didn't move) ──
 function onCardTap(r, c) {
   if (_longPressActive) { _longPressActive = false; return; }
-  // Autopilot (r474) has the board while it runs.
-  if (typeof autopilotRunning === 'function' && autopilotRunning()) return;
-  if (typeof sweepRunning === 'function' && sweepRunning()) return;   // r572: All Hands has the board
+  // r773: a cascade (Overdrive, Autopilot, All Hands) has the board while it runs.
+  if (typeof cascadeRunning === 'function' && cascadeRunning()) return;
   if (typeof logisticsRunning === 'function' && logisticsRunning()) return;   // r647: the Logistics Assistant has it
   if (typeof bossJumpRunning === 'function' && bossJumpRunning()) return;   // r606: the clock is running out
   // The Pick (r244) owns the board outright while it is open, so it intercepts
@@ -616,6 +616,7 @@ function cellUnder(el, x, y) { return cardAt(el) || cellAtPoint(x, y); }
 gridEl2.addEventListener('pointerdown', e => {
   const _pick = typeof pickOwnsBoard === 'function' && pickOwnsBoard();
   if (typeof bossJumpRunning === 'function' && bossJumpRunning()) return;   // r606: no input while the clock runs out
+  if (typeof cascadeRunning === 'function' && cascadeRunning()) return;   // r773: a cascade has the board
   if (!_pick && (animating || roundEnded)) { dbgEvent('warn', 'grid input blocked', { animating, roundEnded, falling, dance: !!danceAbortController }); return; }
   const cell = cellUnder(e.target, e.clientX, e.clientY);
   if (!cell) { dbgEvent('warn', 'tap missed a card (overlay covering grid?)', { tgt: String(e.target?.id || e.target?.className || e.target?.tagName || '?').slice(0,48) }); return; }

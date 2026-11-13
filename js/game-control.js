@@ -436,6 +436,7 @@ function startGame() {
   recomputeGridMetrics();
   // Reset focus meter
   focusNodes = 0;
+  if (typeof cascadeReset === 'function') cascadeReset();   // r773: js/cascade.js
   if (typeof autopilotReset === 'function') autopilotReset();
   if (typeof sweepReset === 'function') sweepReset();   // r572
   if (typeof retakeCards !== 'undefined') retakeCards.clear();   // r647

@@ -1,4 +1,4 @@
-const BUILD = "2026-11-13 · r772 · scoring preview (?lab); score chips leave one at a time; gentler speed-up; primes read the scored cards";
+const BUILD = "2026-11-13 · r773 · Overdrive, Autopilot and All Hands are back as cascades: picked loud, hit, flown to the preview one hand after another";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

@@ -47,7 +47,7 @@ const KNACK_POOL = [
   { id:'charged_card',    emoji:'🔋',  name:'Morning Brew',     rarity:'rare',   desc:'Double-tap the Focus bar: spend 10 Focus and the first card of your next hand takes a random buff. Replaces the Reserve.', tags:['deck','other','scaling','chance','cost'] },
   { id:'shuffle_up',      emoji:'🔀',  name:'Shuffle Up',       rarity:'common', desc:'Double-tap the Focus bar: spend 10 Focus and every card on the board changes place. Replaces the Reserve.', tags:['board','other','cost'] },
   { id:'double_down',     emoji:'✌️',  name:'Double Down',      rarity:'epic',   desc:'Double-tap the Focus bar: spend 10 Focus and Focus applies twice for your next 3 hands. Replaces the Reserve.', tags:['focus','other','cost','scores'] },
-  { id:'overdrive',       emoji:'⚡',  name:'Overdrive',        rarity:'epic',   retired:true, desc:'Double-tap the Focus bar: the board plays its best hand for 5 Focus, again and again until Focus runs out. Hand 1 scores x1.5 mult, hand 2 x2, and so on. These hands make no Focus of their own. Then 45 seconds to cool down. Replaces the Reserve.', tags:['xmult','focus','other','scores','cost'] },
+  { id:'overdrive',       emoji:'⚡',  name:'Overdrive',        rarity:'epic',   desc:'Double-tap the Focus bar: the board plays its best hand for 5 Focus, again and again until Focus runs out. Hand 1 scores x1.5 mult, hand 2 x2, and so on. These hands make no Focus of their own. Then 45 seconds to cool down. Replaces the Reserve.', tags:['xmult','focus','other','scores','cost'] },
   { id:'long_pause',      emoji:'🦉',  name:'Long Pause',       rarity:'common', desc:'All clock pauses last 1.5× as long.', tags:['time','other','pause'] },
   { id:'sundial',         emoji:'🌇',  name:'Vertical Thinking',          rarity:'common', desc:'Hands where every card shares a column pause the clock for 8s.', tags:['time','hand','position'] },
   { id:'metronome',       emoji:'🥁',  name:'Metronome',        rarity:'common', desc:'Each round a hand type you can make is chosen; playing that hand type pauses the clock for 5s.', tags:['time','hand','chance','start'] },
@@ -137,7 +137,7 @@ const KNACK_POOL = [
 // r739: a role-change Knack exists only through its Sleight's 5th improvement.
 // r748: a protocol Knack is not offered (nor listed in Builds) while locked.
 // r749: a startOnly Knack (Precision's Attention to Detail) is never offered.
-// r753: a retired Knack (Overdrive) is never offered; a saved run keeps it.
+// r753: a retired Knack is never offered; a saved run keeps it.
 function knackOfferable(k) { return !!k && !k.roleOnly && !k.startOnly && !k.retired && !(typeof protoKnackLocked === 'function' && protoKnackLocked(k.id)); }
 // ── SLEIGHT POOL ──
 // Sleights live in the deck as special cards (_isSleight:true). They fall onto the grid,

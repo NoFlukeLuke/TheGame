@@ -667,7 +667,7 @@ function stkCheckEnd() {
   if (typeof dealPhase !== 'undefined' && dealPhase) return;
   if (animating || falling || (typeof danceAbortController !== 'undefined' && danceAbortController) || pendingAction) { stkScheduleCheck(400); return; }
   if (gameTimerPaused || (typeof isPaused !== 'undefined' && isPaused)) { stkScheduleCheck(600); return; }
-  if (typeof sweepRunning === 'function' && sweepRunning()) { stkScheduleCheck(400); return; }
+  if (typeof cascadeRunning === 'function' && cascadeRunning()) { stkScheduleCheck(400); return; }
   if (!roundInterval && !bossActive) return;   // no round is live
   if (stkAnyHand()) { stkNoHandSaid = false; return; }
   const deep = (() => { for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) if (stkDepthAt(r, c) > 1) return true; return false; })();

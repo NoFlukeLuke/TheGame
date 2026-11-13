@@ -1,5 +1,5 @@
 function doDiscard() {
-  if (typeof sweepRunning === 'function' && sweepRunning()) { dbgEvent('info', 'discard ignored (sweep)'); return; }   // r572
+  if (typeof cascadeRunning === 'function' && cascadeRunning()) { dbgEvent('info', 'discard ignored (cascade)'); return; }   // r773
   if (typeof logisticsRunning === 'function' && logisticsRunning()) return;   // r647
   if (typeof bossJumpRunning === 'function' && bossJumpRunning()) { dbgEvent('info', 'discard ignored (skipping to the boss)'); return; }   // r606
   // On grid-takeover screens the Discard button is repurposed: CLEAR (reward),

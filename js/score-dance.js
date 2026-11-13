@@ -883,8 +883,9 @@ let dncShowScore = null;
 function dncScoreShown(){ return dncShowScore == null ? score : dncShowScore; }
 function dncScoreHoldOff(){ dncShowScore = null; }
 // r691 (owner): half the lift it was (x2 a waiting hand): 1.5, 2.5, 4.5, 8.5. Never stacked with Focus (dncBoost).
-function dncQueuePace(){ return 1 + (Math.pow(2, dncQueue.length) - 1) / 2; }
-function dncQueueFull(){ return !!danceAbortController && dncQueue.length >= DNC_QUEUE_MAX; }
+// r773: a cascade (js/cascade.js) may queue deeper than a player's five hands; the pace stops climbing at the fifth.
+function dncQueuePace(){ return 1 + (Math.pow(2, Math.min(dncQueue.length, DNC_QUEUE_MAX)) - 1) / 2; }
+function dncQueueFull(){ return !!danceAbortController && dncQueue.length >= ((typeof cascadeRunning === 'function' && cascadeRunning()) ? cascadeQueueMax() : DNC_QUEUE_MAX); }
 // r695: the host covers the preview and is clipped to the tray's screen (nothing queued
 // shows outside the tray); its one child, the anchor, sits on the live hand's first card
 // and holds the strips.

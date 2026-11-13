@@ -115,6 +115,7 @@ function focusTapHandler() {
 // be shadowed. A tap on a card or a button is never a bar tap.
 function focusBarTap(e) {
   if (typeof bossJumpRunning === 'function' && bossJumpRunning()) return;   // r606
+  if (typeof cascadeRunning === 'function' && cascadeRunning()) return;   // r773: a cascade has the board
   if (e && e.target && e.target.closest && e.target.closest('button, .card, .trick-card, #dev-panel')) return;
   const wrap = document.getElementById('focus-meter-wrap');
   if (!wrap || !e) return;

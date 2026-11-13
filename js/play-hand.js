@@ -232,8 +232,8 @@ function playHand() {
   // Match-3: the board plays its own matches (match3Resolve). Manual play is off.
   if (match3Active()) { dbgEvent('info', 'play ignored (match-3 auto-plays)'); return; }
   if (roundEnded) { dbgEvent('warn', 'play ignored (round ended)'); return; }
-  // r572: while All Hands picks its hands out, PLAY (button, key, auto-submit) is off.
-  if (typeof sweepRunning === 'function' && sweepRunning() && !sweepSilent()) { dbgEvent('info', 'play ignored (sweep)'); return; }
+  // r773: while a cascade runs (Overdrive, Autopilot, All Hands: js/cascade.js) only the cascade plays; PLAY (button, key, drag) is off.
+  if (typeof cascadeRunning === 'function' && cascadeRunning() && !cascadePlaying()) { dbgEvent('info', 'play ignored (cascade)'); return; }
   if (typeof logisticsRunning === 'function' && logisticsRunning()) return;   // r647
   // r472: Flow's boss wipe (flowTriggerBoss -> bossApproachWipe -> triggerBoss) is
   // ~1s of live board. A hand clearing the goal there opened the reward chain on
@@ -274,7 +274,7 @@ function playHand() {
   // Call 7 with three other 7s on the board is a Four of a Kind that
   // findBestHand, which only ever builds connected subsets, could never find.
   // r572: a sweep's hands are fixed; Roll Call and the Ringer could pull a card another hand holds.
-  const _sweeping = typeof sweepSilent === 'function' && sweepSilent();
+  const _sweeping = typeof sweepPlaying === 'function' && sweepPlaying();   // one of All Hands's planned hands
   const _rollCall = (!_sweeping && typeof rollCallAugment === 'function') ? rollCallAugment(result, selected) : null;
   if (_rollCall) { result = _rollCall.result; selected = [...selected, ..._rollCall.cells]; }
   if (!result) { if (_pestSel.length) selected = [...selected, ..._pestSel]; dbgEvent('warn', 'play: no valid hand', { selected: selected.length, animating, falling, roundEnded, dance: !!danceAbortController, swapPending: !!swapPending, swiping: isSwiping }); console.log('[PLAY] no result, exiting'); return; }
@@ -284,7 +284,7 @@ function playHand() {
   // r661 (owner): a hand played while another is still tallying JOINS THE SCORING QUEUE
   // (js/score-dance.js) instead of cutting it. Five hands at most; the sixth is refused
   // here, before anything is scored.
-  const _queueIt = !!danceAbortController && !_sweeping;
+  const _queueIt = !!danceAbortController;
   if (_queueIt && typeof dncQueueFull === 'function' && dncQueueFull()) { refuse('Five hands scoring. Wait.'); dbgEvent('warn', 'play refused: scoring queue full'); return; }
   if (!_queueIt) {
     cancelDance();
@@ -656,7 +656,7 @@ function playHand() {
   // Suppressed during/just-after a boss: the boss objective system + post-boss reward
   // grid handle progression. (_bossThisHand catches the boss-winning hand, where endBoss
   // already set bossActive=false above.)
-  if (!_bossThisHand && !bossActive && !_sweeping && roundQuotaMet() && !goalReachedThisRound) {   // r572: a sweep checks the goal after its finale
+  if (!_bossThisHand && !bossActive && roundQuotaMet() && !goalReachedThisRound) {
     console.log('[GOAL] reached', { score, goal: roundGoal, finalScore });
     goalReachedThisRound = true;
     roundEnded = true; // freeze input immediately
@@ -999,13 +999,12 @@ function playHand() {
 
   commitRoundContrib(_contribSnapshot); // committed (non-goal) hand counts toward the tally
   // Kick off the score dance - it handles updateScoreUI, removeAndFall, levelUp.
-  // r572: a All Hands hand is recorded instead; the sweep's finale flies, falls and tallies.
   // r772: the dance takes the cards off the board at once (r661), so the hand's own cards
   // are held for the work below. Before this, Inspirato, Prime Times and everything in
   // scalingCount read whatever cards had fallen into the hand's cells.
   const _fz = new Map();
   handCells.concat(_scoredCells).forEach(cl => { if (!cl[2]) { const cd = gridData[cl[0]] && gridData[cl[0]][cl[1]]; if (cd) _fz.set(cl[0] + '-' + cl[1], cd); } });
-  if (_sweeping) sweepRecord(result, toRemove); else dncPlayOrQueue(result, toRemove, false);
+  dncPlayOrQueue(result, toRemove, false);
   cellCardFrozen = _fz;
   try {
     runHandPriming(hand, handCells, result._bankContrib);

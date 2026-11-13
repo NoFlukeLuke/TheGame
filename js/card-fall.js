@@ -354,6 +354,20 @@ function _fallLaunch(el, id, fromY, delay, dur, fadeIn) {
   a.finished.then(done, done);
   return a;
 }
+// r773: THE FALL CAN BE HELD (All Hands, js/sweep.js). While held, removed cards
+// leave and their cells stay EMPTY: nothing packs down and nothing is drawn, so
+// every other card keeps its cell. fallHoldOff() lets go: one fall packs every
+// column and fills every hole (removeAndFall with nothing to remove does that).
+let _fallHold = false;
+function fallHeld() { return _fallHold; }
+function fallHoldOn() { _fallHold = true; }
+function fallHoldDrop() { _fallHold = false; }   // a new run: no fall
+function fallHoldOff(cells) {
+  if (!_fallHold) return null;
+  _fallHold = false;
+  if (roundEnded) return null;   // the board is swept and dealt again
+  return removeAndFall(cells || [], 'play');
+}
 async function removeAndFall(removingCells, mode = 'play') {
   // Something else holds the board (a swap look, a boss fizzle, Match-3's own
   // step): wait for it rather than drop the cards (r652).
@@ -366,7 +380,7 @@ async function removeAndFall(removingCells, mode = 'play') {
   console.log('[FALL] start', { mode, cells: removingCells.length, inAir: _cardFalls.size });
   // The fall-type challenge cards' snapshot is of the board BEFORE the first of
   // any overlapping falls; the tail counts once when the last card lands.
-  if (typeof crBeforeFall === 'function' && !(typeof crFallSnap !== 'undefined' && crFallSnap)) crBeforeFall();
+  if (!_fallHold && typeof crBeforeFall === 'function' && !(typeof crFallSnap !== 'undefined' && crFallSnap)) crBeforeFall();
 
   const challengeKey = challengeCard ? `${challengeCard.pos[0]}-${challengeCard.pos[1]}` : null;
   removingCells = removingCells.filter(([r,c]) => `${r}-${c}` !== challengeKey);
@@ -447,6 +461,15 @@ async function removeAndFall(removingCells, mode = 'play') {
 
   // r741: Stacked has no fall. The card beneath each removed one surfaces (js/stack-mode.js).
   if (typeof stackedActive === 'function' && stackedActive()) { await stkAfterRemove(removingCells, leaveMs); return; }
+
+  // r773: held (All Hands). The cells empty out; the fall comes at fallHoldOff.
+  if (_fallHold) {
+    removingCells.forEach(([r,c]) => { gridData[r][c] = null; });
+    selected = selected.filter(([r,c]) => gridData[r]?.[c]);
+    if (swapPending && !gridData[swapPending[0]]?.[swapPending[1]]) swapPending = null;
+    render();
+    return;
+  }
 
   // ── The plan (data only), computed from the board as it is now. Voids
   //    ("blocked cells") are skipped: cards stack to the bottom-most non-void
@@ -542,9 +565,12 @@ async function removeAndFall(removingCells, mode = 'play') {
   render();
 
   // r691 (owner): the fall is half as fast at the default animation speed (animSlow, js/settings.js)
-  const _as = typeof animSlow === 'function' ? animSlow() : 1;
+  // r773: while a cascade plays (js/cascade.js) the board falls fast and its columns pack tight: the next hand waits on it.
+  const _casFast = typeof cascadeRunning === 'function' && cascadeRunning();
+  const _as = (typeof animSlow === 'function' ? animSlow() : 1) * (_casFast ? CAS_CFG.fallK : 1);
   const FALL_DUR = 420 * _as;
   const COL_OFFSET = 60 * _as;
+  const FALL_STAG = _casFast ? CAS_CFG.fallStag : 0.6;   // a column's next card starts this far into the one below it
   const activeCols = new Set(removingCells.map(([,c]) => c));
   const minActiveCol = activeCols.size > 0 ? Math.min(...activeCols) : 0;
   const colReadyAt = {};
@@ -562,7 +588,7 @@ async function removeAndFall(removingCells, mode = 'play') {
     if (Math.abs(fromY) < 0.5) return;
     const colBase = leaveMs + (col - minActiveCol) * COL_OFFSET;
     const startAt = Math.max(colBase, colReadyAt[col] || colBase);
-    colReadyAt[col] = startAt + FALL_DUR * 0.6;
+    colReadyAt[col] = startAt + FALL_DUR * FALL_STAG;
     myAnims.push(_fallLaunch(el, String(card._id), fromY, startAt, FALL_DUR, false));
   });
 
@@ -576,7 +602,7 @@ async function removeAndFall(removingCells, mode = 'play') {
     const fromY = -(minStart - finalRow) * CARD_STEP - cellTop(finalRow);
     const colBase = leaveMs + (col - minActiveCol) * COL_OFFSET;
     const entryStart = Math.max(colBase, colReadyAt[col] || colBase);
-    colReadyAt[col] = entryStart + FALL_DUR * 0.6;
+    colReadyAt[col] = entryStart + FALL_DUR * FALL_STAG;
     myAnims.push(_fallLaunch(el, String(card._id), fromY, entryStart, FALL_DUR, true));
   });
 

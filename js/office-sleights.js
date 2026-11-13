@@ -178,8 +178,7 @@ function logisticsStart(card, r, c) {
   const dim = { color: 'var(--cream-dim)' };
   const busy = animating || falling || !!danceAbortController || roundEnded
     || (typeof dealerHand !== 'undefined' && dealerHand)
-    || (typeof autopilotRunning === 'function' && autopilotRunning())
-    || (typeof sweepRunning === 'function' && sweepRunning())
+    || (typeof cascadeRunning === 'function' && cascadeRunning())   // r773
     || (typeof sleightSpinLock !== 'undefined' && sleightSpinLock);
   if (busy) { refuse('Logistics Assistant: let the board settle first', dim); return; }
   const first = logisticsNextSwap(new Set(), 0);

@@ -32,9 +32,7 @@ function bossJumpRefusal() {
   if (roundEnded || gameTimerPaused || !roundInterval
       || (typeof gridScreenOwnsBoard === 'function' && gridScreenOwnsBoard())) return 'The clock is not running';
   if (animating || falling || dealPhase
-      || (typeof autopilotRunning === 'function' && autopilotRunning())
-      || (typeof sweepRunning === 'function' && sweepRunning())
-      || (typeof _overdriveRun !== 'undefined' && _overdriveRun)) return 'Wait for the board';
+      || (typeof cascadeRunning === 'function' && cascadeRunning())) return 'Wait for the board';   // r773: Overdrive, Autopilot, All Hands
   return '';
 }
 

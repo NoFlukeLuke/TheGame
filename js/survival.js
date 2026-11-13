@@ -244,7 +244,7 @@ function survivalEntityBanned(id) {
   if (typeof inseparableDef === 'function' && inseparableDef(id)) return true;
   // r739: a role-change Knack comes only from its Sleight's 5th improvement.
   if (typeof KNACK_POOL !== 'undefined' && KNACK_POOL.some(k => k.id === id && (k.roleOnly || k.startOnly))) return true;   // r749: startOnly
-  // r753 (owner): Overdrive, Autopilot and All Hands are out for now. A retired row is never offered.
+  // r753: a retired Knack or Sleight row is never offered.
   if (typeof KNACK_POOL !== 'undefined' && KNACK_POOL.some(k => k.id === id && k.retired)) return true;
   if (typeof SLEIGHT_POOL !== 'undefined' && SLEIGHT_POOL.some(k => k.id === id && k.retired)) return true;
   // r706: a locked Trick is never offered (js/unlocks.js).

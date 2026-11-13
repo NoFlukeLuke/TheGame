@@ -32,7 +32,6 @@ let focusDoubleHands = 0;      // Double Down: hands left that apply Focus twice
 let overdriveCd = 0;           // Overdrive: cooldown seconds left
 let _overdriveRun = null;      // { k } while Overdrive plays
 let _overdriveMultX = 1;       // the x mult of the hand Overdrive is playing now
-let _ovFast = false;           // the dance skips its beats for this hand
 
 function focusKnackOfferBanned(id) {
   if (!FOCUS_TAP_KNACKS[id]) return false;
@@ -45,13 +44,13 @@ function autoplayNoFocus() {
   return !!_overdriveRun || (typeof autopilotRunning === 'function' && autopilotRunning())
     || (typeof sweepRunning === 'function' && sweepRunning() && !(BAL.all_hands && BAL.all_hands.focus > 0));   // r572: All Hands's hands (r739: improved, they make Focus)
 }
-function overdriveFastHand() { return _ovFast; }
+function overdriveFastHand() { return false; }   // r773: every cascade hand plays out through the scoring queue; nothing skips its beats
 function overdriveMultX() { return _overdriveRun ? _overdriveMultX : 1; }
 
 function focusKnacksReset() {
   freeHandSecs = 0; chargedCardPending = false; focusDoubleHands = 0; overdriveCd = 0;
-  _overdriveRun = null; _overdriveMultX = 1; _ovFast = false;
-  document.body.classList.remove('autoplay-loud', 'overdrive-on');
+  _overdriveRun = null; _overdriveMultX = 1;
+  document.body.classList.remove('overdrive-on');
   focusChipSync();
 }
 
@@ -127,62 +126,38 @@ function focusKnacksAfterHand() {
 }
 
 // ── Overdrive ─────────────────────────────────────────────────────────────
+// r773 (owner): a CASCADE (js/cascade.js). Each hand costs focus_per_hand, is picked
+// loud, hit, and flies to the preview; the next is picked as soon as the board has
+// fallen. Hand k scores x(1 + mult_step x k) mult. It ends when Focus is short or
+// no hand is left, then cools down.
 function overdriveStart() {
   if (_overdriveRun) return;
   if (typeof roundEnded !== 'undefined' && roundEnded) return;
+  if (typeof cascadeRunning === 'function' && cascadeRunning()) { refuse('Wait for the board'); return; }
   if (overdriveCd > 0) { refuse(`Overdrive cooling down: ${overdriveCd}s`); return; }
-  const per = fkCfg('overdrive', 'focus_per_hand');
-  if (focusNodes < per) { refuse(`Overdrive needs ${per} Focus`); return; }
+  const per = () => fkCfg('overdrive', 'focus_per_hand');
+  const multOf = k => 1 + fkCfg('overdrive', 'mult_step') * k;
+  if (focusNodes < per()) { refuse(`Overdrive needs ${per()} Focus`); return; }
   if (typeof dealerActive === 'function' && dealerActive()) { refuse('Place or discard the cards you hold first'); return; }
   _overdriveRun = { k: 0, retry: 0 };
-  selected = []; swapPending = null;
-  if (typeof cancelAutoSubmit === 'function') cancelAutoSubmit();
-  document.body.classList.add('autoplay-loud', 'overdrive-on');
+  document.body.classList.add('overdrive-on');
   showMessage('OVERDRIVE', '#ff6a52');
   focusChipSync();
-  _ovStep();
-}
-function _ovIdle() {
-  return !animating && !falling && !(typeof danceAbortController !== 'undefined' && danceAbortController)
-    && !isPaused && !gameTimerPaused && !(typeof sleightSpinLock !== 'undefined' && sleightSpinLock)
-    && !(typeof dealPhase !== 'undefined' && dealPhase);
-}
-function _ovStep() {
-  if (!_overdriveRun) return;
-  if (roundEnded) { overdriveStop(); return; }
-  if (!_ovIdle()) { setTimeout(_ovStep, 150); return; }
-  const per = fkCfg('overdrive', 'focus_per_hand');
-  if (focusNodes < per) { overdriveStop(); return; }
-  const cells = autopilotBestHand();
-  if (!cells) {
-    if (autopilotBestHand.exhausted && (_overdriveRun.retry = (_overdriveRun.retry || 0) + 1) <= 3) { setTimeout(_ovStep, 100); return; }
-    overdriveStop(); return;
-  }
-  _overdriveRun.retry = 0;
-  removeFocus(per);
-  const k = ++_overdriveRun.k;
-  _overdriveMultX = 1 + fkCfg('overdrive', 'mult_step') * k;
-  // The last hand we can pay for scores in full; the ones before it score fast.
-  _ovFast = focusNodes >= per;
-  selected = cells;
-  render();
-  sfxCardSelectLoud();
-  focusChipSync();
-  // A beat to see the selection, then the hit and the play.
-  setTimeout(() => {
-    if (!_overdriveRun) return;
-    try { sfxOverdriveHit(k); } catch (e) {}
-    const before = handsPlayed;
-    try { playHand(); } catch (e) { if (typeof devMode !== 'undefined' && devMode) console.warn('[OVERDRIVE]', e); }
-    if (handsPlayed === before) { _overdriveMultX = 1; overdriveStop(); return; }   // the hand did not go
-    if (!_ovFast) { overdriveStop(); return; }
-    setTimeout(_ovStep, 200);
-  }, 320);
+  cascadeStart({
+    name: 'overdrive', title: 'OVERDRIVE', color: '#ff6a52',
+    sub: () => `${per()} FOCUS A HAND`,
+    next: () => (!_overdriveRun || focusNodes < per()) ? null : cascadeFindHand(_overdriveRun),
+    label: k => `x${multOf(k).toFixed(1)} MULT`,
+    // The cost is charged as the hand is played, never for a hand that was only picked.
+    begin: k => { removeFocus(per()); _overdriveRun.k = k; _overdriveMultX = multOf(k); focusChipSync(); },
+    after: (k, played) => { _overdriveMultX = 1; focusChipSync(); return played; },   // a hand that did not go ends it
+    end: () => overdriveStop(),
+  });
 }
 function overdriveStop() {
   const run = _overdriveRun;
-  _overdriveRun = null; _ovFast = false;
-  document.body.classList.remove('autoplay-loud', 'overdrive-on');
+  _overdriveRun = null; _overdriveMultX = 1;
+  document.body.classList.remove('overdrive-on');
   if (!run) return;
   overdriveCd = fkCfg('overdrive', 'cooldown');
   showMessage(`Overdrive off after ${run.k} hand${run.k === 1 ? '' : 's'} · ${overdriveCd}s cooldown`, 'var(--cream-dim)');
@@ -195,7 +170,7 @@ function focusChipSync() {
   if (!wrap) return;
   let el = document.getElementById('focus-chip');
   const parts = [];
-  if (_overdriveRun) parts.push(`OVERDRIVE x${_overdriveMultX.toFixed(1)}`);
+  if (_overdriveRun) parts.push(_overdriveRun.k ? `OVERDRIVE · ${_overdriveRun.k}` : 'OVERDRIVE');
   else if (overdriveCd > 0) parts.push(`COOLDOWN ${overdriveCd}`);
   if (freeHandSecs > 0) parts.push(`FREE ${freeHandSecs}s`);
   if (chargedCardPending) parts.push('CHARGED');

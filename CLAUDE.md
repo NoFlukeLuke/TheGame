@@ -4913,3 +4913,47 @@ Measured in headless Chromium at 1440x820 and 420x900, dev mode on: chips in a 4
 110-150ms apart, sat 420-500ms, then flew; a 24-event hand with x pips, x mult and replays, a 4-hand
 burst, a Flow goal hand: no timeline drift, no page errors; pace after 24 payouts 1.24 (was 1.6). Golden:
 838 cases match. Stage without ?lab unchanged (1436 x 807).
+## r773 - the cascade: Overdrive, Autopilot and All Hands are back, played like a match-3 (`js/cascade.js`, `css/cascade.css`, owner)
+r753's three retirements are undone (`retired` off the rows). All three run on ONE runner.
+- **A cascade** (`cascadeStart(spec)`) is a run of hands the game plays itself. A step: the hand's
+  cards are PICKED one at a time (`casPickFx`, `CAS_CFG.pickMs` 110 down to 52, a pop and
+  `sfxCascadePick`, a note a step up per card), the HIT (`casHitFx`: the cards flash, a ring and
+  sparks burst from the hand, its tag pops over it, `sfxOverdriveHit(k)`), then **the real
+  `playHand`**, then the fall, and the next hand is picked the moment the fall lands. The run never
+  waits for a tally: the first hand is tallied in the preview and every later one joins the scoring
+  queue behind it (r661), so the cards fly to the preview one hand after another. A banner names
+  the cascade before its first hand (`#cas-banner`), and the board wears a frame in its colour with
+  its name and hand count (`#cas-frame`); both are children of `#grid`. The spec: `next(k)` (cells,
+  `'wait'` or null), `label(k)`, `begin(k)` (charge the cost here: it runs only when the hand is
+  played), `play(k)`, `after(k, played)`, `end(k)`, `intro`, `hue(k)`, `holdFall`.
+- **`cascadeRunning()` is the one test** for "the board is not the player's": onCardTap, the grid's
+  pointerdown, doSwap, doDiscard, the Focus bar's double-tap, playHand (`cascadePlaying()` lets the
+  cascade's own call through), the Logistics Assistant, the skip to the boss, Stacked's end check.
+- **While a cascade runs:** the fall is `CAS_CFG.fallK` (0.42) as long and a column's cards start
+  `fallStag` (0.3, usually 0.6) apart (js/card-fall.js); the scoring queue takes
+  `CAS_CFG.queueMax` (7) waiting hands, not 4 (`dncQueueFull`; the queue's pace stops climbing at
+  the fifth); every cascade hand is tallied at the SPEED UP pace with the key reading SKIP
+  (`dncCarry` 1). It waits while the clock is held (`gameTimerPaused`: a tip over the board, the
+  pause menu), while Flow's boss arrives and while the queue is full; 20s of a board that never
+  comes free ends it.
+- **Overdrive** (js/focus-knacks.js): each hand costs `focus_per_hand`, tagged with its x mult. r571's
+  fast hands (`skipBeats`) are gone (`overdriveFastHand()` is false).
+- **Autopilot** (js/autopilot.js): unchanged rules (30s, 5 hands, a charge a hand, hand k applies
+  Focus k times, tagged FOCUS xk). It leaves the board as soon as the board is still, without
+  waiting for the tally.
+- **All Hands** (js/sweep.js, rewritten): its hands are planned on the board as it stands and every
+  one lights up in its own hue; then they go one after another with **the fall HELD**
+  (`fallHoldOn` / `fallHoldOff`, js/card-fall.js: a held `removeAndFall` empties the cells and
+  packs nothing), so no planned card moves; when the last has gone the board falls once and fills
+  every hole, and the Sleight leaves with that fall. Each hand is a real `playHand` (the silent
+  hands, `sweepRecord` and the one-strip finale are gone), so **a hand that clears the goal ends
+  the round and the hands after it are not played**. Roll Call and the Ringer stand down for its
+  hands (`sweepPlaying()`).
+- **Preview:** `index.html?cascade` (a Classic run, the goal out of reach, a key for each).
+Measured in headless Chromium at 1440x820 and 420x900 (Classic, dev mode on): Overdrive at 20 Focus
+played 4 hands in 7.0s (a hand every 1.3 to 1.6s; before the fall was sped up, 2.5s) and the last
+tally landed at 19s; Autopilot 5 hands in 8.0s, charges 15 to 10, gone from the board; All Hands 3
+hands on a 4x4 in 4.1s with 3, 6, then 9 cells empty and one fall after; a hand that cleared the
+goal ended the round under each of the three (All Hands with 3 cells still empty: the round-end
+sweep and the interlude ran); a tap mid-cascade selected nothing; the deck count matched after
+every run; no timeline drift, no page errors. Golden: 834 cases match.

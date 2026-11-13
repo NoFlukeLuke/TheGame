@@ -18,10 +18,8 @@
 //   BAL.autopilot.max_hands (a safety cap; 0 = no cap). Then it discards itself
 //   and cycles back into the deck, like Whetstone.
 //
-// The run ticks off its own 250ms poller rather than the round tick, because it
-// has to wait out each hand's dance and fall, which the round tick knows nothing
-// about. The 30s countdown rides the round tick (autopilotTick) so it stops with
-// the round, the pause menu and RECORDS.
+// The run is a cascade (js/cascade.js, r773). The 30s countdown rides the round
+// tick (autopilotTick) so it stops with the round, the pause menu and RECORDS.
 // ═══════════════════════════════════════════════════════════════════════════
 
 let autopilotRun = null;      // { card, k } while a run is in progress
@@ -59,64 +57,46 @@ function autopilotTick() {
     }
     if (card._apEngaged) continue;
     card._apSecs = (card._apSecs || 0) + 1;
-    if (card._apSecs >= _apCfg().delay_seconds && !autopilotRun) autopilotEngage(card);
+    if (card._apSecs >= _apCfg().delay_seconds && !autopilotRun) autopilotEngage(card);   // refused while another cascade runs; asked again next tick
   }
 }
 function bossApproachBusy() {
   return (typeof flowBossFighting !== 'undefined' && flowBossFighting && !bossActive);
 }
 
+// r773 (owner): the run is a CASCADE (js/cascade.js). Each hand is picked loud, hit,
+// and flies to the preview; the next is picked as soon as the board has fallen. The
+// tally runs behind in the scoring queue, so the run does not wait on it.
 function autopilotEngage(card) {
+  if (typeof cascadeRunning === 'function' && cascadeRunning()) return;   // another cascade has the board: the tick asks again
   card._apEngaged = true;
   autopilotRun = { card, k: 0 };
-  selected = [];
   showMessage('AUTOPILOT ENGAGED', 'var(--c-cyan, #16c8d8)');
-  document.body.classList.add('autopilot-on', 'autoplay-loud');
-  _apPoll();
-}
-
-function _apIdle() {
-  return !animating && !falling && !danceAbortController && !isPaused && !gameTimerPaused
-    && !(typeof sleightSpinLock !== 'undefined' && sleightSpinLock);
-}
-
-function _apPoll() {
-  if (!autopilotRun) return;
-  if (roundEnded || !_apFind(autopilotRun.card)) { autopilotStop(); return; }
-  if (!_apIdle()) { setTimeout(_apPoll, 250); return; }
-  const cap = _apCfg().max_hands || 0;
-  if (cap && autopilotRun.k >= cap) { autopilotStop(); return; }
-  // r479: 15 charges, one spent per hand it plays. Out of charges, it stops.
-  const _card = autopilotRun.card;
-  if (_card._usesLeft !== 'infinite' && !(_card._usesLeft > 0)) { autopilotStop(); return; }
-  const cells = autopilotBestHand();
-  if (!cells) {
-    // A search that ran out of budget has not proven the board empty: try again.
-    if (autopilotBestHand.exhausted && (autopilotRun.retry = (autopilotRun.retry || 0) + 1) <= 3) { setTimeout(_apPoll, 100); return; }
-    autopilotStop(); return;
-  }
-  autopilotRun.retry = 0;
-  autopilotRun.k++;
-  _autopilotHandK = autopilotRun.k;
-  selected = cells;
-  // r571 (owner): the selection is loud: louder select sound, bigger hover, a
-  // beat to see it before the play.
-  render();
-  if (typeof sfxCardSelectLoud === 'function') sfxCardSelectLoud();
-  setTimeout(() => {
-    if (!autopilotRun) return;
-    _autopilotHandK = autopilotRun.k;
-    const _before = handsPlayed;
-    try { playHand(); } finally { _autopilotHandK = 0; }
-    if (handsPlayed > _before && _card._usesLeft !== 'infinite') { _card._usesLeft--; render(); }
-    if (autopilotRun) setTimeout(_apPoll, 350);
-  }, 320);
+  document.body.classList.add('autopilot-on');
+  const cap = () => _apCfg().max_hands || 0;
+  cascadeStart({
+    name: 'autopilot', title: 'AUTOPILOT', color: '#16c8d8',
+    sub: () => cap() ? `UP TO ${cap()} HANDS` : 'UNTIL NO HAND IS LEFT',
+    next: k => {
+      if (!autopilotRun || !_apFind(card)) return null;
+      if (cap() && k > cap()) return null;
+      // r479: 15 charges, one spent per hand it plays. Out of charges, it stops.
+      if (card._usesLeft !== 'infinite' && !(card._usesLeft > 0)) return null;
+      return cascadeFindHand(autopilotRun);
+    },
+    // Hand k applies Focus k times (plus extra_applies once improved).
+    label: k => k > 1 ? `FOCUS x${k + ((_apCfg().extra_applies) || 0)}` : 'HAND 1',
+    begin: k => { autopilotRun.k = k; },
+    play: k => { _autopilotHandK = k; try { playHand(); } finally { _autopilotHandK = 0; } },
+    after: (k, played) => { if (played && card._usesLeft !== 'infinite') card._usesLeft--; },
+    end: () => autopilotStop(),
+  });
 }
 
 function autopilotStop() {
   const run = autopilotRun;
   autopilotRun = null; _autopilotHandK = 0;
-  document.body.classList.remove('autopilot-on', 'autoplay-loud');
+  document.body.classList.remove('autopilot-on');
   if (!run) return;
   showMessage(`Autopilot off after ${run.k} hand${run.k === 1 ? '' : 's'}`, 'var(--cream-dim)');
   // It leaves the board and cycles back with its charges, like Whetstone. If the
@@ -126,8 +106,12 @@ function autopilotStop() {
   _apLeave(run.card);
 }
 function _apLeave(card) {
-  // Out of charges, discardToPlayed drops it for good (its last lap).
-  if (roundEnded || !_apIdle()) { setTimeout(() => _apLeave(card), 400); return; }
+  // Out of charges, discardToPlayed drops it for good (its last lap). It does not
+  // wait for the tally: the hands it played are still scoring behind it.
+  const busy = roundEnded || animating || falling || isPaused || gameTimerPaused
+    || (typeof sleightSpinLock !== 'undefined' && sleightSpinLock)
+    || (typeof cascadeRunning === 'function' && cascadeRunning());
+  if (busy) { setTimeout(() => _apLeave(card), 300); return; }
   const at = _apFind(card);
   if (!at) return;
   const [r, c] = at;
@@ -193,4 +177,4 @@ function autopilotBestHand() {
 }
 
 // A new run (startGame) clears any run in flight.
-function autopilotReset() { autopilotRun = null; _autopilotHandK = 0; document.body.classList.remove('autopilot-on', 'autoplay-loud'); }
+function autopilotReset() { autopilotRun = null; _autopilotHandK = 0; document.body.classList.remove('autopilot-on'); }
