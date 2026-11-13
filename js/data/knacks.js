@@ -52,7 +52,7 @@ const KNACK_POOL = [
   { id:'sundial',         emoji:'🌇',  name:'Vertical Thinking',          rarity:'common', desc:'Hands where every card shares a column pause the clock for 8s.', tags:['time','hand','position'] },
   { id:'metronome',       emoji:'🥁',  name:'Metronome',        rarity:'common', desc:'Each round a hand type you can make is chosen; playing that hand type pauses the clock for 5s.', tags:['time','hand','chance','start'] },
   // ── Rewind knacks ──
-  { id:'time_slip',       emoji:'⏮️',  name:'Time Slip',        rarity:'common', desc:'Whenever the clock would pause, 25% chance to rewind the clock that many seconds instead.', tags:['time','other','pause','chance'] },
+  { id:'time_slip',       emoji:'⏮️',  name:'Time Slip',        rarity:'common', desc:'Whenever the clock would pause, 10% chance to rewind the clock that many seconds instead.', tags:['time','other','pause','chance'] },
   { id:'replay_rewind',   emoji:'🔂',  name:'eeruh eeruh',     rarity:'common', desc:'Any time a card replays, 25% chance to rewind the clock 2s.', tags:['time','card','chance','replays'] },
   { id:'deja_vu',         emoji:'🔁',  name:'Déjà Vu',          rarity:'common', desc:'Playing the same ranks in two hands in a row rewinds the clock 15s.', tags:['time','hand','rank'] },
   { id:'clockmaker',      emoji:'⏱️',  name:'Clockmaker',       rarity:'rare',   retired:true,  // r767 (owner): removed from the game; the row stays for saved runs

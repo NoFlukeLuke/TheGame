@@ -71,7 +71,9 @@ function startRoundTimer() {
   // The clock GAINED time, so it has been refilled and the level-up marks on it
   // describe a run of the clock that is over (js/clock-track.js). Read before
   // roundStartSeconds is overwritten, which is the only reason this sits here.
-  if (typeof clockMarksReset === 'function' && roundSeconds > roundStartSeconds) clockMarksReset();
+  // r771: NOT reset here any more. "The clock gained time" was also true after any rewind that
+  // carried the clock past the level's start, or a level-start time bonus, and wiped every line of
+  // the session. The refills reset them themselves (flowNextRoundSeconds, crunchBeginQuarter).
   roundStartSeconds = roundSeconds; // mark the start of the countdown ("how far into the round" reads it)
   if (typeof rsRoundStart === 'function') rsRoundStart();   // r755: the round's stats row (js/run-stats.js), above the save point
   if (typeof crunchNewRound === 'function') crunchNewRound();  // one write-off per round

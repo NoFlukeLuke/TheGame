@@ -1,4 +1,4 @@
-const BUILD = "2026-11-13 · r773 · Overdrive, Autopilot and All Hands are back as cascades: picked loud, hit, flown to the preview one hand after another";
+const BUILD = "2026-11-13 · r774 · timer level-up lines stay; Time Slip 10%; phone timer: rounded corners, skull inside";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

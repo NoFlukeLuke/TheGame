@@ -150,17 +150,20 @@ body.reduced-motion .clk-mark { box-shadow: none; }
   width: var(--pclk-len, 150px);
   max-width: 42vw;            /* a 360px phone still leaves room for both ends */
   height: var(--pclk-thick, 18px);
-  border-radius: calc(var(--pclk-thick, 18px) / 2);
+  border-radius: 4px;           /* r771 (owner): slightly rounded corners, not a pill */
   flex: 0 1 auto;
 }
 #stage:not(.landscape) #clock-bar      { border-radius: inherit; }
 /* At 18px the bands, hatching and marks are worth drawing in portrait, so the
    Trick glyph comes back with them (it was hidden at 9px, where it was a smudge). */
 #stage:not(.landscape) #clock-bar-wrap .clk-win-g { display: block; font-size: 10px; }
-/* In portrait the mark is the END of the bar, so it rides in flow rather than
-   being pinned to the right of the whole clock area. */
-#stage.flow-mode:not(.landscape) #clock-boss  { position: static; transform: none; margin-left: 2px; }
-#stage.flow-mode:not(.landscape) #clock-boss:is(:active, .key-dn) { transform: scale(0.92); }
+/* r771 (owner): the mark sits INSIDE the bar at its right end (it is a child of
+   #clock-bar-wrap now), and the track stops short of it, as landscape's does. */
+#stage.flow-mode:not(.landscape) #clock-bar-wrap .clk-track { right: calc(var(--pclk-thick, 18px) - 1px); }
+#stage.flow-mode:not(.landscape) #clock-boss {
+  right: 2px; width: calc(var(--pclk-thick, 18px) - 4px); height: calc(var(--pclk-thick, 18px) - 4px);
+  font-size: 9px; border-radius: 3px;
+}
 
 /* ── PORTRAIT: the board's bottom margin (r377, EMPTY since r394) ──
    r377 moved HAND SIZE and COINS in here to leave the top bar to the clock.

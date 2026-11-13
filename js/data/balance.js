@@ -321,7 +321,7 @@ const BAL = {
   jury_rig: { chance: 0.5, charges: 1 },
   coin_toss: { chance: 0.5, charges: 1 },   // was hardcoded in js/level-up.js until r196
   rowcol_retrigger: { chance: 2/3, chance2: 0 },   // r624: chance2 like Ripple's (IMPROVE_PLAN)
-  time_slip: { chance: 0.25 },
+  time_slip: { chance: 0.10 },   // r771 (owner): was 0.25
   replay_rewind: { chance: 0.25, seconds: 2 },
   deja_vu: { seconds: 15 },
   clockmaker: { goal_fraction: 0.30, seconds: 15 },

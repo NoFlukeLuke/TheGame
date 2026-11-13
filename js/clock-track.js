@@ -112,7 +112,6 @@ function clockTrackEnsure(host) {
 // bands are a CSS gradient (one custom property), the windows and marks are a
 // handful of absolutely-positioned divs rebuilt only when their DESCRIPTION
 // changes - a blind rebuild every second would restart the marks' own reveal.
-let _clkWinKey = '', _clkMarkKey = '';
 function renderClockTrack() {
   const dur = (typeof currentRoundDuration === 'function') ? currentRoundDuration() : 0;
   const rs  = (typeof roundStartSeconds === 'number' && roundStartSeconds > 0) ? roundStartSeconds : dur;
@@ -144,21 +143,26 @@ function renderClockTrack() {
   const winKey = wins.map(w => `${w.id}:${w.left.toFixed(1)}:${w.width.toFixed(1)}`).join('|');
 
   // 3. MARKS.
-  const marks = clockSpansLevels() ? clockLevelMarks.map(s => clockTrackPos(s) * 100) : [];
+  // r771: not during a boss window: that clock is the boss's own countdown, not the session's.
+  const _boss = typeof bossActive !== 'undefined' && bossActive;
+  const marks = (clockSpansLevels() && !_boss) ? clockLevelMarks.map(s => clockTrackPos(s) * 100) : [];
   const markKey = marks.map(m => m.toFixed(1)).join('|');
 
   hosts.forEach(host => {
     const track = clockTrackEnsure(host);
     track.style.setProperty('--clk-band', bandPct > 0.2 ? bandPct + '%' : '0%');
-    if (winKey !== _clkWinKey) {
+    // r771: the keys live on EACH track. A track rebuilt (its host's markup was replaced, which a
+    // phone's top bar does) used to inherit the shared key and stay empty of lines and windows.
+    if (winKey !== track._winKey) {
+      track._winKey = winKey;
       track.querySelector('.clk-wins').innerHTML = wins.map(w =>
         `<div class="clk-win" style="left:${w.left}%;width:${w.width}%;--cw:${w.color}">`
         + `<span class="clk-win-g">${w.glyph}</span></div>`).join('');
     }
-    if (markKey !== _clkMarkKey) {
+    if (markKey !== track._markKey) {
+      track._markKey = markKey;
       track.querySelector('.clk-marks').innerHTML = marks.map(m =>
         `<div class="clk-mark" style="left:${m}%"></div>`).join('');
     }
   });
-  _clkWinKey = winKey; _clkMarkKey = markKey;
 }

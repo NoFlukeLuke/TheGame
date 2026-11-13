@@ -4957,3 +4957,20 @@ hands on a 4x4 in 4.1s with 3, 6, then 9 cells empty and one fall after; a hand 
 goal ended the round under each of the three (All Hands with 3 cells still empty: the round-end
 sweep and the interlude ran); a tap mid-cascade selected nothing; the deck count matched after
 every run; no timeline drift, no page errors. Golden: 834 cases match.
+
+## r774 - the timer's level-up lines stay put; Time Slip 10%; the phone's timer bar (owner)
+- **Level-up lines on the session clock** (js/clock-track.js): `startRoundTimer` wiped every line
+  whenever `roundSeconds > roundStartSeconds` ("the clock gained time"), which was also true after a
+  rewind that carried the clock past the level's start, or a level-start time bonus, so a quarter's
+  earlier lines vanished. Lines now clear only on a real refill: `flowNextRoundSeconds` (a new Flow
+  session), `crunchBeginQuarter`, a new run. They are hidden during a boss window (that clock is the
+  boss's own), and each bar keeps its own redraw key (`track._markKey` / `_winKey`), so a rebuilt
+  track never inherits a key and stays empty. Measured at 1440x820 and 420x900: 10 level-ups with a
+  40s rewind between the 2nd and 3rd kept all 10 lines (before: 7, the first three wiped); a refill
+  cleared them; none drawn in a boss window.
+- **Time Slip** (`time_slip`): 10% (was 25%), +5% an improvement: 10 / 15 / 20 / 25 / 30 / 45%
+  (was 25 / 35 / 45 / 55 / 65 / 95).
+- **The phone's timer bar** (css/clock-track.css): 4px corners instead of a pill; the Flow skull
+  (`#clock-boss`) is a child of `#clock-bar-wrap`, inside its right end, the track stopping short of
+  it (the landscape bar already worked this way). Measured at 420x900: skull 302-316 inside the bar's
+  170-319, track ends at 301, tap opens the boss bubble.

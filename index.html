@@ -1384,11 +1384,10 @@
   </div>
   <div id="clock-area">
     <div id="clock">1:00</div>
-    <div id="clock-bar-wrap"><div id="clock-bar"></div></div>
-    <!-- Flow only (r376): the bar FILLS toward this mark as the session clock
-         runs down, so the readout reads as an approach rather than a drain.
-         Tap it for the boss you are heading for. -->
-    <button id="clock-boss" class="clock-boss" type="button" title="Manager review">&#9760;</button>
+    <!-- Flow only (r376): the bar FILLS toward the skull as the session clock runs
+         down. Tap it for the boss you are heading for. r771 (owner): the skull is
+         INSIDE the bar, at its right end. -->
+    <div id="clock-bar-wrap"><div id="clock-bar"></div><button id="clock-boss" class="clock-boss" type="button" title="Manager review">&#9760;</button></div>
     <button id="skip-btn" type="button">Skip »</button>
   </div>
   <!-- The "Hands" counter was removed from the top bar (r160) - it is a

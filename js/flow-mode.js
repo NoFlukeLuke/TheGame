@@ -256,6 +256,7 @@ function flowEndBoss() {
 function flowNextRoundSeconds(currentSeconds) {
   if (!flowRefillClock) return Math.max(1, currentSeconds);
   flowRefillClock = false;
+  if (typeof clockMarksReset === 'function') clockMarksReset();   // r771: a new session, so no lines from the last
   return flowSessionSeconds();
 }
 
