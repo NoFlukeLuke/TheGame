@@ -738,10 +738,11 @@ function freshShuffledDeck() {
     for (let i = 0; i < n; i++) out.push(stampId({ rank: WILD_RANK, suit: WILD_SUIT }));
     return out;
   };
-  if (typeof deckDesignActive === 'function' && deckDesignActive()) return deckShuffle(buildDesignedDeck().concat(_wilds()));
+  const _extra = () => (typeof modeExtraCards === 'function' ? modeExtraCards() : []).map(([r, s]) => stampId({ rank: r, suit: s }));   // r775
+  if (typeof deckDesignActive === 'function' && deckDesignActive()) return deckShuffle(buildDesignedDeck().concat(_wilds(), _extra()));
   const d = [];
   for (const s of ACTIVE_SUITS) for (const r of ACTIVE_RANKS) d.push(stampId({ rank:r, suit:s }));
-  return deckShuffle([...d, ..._wilds()]);
+  return deckShuffle([...d, ..._wilds(), ..._extra()]);
 }
 
 function shuffle(arr) {

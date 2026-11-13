@@ -25,7 +25,7 @@
 //   stops before it moves (the toys' rule, js/event-toys.js).
 //
 // evSlotMachine(parent, opts) -> { el, spin(stops, { tease, len }) -> Promise, flash(cells, cls),
-//   celebrate(lines) -> Promise, clear() }
+//   celebrate(lines) -> Promise, scan(lines, won, { big, huge }) -> Promise(count), clear() }
 //   spin's len multiplies every reel's run (Spin to Improve's single reel takes longer).
 //   celebrate (r764): after a short rest each winning line is drawn through its cells
 //   and lit, one at a time with a rising tone, then the cabinet holds a beat; the
@@ -49,6 +49,10 @@ const SLOT = {
   winPre: 380,        // r764: the reels rest this long before a win is shown
   winLine: 420,       // each winning line drawn this far after the last
   winHold: 1100,      // the celebration holds this long before the payout
+  scanMiss: 150,      // r775: a line that pays nothing is lit red this long
+  scanWin: 560,       // r775: a line that pays is lit blue and held this long
+  bigHold: 2000,      // r775: 3+ winning lines: the bigger celebration
+  hugeHold: 3400,     // r775: 5+ winning lines: the biggest
 };
 let _slotUid = 0;
 
@@ -195,14 +199,14 @@ function evSlotMachine(parent, opts) {
   }
   // r764: draw each winning line through its cells' centres (window px: 6 pad, 6 gap).
   const win = host.querySelector('.evt-slot-window');
-  function lineSvg(cells) {
+  function lineSvg(cells, cls) {
     const n = drums.length, Wd = 12 + n * W + (n - 1) * 6, Hd = 12 + 3 * H;
     const pts = cells.map(([r, k]) => `${(6 + k * (W + 6) + W / 2).toFixed(1)},${(6 + H * (r + 0.5)).toFixed(1)}`);
     const [a, b] = [pts[0].split(',').map(Number), pts[pts.length - 1].split(',').map(Number)];
     const one = cells.length < 2, dx = one ? 1 : b[0] - a[0], dy = one ? 0 : b[1] - a[1], L = Math.hypot(dx, dy) || 1, ex = dx / L * W * 0.42, ey = dy / L * H * 0.42;
     const ends = `${(a[0] - ex).toFixed(1)},${(a[1] - ey).toFixed(1)} ${pts.join(' ')} ${(b[0] + ex).toFixed(1)},${(b[1] + ey).toFixed(1)}`;
     const el = document.createElement('div');
-    el.className = 'evt-winline';
+    el.className = 'evt-winline' + (cls ? ' ' + cls : '');
     el.innerHTML = `<svg viewBox="0 0 ${Wd} ${Hd}" width="${Wd}" height="${Hd}"><polyline points="${ends}" pathLength="1"/></svg>`;
     win.appendChild(el);
     return el;
@@ -220,12 +224,63 @@ function evSlotMachine(parent, opts) {
       setTimeout(res, fast ? 0 : (lines.length - 1) * SLOT.winLine + SLOT.winHold);
     }));
   }
-  function clear() {
-    host.querySelectorAll('.evt-sym-win, .evt-sym-near').forEach(el => el.classList.remove('evt-sym-win', 'evt-sym-near'));
-    host.querySelectorAll('.evt-winline').forEach(el => el.remove());
+  // r775 (owner): every line is read in turn. A line that pays nothing lights red
+  // with a soft no; a line that pays lights blue and is held a beat. Then the
+  // celebration by how many paid: 1-2 the r764 beat, 3+ bigger (opts.big, the
+  // banner text), 5+ bigger and longer (opts.huge). Resolves with the count.
+  function scan(lines, won, opts) {
+    const o = opts || {}, fast = _etFast();
+    let n = 0, t = fast ? 0 : SLOT.winPre;
+    const at = (ms, fn) => setTimeout(fn, fast ? 0 : ms);
+    lines.forEach((cells, i) => {
+      const w = !!won[i];
+      at(t, () => {
+        const el = lineSvg(cells, w ? 'evt-scan-win' : 'evt-scan-miss');
+        if (w) { n++; flash(cells, 'evt-sym-blue'); _etSfx('sfxQuotaLine', n); }
+        else { flash(cells, 'evt-sym-red'); _etSfx('sfxSlotNo'); setTimeout(() => { el.remove(); cells.forEach(([r, k]) => unflash(r, k, 'evt-sym-red')); }, fast ? 0 : SLOT.scanMiss + 60); }
+      });
+      t += w ? SLOT.scanWin : SLOT.scanMiss;
+    });
+    const total = won.filter(Boolean).length;
     host.classList.remove('evt-slot-won');
+    return new Promise(res => at(t, () => {
+      if (!total) { res(0); return; }
+      host.classList.add('evt-slot-won');
+      if (total >= 5) { banner(o.huge || 'JACKPOT', 'evt-huge'); _etSfx('sfxQuotaAll'); at(500, () => _etSfx('sfxQuotaAll')); coinShower(fast ? 0 : 26);
+        at(900, () => _etSfx('sfxChallengeWin')); at(SLOT.hugeHold, () => res(total)); return; }
+      if (total >= 3) { banner(o.big || 'BIG WIN', 'evt-big3'); _etSfx('sfxQuotaAll'); coinShower(fast ? 0 : 10);
+        at(500, () => _etSfx('sfxChallengeWin')); at(SLOT.bigHold, () => res(total)); return; }
+      _etSfx('sfxChallengeWin'); at(SLOT.winHold, () => res(total));
+    }));
   }
-  return { el: host, spin, flash, celebrate, clear };
+  function unflash(r, k, cls) {
+    const d = drums[k], j = ((Math.round(d.p) + r - 1) % d.F + d.F) % d.F;
+    d.faces[j].classList.remove(cls);
+  }
+  function banner(text, cls) {
+    host.classList.add(cls);
+    const b = document.createElement('div'); b.className = 'evt-slot-banner'; b.textContent = text;
+    win.appendChild(b);
+  }
+  // Coins thrown up out of the window (cosmetic: fxRandom), a coin sound each.
+  function coinShower(n) {
+    const rnd = typeof fxRandom === 'function' ? fxRandom : Math.random;
+    for (let i = 0; i < n; i++) setTimeout(() => {
+      const c = document.createElement('i'); c.className = 'evt-slot-coin';
+      c.style.left = (10 + rnd() * 80).toFixed(1) + '%';
+      c.style.setProperty('--dx', ((rnd() - 0.5) * 120).toFixed(0) + 'px');
+      c.style.setProperty('--up', (60 + rnd() * 70).toFixed(0) + 'px');
+      c.style.animationDuration = (700 + rnd() * 500).toFixed(0) + 'ms';
+      host.appendChild(c); setTimeout(() => c.remove(), 1400);
+      if (i % 3 === 0) _etSfx('sfxPayoutCoin', Math.floor(i / 3), Math.ceil(n / 3));
+    }, i * 55);
+  }
+  function clear() {
+    host.querySelectorAll('.evt-sym-win, .evt-sym-near, .evt-sym-blue, .evt-sym-red').forEach(el => el.classList.remove('evt-sym-win', 'evt-sym-near', 'evt-sym-blue', 'evt-sym-red'));
+    host.querySelectorAll('.evt-winline, .evt-slot-banner, .evt-slot-coin').forEach(el => el.remove());
+    host.classList.remove('evt-slot-won', 'evt-big3', 'evt-huge');
+  }
+  return { el: host, spin, flash, celebrate, scan, clear };
 }
 
 // ── sounds ──
@@ -261,5 +316,20 @@ function sfxSlotStop(k) {
     const n = ctx.createBufferSource(), lp = ctx.createBiquadFilter(), ng = ctx.createGain();
     n.buffer = _slotNoise(ctx, 22); lp.type = 'lowpass'; lp.frequency.value = 1800; ng.gain.value = (0.18 + 0.12 * w) * vol;
     n.connect(lp); lp.connect(ng); ng.connect(out); n.start(t);
+  } catch (e) {}
+}
+
+// r775: a line that pays nothing. A soft two-note no, low and short.
+function sfxSlotNo() {
+  try {
+    const ctx = getAudioCtx(), out = sfxOut(ctx), t = ctx.currentTime;
+    const vol = sfxVolume() * (typeof sfxIdGain === 'function' ? sfxIdGain() : 1);
+    [[330, 0], [262, 0.07]].forEach(([f, d]) => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = 'triangle'; o.frequency.value = f;
+      g.gain.setValueAtTime(0.0001, t + d); g.gain.exponentialRampToValueAtTime(0.07 * vol, t + d + 0.008);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + d + 0.09);
+      o.connect(g); g.connect(out); o.start(t + d); o.stop(t + d + 0.1);
+    });
   } catch (e) {}
 }

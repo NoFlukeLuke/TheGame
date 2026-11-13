@@ -171,6 +171,13 @@ function wildCardCount() {
   return Math.max(0, Math.min(52, Math.round(per * suits)));
 }
 
+// r775: cards a mode deals on top of its suits x ranks (Past Capacity's Crowns and
+// Crescents). `extraCards` is a list of [rank, suit]; read here and nowhere else.
+function modeExtraCards() {
+  const m = (typeof ACTIVE_MODE !== 'undefined') ? ACTIVE_MODE : null;
+  return (m && Array.isArray(m.extraCards)) ? m.extraCards : [];
+}
+
 // RANK_ORDER / RANK_PIPS carry the numeric ranks too. '2'-'10' already map to
 // themselves, so only 1, 11-15 and 20 are new - no classic key changes value.
 const RANK_ORDER = {A:1,'0':0,'1':1,'2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,'10':10,J:11,Q:12,K:13,

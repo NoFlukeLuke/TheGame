@@ -9,10 +9,10 @@
 // for a three-card hand. Entity Slots' odds are SET (owner, r590: "edit the
 // rolls to achieve this outcome"): a pull first rolls win or lose (1 in 3 at 5
 // entities down to 1 in 7 at 14 and more), then picks stops that show exactly
-// that; only a row or a diagonal pays (r764). A win is drawn and held a beat
-// (the machine's celebrate) before it pays. Pulls cost: Card Slots' first is
-// free, then BAL.the_floor.pull; Entity Slots alternate 10 credits and 5 seconds
-// off the next round, and need 5 improvable entities.
+// that; rows, columns and diagonals pay (r775). A win is drawn and held a beat
+// (the machine's scan, r775) before it pays. Pulls cost the same in both
+// (slotPullPrice: the first free, then 15 20 25 30 40 50...), and four winning
+// pulls close the machine. Entity Slots need 5 improvable entities.
 
 let slotBuffIdx = 0;   // r197's rotating buff cursor: kept in SAVE_VARS for old saves, unused since r590
 const SLOT_LINES_3 = [
@@ -34,20 +34,39 @@ function slotSkipSync(pulls, busy) {
   const b = document.getElementById('event-skip'); if (!b) return;
   b.style.display = 'inline-block'; b.textContent = pulls ? 'Done' : 'Skip'; b.disabled = !!busy;
 }
+// r775 (owner): the price of the next pull, `pulls` being the pulls made so far.
+// The first is free; repulls 15, 20, 25, 30, then +10 each (BAL.slot_pulls).
+function slotPullPrice(pulls) {
+  const B = BAL.slot_pulls;
+  if (!pulls) return 0;
+  const i = pulls - 1;
+  return B.first + B.step * Math.min(i, B.steps) + B.step2 * Math.max(0, i - B.steps);
+}
+// The machine closes after BAL.slot_pulls.max_wins winning pulls.
+function slotWinsLeft(wins) { return Math.max(0, BAL.slot_pulls.max_wins - (wins || 0)); }
+function slotPullLabel(price, wins) {
+  if (!slotWinsLeft(wins)) return 'NO MORE PULLS';
+  return price ? `PULL · ${creditsTxt(price)}` : 'PULL · FREE';
+}
+// 3+ paying lines double what each pays, 5+ multiply it by five.
+function slotLineMult(n) { return n >= 5 ? 5 : n >= 3 ? 2 : 1; }
+function slotClosedNote(out) {
+  out.appendChild(evNote(`${BAL.slot_pulls.max_wins} wins. The machine takes no more pulls.`));
+}
 // ══════════════════════════════════════════════
 // CARD SLOTS (id 'the_floor')
 // ══════════════════════════════════════════════
 // r764 (owner): the reels hold your own cards, dealt in a random order across
 // the three reels (each card once). The stops are random, so the odds are what
 // the cards make: every row, column and diagonal of the 3x3 is read, and a line
-// holding a three-card hand (Three of a Kind, Run of 3, and Flush of 3 once
-// flushes are unlocked; a wild completes a set) buffs its cards, each once a
-// pull. Pairs count only with CARD_SLOT_PAIRS. Measured over 200,000 pulls on
-// the 56-card deck: 3-card hands 34% a pull (54% with flushes), 94% with pairs.
-const CARD_SLOT_PAIRS = false;
-const FLOOR_HAND_WORD = { set: 'SET OF 3', run: 'RUN OF 3', flush: 'FLUSH OF 3', pair: 'PAIR' };
+// holding a three-card hand (Three of a Kind, Run of 3; a wild completes a set)
+// buffs its cards, each once a pull. r775 (owner): a Flush of 3 counts only with
+// the Short Suit knack; no pairs. Measured over 200,000 pulls on the 56-card
+// deck: 34% of pulls pay (54% with flushes).
+const FLOOR_HAND_WORD = { set: 'SET OF 3', run: 'RUN OF 3', flush: 'FLUSH OF 3' };
 function floorCards() { return everyDeckCard().filter(c => c && c.rank && !c._isSleight && !c._isStone); }
 function floorRanks() { return [...new Set(floorCards().filter(c => !isWildCard(c)).map(c => c.rank))]; }   // kept for old callers
+function floorFlushOn() { return typeof hasKnack === 'function' && hasKnack('short_suit'); }
 function floorHand(cards) {
   const n = cards.filter(c => !isWildCard(c)), w = cards.length - n.length;
   if (n.length && n.every(c => c.rank === n[0].rank) && handIsActive('Three of a Kind')) return { kind: 'set', cards };
@@ -55,11 +74,7 @@ function floorHand(cards) {
     const v = n.map(c => RANK_ORDER[c.rank] || 0).sort((x, y) => x - y);
     const run = (v[1] === v[0] + 1 && v[2] === v[1] + 1) || v.join() === '1,12,13';
     if (run && handIsActive('Run of 3')) return { kind: 'run', cards };
-    if (n.every(c => c.suit === n[0].suit) && handIsActive('Flush of 3')) return { kind: 'flush', cards };
-  }
-  if (CARD_SLOT_PAIRS) for (let i = 0; i < 3; i++) for (let j = i + 1; j < 3; j++) {
-    const x = cards[i], y = cards[j];
-    if (isWildCard(x) || isWildCard(y) || x.rank === y.rank) return { kind: 'pair', cards: [x, y] };
+    if (floorFlushOn() && n.every(c => c.suit === n[0].suit)) return { kind: 'flush', cards };
   }
   return null;
 }
@@ -67,11 +82,13 @@ function floorFaceHTML(c) {
   if (isWildCard(c)) return `<span class="sl-rank sl-wild">${WILD_RANK}</span>`;
   return `<span class="sl-rank ${typeof suitClass === 'function' ? suitClass(c.suit) : ''}">${c.rank}<i>${c.suit}</i></span>`;
 }
-function floorPullPrice() { return eventState.floorPulls ? priceOf(BAL.the_floor.pull) : 0; }
+function floorPullPrice() { return slotPullPrice(eventState.floorPulls); }
 function renderFloor() {
   const s = eventState, body = evBodyEl();
-  s.floorPulls = 0; s.floorBusy = false;
-  body.appendChild(evNote('Any row, column or diagonal holding a three-card hand buffs those cards.'));
+  s.floorPulls = 0; s.floorWins = 0; s.floorBusy = false;
+  body.appendChild(evNote(floorFlushOn()
+    ? 'Any row, column or diagonal holding a Set of 3, a Run of 3 or a Flush of 3 buffs those cards.'
+    : 'Any row, column or diagonal holding a Set of 3 or a Run of 3 buffs those cards.'));
   const deal = evShuffle(floorCards().slice()), n = Math.ceil(deal.length / 3);
   s.floorStrips = [0, 1, 2].map(k => deal.slice(k * n, (k + 1) * n).map(c => ({ key: cardId(c), card: c, html: floorFaceHTML(c) })));
   s.floorMachine = evSlotMachine(body, { reels: s.floorStrips, payRow: null, itemW: 56, itemH: 44 });
@@ -80,12 +97,12 @@ function renderFloor() {
 }
 function floorSync() {
   const s = eventState, price = floorPullPrice();
-  evConfirmBtn(price ? `PULL · ${creditsTxt(price)}` : 'PULL · FREE', !s.floorBusy && coins >= price);
+  evConfirmBtn(slotPullLabel(price, s.floorWins), !s.floorBusy && slotWinsLeft(s.floorWins) > 0 && coins >= price);
   slotSkipSync(s.floorPulls, s.floorBusy);
 }
 function floorPull() {
   const s = eventState;
-  if (s.floorBusy) return;
+  if (s.floorBusy || !slotWinsLeft(s.floorWins)) return;
   const price = floorPullPrice();
   if (coins < price) return;
   coins -= price; updateCoinsUI?.();
@@ -93,34 +110,35 @@ function floorPull() {
   s.floorOut.innerHTML = '';
   const stops = s.floorStrips.map(st => Math.floor(Math.random() * st.length));
   const grid = slotGrid(s.floorStrips, stops);
-  const wins = SLOT_LINES_3.map(line => ({ line, hand: floorHand(line.map(([r, k]) => grid[r][k].card)) })).filter(w => w.hand);
+  const hands = SLOT_LINES_3.map(line => floorHand(line.map(([r, k]) => grid[r][k].card)));
+  const wins = SLOT_LINES_3.map((line, i) => ({ line, hand: hands[i] })).filter(w => w.hand);
+  const mult = slotLineMult(wins.length);
   // A near miss: two touching cards on a row or diagonal through the first two reels share a rank.
   const near = SLOT_LINES_3.find(l => l[0][1] === 0 && l[1][1] === 1 && grid[l[0][0]][0].card.rank === grid[l[1][0]][1].card.rank);
-  s.floorMachine.spin(stops, { tease: wins.length > 0 || !!near }).then(() => {
-    if (!wins.length) {
-      if (near) s.floorMachine.flash(near.slice(0, 2), 'evt-sym-near');
-      s.floorBusy = false; floorSync(); return;
-    }
-    return s.floorMachine.celebrate(wins.map(w => w.line)).then(() => {
-      const done = new Set(), lines = [];
-      wins.forEach(w => {
-        const got = [];
-        w.hand.cards.forEach(c => {
-          if (isWildCard(c) || done.has(cardId(c))) return;
-          done.add(cardId(c));
-          const b = rollBuffs(1, { event: true })[0];
-          if (b) { enhanceCardKey(cardId(c), b.e); got.push(`${c.rank}${c.suit} ${b.label}`); }
-        });
-        if (got.length) lines.push(`${FLOOR_HAND_WORD[w.hand.kind]} · ${got.join(', ')}`);
+  s.floorMachine.spin(stops, { tease: wins.length > 0 || !!near }).then(() =>
+    s.floorMachine.scan(SLOT_LINES_3, hands, { big: `${wins.length} LINES · BUFFS x2`, huge: `${wins.length} LINES · BUFFS x5` })
+  ).then(() => {
+    if (!wins.length) { s.floorBusy = false; floorSync(); return; }
+    s.floorWins++;
+    const done = new Set(), lines = [];
+    wins.forEach(w => {
+      const got = [];
+      w.hand.cards.forEach(c => {
+        if (isWildCard(c) || done.has(cardId(c))) return;
+        done.add(cardId(c));
+        const b = rollBuffs(1, { event: true, mult: mult > 1 ? mult : 0 })[0];
+        if (b) { enhanceCardKey(cardId(c), b.e); got.push(`${c.rank}${c.suit} ${b.label}`); }
       });
-      const res = document.createElement('div'); res.className = 'evt-big win';
-      res.textContent = `${done.size} CARD${done.size === 1 ? '' : 'S'} BUFFED`;
-      s.floorOut.appendChild(res);
-      lines.forEach(t => s.floorOut.appendChild(evNote(t)));
-      evReveal(res);
-      _etSfx('sfxRewardGood');
-      s.floorBusy = false; floorSync();
+      if (got.length) lines.push(`${FLOOR_HAND_WORD[w.hand.kind]} · ${got.join(', ')}`);
     });
+    const res = document.createElement('div'); res.className = 'evt-big win';
+    res.textContent = `${done.size} CARD${done.size === 1 ? '' : 'S'} BUFFED${mult > 1 ? ` · x${mult}` : ''}`;
+    s.floorOut.appendChild(res);
+    lines.forEach(t => s.floorOut.appendChild(evNote(t)));
+    if (!slotWinsLeft(s.floorWins)) slotClosedNote(s.floorOut);
+    evReveal(res);
+    _etSfx('sfxRewardGood');
+    s.floorBusy = false; floorSync();
   });
 }
 function confirmFloor() { floorPull(); }
@@ -128,51 +146,46 @@ function confirmFloor() { floorPull(); }
 // ══════════════════════════════════════════════
 // ENTITY SLOTS (id 'the_payline')
 // ══════════════════════════════════════════════
+// r775 (owner): rows, columns and diagonals all pay again. Each reel its own fixed
+// order, every entity in a block of 1 or 2 and one entity in a block of 3, so a
+// column can show three alike. The odds stay SET (paylineWinChance). Every paying
+// line improves its entity once (x2 at 3+ lines, x5 at 5+), up to its last tier.
 const ENTITY_SLOT_MIN = 5;
 function paylineWinChance(n) {
   const hi = 1 / 3, lo = 1 / 7;
   return Math.max(lo, Math.min(hi, hi - (n - ENTITY_SLOT_MIN) * (hi - lo) / 9));
 }
-// r764 (owner): a row or a diagonal pays, never a column. Each reel its own fixed
-// order, every entity in a block of 1 or 2, so a column can never show three alike.
-const PAYLINE_LINES = SLOT_LINES_3.filter(l => !l.every(([, k]) => k === l[0][1]));
+const PAYLINE_LINES = SLOT_LINES_3;
 function paylineStrip(ents) {
-  const out = [];
-  evShuffle(ents.slice()).forEach(e => { const len = 1 + (Math.random() < 0.4 ? 1 : 0); for (let k = 0; k < len; k++) out.push(e); });
+  const out = [], order = evShuffle(ents.slice()), tri = Math.floor(Math.random() * order.length);
+  order.forEach((e, i) => { const len = i === tri ? 3 : 1 + (Math.random() < 0.4 ? 1 : 0); for (let k = 0; k < len; k++) out.push(e); });
   return out;
 }
-function paylineCost(pull) { return pull % 2 === 0 ? { credits: priceOf(BAL.the_payline.spin_cost) } : { seconds: BAL.the_payline.spin_secs }; }
-function paylineCostText(c) { return c.credits ? creditsTxt(c.credits) : `${c.seconds}s`; }
 function renderPayline() {
   const s = eventState, body = evBodyEl();
   const ents = evImprovables();
   if (!eventEligible('the_payline')) { body.innerHTML = evEmptyHTML('Not enough to put on the reels.'); s.plNone = true; setEventConfirm(true); return; }
-  s.plPulls = 0; s.plBusy = false;
+  s.plPulls = 0; s.plWins = 0; s.plBusy = false;
   const syms = ents.map(e => ({ key: e.id, ent: e, html: `<div class="sl-ent">${entityTileHTML({ entity: e.kind, id: e.id, emoji: e.emoji, label: e.name }, e.rarity || 'common', { tip: false })}</div>` }));
   s.plStrips = [0, 1, 2].map(() => paylineStrip(syms));
   s.plChance = paylineWinChance(ents.length);
-  body.appendChild(evNote('Three alike in a row or a diagonal improves that entity.'));
+  body.appendChild(evNote('Three alike in a row, a column or a diagonal improves that entity.'));
   s.plMachine = evSlotMachine(body, { reels: s.plStrips, payRow: null, itemW: 54, itemH: 60 });
   if (typeof fitRewardName === 'function') requestAnimationFrame(() => s.plMachine.el.querySelectorAll('.rwd-name').forEach(fitRewardName));
   s.plOut = document.createElement('div'); body.appendChild(s.plOut);
   paylineSync();
 }
 function paylineSync() {
-  const s = eventState, c = paylineCost(s.plPulls);
-  const can = !s.plBusy && (!c.credits || coins >= c.credits);
-  evConfirmBtn(`PULL · ${paylineCostText(c)}`, can);
+  const s = eventState, price = slotPullPrice(s.plPulls);
+  evConfirmBtn(slotPullLabel(price, s.plWins), !s.plBusy && slotWinsLeft(s.plWins) > 0 && coins >= price);
   slotSkipSync(s.plPulls, s.plBusy);
 }
 function paylinePull() {
   const s = eventState;
-  if (s.plBusy) return;
-  const c = paylineCost(s.plPulls);
-  if (c.credits) { if (coins < c.credits) return; coins -= c.credits; updateCoinsUI?.(); }
-  else {
-    // The seconds come off the next round; in Flow (one running clock) off this one.
-    if (typeof flowActive === 'function' && flowActive()) { roundSeconds = Math.max(1, roundSeconds - c.seconds); updateClockUI?.(); }
-    else nextRoundSecondsDelta -= c.seconds;
-  }
+  if (s.plBusy || !slotWinsLeft(s.plWins)) return;
+  const price = slotPullPrice(s.plPulls);
+  if (coins < price) return;
+  coins -= price; updateCoinsUI?.();
   s.plPulls++; s.plBusy = true; paylineSync();
   s.plOut.innerHTML = '';
   const win = Math.random() < s.plChance;
@@ -184,20 +197,30 @@ function paylinePull() {
   }
   if (!stops) stops = s.plStrips.map(() => 0);
   const grid = slotGrid(s.plStrips, stops), lines = slotLinesWon(grid, PAYLINE_LINES);
+  const won = PAYLINE_LINES.map(l => lines.includes(l));
+  const mult = slotLineMult(lines.length);
   // Tease when two reels already hold a line's first two symbols and the last decides it.
   const tease = lines.length > 0 || PAYLINE_LINES.some(l => l[0][1] === 0 && l[1][1] === 1 && grid[l[0][0]][0].key === grid[l[1][0]][1].key);
-  s.plMachine.spin(stops, { tease }).then(() => {
+  s.plMachine.spin(stops, { tease }).then(() =>
+    s.plMachine.scan(PAYLINE_LINES, won, { big: `${lines.length} LINES · IMPROVE x2`, huge: `${lines.length} LINES · IMPROVE x5` })
+  ).then(() => {
     if (!lines.length) { s.plBusy = false; paylineSync(); return; }
-    // r764: the winning line is drawn and held a beat; the improvement comes after.
-    return s.plMachine.celebrate([lines[0]]).then(() => {
-      const e = grid[lines[0][0][0]][lines[0][0][1]].ent;
-      improveEntity(e.id);
-      if (typeof syncOwnedEntityDescs === 'function') syncOwnedEntityDescs();
-      const res = document.createElement('div'); res.className = 'evt-big win';
-      res.textContent = `${e.name.toUpperCase()} · v${entityTierOf(e.id) + 1}.0`;
-      s.plOut.appendChild(res); evReveal(res);
-      s.plBusy = false; paylineSync();
+    s.plWins++;
+    const got = new Map();
+    lines.forEach(l => {
+      const e = grid[l[0][0]][l[0][1]].ent;
+      for (let i = 0; i < mult && canImprove(e.id); i++) { improveEntity(e.id); got.set(e, (got.get(e) || 0) + 1); }
     });
+    if (typeof syncOwnedEntityDescs === 'function') syncOwnedEntityDescs();
+    if (!got.size) s.plOut.appendChild(evNote('Already at its last improvement.'));
+    got.forEach((n, e) => {
+      const res = document.createElement('div'); res.className = 'evt-big win';
+      res.textContent = `${e.name.toUpperCase()} · v${entityTierOf(e.id) + 1}.0${n > 1 ? ` · +${n}` : ''}`;
+      s.plOut.appendChild(res);
+    });
+    if (!slotWinsLeft(s.plWins)) slotClosedNote(s.plOut);
+    if (s.plOut.firstChild) evReveal(s.plOut.firstChild);
+    s.plBusy = false; paylineSync();
   });
 }
 function confirmPayline() { if (eventState.plNone) closeEvent(); else paylinePull(); }

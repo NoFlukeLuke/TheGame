@@ -273,6 +273,33 @@
 @keyframes evt-winline-draw { to { stroke-dashoffset: 0; } }
 @keyframes evt-winline-glow { to { stroke: #fff4c4; filter: drop-shadow(0 0 9px rgba(255,236,170,1)); } }
 .evt-slot-won .evt-slot-cab { border-color: #f0c040; box-shadow: 0 0 22px rgba(240,192,64,.55), inset 0 2px 0 rgba(255,255,255,.08); }
+/* r775: the scan. A line that pays nothing is red for a moment; one that pays is blue and stays. */
+.evt-winline.evt-scan-miss polyline { stroke: #ff5a4e; filter: drop-shadow(0 0 3px rgba(255,90,78,.8)); animation: evt-winline-draw .1s linear forwards; }
+.evt-winline.evt-scan-win polyline { stroke: #4fb4ff; filter: drop-shadow(0 0 5px rgba(79,180,255,.95));
+  animation: evt-winline-draw .22s ease-out forwards, evt-scan-glow .5s ease-in-out .22s infinite alternate; }
+@keyframes evt-scan-glow { to { stroke: #d6efff; filter: drop-shadow(0 0 10px rgba(150,215,255,1)); } }
+.evt-sym.evt-sym-red { background: radial-gradient(circle, rgba(255,90,78,.7), rgba(255,90,78,.18)); }
+.evt-sym.evt-sym-blue { background: radial-gradient(circle, rgba(79,180,255,.95), rgba(79,180,255,.3)); animation: evt-win-blink .45s ease-in-out 3; }
+.evt-slot-won .evt-slot-cab { border-color: #4fb4ff; box-shadow: 0 0 22px rgba(79,180,255,.55), inset 0 2px 0 rgba(255,255,255,.08); }
+/* 3+ lines: a banner over the reels and the cabinet pulsing. 5+: bigger, gold, shaking. */
+.evt-slot-banner { position: absolute; left: 50%; top: 50%; z-index: 8; pointer-events: none; white-space: nowrap;
+  transform: translate(-50%, -50%); padding: 4px 12px; border-radius: 6px; font: 900 18px 'Orbitron', sans-serif; letter-spacing: 1px;
+  color: #fff; background: rgba(10, 30, 60, .88); border: 2px solid #4fb4ff; box-shadow: 0 0 18px rgba(79,180,255,.9);
+  animation: evt-banner-in .42s cubic-bezier(.2, 1.6, .4, 1) both; }
+@keyframes evt-banner-in { from { transform: translate(-50%, -50%) scale(.2); opacity: 0; } }
+.evt-big3 .evt-slot-cab { animation: evt-cab-pulse .5s ease-in-out 4 alternate; }
+@keyframes evt-cab-pulse { to { box-shadow: 0 0 40px rgba(79,180,255,1), inset 0 2px 0 rgba(255,255,255,.1); } }
+.evt-huge .evt-slot-banner { font-size: 24px; color: #2a1a00; background: linear-gradient(180deg, #ffe680, #f0b020); border-color: #fff4c4;
+  box-shadow: 0 0 30px rgba(255,220,120,1); animation: evt-banner-in .5s cubic-bezier(.2, 1.6, .4, 1) both, evt-banner-throb .4s ease-in-out .5s infinite alternate; }
+@keyframes evt-banner-throb { to { transform: translate(-50%, -50%) scale(1.08); } }
+.evt-huge .evt-slot-cab { border-color: #ffe680; animation: evt-cab-shake .09s linear 14, evt-cab-gold .6s ease-in-out 1.3s infinite alternate; }
+@keyframes evt-cab-shake { 25% { transform: translate(-3px, 1px); } 75% { transform: translate(3px, -1px); } }
+@keyframes evt-cab-gold { to { box-shadow: 0 0 50px rgba(255,220,120,1), inset 0 2px 0 rgba(255,255,255,.1); } }
+.evt-slot-host { position: relative; }
+.evt-slot-coin { position: absolute; top: 40%; z-index: 9; width: 12px; height: 12px; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle at 35% 35%, #fff4c4, #f0c040 45%, #a07010); box-shadow: 0 0 4px rgba(255,220,120,.9);
+  animation: evt-coin-up 1s cubic-bezier(.2, .7, .5, 1) forwards; }
+@keyframes evt-coin-up { 60% { opacity: 1; } to { transform: translate(var(--dx), calc(var(--up) * -1)) rotate(540deg); opacity: 0; } }
 /* card ranks and entity tiles on the reels */
 .evt-sym .sl-rank { font-size: 24px; }
 .evt-sym .sl-rank.red { color: #c0392b; }

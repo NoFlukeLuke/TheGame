@@ -251,6 +251,7 @@ function deckDesignInstallLists() {
   // ranks x suits.
   expectedDeckTotal = deckDesignSize();
   expectedDeckTotal += (typeof wildCardCount === 'function') ? wildCardCount() : 0;   // r325
+  expectedDeckTotal += (typeof modeExtraCards === 'function') ? modeExtraCards().length : 0;   // r775
   deckDesignDirty = false;
   return true;
 }

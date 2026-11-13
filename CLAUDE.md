@@ -4974,3 +4974,34 @@ every run; no timeline drift, no page errors. Golden: 834 cases match.
   (`#clock-boss`) is a child of `#clock-bar-wrap`, inside its right end, the track stopping short of
   it (the landscape bar already worked this way). Measured at 420x900: skull 302-316 inside the bar's
   170-319, track ends at 301, tap opens the boss bubble.
+
+## r775 - the slots scan every line; repulls climb; four wins and out; PAST CAPACITY (owner)
+- **The scan** (`scan(lines, won, { big, huge })` on `evSlotMachine`, js/event-slot-machine.js):
+  after the reels rest every line is read in `SLOT_LINES_3` order. A line that pays nothing is
+  drawn red with its cells, plays `sfxSlotNo` (a soft two-note triangle) and is gone after
+  `SLOT.scanMiss` (150ms); a line that pays is drawn blue (`.evt-scan-win`, `.evt-sym-blue`),
+  rises a tone (`sfxQuotaLine`) and is held `SLOT.scanWin` (560ms). Then by count: 1-2 the r764
+  beat; 3+ a banner over the reels (`.evt-slot-banner`, `evt-big3`), the cabinet pulses, a few
+  coins fly (`coinShower`, fxRandom), held `bigHold`; 5+ a gold banner, the cabinet shakes, a
+  coin shower, held `hugeHold`. `celebrate` stays for Spin to Improve.
+- **3+ paying lines double what each pays, 5+ multiply it by five** (`slotLineMult`): Card Slots'
+  buffs roll with `rollBuffs(1, { mult })`; Entity Slots improve each line's entity that many
+  times, up to its last tier.
+- **Pricing and the cap** (`BAL.slot_pulls`, `slotPullPrice`, both events): the first pull free,
+  then 15, 20, 25, 30, then +10 each. After `max_wins` (4) winning pulls PULL reads NO MORE
+  PULLS and only Done is left (`slotWinsLeft`). `BAL.the_floor` / `the_payline` are gone; Entity
+  Slots no longer cost seconds.
+- **Card Slots**: a Flush of 3 counts only with the Short Suit knack (`floorFlushOn`); no pairs
+  (the `CARD_SLOT_PAIRS` code is gone). **Entity Slots**: columns pay again (`PAYLINE_LINES` is
+  `SLOT_LINES_3`; each strip has one entity in a block of 3 again); every paying line pays.
+- **PAST CAPACITY** (mode `capacity`, carousel after Stacked): Classic's flags, `wilds: 0`,
+  `noWalkthrough`, `extraCards` (8 Crowns J J J Q Q Q K K, 13 Crescents A to K) and
+  `startKnacks: ['short_suit']`. `modeExtraCards()` (js/data/cards.js) is the one reader:
+  `freshShuffledDeck` deals them and both deck-total sites count them; `startKnacks` are granted
+  after `protocolRunSetup` in startGame. Crowns and Crescents keep their r709 suit rules.
+Measured in headless Chromium at 1440x820 and 420x900: Past Capacity dealt 73 cards (13 of each
+suit, 13 Crescents, Crowns JJJQQQKK, no wilds), audit 73/73, Short Suit owned, Flush of 3 and 4
+live; Card Slots priced FREE / 15 / 20 / 25 / 30 / 40 / 50 / 60 / 70 / 80 / 90 and closed after the
+4th win, red lines on every losing pull, blue on wins; a staged 5-line scan showed the gold banner;
+Entity Slots FREE / 15 / 20 / 25 and closed at 4 wins, column triples possible (711 of 3,000 random
+stops). No page errors.

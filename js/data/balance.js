@@ -230,8 +230,10 @@ const BAL = {
   // ── r218 events ──
   reassignment: { consolation_credits: 12, price: 7.5 },   // r590: 15 credits through priceOf, or all you have
   the_draw:     { steps: 2, spin_ms: 3200, consolation_credits: 12 },
-  the_floor:    { pull: 4 },   // r590: a pull after the free first one, through priceOf (8)
-  the_payline:  { spin_cost: 5, spin_secs: 5, consolation_credits: 12 },   // r590: pulls alternate 10 credits (priceOf) and 5s
+  // r775 (owner): both slot events. The first pull is free; a repull costs `first`, then
+  // `step` more for the next `steps`, then `step2` more each (15 20 25 30 40 50...).
+  // After `max_wins` winning pulls the machine takes no more.
+  slot_pulls:   { first: 15, step: 5, steps: 3, step2: 10, max_wins: 4 },
   // ── Focus RATE batch (r180) - scale how fast Focus accrues, not the ceiling ──
   // complexity_mult scales HAND_FOCUS; speed_mult scales the speed bonus;
   // window_mult dilates the speed clock (2 = twice as long for the same bonus).

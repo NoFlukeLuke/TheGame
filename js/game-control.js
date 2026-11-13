@@ -373,6 +373,7 @@ function startGame() {
   if (!(typeof deckDesignOwnsDeck === 'function' && deckDesignOwnsDeck())) {
     expectedDeckTotal = ACTIVE_SUITS.length * ACTIVE_RANKS.length;
     expectedDeckTotal += (typeof wildCardCount === 'function') ? wildCardCount() : 0;   // r325
+    expectedDeckTotal += (typeof modeExtraCards === 'function') ? modeExtraCards().length : 0;   // r775
   }
   dealPhase = false;
 
@@ -737,6 +738,12 @@ function startGame() {
   if (typeof moneyResetRun === 'function') moneyResetRun();   // r722: credit flow, Firesale, Buyback (js/money.js)
   if (typeof difficultyRunSetup === 'function') difficultyRunSetup();   // r728: the tier's starting curse card (the deck is built by now)
   if (typeof protocolRunSetup === 'function') protocolRunSetup();       // r748: Precision starts with Meditation (js/protocols.js)
+  // r775: a mode's starting Knacks (Past Capacity: Short Suit).
+  (ACTIVE_MODE.startKnacks || []).forEach(id => {
+    const k = KNACK_POOL.find(x => x.id === id);
+    if (k && !hasKnack(id)) acquiredKnacks.push({ ...k });
+  });
+  if ((ACTIVE_MODE.startKnacks || []).length && typeof updateKnackList === 'function') updateKnackList();
   if (typeof rsDiff === 'function') rsDiff();   // r755: the loadout the run starts with (js/run-stats.js)
 }
 
