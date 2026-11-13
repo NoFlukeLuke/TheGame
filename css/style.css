@@ -5322,7 +5322,8 @@
   }
 
   #interact-costs.time-popup { display: none; }
-  #interact-costs.time-popup.show, #limits-popup.time-popup.show, #hand-log-popup.time-popup.show {
+  #interact-costs.time-popup.show, #limits-popup.time-popup.show, #hand-log-popup.time-popup.show,
+  #boss-peek-popup.time-popup.show {
     display: flex !important; position: fixed; z-index: 320; min-width: 116px;
     /* Never taller or wider than the phone it is on. These bubbles are placed
        from JS in raw viewport pixels, so without a cap a longer list would run
@@ -5339,6 +5340,9 @@
      because a five-card hand has to fit on one line. ── */
   #hand-log-popup.time-popup { display: none; }
   #hand-log-popup.time-popup.show { min-width: 232px; max-width: 300px; gap: 0; }
+  /* r770: the next-boss bubble was never in the shared rule above, so it drew in the page
+     flow under the board (no position, no layer, no fill) and could not be seen. */
+  #boss-peek-popup.time-popup.show { min-width: 200px; max-width: 280px; gap: 0; }
   #hand-log-rows { display: flex; flex-direction: column; gap: 1px; margin-top: 3px; }
   .hl-r {
     display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: baseline;

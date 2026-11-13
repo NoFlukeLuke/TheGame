@@ -1091,7 +1091,7 @@ function bindClockBossPeek() {
     document._clockBossDismiss = true;
     document.addEventListener('pointerdown', (e) => {
       if (!_clockBossOpen) return;
-      if (e.target.closest && (e.target.closest('.clock-boss') || e.target.closest('#boss-peek-popup'))) return;
+      if (e.target.closest && (e.target.closest('.clock-boss') || e.target.closest('.rp-block') || e.target.closest('#boss-peek-popup'))) return;
       hideBossPeek(); _clockBossOpen = false;
     }, true);
   }
@@ -1355,11 +1355,11 @@ function bossPeekHTML() {
 
 function showBossPeek(anchor) {
   const pop = document.getElementById('boss-peek-popup');
-  if (!pop || !anchor) return;
+  if (!pop || !anchor) return false;
   const html = bossPeekHTML();
-  if (!html) return;
+  if (!html) return false;
   const ar = anchor.getBoundingClientRect();
-  if (ar.width < 2) return;                 // block not on screen in this orientation
+  if (ar.width < 2) return false;           // block not on screen in this orientation
   pop.innerHTML = html;
   pop.style.display = '';
   pop.classList.add('show');
@@ -1373,6 +1373,7 @@ function showBossPeek(anchor) {
   if (top + ph > window.innerHeight - 6) top = Math.max(6, ar.top - ph - 8);
   pop.style.left = left + 'px';
   pop.style.top  = top + 'px';
+  return true;
 }
 function hideBossPeek() {
   const pop = document.getElementById('boss-peek-popup');
@@ -1381,15 +1382,29 @@ function hideBossPeek() {
 
 // Bound to BOTH run-progress blocks - landscape has one and portrait the other,
 // and updateRunProgressUI already fills every .rp-block for the same reason.
+// r770 (owner): a TAP pins the bubble, as the Flow clock's skull does, so every
+// mode with a boss answers a tap (it used to take a hover or a press-and-hold
+// that closed on lift). A mouse still shows it on hover. A second tap, or a tap
+// anywhere else, closes it (the dismiss listener in bindClockBossPeek). During a
+// live boss the tap reopens the brief instead (bindBossBriefReopen).
 function bindBossPeek() {
   document.querySelectorAll('.rp-block').forEach(el => {
     if (el._bossPeekBound) return;
     el._bossPeekBound = true;
-    el.addEventListener('mouseenter', () => showBossPeek(el));
-    el.addEventListener('mouseleave', hideBossPeek);
-    let t = null;
-    el.addEventListener('touchstart', () => { t = setTimeout(() => showBossPeek(el), 420); }, { passive: true });
-    ['touchend', 'touchcancel', 'touchmove'].forEach(ev =>
-      el.addEventListener(ev, () => { clearTimeout(t); hideBossPeek(); }, { passive: true }));
+    el.addEventListener('mouseenter', (e) => {
+      if (e.sourceCapabilities && e.sourceCapabilities.firesTouchEvents) return;
+      if (_clockBossOpen) return;
+      if (showBossPeek(el)) _clockBossHover = true;
+    });
+    el.addEventListener('mouseleave', () => {
+      if (!_clockBossHover) return;
+      _clockBossHover = false;
+      if (!_clockBossOpen) hideBossPeek();
+    });
+    el.addEventListener('click', () => {
+      if (typeof bossActive !== 'undefined' && bossActive) return;
+      if (_clockBossOpen) { hideBossPeek(); _clockBossOpen = false; _clockBossHover = false; return; }
+      if (showBossPeek(el)) { _clockBossOpen = true; _clockBossHover = false; }
+    });
   });
 }

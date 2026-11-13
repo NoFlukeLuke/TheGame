@@ -4847,3 +4847,18 @@ test; the pause menu and a hidden tab stop the reading time too. One hold at a t
 `readHoldBegin(owner, el, text, { force })` / `readHoldEnd(owner)`. A new pop-up that should hold calls
 the pair. Measured at 1440x820 and 420x900: the welcome bubble held 17s + 5, the select-cards step 13s
 + 5, the clock then ran; a tip over the board held and Got it released it; the pause menu froze the count.
+
+## r770 - tap to see the next boss, in every mode; the boss bubble draws again (owner)
+- **A tap on the quarter block** (`.rp-block`: `#run-progress` / `#run-progress-pt`, `bindBossPeek`,
+  js/boss.js) pins the next-boss bubble, as Flow's clock skull does (r376): a second tap or a tap
+  anywhere else closes it (the dismiss listener in `bindClockBossPeek` now spares `.rp-block`), a
+  mouse still shows it on hover, and during a live boss the tap reopens the brief as before. It used
+  to answer only a hover or a 420ms press-and-hold that closed on lift. `showBossPeek` returns
+  whether it showed. Pin state is shared with the skull (`_clockBossOpen` / `_clockBossHover`).
+- **`#boss-peek-popup` was never in the shared `.time-popup.show` rule** (css/style.css, with the
+  hand log, Time and Limits bubbles), so in every mode it drew in the page flow under the board: no
+  position, no layer, no fill. It is in the rule now (280 wide at most). Flow's skull had the same
+  invisible bubble.
+Measured in headless Chromium at 1440x820 (click) and 420x900 (touch) in Classic, the Schedule, Flow
+and Stacked: a tap opens it on top (elementFromPoint is the bubble, z 320), a second tap and a tap on
+the board close it; no page errors.

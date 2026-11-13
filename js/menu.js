@@ -1,4 +1,4 @@
-const BUILD = "2026-11-12 · r769 · big pop-ups pause the clock while read, then count down";
+const BUILD = "2026-11-13 · r770 · tap the quarter block to see the next boss; the boss bubble is visible again";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
