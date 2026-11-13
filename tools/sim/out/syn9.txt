@@ -1,0 +1,6 @@
+{"cond":"4 random","n":150,"q25":4146,"med":8560,"q75":16204,"q90":34367,"tricks":4}
+{"cond":"4 sharing a tag","n":150,"q25":4014,"med":8769,"q75":17014,"q90":30061,"tricks":3.7,"byTag":{"set":"13902 (23)","suit":"7667 (16)","run":"21529 (22)","position":"18008 (19)","flush":"1380 (21)","rank":"6928 (28)","size":"8663 (21)"}}
+{"cond":"4 random at v3","n":150,"q25":9503,"med":22943,"q75":60544,"q90":144219,"tricks":4}
+{"cond":"4 random + 15 buffed cards","n":150,"q25":4093,"med":7767,"q75":15009,"q90":28720,"tricks":4}
+{"cond":"4 random + Selection +1, +1 row, +1 col","n":150,"q25":11800,"med":20616,"q75":35069,"q90":54095,"tricks":4}
+{"cond":"4 random, v3, buffs, limits","n":150,"q25":25336,"med":45944,"q75":118430,"q90":295525,"tricks":4}

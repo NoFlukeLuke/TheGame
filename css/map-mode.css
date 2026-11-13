@@ -1,0 +1,408 @@
+/* ══════════════════════════════════════════════
+   MAP MODE (r238) - THE SCHEDULE
+   r655 (owner): the schedule is a TO-DO LIST on a terminal. One amber glass
+   (the board screen's, css/board-screen.css) covers the board's box: a gutter
+   of times down the left, one row per time slot read top to bottom, the review
+   last, and the toolbar (#map-bar) along the foot. js/map-mode.js lays it out
+   with CSS grid, so this file owns every size.
+   ══════════════════════════════════════════════ */
+
+#grid .map-term {
+  --am: #ffb02e; --am-hi: #ffd98a; --am-dim: #9a6f2a; --am-ink: #0a0d06;
+  position: absolute; inset: 0; z-index: 2; box-sizing: border-box;
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 7px 7px 6px;
+  border-radius: 6px; overflow: hidden;
+  background: radial-gradient(ellipse at center, #17240f 0%, #0a0d06 82%);
+  box-shadow: inset 0 0 24px rgba(0,0,0,.8), inset 0 0 0 1px rgba(76,107,47,.46),
+              inset 0 0 0 3px rgba(0,0,0,.55), inset 0 0 0 4px rgba(76,107,47,.24);
+  font-family: 'VT323 Local', 'VT323', monospace; color: var(--am);
+  text-shadow: 0 0 6px rgba(255,176,46,.5);
+  cursor: var(--cur-default, default);
+}
+
+/* ── The list: a gutter of times, then four lanes ── */
+#grid .mtm-list {
+  --ml-lanes: 4; --ml-sets: 4; --ml-min: 52px;
+  flex: 1 1 auto; min-height: 0; position: relative;
+  display: grid; gap: 3px;
+  grid-template-columns: 44px repeat(var(--ml-lanes), minmax(0, 1fr));
+  /* r679: a row never goes under --ml-min; six slots that will not fit scroll. */
+  grid-template-rows: repeat(var(--ml-sets), minmax(var(--ml-min), 1fr)) minmax(var(--ml-min), 1fr);
+  overflow-y: auto; overflow-x: hidden; scrollbar-width: thin; scrollbar-color: var(--am-dim) transparent;
+}
+/* A slot's rule: a dashed line across the list, the lit row is where you are. */
+#grid .mtm-row {
+  grid-column: 1 / -1; z-index: 0; pointer-events: none;
+  margin: -2px 0 0; border-top: 1px dashed rgba(154,111,42,.5);
+}
+#grid .mtm-row:first-child { border-top-color: transparent; }
+/* r717 (owner): the slot you are in is lit about 10% with a blinking bar at its
+   left edge; slots already done are greyed out; slots to come stay bright. */
+#grid .mtm-row { position: relative; }
+#grid .mtm-row.now { background: rgba(255,176,46,.10); }
+#grid .mtm-row.now::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+  background: var(--am-hi); box-shadow: 0 0 6px var(--am); animation: mbBlink 1.06s steps(1) infinite;
+}
+#grid .mtm-row.past { background: rgba(0,0,0,.28); }
+#grid .mtm-time.past { color: #5a554a; text-shadow: none; }
+#grid .mtm-time {
+  grid-column: 1; z-index: 1; min-width: 0;
+  display: flex; flex-direction: column; justify-content: center; gap: 2px;
+  padding-left: 3px; line-height: 1; color: var(--am-dim); overflow: hidden;
+}
+#grid .mtm-time b { font-weight: normal; font-size: 13px; }
+#grid .mtm-time span { font-size: 10px; letter-spacing: .5px; white-space: nowrap; }
+#grid .mtm-time i { font-style: normal; font-size: 12px; color: var(--am-hi); }
+#grid .mtm-time.now { color: var(--am-hi); }
+
+/* ── An obligation is a to-do item: [ ] glyph, then its word ── */
+#grid .map-tile {
+  --rc: var(--am);
+  position: relative; z-index: 1; min-width: 0; min-height: 0; box-sizing: border-box;
+  container-type: size;
+  display: flex; flex-direction: column; justify-content: center; align-items: flex-start;
+  gap: 2px; padding: 3px 4px;
+  border: 1px solid color-mix(in srgb, var(--rc) 30%, transparent); border-radius: 2px;
+  color: var(--rc); background: transparent;
+  cursor: var(--cur-pointer, pointer); overflow: hidden;
+}
+/* Each kind keeps a phosphor of its own (the event lab's palette, r593). */
+#grid .map-tile.mk-level     { --rc: #94ecb0; }
+#grid .map-tile.mk-challenge { --rc: #ff7656; }
+#grid .map-tile.mk-audit     { --rc: #ff8fb8; }
+#grid .map-tile.mk-mini      { --rc: #cde37e; }   /* r690: a one-on-one */
+#grid .map-tile.mk-shop      { --rc: #ffe066; }
+#grid .map-tile.mk-reward    { --rc: #a4c6ff; }
+#grid .map-tile.mk-event     { --rc: #d6a8ff; }
+#grid .map-tile.mk-limit     { --rc: #82dccb; }
+#grid .map-tile.mk-mystery   { --rc: #fff1d8; }
+#grid .map-tile.mk-boss      { --rc: #ff5c5c; }
+#grid .map-tile .mt-line { display: flex; align-items: center; gap: 4px; line-height: 1; }
+#grid .map-tile .mt-box { font-size: min(14px, 21cqw); color: var(--am); white-space: pre; }
+#grid .map-tile .mt-icon { font-size: min(15px, 22cqw); line-height: 1; color: var(--rc); }
+/* The priority account's play-with-a-bang is an inline SVG (js/map-mode.js):
+   1em + currentColor so it sits wherever a glyph would, at any size. */
+.mk-svg { width: 1em; height: 1em; display: block; }
+#grid .map-tile .mt-name {
+  font-size: min(14px, 19cqw); line-height: 1; letter-spacing: .5px;
+  text-transform: uppercase; white-space: nowrap; color: var(--rc);
+}
+/* r656: the line's stakes, under its word. A "+" marks a projection: the least a
+   line further down can ask. An event's word is its own name, on up to two lines. */
+#grid .map-tile .mt-stake {
+  font-size: min(13px, 17cqw); line-height: 1; letter-spacing: .3px; white-space: nowrap;
+  color: var(--am-hi); opacity: .9;
+}
+#grid .map-tile .mt-stake.mt-proj { color: var(--am); opacity: .75; }
+#grid .map-tile .mt-name.mt-ev {
+  white-space: normal; text-transform: uppercase; overflow: hidden; line-height: 1.05;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; font-size: min(13px, 17cqw);
+}
+#grid .map-tile.mt-selected .mt-stake { color: var(--am-ink); opacity: 1; }
+#grid .map-tile .mt-free { align-self: center; font-size: 13px; color: var(--am-dim); opacity: .6; letter-spacing: 2px; }
+
+/* States. A LEGAL item is lit and framed; the SELECTED one prints in reverse;
+   a DONE one is ticked and struck through; a MISSED one is struck and faint;
+   a future one is simply dimmer - information, plainly not on offer. */
+#grid .map-tile:not(.mt-legal):not(.mt-visited):not(.mk-blank):not(.mt-selected) { opacity: .82; }
+#grid .map-tile.mt-legal { border-color: color-mix(in srgb, var(--rc) 75%, transparent); }
+#grid .map-tile.mt-legal:hover { background: color-mix(in srgb, var(--rc) 14%, transparent); }
+#grid .map-tile.mt-selected {
+  opacity: 1; background: var(--rc); border-color: var(--rc); text-shadow: none;
+  box-shadow: 0 0 10px -2px var(--rc);
+}
+#grid .map-tile.mt-selected :is(.mt-box, .mt-icon, .mt-name) { color: var(--am-ink); }
+#grid .map-tile.mt-visited { opacity: .55; cursor: var(--cur-default, default); border-style: dotted; }
+#grid .map-tile.mt-visited.mt-here { opacity: .85; }
+#grid .map-tile.mt-visited .mt-box { color: #94ecb0; }
+#grid .map-tile:is(.mt-visited, .mt-missed) .mt-name { text-decoration: line-through; text-decoration-thickness: 1px; }
+#grid .map-tile.mt-missed { opacity: .3 !important; border-color: transparent; cursor: var(--cur-default, default); }
+#grid .map-tile.mt-doomed .mt-box { color: #ff7656; }
+/* r717 (owner): a DONE item gets a big thick check mark over a dimmed face; an item
+   in a slot already passed and not done is plain grey. */
+#grid .map-tile.mt-visited { opacity: 1; }
+#grid .map-tile.mt-visited > :not(.mt-pips) { opacity: .32; }
+#grid .map-tile.mt-visited::after {
+  content: ''; position: absolute; left: 50%; top: 44%; pointer-events: none;
+  width: min(18px, 22cqmin); height: min(36px, 46cqmin);
+  border: solid #94ecb0; border-width: 0 max(4px, min(8px, 9cqmin)) max(4px, min(8px, 9cqmin)) 0;
+  transform: translate(-50%, -50%) rotate(40deg);
+  filter: drop-shadow(0 0 4px rgba(148,236,176,.8));
+}
+#grid .map-tile.mt-past:not(.mt-visited) { --rc: #6f6a5c; opacity: .38 !important; filter: grayscale(1); text-shadow: none; }
+#grid .map-tile.mt-past:not(.mt-visited) .mt-box { color: #6f6a5c; }
+#grid .map-tile.mt-past.mt-visited { --rc: #8a8473; background: rgba(0,0,0,.2); text-shadow: none; }
+#grid .map-tile.mk-blank { border: 1px dotted rgba(154,111,42,.35); cursor: var(--cur-default, default); align-items: center; }
+/* r679: a round across the WHOLE row reads as one bar: box, glyph and word in a
+   row, its goal at the right. A half-row round (.mt-pair) keeps the item layout. */
+#grid .map-tile.mt-wide { flex-direction: row; align-items: center; gap: 8px; padding: 2px 8px; }
+#grid .map-tile.mt-wide .mt-name { font-size: min(15px, 34cqh); }
+#grid .map-tile.mt-pair { padding-left: 8px; }
+#grid .map-tile.mt-wide .mt-stake { margin-left: auto; font-size: min(14px, 30cqh); }
+#grid .map-tile.mt-wide .mt-box, #grid .map-tile.mt-wide .mt-icon { font-size: min(15px, 34cqh); }
+/* r679: a faint wash of each item's own colour, so a row of different kinds reads
+   as different at a glance (owner). */
+#grid .map-tile:not(.mk-blank):not(.mt-selected) { background: color-mix(in srgb, var(--rc) 7%, transparent); }
+#grid .map-tile.mt-legal:not(.mt-selected) { background: color-mix(in srgb, var(--rc) 11%, transparent); }
+#grid .map-tile.mt-legal:not(.mt-selected):hover { background: color-mix(in srgb, var(--rc) 18%, transparent); }
+
+/* The review: one wide item along the bottom, a double frame, its quota beside it. */
+#grid .map-tile.mk-boss {
+  flex-direction: row; align-items: center; gap: 8px; padding: 2px 8px;
+  border: 3px double color-mix(in srgb, var(--rc) 60%, transparent);
+}
+#grid .map-tile.mk-boss .mt-name { font-size: min(15px, 34cqh); }
+#grid .map-tile.mk-boss .mt-bcol { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+#grid .map-tile.mk-boss .mt-sub { font-size: min(12px, 26cqh); color: var(--am); letter-spacing: .5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#grid .map-tile.mk-boss .mt-goal { margin-left: auto; font-size: min(15px, 34cqh); color: var(--am-hi); white-space: nowrap; }
+#grid .map-tile.mk-boss .mt-box, #grid .map-tile.mk-boss .mt-icon { font-size: min(15px, 34cqh); }
+#grid .map-tile.mk-boss.mt-legal { animation: map-boss-breath 3.4s ease-in-out infinite; }
+/* r702: the review row holds two managers side by side (or the hidden third alone).
+   Each is a column: [ ] skull NAME, what unlocks it, the quota. */
+#grid .mtm-reviews { grid-column: 2 / -1; z-index: 1; min-width: 0; min-height: 0; display: flex; gap: 3px; }
+#grid .mtm-reviews .map-tile.mt-review {
+  flex: 1 1 0; min-width: 0; flex-direction: column; align-items: flex-start; justify-content: center;
+  gap: 2px; padding: 3px 6px; border: 3px double color-mix(in srgb, var(--rc) 60%, transparent);
+}
+#grid .mtm-reviews .mt-review .mt-line { max-width: 100%; }
+#grid .mtm-reviews .mt-review .mt-name { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+#grid .mtm-reviews .mt-review .mt-cond { font-size: 11px; line-height: 1; letter-spacing: .3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; color: var(--am); }
+#grid .mtm-reviews .mt-review .mt-stake { font-size: 11px; font-style: normal; margin-left: 4px; }
+#grid .mtm-reviews .mt-review .mt-box, #grid .mtm-reviews .mt-review .mt-icon { font-size: 12px; }
+#grid .mtm-reviews .mt-review.mt-locked { opacity: .55; }
+#grid .mtm-reviews .mt-review.mt-locked .mt-cond { color: var(--am-dim); }
+#grid .mtm-reviews .mt-review:not(.mt-legal):not(.mt-visited):not(.mt-selected):not(.mt-locked):not(.mt-missed) { opacity: .85; }
+#grid .mtm-reviews .mt-review.mt-missed { opacity: .3 !important; }
+#grid .mtm-reviews .mt-review.mt-missed .mt-name { text-decoration: line-through; }
+#grid .mtm-reviews .mt-review.mt-hidden .mt-name { color: var(--am-hi); }
+/* r717 (owner): the review's counter, a box per booking it needs. */
+#grid .mtm-reviews .mt-review .mt-pips { display: flex; gap: 2px; max-width: 100%; }
+#grid .mtm-reviews .mt-review .mt-pips i { flex: 0 1 8px; height: 6px; min-width: 3px; border: 1px solid var(--rc); box-sizing: border-box; }
+#grid .mtm-reviews .mt-review .mt-pips i.on { background: var(--rc); box-shadow: 0 0 4px var(--rc); }
+#grid .mtm-reviews .mt-review.mt-selected .mt-pips i { border-color: var(--am-ink); }
+#grid .mtm-reviews .mt-review.mt-selected .mt-pips i.on { background: var(--am-ink); }
+#grid .mtm-reviews .mt-review.mt-selected .mt-cond { color: var(--am-ink); }
+@keyframes map-boss-breath {
+  0%, 100% { box-shadow: 0 0 4px -2px var(--rc); }
+  50%      { box-shadow: 0 0 14px -2px var(--rc); }
+}
+
+/* Reading the legend lights that kind and drops the rest, Slay the Spire's
+   move. Written onto the live tiles, so it must beat the resting states above. */
+#grid .map-tile.mt-dim  { opacity: .14 !important; }
+#grid .map-tile.mt-lit  { opacity: 1 !important; box-shadow: 0 0 0 1px var(--rc), 0 0 12px -2px var(--rc); z-index: 4; }
+
+/* ── The toolbar: the foot of the screen (r655) ──
+   Line 1: where you are (SLOT n/4, a pip a slot, how full this slot is, what
+   leaving early pays) and the tools. Line 2: the command line, naming what you
+   are about to clock in on, and CLOCK IN. Line 3: what it is. */
+#grid #map-bar {
+  position: relative; flex: 0 0 auto; z-index: 5;
+  display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 3px; align-items: center;
+  padding-top: 4px; border-top: 1px solid var(--am-dim);
+  line-height: 1;
+}
+#map-bar :is(.mb-l1, .mb-l2, .mb-info) { grid-column: 2; }
+#map-bar .mb-l1 {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap; row-gap: 3px;
+  font-size: 12px; letter-spacing: .5px; color: var(--am-dim); white-space: nowrap;
+}
+#map-bar .mb-set { color: var(--am-hi); }
+#map-bar .mb-pips { display: inline-flex; gap: 2px; }
+#map-bar .mb-pips i { width: 6px; height: 6px; border: 1px solid var(--am-dim); box-sizing: border-box; }
+#map-bar .mb-pips i.on { background: var(--am); border-color: var(--am); }
+#map-bar .mb-pips i.cur { border-color: var(--am-hi); box-shadow: 0 0 4px var(--am); }
+/* The tools sit in the time gutter, two to a row, beside the three lines. */
+#map-bar .mb-tools {
+  grid-column: 1; grid-row: 1 / span 3; align-self: center;
+  display: grid; grid-template-columns: 30px; gap: 4px; padding-left: 3px;
+}
+#map-bar .mb-q {
+  flex: 0 0 auto; width: 16px; height: 16px; padding: 0; border-radius: 2px;
+  font: inherit; font-size: 13px; line-height: 1; text-shadow: inherit;
+  color: var(--am); background: transparent; border: 1px solid var(--am-dim);
+  cursor: var(--cur-pointer, pointer);
+}
+/* r662: the one tool left in the gutter is bigger than the old 16px chips. */
+#map-bar .mb-q.mb-big { width: 30px; height: 30px; font-size: 22px; border-width: 1px; }
+#map-bar .mb-q:hover, #map-bar .mb-q.on { background: rgba(255,176,46,.2); border-color: var(--am); color: var(--am-hi); }
+#map-bar .mb-sw { display: grid; place-items: center; }
+#map-bar .mb-sw i { width: 8px; height: 8px; border-radius: 50%; display: block; background: #f5c042; }
+#map-bar .mb-l2 { display: flex; align-items: center; gap: 6px; min-height: 22px; }
+#map-bar .mb-cmd {
+  flex: 1 1 auto; min-width: 0; font-size: 16px; line-height: 1.1;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+#map-bar .mb-verb { color: var(--am-dim); }
+#map-bar .mb-name { font-weight: normal; color: var(--am-hi); text-transform: uppercase; letter-spacing: .5px; }
+#map-bar .mb-wait { color: var(--am-dim); }
+#map-bar .mb-cur { display: inline-block; position: relative; width: 0; height: 1em; vertical-align: -0.14em; }
+#map-bar .mb-cur::after {
+  content: ''; position: absolute; left: 2px; top: 0; width: .5em; height: 1em;
+  background: var(--am); box-shadow: 0 0 6px var(--am); animation: mbBlink 1.06s steps(1) infinite;
+}
+@keyframes mbBlink { 50% { opacity: 0; } }
+#map-bar #mb-confirm {
+  flex: 0 0 auto; font: inherit; font-size: 16px; letter-spacing: 1px; line-height: 1;
+  padding: 3px 9px 2px; border-radius: 2px; text-shadow: none;
+  color: var(--am-ink); background: var(--am); border: 1px solid var(--am-hi);
+  cursor: var(--cur-pointer, pointer);
+}
+#map-bar #mb-confirm:hover:not(:disabled) { filter: brightness(1.12); }
+#map-bar #mb-confirm:disabled {
+  color: var(--am-dim); background: transparent; border-color: var(--am-dim);
+  opacity: .7; cursor: var(--cur-default, default);
+}
+/* While drawing, one big key in place of the two status lines ends it (owner). */
+#map-bar .mb-done {
+  grid-column: 2; grid-row: 1 / span 2; align-self: stretch; min-height: 44px;
+  font: inherit; font-size: 20px; letter-spacing: 1px; line-height: 1; text-shadow: none;
+  color: var(--am-ink); background: var(--am); border: 1px solid var(--am-hi); border-radius: 2px;
+  cursor: var(--cur-pointer, pointer);
+}
+#map-bar .mb-done:hover { filter: brightness(1.12); }
+#map-bar .mb-info {
+  min-height: 2.2em; font-size: 12px; line-height: 1.1; color: var(--am-dim);
+  overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+}
+#map-bar .mb-info i { font-style: normal; color: var(--am); }
+/* r717 (owner): on a phone the tapped item's description was cut at two lines. It
+   prints whole; the list above gives up the room (and scrolls if it must). */
+#grid .map-term.mtm-port #map-bar .mb-info { display: block; -webkit-line-clamp: unset; overflow-y: auto; max-height: 7.8em; }
+/* The rules card opens over the list, above the toolbar, so it never moves it. */
+#map-bar .mb-help {
+  display: none; position: absolute; left: 0; right: 0; bottom: calc(100% + 4px);
+  padding: 6px 8px; background: #0b1007; border: 3px double var(--am-dim);
+  max-height: 70cqh; overflow-y: auto;
+}
+#map-bar .mb-help.show { display: block; }
+#map-bar .mb-hrow { display: flex; gap: 8px; align-items: baseline; margin-bottom: 4px; font-size: 13px; line-height: 1.1; }
+#map-bar .mb-hrow:last-child { margin-bottom: 0; }
+#map-bar .mb-hrow b { flex: 0 0 70px; font-weight: normal; color: var(--am-hi); text-transform: uppercase; }
+#map-bar .mb-hrow span { color: var(--am); }
+
+/* The hard-round knack pick is drawn ON the board (js/grid-pick.js, r254). */
+
+/* ── The keys are the schedule's tools (r662, owner; js/map-mode.js mapKeysSync) ──
+   PLAY is CLOCK IN, SWAP the PEN, DISCARD the LEGEND; with the pen out DONE, COLOUR
+   and UNDO. A glyph over a word read top to bottom, like the keys' own words. The
+   keys never grey out (r100): a tool the schedule cannot use yet dims its word, and a
+   tool that is on (the legend up, the pen out) stays down. */
+body.map-keys .mapk-keep { display: contents; visibility: hidden; }
+body.map-keys #stage:not(.landscape) :is(#btn-play, #btn-discard, #swap-indicator) { position: relative; }
+body.map-keys .mapk {
+  position: absolute; inset: 0; z-index: 1;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
+  pointer-events: none; line-height: 1; white-space: normal;
+}
+body.map-keys .mapk-ico { font-size: 17px; line-height: 1; font-family: 'DejaVu Sans', 'Segoe UI Symbol', sans-serif; }
+body.map-keys .mapk-word { display: flex; flex-direction: column; align-items: center; gap: 5px; font-size: 14px; }
+body.map-keys .mapk-w { display: block; white-space: pre; line-height: .9; text-align: center; letter-spacing: 0; }
+body.map-keys #swap-indicator .mapk-word { font-size: 13px; }
+body.map-keys #swap-indicator .mapk-ico { font-size: 14px; }
+
+body.map-keys .mapk-sw { display: block; width: 14px; height: 14px; border-radius: 50%; box-shadow: 0 0 0 2px rgba(0,0,0,.45), 0 0 6px currentColor; }
+body.map-keys :is(#btn-play, #btn-discard, #swap-indicator).mapk-off .mapk { opacity: .6; }
+body.map-keys #stage :is(#btn-play, #btn-discard, #swap-indicator).mapk-on { transform: translateY(3px) !important; filter: brightness(.94); }
+html.skin-machine body.map-keys #stage :is(#btn-play, #btn-discard, #swap-indicator).mapk-on {
+  transform: translateY(5px) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.3), inset 0 -3px 0 rgba(0,0,0,.18),
+              0 0 0 1px rgba(0,0,0,.6), 0 1px 0 var(--mc-key-side), 0 1px 0 1px rgba(0,0,0,.6), 0 2px 3px rgba(0,0,0,.5) !important;
+}
+body.map-keys :is(#btn-play, #btn-discard, #swap-indicator).mapk-on .mapk-ico { text-shadow: 0 0 8px currentColor !important; }
+
+/* ── The pen (r263) ───────────────────────────────────────────────────────────
+   A canvas over the list inside #grid. It is pointer-events:none by default
+   so a RIGHT-drag still reaches the board through it and a left tap still
+   picks an obligation; only the finger mode (.pen-on) takes the taps.
+   It sits in the screen just before the toolbar, at the toolbar's z-index, so the
+   toolbar stays on top: at z 7 over the whole board it took the taps meant for
+   its keys, the pen chip included. */
+#grid .map-draw-layer { position: absolute; z-index: 5; pointer-events: none; }
+#grid .map-draw-layer.pen-on { pointer-events: auto; }
+
+/* ── The legend rail (r263, beside the board since r294) ─────────────────────
+   Body-level, in raw viewport px written by mapLegendPlace (js/map-draw.js).
+   A row is the SYMBOL and the WORD; the sentence goes to #mb-info. r655: the
+   same amber glass as the list it explains. */
+#map-legend {
+  position: fixed; z-index: 262; display: none;
+  flex-direction: column; box-sizing: border-box;
+  padding: 5px 5px 6px; border-radius: 4px;
+  background: radial-gradient(ellipse at center, #17240f 0%, #0a0d06 82%);
+  border: 1px solid #000;
+  box-shadow: inset 0 0 0 1px rgba(76,107,47,.46), 0 4px 18px rgba(0,0,0,0.7);
+  font-family: 'VT323 Local', 'VT323', monospace; text-transform: uppercase;
+  color: #ffb02e; text-shadow: 0 0 6px rgba(255,176,46,.5);
+}
+#map-legend.show { display: flex; }
+/* r662: docked on the screens the schedule leaves empty (js/map-draw.js mapLegendPlace):
+   a grid of symbol + word, --ml-cols columns at --ml-fs, filling the box. */
+#map-legend.ml-dock { padding: 5px 7px 7px; border-radius: 6px; }
+#map-legend.ml-dock .ml-head { font-size: 14px; padding: 0 2px 3px; margin-bottom: 4px; }
+#map-legend.ml-dock .ml-list {
+  display: grid; grid-template-columns: repeat(var(--ml-cols, 2), minmax(0, 1fr));
+  grid-auto-rows: minmax(0, 1fr); gap: 2px 10px; overflow: hidden;
+}
+#map-legend.ml-dock .ml-row { font-size: var(--ml-fs, 16px); padding: 0 4px; min-height: 0; gap: .4em; }
+#map-legend.ml-dock .ml-row + .ml-row { margin-top: 0; }
+#map-legend.ml-dock .ml-chip { flex: 0 0 1.25em; width: 1.25em; height: 1.25em; font-size: .9em; }
+#map-legend.ml-dock .ml-chip .mk-svg { width: .75em; height: .75em; }
+#map-legend.ml-dock .ml-row b { font-size: 1em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* The fallback for a strip too narrow to hold a row: centred over the board. */
+#map-legend.ml-float {
+  left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: min(300px, calc(100vw - 24px));
+}
+#map-legend .ml-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 6px; padding: 0 2px 5px; margin-bottom: 4px; flex: 0 0 auto;
+  border-bottom: 1px dashed #9a6f2a; font-size: 18px; letter-spacing: 1px; color: #ffd98a;
+}
+#map-legend .ml-x {
+  flex: 0 0 auto; width: 16px; height: 16px; padding: 0; border-radius: 2px;
+  font: inherit; font-size: 13px; line-height: 1; cursor: var(--cur-pointer, pointer);
+  color: #ffb02e; background: transparent; border: 1px solid #9a6f2a;
+}
+#map-legend .ml-x:hover { background: rgba(255,176,46,.2); }
+#map-legend .ml-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+#map-legend .ml-row {
+  display: flex; gap: 6px; align-items: center; cursor: var(--cur-pointer, pointer);
+  padding: 3px 4px; border-radius: 2px;
+}
+#map-legend .ml-row + .ml-row { margin-top: 2px; }
+#map-legend .ml-row:hover, #map-legend .ml-row.on { background: rgba(255,176,46,.14); }
+#map-legend .ml-chip {
+  flex: 0 0 20px; height: 20px; display: grid; place-items: center;
+  border-radius: 2px; font-size: 17px; line-height: 1;
+  color: var(--rc, #ffb02e); border: 1px solid var(--rc, #ffb02e);
+}
+/* The name WRAPS between words rather than truncating. */
+#map-legend .ml-row b {
+  flex: 1 1 auto; min-width: 0; font-weight: normal;
+  color: var(--rc, #ffb02e); font-size: 17px; line-height: 1;
+  overflow-wrap: normal; word-break: keep-all;
+}
+#map-legend .ml-row.mk-level     { --rc: #94ecb0; }
+#map-legend .ml-row.mk-challenge { --rc: #ff7656; }
+#map-legend .ml-row.mk-audit     { --rc: #ff8fb8; }
+#map-legend .ml-row.mk-mini      { --rc: #cde37e; }
+#map-legend .ml-row.mk-shop      { --rc: #ffe066; }
+#map-legend .ml-row.mk-reward    { --rc: #a4c6ff; }
+#map-legend .ml-row.mk-event     { --rc: #d6a8ff; }
+#map-legend .ml-row.mk-limit     { --rc: #82dccb; }
+#map-legend .ml-row.mk-mystery   { --rc: #fff1d8; }
+#map-legend .ml-row.mk-boss      { --rc: #ff5c5c; }
+#map-legend .ml-row.mk-blank     { --rc: #9a6f2a; }
+#map-legend .ml-chip .mk-svg { width: 13px; height: 13px; }
+/* A phone's strip is narrow, so the row stacks: symbol over word, centred. */
+#map-legend.ml-narrow { padding: 4px 3px 5px; }
+#map-legend.ml-narrow .ml-head { font-size: 12px; letter-spacing: .5px; padding-bottom: 4px; }
+#map-legend.ml-narrow .ml-x { width: 14px; height: 14px; font-size: 11px; }
+#map-legend.ml-narrow .ml-row { flex-direction: column; gap: 1px; padding: 2px; text-align: center; }
+#map-legend.ml-narrow .ml-row + .ml-row { margin-top: 0; }
+#map-legend.ml-narrow .ml-chip { flex: 0 0 auto; width: 18px; height: 18px; font-size: 13px; }
+#map-legend.ml-narrow .ml-chip .mk-svg { width: 11px; height: 11px; }
+#map-legend.ml-narrow .ml-row b { flex: 0 0 auto; width: 100%; font-size: 12px; }

@@ -1,0 +1,87 @@
+/* ══ CARD FACE (r497, js/card-face.js) ══
+   html.cf-print    : the printout's pixel type, dot-printed (the default)
+   html.cf-pixel    : Jfred's Pixel Cards (r633): corner index + centre art from a sheet
+   The paper looks (print, pixel, classic) sit on the pack's blank card (r639, the stock below).
+   html.cf-phosphor : the card is a little screen, rank and suit glow in the suit colour
+   html.cf-classic  : the old serif face (style.css as written) */
+@font-face { font-family: 'VT323 Local'; src: url('../fonts/vt323-latin-400.woff2') format('woff2'); font-display: block; }
+
+/* ── print ── */
+html.cf-print .card .rank,
+html.cf-print .mini-card .mini-rank {
+  font-family: 'VT323 Local', 'VT323', monospace !important; font-weight: 400 !important;
+  font-size-adjust: none !important; letter-spacing: 0;
+  filter: url(#cf-dot);
+}
+html.cf-print .card .rank { font-size: calc(var(--card-h, 75px) * 0.36); line-height: .8; }
+html.cf-print .card .suit { filter: url(#cf-dot); }
+html.cf-print .mini-card .mini-rank { font-size: 14px; }
+
+/* ── phosphor ── */
+html.cf-phosphor .card { --pg: 150, 255, 170; }
+html.cf-phosphor .card:not(.stone-card):not(.challenge-card) {
+  background:
+    radial-gradient(circle at 50% 45%, #121712, #050605);
+  border-color: rgba(var(--pg), .32);
+  box-shadow: inset 0 0 calc(var(--card-h, 75px) * .14) rgba(var(--pg), .10);
+}
+html.cf-phosphor .card.suit-hearts   { --pg: 255, 110, 90; }
+html.cf-phosphor .card.suit-diamonds { --pg: 255, 190, 80; }
+html.cf-phosphor .card.suit-clubs    { --pg: 110, 190, 255; }
+html.cf-phosphor .card.suit-crowns   { --pg: 230, 140, 255; }
+html.cf-phosphor .card.suit-moons    { --pg: 120, 240, 230; }
+html.cf-phosphor .card.wild-card     { --pg: 200, 140, 255; }
+html.cf-phosphor .card:hover:not(.unreachable):not(.stone-card) { background:
+    radial-gradient(circle at 50% 45%, #1a221a, #070907); }
+html.cf-phosphor .card .rank, html.cf-phosphor .card .suit,
+html.cf-phosphor .card .wild-glyph, html.cf-phosphor .card .wild-label {
+  color: rgb(var(--pg)) !important;
+  text-shadow: 0 0 3px rgba(var(--pg), .9), 0 0 10px rgba(var(--pg), .45) !important;
+}
+html.cf-phosphor .card .rank {
+  font-family: 'VT323 Local', 'VT323', monospace !important; font-weight: 400 !important;
+  font-size-adjust: none !important; font-size: calc(var(--card-h, 75px) * 0.38); line-height: .8;
+}
+html.cf-phosphor .card.selected { border-color: rgb(var(--pg)); box-shadow: 0 0 10px rgba(var(--pg), .55), inset 0 0 14px rgba(var(--pg), .2); }
+
+/* ── pixel (r633) ── the pack's cream stock and grey edge; the face is three sprite pieces
+   (js card-face.js cardFaceSpriteHTML) scaled by --k, the card's height over the source's 75,
+   so pixels stay square whatever shape the cell is. The art is centred across the card at its
+   source height; the index sits at its source corner, and once more turned round bottom-right. */
+html.cf-pixel .card.has-pxf .rank, html.cf-pixel .card.has-pxf .suit,
+html.cf-pixel .card.has-pxf .wild-glyph, html.cf-pixel .card.has-pxf .wild-label { display: none; }
+
+/* ── the stock (r639) ── the pack's blank card under the game's own face. A 9-slice of
+   stock.png (--cfs-stock, written on <html> by js/card-face.js): 6 source px a side, drawn
+   6 x --k wide so the stepped corners keep their shape at any cell size. The border stays
+   2px, so the card's box does not change; the image just reaches inward. A border image
+   hides border colours, so the states that used them ring the card with a box-shadow. */
+html:is(.cf-print, .cf-pixel, .cf-classic) { --card-bg: #fff9ef; --card-border: #d0cbc0; }
+html:is(.cf-print, .cf-pixel, .cf-classic) .card:not(.stone-card):not(.challenge-card):not(.num-card) {
+  --k: calc(var(--card-h, 75px) / 75);
+  border: 2px solid transparent; border-radius: 4px; background-clip: padding-box;
+  /* --k is a LENGTH (card height / 75, so px); 6 x a length is a length, 6px x a length is not. */
+  border-image-source: var(--cfs-stock); border-image-slice: 6; border-image-width: calc(6 * var(--k)); border-image-repeat: stretch;
+  image-rendering: pixelated;
+}
+/* r756 (owner): no purple ring or violet wash on a wild; the Joker face says what it is. */
+html:is(.cf-print, .cf-pixel, .cf-classic) .card.wild-card:not(.stone-card) { box-shadow: none; background: var(--card-bg); }
+html:is(.cf-print, .cf-pixel, .cf-classic) .card.wild-card:hover:not(.unreachable) { background: #fffaee; }
+html:is(.cf-print, .cf-pixel, .cf-classic) .card.selected:not(.stone-card):not(.challenge-card):not(.num-card) {
+  box-shadow: 0 0 0 1.5px #4a9eff, 0 0 7.5px rgba(74,158,255,.62);
+}
+html:is(.cf-print, .cf-pixel, .cf-classic) .card.selected.hand-valid:not(.num-card) { box-shadow: 0 0 0 1.5px #4a9eff, 0 0 10px rgba(74,158,255,.62); }
+html:is(.cf-print, .cf-pixel, .cf-classic) .card.selected.hand-penalty:not(.num-card) { box-shadow: 0 0 0 1.5px var(--red, #d9534f), 0 0 8px rgba(217,83,79,.55); }
+.pxf { display: none; }   /* another look keeps its text face; a re-render is not needed to switch */
+html.cf-pixel .pxf {
+  display: block; position: absolute; pointer-events: none; z-index: 0;
+  --k: calc(var(--card-h, 75px) / 75);
+  width: calc(var(--w) * var(--k)); height: calc(var(--h) * var(--k));
+  background-image: var(--cfs); background-repeat: no-repeat;
+  background-size: calc(var(--cfs-w) * var(--k)) calc(var(--cfs-h) * var(--k));
+  background-position: calc(var(--x) * var(--k) * -1) calc(var(--y) * var(--k) * -1);
+  image-rendering: pixelated;
+}
+.pxf-art { left: 50%; top: calc((var(--ay) - 1) * var(--k)); transform: translateX(-50%); }
+.pxf-ix { left: calc(var(--ix) * var(--k)); top: calc(var(--iy) * var(--k)); }
+.pxf-ix.pxf-br { left: auto; top: auto; right: calc(var(--ix) * var(--k)); bottom: calc(var(--iy) * var(--k)); transform: rotate(180deg); }

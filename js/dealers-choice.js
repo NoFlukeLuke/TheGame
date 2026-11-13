@@ -1,0 +1,489 @@
+// ══════════════════════════════════════════════
+// DEALER'S CHOICE (r409) - a Sleight that deals you a hand to place
+// ══════════════════════════════════════════════
+// Double-tap it and three small cards appear, held as a stack:
+//   - each takes a RANK from the ranks on the board right now and a random suit
+//   - each has a 75% chance (BAL.dealers_choice.buff_chance) to carry a buff
+//   - TAP a board card (or a Sleight): it is discarded and the top held card
+//     takes its cell. No swap stock; it costs a swap's time and counts as a swap
+//     for everything that reads swaps.
+//   - DISCARD throws the top held card away. No discard stock; it costs one
+//     card's discard time.
+// The stack closes when all three are used or the round ends.
+//
+// THE HELD CARDS ARE TEMP CARDS (r278, js/card-states.js): they are real cards
+// on the board but they never enter a pile, so they last this level only and
+// the deck audit is untouched. makeCardPermanent() is the seam if that changes.
+//
+// The stack is a BODY-LEVEL layer in raw viewport px, for the usual reason:
+// anything inside #cabinet inherits its CSS zoom. On a mouse it trails the
+// cursor like a ribbon and settles into a gentle drift when the cursor stops; on
+// touch it docks under the board and only follows a finger while it drags.
+//
+// r635 (owner): on touch the stack docks in the hand preview's FIRST SLOT, at the
+// size a played card takes there, each card behind it a small step to the right
+// (dealerDockSlot). The cards fly in from where they came from (the Focus bar, the
+// Sleight), growing as they go and a beat apart, the way a played hand flies to the
+// preview (dealerFlyIn). In portrait the strip shows its preview half while cards are
+// held (dealerPanelHold), and goes back when the stack closes.
+
+let dealerHand = null;   // { cards: [card...], els: [...], pos: [{x,y,vx,vy,rot}...] }
+const DEALER_DEFAULTS = { cards: 3, buff_chance: 0.75 };
+const DEALER_BUFFS = [   // [enhancement, weight]
+  [{ pips: 12 }, 30], [{ mult: 5 }, 30], [{ retrig: 1 }, 12],
+  [{ xmult: 1.5 }, 10], [{ coin: 2 }, 10], [{ time: 3 }, 8],
+];
+const dealerCfg = k => (typeof BAL !== 'undefined' && BAL.dealers_choice && BAL.dealers_choice[k] != null) ? BAL.dealers_choice[k] : DEALER_DEFAULTS[k];
+
+function dealerActive() { return !!(dealerHand && dealerHand.cards.length); }
+
+// Desktop = a real mouse. Touch docks the stack instead of following.
+function dealerFollowsCursor() {
+  try { return matchMedia('(hover: hover) and (pointer: fine)').matches; } catch (e) { return true; }
+}
+
+function dealerRollBuff() {
+  const total = DEALER_BUFFS.reduce((a, b) => a + b[1], 0);
+  let roll = Math.random() * total;
+  for (const [e, w] of DEALER_BUFFS) { if ((roll -= w) < 0) return e; }
+  return DEALER_BUFFS[0][0];
+}
+
+function dealerRollCards() {
+  const ranks = new Set();
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
+    const cd = gridData[r]?.[c];
+    if (!cd || !cd.rank || cd._isSleight || cd._isStone || cd._isTrick) continue;
+    if (typeof isWildCard === 'function' && isWildCard(cd)) continue;
+    if (ACTIVE_RANKS.includes(cd.rank)) ranks.add(cd.rank);
+  }
+  const pool = ranks.size ? [...ranks] : [...ACTIVE_RANKS];
+  const out = [];
+  for (let i = 0; i < dealerCfg('cards'); i++) {
+    const card = makeTempCard(pool[Math.floor(Math.random() * pool.length)],
+                              ACTIVE_SUITS[Math.floor(Math.random() * ACTIVE_SUITS.length)]);
+    if (Math.random() < dealerCfg('buff_chance')) {
+      card._dealerBuff = dealerRollBuff();
+      enhanceCardKey(cardId(card), card._dealerBuff);
+    }
+    out.push(card);
+  }
+  return out;
+}
+
+// ── open / close ─────────────────────────────────
+function dealerOpen(jcard, r, c) {
+  if (dealerActive()) { refuse('You are already holding cards'); return; }
+  selected = []; swapPending = null;
+  if (typeof cancelAutoSubmit === 'function') cancelAutoSubmit();
+  const cards = dealerRollCards();
+  // Seed the stack where the Sleight sits, so it visibly comes out of the card.
+  const src = document.querySelector(`#grid [data-card-id="${jcard._id}"]`)?.getBoundingClientRect();
+  const sx = src ? src.left + src.width / 2 : innerWidth / 2, sy = src ? src.top + src.height / 2 : innerHeight / 2;
+  dealerHand = { mode: 'dealer', cards, els: [], pos: cards.map(() => ({ x: sx, y: sy, vx: 0, vy: 0, rot: 0 })), still: 0, t0: performance.now() };
+  dealerBuildLayer();
+  dealerFlyIn(src);
+  try { sfxFlipShuffle(); } catch (e) {}
+  showMessage(`🃏 Dealer's Choice - tap a cell to place a card${BAL.dealers_choice.perm ? ' (it stays in your deck)' : ''}`, '#8fd0ff');
+  discardSleightAfterUse(jcard, r, c);
+  dealerStartLoop();
+}
+
+function dealerClose(repaint) {
+  const pv = dealerHand && dealerHand.pvPrev;
+  dealerHand = null;
+  const layer = document.getElementById('dealer-layer');
+  if (layer) layer.remove();
+  if (_dealerRaf) { cancelAnimationFrame(_dealerRaf); _dealerRaf = 0; }
+  document.body.classList.remove('dealer-holding');
+  if (pv && typeof isPortraitLayout === 'function' && isPortraitLayout()) {
+    // A dance still using the preview puts the view back itself when it ends.
+    if (typeof danceAbortController !== 'undefined' && danceAbortController) _pvBeforeDance = pv;
+    else if (portraitPanelView === 'preview') setPortraitPanelView(pv, { auto: true });
+  }
+  if (repaint && typeof render === 'function' && gridData?.[0] && !animating && !falling) { try { render(); } catch (e) {} }
+}
+
+// ── the layer ────────────────────────────────────
+function dealerCardSize() {
+  if (!dealerFollowsCursor()) { const slot = dealerDockSlot(); if (slot) return { w: Math.round(slot.w), h: Math.round(slot.h) }; }
+  const g = document.querySelector('#grid .card');
+  const rc = g?.getBoundingClientRect();
+  const w = rc && rc.width ? rc.width : 60, h = rc && rc.height ? rc.height : 80;
+  let k = dealerFollowsCursor() ? 0.7 : 0.6;
+  if (!dealerFollowsCursor()) {
+    const box = dealerDockBox();
+    // The stack (current card at 1.2x plus two steps down) fits the tray's height.
+    if (box && box.height) k = Math.min(k, (box.height - 10) / (h * (1.2 + DL_STEP_Y * 2)));
+  }
+  return { w: Math.round(w * k), h: Math.round(h * k) };
+}
+
+function dealerBuildLayer() {
+  let layer = document.getElementById('dealer-layer');
+  if (!layer) { layer = document.createElement('div'); layer.id = 'dealer-layer'; document.body.appendChild(layer); }
+  layer.innerHTML = '';
+  if (!dealerHand) return;
+  dealerPanelHold();
+  const { w, h } = dealerCardSize();
+  layer.style.setProperty('--card-w', w + 'px');
+  layer.style.setProperty('--card-h', h + 'px');
+  layer.classList.toggle('dl-touch', !dealerFollowsCursor());
+  dealerHand.size = { w, h };
+  // Drawn back to front so DOM order is paint order: the current card on top.
+  dealerHand.els = [];
+  for (let i = dealerHand.cards.length - 1; i >= 0; i--) {
+    const card = dealerHand.cards[i];
+    const wrap = document.createElement('div');
+    wrap.className = 'dl-card' + (i === 0 ? ' dl-cur' : '');
+    const { className, innerHTML } = renderCardAppearance(card, -1, -1, { revealFog: true });
+    wrap.innerHTML = `<div class="${className}">${innerHTML}</div>`;
+    layer.appendChild(wrap);
+    dealerHand.els[i] = wrap;
+  }
+  const cap = document.createElement('div');
+  cap.className = 'dl-cap';
+  const cur = dealerHand.cards[0];
+  cap.textContent = (dealerHand.mode === 'reserve' ? 'RESERVE · ' : dealerHand.mode === 'lockbox' ? 'BOUGHT · ' : '') + `${cur.rank}${typeof cardColorSuit === 'function' ? cardColorSuit(cur) : cur.suit}`
+    + (cur._dealerBuff ? ' · ' + buffOfferName(cur._dealerBuff)
+       : dealerHand.mode === 'lockbox' && typeof cardBuffLines === 'function' && cardBuffLines(cardId(cur)).length
+         ? ' · ' + cardBuffLines(cardId(cur)).join(', ') : '') + `  (${dealerHand.cards.length} left)`;
+  layer.appendChild(cap);
+  dealerHand.cap = cap;
+  document.body.classList.add('dealer-holding');
+}
+
+// ── where the stack wants to be ──────────────────
+const DL_STEP_X = 0.7, DL_STEP_Y = 0.28;
+let _dealerMouse = { x: innerWidth / 2, y: innerHeight / 2 };
+let _dealerTouch = null;   // {x,y} while a finger is dragging
+document.addEventListener('pointermove', e => {
+  if (e.pointerType === 'mouse') _dealerMouse = { x: e.clientX, y: e.clientY };
+  else if (dealerActive() && e.buttons) _dealerTouch = { x: e.clientX, y: e.clientY };
+}, { passive: true });
+const _dealerLift = e => { if (e.pointerType !== 'mouse') _dealerTouch = null; };
+document.addEventListener('pointerup', _dealerLift, { passive: true });
+document.addEventListener('pointercancel', _dealerLift, { passive: true });
+
+// Card i's anchor (its top-left) when the stack is held at point (ax, ay).
+// Each card sits below and to the left of the one in front of it, overlapping
+// only enough to keep its own corner index visible. Docked in the hand preview
+// (r635) the stack is tight: each card a small step right of the one in front.
+const DL_DOCK_STEP_X = 0.14, DL_DOCK_STEP_Y = 0.025;
+function dealerSlot(i, ax, ay, w, h, curScale, mode) {
+  if (mode === 'dock') return { x: ax + w * DL_DOCK_STEP_X * i, y: ay + h * DL_DOCK_STEP_Y * i };
+  const dx = -w * DL_STEP_X, dy = h * DL_STEP_Y;
+  const cw = w * curScale;
+  // The current card's top-left is the anchor; the others step from its foot.
+  if (i === 0) return { x: ax, y: ay };
+  return { x: ax + (cw - w) + dx * i, y: ay + (h * curScale - h) + dy * i };
+}
+
+function dealerTarget() {
+  const { w, h } = dealerHand.size;
+  const follow = dealerFollowsCursor();
+  // The top card hangs from the cursor: its top-right corner just above and to
+  // the right of the pointer, so the card sits under it and the click is clear.
+  if (follow) return { x: _dealerMouse.x - w + 7, y: _dealerMouse.y - 7, mode: 'cursor' };
+  if (_dealerTouch) return { x: _dealerTouch.x - w * 0.6, y: _dealerTouch.y - h * 1.2 - 34, mode: 'finger' };
+  // Docked (touch): the hand preview's first slot (r635). The preview is empty
+  // while cards are held. Failing that, the old dock box, then under the board.
+  const slot = dealerDockSlot();
+  if (slot) return { x: slot.x, y: slot.y, mode: 'dock' };
+  const n = dealerHand.cards.length - 1;
+  const stackW = w * 1.2 + w * DL_STEP_X * n, stackH = h * 1.2 + h * DL_STEP_Y * n;
+  const box = dealerDockBox();
+  if (box) return { x: box.left + box.width / 2 - stackW / 2 + w * DL_STEP_X * n,
+                    y: box.top + Math.max(4, box.height / 2 - stackH / 2), mode: 'box' };
+  const g = document.getElementById('grid')?.getBoundingClientRect();
+  if (!g) return { x: innerWidth / 2, y: innerHeight - stackH - 8, mode: 'box' };
+  return { x: g.left + g.width / 2 - stackW / 2 + w * DL_STEP_X * n,
+           y: Math.min(g.bottom + 4, innerHeight - stackH - 6), mode: 'box' };
+}
+// r635: where a played hand's first card lands in the preview, and its size, in
+// viewport px. Portrait: the dance fills #hand-preview-area's content box (an empty
+// #selected-cards has no height), sized as the dance sizes one card
+// (portraitPreviewCardW). Landscape: #selected-cards' own box and --card-w / --card-h.
+// null while the box is hidden.
+const DL_PREVIEW_PAD = 4;   // #selected-cards.dnc-active's side padding in portrait (css/style.css)
+function dealerDockSlot() {
+  const portrait = typeof isPortraitLayout === 'function' && isPortraitLayout() && typeof portraitPreviewCardW === 'function';
+  const host = document.getElementById(portrait ? 'hand-preview-area' : 'selected-cards');
+  const rc = host && host.getBoundingClientRect();
+  if (!rc || !rc.width || !rc.height) return null;
+  const z = rc.width / (host.offsetWidth || rc.width) || 1, cs = getComputedStyle(host);
+  const padT = parseFloat(cs.paddingTop) || 0, padB = parseFloat(cs.paddingBottom) || 0;
+  let w, h, left = parseFloat(cs.paddingLeft) || 0;
+  if (portrait) {
+    left += DL_PREVIEW_PAD + PORTRAIT_PREVIEW_CFG.edgePad;
+    w = portraitPreviewCardW(1, host.clientWidth - left * 2);
+    if (w == null) return null;
+    h = Math.round(w / PORTRAIT_PREVIEW_CFG.aspect);
+  } else {
+    w = parseFloat(cs.getPropertyValue('--card-w')) || 42;
+    h = parseFloat(cs.getPropertyValue('--card-h')) || 55;
+  }
+  const inH = host.offsetHeight - padT - padB;
+  return { x: rc.left + left * z, y: rc.top + (padT + Math.max(0, (inH - h) / 2)) * z, w: w * z, h: h * z };
+}
+// Portrait shows Knacks or the hand preview in the strip's second half; the stack
+// docks in the preview, so it shows while cards are held (put back by dealerClose).
+function dealerPanelHold() {
+  if (!dealerHand || dealerHand.pvPrev !== undefined) return;
+  dealerHand.pvPrev = null;
+  if (dealerFollowsCursor() || typeof isPortraitLayout !== 'function' || !isPortraitLayout()) return;
+  if (portraitPanelView !== 'preview') { dealerHand.pvPrev = portraitPanelView; setPortraitPanelView('preview', { auto: true }); }
+  else if (typeof _pvBeforeDance !== 'undefined' && _pvBeforeDance) dealerHand.pvPrev = _pvBeforeDance;
+}
+function dealerHoldsPreview() { return dealerActive() && dealerHand.pvPrev !== undefined && !dealerFollowsCursor(); }
+
+// r635: on touch, cards `from` onward fly in from `rect` (viewport px) to their slots,
+// growing from the source's width to their own, DL_FLY_STAGGER apart. The loop flies
+// them; a card waiting its turn is hidden.
+const DL_FLY_MS = 400, DL_FLY_STAGGER = 80;
+function dealerFlyIn(rect, from = 0) {
+  if (!dealerHand || !rect || dealerFollowsCursor() || document.body.classList.contains('reduced-motion')) return;
+  const { w } = dealerHand.size;
+  const cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
+  const s0 = Math.max(0.25, Math.min(1.5, (rect.width || w) / w));
+  const at = performance.now(), ms = typeof cardFlyMs === 'function' ? cardFlyMs(DL_FLY_MS) : DL_FLY_MS;
+  for (let i = from; i < dealerHand.cards.length; i++) {
+    const p = dealerHand.pos[i];
+    if (p) p.fly = { at: at + (i - from) * DL_FLY_STAGGER, ms, cx, cy, s0 };
+  }
+}
+function dealerDockBox() {
+  const stage = document.getElementById('stage');
+  if (stage && !stage.classList.contains('landscape')) {
+    const tp = document.getElementById('trick-panel')?.getBoundingClientRect();
+    if (tp && tp.width) return { left: tp.left + tp.width / 2, top: tp.top, width: tp.width / 2, height: tp.height };
+  }
+  const sc = document.getElementById('selected-cards')?.getBoundingClientRect();
+  return sc && sc.width && sc.height ? sc : null;
+}
+
+// ── the loop: a ribbon of springs ────────────────
+let _dealerRaf = 0, _dealerLast = 0;
+function dealerStartLoop() {
+  if (_dealerRaf) return;
+  _dealerLast = performance.now();
+  const step = now => {
+    _dealerRaf = 0;
+    if (!dealerHand) return;
+    // The round is over (or the run is): the held cards were this level's only.
+    if (roundEnded || !gameStartTime) { dealerClose(); return; }
+    const dt = Math.min(0.05, (now - _dealerLast) / 1000); _dealerLast = now;
+    if (dealerHand.pendingAt && !animating && !falling) { const [pr, pc] = dealerHand.pendingAt; dealerPlaceAt(pr, pc); if (!dealerHand) return; }
+    const layer = document.getElementById('dealer-layer');
+    if (layer) layer.style.visibility = (typeof isPaused !== 'undefined' && isPaused) ? 'hidden' : '';
+    const { w, h } = dealerHand.size;
+    const tgt = dealerTarget();
+    const touch = layer?.classList.contains('dl-touch');
+    // Touch: the current card is 1.2x under a dragging finger, and slot-sized in the
+    // preview (r635), easing between the two.
+    const kWant = touch && tgt.mode !== 'dock' ? 1.2 : 1;
+    dealerHand.curK = dealerHand.curK == null ? kWant : dealerHand.curK + (kWant - dealerHand.curK) * Math.min(1, dt * 12);
+    const curScale = dealerHand.curK;
+    let speed = 0;
+    dealerHand.cards.forEach((card, i) => {
+      const p = dealerHand.pos[i], el = dealerHand.els[i];
+      if (!p || !el) return;
+      const s = dealerSlot(i, tgt.x, tgt.y, w, h, curScale, tgt.mode);
+      // r635: flying in (dealerFlyIn). Eased out along a shallow arc, growing and
+      // straightening; then the spring takes over from rest at the slot.
+      if (p.fly) {
+        const f = p.fly, u = (now - f.at) / f.ms;
+        el.style.opacity = u < 0 ? '0' : '';
+        if (u < 1) {
+          if (u >= 0 && !f.went) { f.went = true; try { sfxCardPop(cardColorSuit(card)); } catch (e) {} }
+          const e = u <= 0 ? 0 : 1 - Math.pow(1 - u, 3);
+          const x0 = f.cx - w * f.s0 / 2, y0 = f.cy - h * f.s0 / 2;
+          const lift = Math.min(60, Math.hypot(s.x - x0, s.y - y0) * 0.18) * Math.sin(Math.PI * e);
+          p.x = x0 + (s.x - x0) * e; p.y = y0 + (s.y - y0) * e - lift;
+          p.vx = p.vy = 0; p.rot = -10 * (1 - e);
+          el.style.transform = `translate(${p.x}px, ${p.y}px) rotate(${p.rot}deg) scale(${f.s0 + ((i === 0 ? curScale : 1) - f.s0) * e})`;
+          speed = Infinity;
+          return;
+        }
+        p.fly = null; p.x = s.x; p.y = s.y; p.vx = p.vy = 0; p.rot = 0;
+      }
+      // Each card further back is a looser spring, so the stack trails.
+      // The top card is a stiff spring (nearly pinned to the cursor); each card
+      // behind it is looser, so the rest trail like a ribbon.
+      const k = (i === 0 ? 2500 : 380 / (1 + (i - 1) * 0.9)), damp = 2 * Math.sqrt(k) * 0.9;
+      // Sub-stepped: a spring this stiff blows up on one long frame.
+      const nSub = Math.max(1, Math.ceil(dt / 0.008)), h2 = dt / nSub;
+      for (let q = 0; q < nSub; q++) {
+        p.vx += ((s.x - p.x) * k - p.vx * damp) * h2;
+        p.vy += ((s.y - p.y) * k - p.vy * damp) * h2;
+        p.x += p.vx * h2; p.y += p.vy * h2;
+      }
+      // Lean toward where it is being pulled.
+      const want = Math.max(-26, Math.min(26, p.vx * 0.035 + p.vy * 0.01));
+      p.rot += (want - p.rot) * Math.min(1, dt * 12);
+      speed = Math.max(speed, Math.hypot(p.vx, p.vy));
+      // At rest: the reward grid's float, smaller.
+      const settle = dealerHand.still;
+      const ph = (now / 1000) * (2 * Math.PI / 6) + i * 1.9;
+      const fx = Math.sin(ph) * 1.0 * settle, fy = Math.cos(ph * 0.8) * 1.6 * settle, fr = Math.sin(ph * 1.3) * 0.4 * settle;
+      const sc = i === 0 ? curScale : 1;
+      el.style.transform = `translate(${p.x + fx}px, ${p.y + fy}px) rotate(${p.rot + fr}deg) scale(${sc})`;
+    });
+    // `still` eases in once the stack has slowed, so the drift starts gently.
+    dealerHand.still = speed < 40 ? Math.min(1, dealerHand.still + dt * 1.5) : Math.max(0, dealerHand.still - dt * 6);
+    if (dealerHand.cap) {
+      const p0 = dealerHand.pos[0];
+      dealerHand.cap.style.opacity = p0 && p0.fly ? '0' : '';   // r635: shown once the top card lands
+      const cw = dealerHand.cap.offsetWidth || 0;
+      const cx = Math.max(4, Math.min(p0.x, innerWidth - cw - 4));
+      dealerHand.cap.style.transform = `translate(${cx}px, ${p0.y + h * curScale + 4}px)`;
+    }
+    _dealerRaf = requestAnimationFrame(step);
+  };
+  _dealerRaf = requestAnimationFrame(step);
+}
+
+// ── costs ────────────────────────────────────────
+function dealerSwapSeconds() {
+  let t = swapSecondsBase();
+  if (hasKnack('free_swaps')) t = 0;
+  else if (hasKnack('steady_hand')) t = steadyHandSwapSecs();
+  return Math.round(t * bossInteractMult() * interactTimeCostMult());
+}
+function dealerDiscardSeconds() {
+  let t = discardSecondsBase();
+  if (hasKnack('free_discards')) t = 0;
+  else { if (hasKnack('hoarder')) t = hoarderDiscardSecs(); t += (discardCostThisRound || 0); }
+  return Math.round(t * bossInteractMult() * interactTimeCostMult());
+}
+function dealerBill(sec) {
+  if (sec > 0) { roundSeconds = Math.max(1, roundSeconds - sec); showTimeCost(`-${sec}s`); }
+  updateClockUI();
+}
+
+// The top card leaves the stack; the rest step up.
+function dealerShift() {
+  dealerHand.cards.shift(); dealerHand.pos.shift();
+  if (!dealerHand.cards.length) { dealerClose(true); return; }
+  dealerBuildLayer();
+}
+
+// ── TAP: swap the top card in for a board card ───
+function dealerPlaceAt(r, c) {
+  if (!dealerActive()) return;
+  // Mid-fall the board is still moving under the tap; hold it and place it the
+  // moment the board settles (the loop below drains it), rather than ignore it.
+  if (animating || falling) { dealerHand.pendingAt = [r, c]; return; }
+  dealerHand.pendingAt = null;
+  const old = gridData[r]?.[c];
+  if (!old) return;
+  if (dealerHand.mode === 'lockbox' && dealerHand.box && old === dealerHand.box) { dealerClose(true); return; }   // r576: a saved run's Lockbox closes on a tap
+  if (isCellBlocked(r, c) || old._isStone || old._isTrick || !cardCan(old, 'discard')) {
+    refuse('That card cannot be replaced'); return;
+  }
+  if (typeof bossInteractBlocked === 'function' && bossInteractBlocked('swap')) return;
+  const card = dealerHand.cards[0];
+  const fromEl = dealerHand.els[0], from = fromEl?.getBoundingClientRect();
+  // Ghost the leaving card off to the discard button (the Magnet's language).
+  const oldEl = document.querySelector(`#grid [data-card-id="${old._id}"]`);
+  if (oldEl) {
+    const rc = oldEl.getBoundingClientRect(), g = oldEl.cloneNode(true);
+    Object.assign(g.style, { position: 'fixed', left: rc.left + 'px', top: rc.top + 'px', width: rc.width + 'px', height: rc.height + 'px', margin: 0, zIndex: 50, pointerEvents: 'none', transform: 'none' });
+    document.body.appendChild(g);
+    const btn = document.getElementById('btn-discard')?.getBoundingClientRect();
+    const dx = btn ? (btn.left + btn.width / 2) - (rc.left + rc.width / 2) : 0;
+    const dy = btn ? (btn.top + btn.height / 2) - (rc.top + rc.height / 2) : 120;
+    g.animate([{ transform: 'none', opacity: 1 }, { transform: `translate(${dx}px,${dy}px) scale(.45) rotate(-16deg)`, opacity: 0 }],
+      { duration: 480, easing: 'cubic-bezier(.5,0,.75,.4)', fill: 'forwards' });
+    setTimeout(() => g.remove(), 560);
+  }
+  // The board card leaves exactly as a discarded one would; a Sleight keeps its
+  // charges (it is cycled, not consumed - it was not used, just moved aside).
+  if (typeof cardStatesOnLeave === 'function') cardStatesOnLeave([[r, c]]);
+  if (old._isSleight) discardToPlayed(old); else discardToDrawPile(old);
+  gridData[r][c] = card;
+  if (dealerHand.mode === 'reserve' || dealerHand.mode === 'lockbox' || dealerHand.mode === 'dealer') {
+    // The Reserve (r569, js/reserve.js): the old card goes to the back of the deck
+    // and nothing else happens - no time, no stock, no hook, no count. The
+    // Lockbox (r576, js/lockbox.js) the same, and its card joins the deck.
+    // r739 (owner): Dealer's Choice is "like the Reserve" now; its 5th improvement keeps what you place.
+    if (dealerHand.mode === 'lockbox' && typeof lockboxPlaced === 'function') lockboxPlaced(card);
+    if (dealerHand.mode === 'dealer' && BAL.dealers_choice.perm && card._temp) { delete card._temp; expectedDeckTotal++; if (typeof updateDeckHud === 'function') updateDeckHud(); }
+    if (typeof cardStatesTouchCells === 'function') cardStatesTouchCells([[r, c]]);
+  } else {
+  // Counts as a swap: time, the round's swap tally, and the swap hooks. No stock.
+  swapsUsedRound++;
+  dealerBill(dealerSwapSeconds());
+  if (typeof bossOnInteract === 'function') bossOnInteract('swap');
+  lastSwapTime = Date.now();
+  lastSwapRoundSeconds = roundSeconds;
+  resetFocusDecayTimer();
+  if (typeof cullPay === 'function') cullPay();
+  if (typeof cardStatesTouchCells === 'function') cardStatesTouchCells([[r, c]]);
+  if (typeof feedWhetstones === 'function') feedWhetstones([[r, c]]);
+  if (typeof juryRigRoll === 'function') juryRigRoll([[r, c]]);
+  }
+  try { sfxCardSelect(); } catch (e) {}
+  selected = [];
+  dealerShift();
+  render();
+  // The new card flies in from where it was held.
+  const el = document.querySelector(`#grid [data-card-id="${card._id}"]`);
+  if (el && from) {
+    const to = el.getBoundingClientRect(), z = (to.width / (el.offsetWidth || to.width)) || 1;
+    const dx = (from.left + from.width / 2 - (to.left + to.width / 2)) / z;
+    const dy = (from.top + from.height / 2 - (to.top + to.height / 2)) / z;
+    const s0 = from.width / (to.width || 1);
+    el.animate([{ transform: `translate(${dx}px,${dy}px) scale(${s0}) rotate(-8deg)` }, { transform: 'none' }],
+      { duration: 300, easing: 'cubic-bezier(0.25,0.46,0.45,0.94)' });
+  }
+}
+
+// ── DISCARD: throw the top card away ─────────────
+function dealerDiscardTop() {
+  if (!dealerActive() || animating) return;
+  if (dealerHand.mode === 'lockbox') { if (typeof lockboxNext === 'function') lockboxNext(); return; }   // r576: a bought card is not thrown away
+  if (typeof bossInteractBlocked === 'function' && bossInteractBlocked('discard')) return;
+  const el = dealerHand.els[0];
+  if (el) {
+    const rc = el.getBoundingClientRect(), g = el.cloneNode(true);
+    Object.assign(g.style, { position: 'fixed', left: 0, top: 0, transform: `translate(${rc.left}px,${rc.top}px)`, pointerEvents: 'none', zIndex: 900 });
+    document.body.appendChild(g);
+    g.animate([{ transform: `translate(${rc.left}px,${rc.top}px)`, opacity: 1 },
+               { transform: `translate(${rc.left - 30}px,${rc.top + 90}px) rotate(-28deg) scale(.7)`, opacity: 0 }],
+      { duration: 380, easing: 'cubic-bezier(.5,0,.75,.4)', fill: 'forwards' });
+    setTimeout(() => g.remove(), 420);
+  }
+  if (dealerHand.mode !== 'reserve' && dealerHand.mode !== 'dealer') {   // the Reserve's throw-away is free (r569); Dealer's Choice too (r739)
+    dealerBill(dealerDiscardSeconds());
+    if (typeof bossOnInteract === 'function') bossOnInteract('discard');
+  }
+  try { sfxCardDiscard(); } catch (e) {}
+  dealerShift();
+}
+
+// ── Cycling the held cards (r739, owner) ─────────
+// The mouse wheel turns the stack (any held stack: Dealer's Choice, the Reserve,
+// the Lockbox); on touch the SWAP key does. Free; the top card goes to the back.
+function dealerCycle(dir) {
+  if (!dealerActive() || dealerHand.cards.length < 2) return false;
+  if (dir < 0) { dealerHand.cards.unshift(dealerHand.cards.pop()); dealerHand.pos.unshift(dealerHand.pos.pop()); }
+  else { dealerHand.cards.push(dealerHand.cards.shift()); dealerHand.pos.push(dealerHand.pos.shift()); }
+  dealerBuildLayer();
+  try { sfxCardSelect(); } catch (e) {}
+  return true;
+}
+let _dealerWheelAt = 0;
+document.addEventListener('wheel', e => {
+  if (!dealerActive()) return;
+  e.preventDefault();
+  const now = performance.now();
+  if (now - _dealerWheelAt < 90) return;   // one turn a notch, not a flood from a trackpad
+  _dealerWheelAt = now;
+  dealerCycle(e.deltaY > 0 ? 1 : -1);
+}, { passive: false });
+['btn-swap', 'swap-indicator'].forEach(id => {
+  const bind = () => { const el = document.getElementById(id); if (!el || el._dealerCycle) return; el._dealerCycle = 1;
+    el.addEventListener('click', e => { if (!dealerActive()) return; e.stopImmediatePropagation(); e.preventDefault(); if (!dealerCycle(1)) refuse('That is your only held card'); }, true); };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind); else bind();
+});

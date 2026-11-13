@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Art direction · files, floppies, badges</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Share+Tech+Mono&family=Crimson+Pro:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Real palette, lifted from css/style.css */
+  --cream:#f0e6c8; --cream-dim:#8a7d60; --gold:#c9a84c; --gold-dim:#7a6030;
+  --ink:#0d0c0a; --panel:#15130f; --panel-2:#1c1913; --line:rgba(183,172,147,.18);
+  /* Rarity spine - the ONLY thing colour means (r198) */
+  --rar-common:#35d59b; --rar-rare:#16c8d8; --rar-epic:#9a6cff; --rar-legendary:#ff2f8e;
+}
+*{box-sizing:border-box}
+body{margin:0;background:#0a0908;color:var(--cream);font-family:'Share Tech Mono',monospace;font-size:13px}
+h1{font-family:'Orbitron',sans-serif;font-size:15px;letter-spacing:2px;margin:0;color:var(--gold)}
+h2{font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:2.5px;margin:0 0 8px;color:var(--gold-dim);text-transform:uppercase}
+#top{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:16px;padding:10px 16px;
+     background:linear-gradient(180deg,#15130f,#100e0b);border-bottom:1px solid var(--line)}
+#top .sub{color:var(--cream-dim);font-size:11px}
+#wrap{display:grid;grid-template-columns:308px 1fr;gap:0;align-items:start}
+#rail{position:sticky;top:44px;height:calc(100vh - 44px);overflow-y:auto;padding:12px;border-right:1px solid var(--line);background:var(--panel)}
+#stageCol{padding:16px 20px 64px}
+.grp{margin-bottom:14px;border:1px solid var(--line);border-radius:8px;background:var(--panel-2)}
+.grp>summary{cursor:pointer;list-style:none;padding:8px 10px;font-family:'Orbitron',sans-serif;font-size:9.5px;
+  letter-spacing:2px;color:var(--gold);text-transform:uppercase}
+.grp>summary::-webkit-details-marker{display:none}
+.grp>summary::before{content:'▸ ';color:var(--gold-dim)}
+.grp[open]>summary::before{content:'▾ '}
+.grp .body{padding:4px 10px 10px}
+.row{display:grid;grid-template-columns:1fr 58px;gap:8px;align-items:center;margin:7px 0}
+.row label{color:var(--cream-dim);font-size:11px;line-height:1.25}
+.row input[type=range]{width:100%;accent-color:var(--gold)}
+.row output{font-size:11px;color:var(--cream);text-align:right;font-variant-numeric:tabular-nums}
+.row.full{grid-template-columns:1fr}
+.seg{display:flex;gap:4px;flex-wrap:wrap;margin:6px 0}
+.seg button{flex:1 1 auto;padding:5px 7px;font-family:'Share Tech Mono',monospace;font-size:10.5px;cursor:pointer;
+  background:#0f0d0a;color:var(--cream-dim);border:1px solid var(--line);border-radius:5px}
+.seg button.on{background:var(--gold);color:#100e0b;border-color:var(--gold);font-weight:700}
+.swatches{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:4px}
+.sw{display:flex;flex-direction:column;gap:3px;align-items:center;font-size:9px;color:var(--cream-dim)}
+.sw input{width:100%;height:26px;padding:0;border:1px solid var(--line);border-radius:4px;background:none;cursor:pointer}
+
+/* ── specimen shelves ── */
+.shelf{margin-bottom:26px;border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:14px}
+.shelf .hdr{display:flex;align-items:baseline;gap:10px;margin-bottom:12px}
+.shelf .hdr .note{color:var(--cream-dim);font-size:11px}
+.specimens{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-end}
+.spec{display:flex;flex-direction:column;align-items:center;gap:6px}
+.spec .cap{font-size:9.5px;letter-spacing:1.5px;color:var(--cream-dim);text-transform:uppercase}
+
+/* ── stage fit mock ── */
+#fit{border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:14px;margin-bottom:26px}
+#stageMock{position:relative;background:#080706;border:1px solid var(--line);border-radius:6px;margin:10px 0}
+#slotBox{position:absolute;border:1px dashed rgba(201,168,76,.45);background:rgba(201,168,76,.05)}
+#cells{position:absolute;inset:0}
+.mcell{position:absolute;border-radius:3px;background:#221d16;border:1px solid rgba(240,230,200,.22)}
+#stageMock svg{display:block}
+#fitread{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:8px;margin-top:10px}
+.stat{border:1px solid var(--line);border-radius:6px;padding:7px 9px;background:var(--panel-2)}
+.stat b{display:block;font-size:9px;letter-spacing:1.5px;color:var(--gold-dim);text-transform:uppercase;margin-bottom:3px}
+.stat span{font-size:14px;color:var(--cream);font-variant-numeric:tabular-nums}
+.warn{border-color:rgba(255,47,142,.5);background:rgba(255,47,142,.08)}
+.warn span{color:var(--rar-legendary)}
+.ok{border-color:rgba(53,213,155,.4)}
+.ok span{color:var(--rar-common)}
+#verdict{font-family:'Crimson Pro',serif;font-size:14px;line-height:1.5;color:var(--cream-dim);margin-top:10px}
+#verdict b{color:var(--cream)}
+
+/* ── config dump ── */
+#dump{border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:14px}
+#dumpText{width:100%;height:250px;background:#080706;color:var(--cream);border:1px solid var(--line);
+  border-radius:6px;padding:10px;font-family:'Share Tech Mono',monospace;font-size:11px;line-height:1.45;resize:vertical}
+#copyBtn{margin-top:8px;padding:7px 14px;background:var(--gold);color:#100e0b;border:none;border-radius:5px;
+  font-family:'Orbitron',sans-serif;font-size:10px;letter-spacing:1.5px;cursor:pointer;font-weight:700}
+</style>
+</head>
+<body>
+
+<div id="top">
+  <h1>ART DIRECTION</h1>
+  <span class="sub">docs · floppies · business cards &nbsp;·&nbsp; colour is rarity, shape is type</span>
+  <span class="sub" id="modeNote" style="margin-left:auto"></span>
+</div>
+
+<div id="wrap">
+  <div id="rail"></div>
+  <div id="stageCol">
+    <div id="fit">
+      <div class="hdr"><h2 style="margin:0">Grid fit · does it still work?</h2></div>
+      <div style="color:var(--cream-dim);font-size:11.5px;line-height:1.5;margin-bottom:8px">
+        The landscape grid slot is <b style="color:var(--cream)">45% x 86.11%</b> of the 747x420 stage =
+        <b style="color:var(--cream)">336 x 362</b> design px. It is TALLER than it is wide, which is the
+        whole problem with a landscape cell. Real constants: gap 5, pad 3, safety 5, floors 40x53.
+      </div>
+      <div id="stageMock"></div>
+      <div id="fitread"></div>
+      <div id="verdict"></div>
+    </div>
+
+    <div class="shelf">
+      <div class="hdr"><h2 style="margin:0">Docs</h2><span class="note">the cards on the grid · one per rarity</span></div>
+      <div class="specimens" id="shelfFile"></div>
+    </div>
+
+    <div class="shelf">
+      <div class="hdr"><h2 style="margin:0">Floppies</h2><span class="note">Utilities · the side tray</span></div>
+      <div class="specimens" id="shelfFloppy"></div>
+    </div>
+
+    <div class="shelf">
+      <div class="hdr"><h2 style="margin:0">Business cards</h2><span class="note">Vendors · they share the grid cell with the docs</span></div>
+      <div class="specimens" id="shelfBadge"></div>
+    </div>
+
+    <div id="dump">
+      <h2>Copy-paste config</h2>
+      <textarea id="dumpText" spellcheck="false"></textarea>
+      <button id="copyBtn">Copy</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Spectrum data, straight from js/data/cards.js ──────────────────────────
+const COLOR_HEX = {red:'#d43b3b',yellow:'#e0b81c',blue:'#2f6fd0',green:'#2f9e54',purple:'#8b4bc8',orange:'#e07a1f',black:'#23201c',white:'#efe7d6'};
+const SPECTRUM_SAMPLES = [
+  {v:'7',  c:'red'},   {v:'11', c:'white'}, {v:'0',  c:'blue'},  {v:'20', c:'green'},
+];
+const CLASSIC_SAMPLES = [ {v:'A',s:'♠'}, {v:'10',s:'♥'}, {v:'K',s:'♣'}, {v:'4',s:'♦'} ];
+const TIERS = ['common','rare','epic','legendary'];
+const TIER_WORD = { common:'Lite', rare:'Standard', epic:'Plus', legendary:'Deluxe' };
+const HIRE_WORD = { common:'Trial', rare:'Contract', epic:'Retainer', legendary:'Partner' };
+// Real Sleight emoji, so the logo block is judged at the size it is read at.
+const BIZ_SAMPLES = ['\u{1F3ED}', '\u{1F451}', '\u{1F9F2}', '\u2699\uFE0F', '\u{1F4B5}'];
+
+// ── the tunable model ──────────────────────────────────────────────────────
+const CFG = {
+  // global
+  deck:'spectrum', borderW:2, glow:10, radius:5, faceDark:'#17140f',
+  // How far a badge / floppy body is mixed from its own material toward the
+  // rarity hue. Not 100 by default: a raw mint shell leaves the cream label
+  // plate on top of it with almost no contrast. See bodyFor() / inkOn().
+  bodyTint:72, bodyBorderW:0,
+  rar:{ common:'#35d59b', rare:'#16c8d8', epic:'#9a6cff', legendary:'#ff2f8e' },
+  // grid fit
+  rows:5, cols:5, cellAspect:1.12,       // height / width. 1.316 = the old 75/57
+  boardMix:2,                            // how many badges to scatter into the mock board
+  // doc (was "file" - the card became a document, r199)
+  docTab:'fold',    // 'fold' = document corner turned down, 'tab' = folder tab
+  docFold:20, docTabW:61, docTabH:12, docTabX:4,
+  docBand:14, docColorMode:'body',       // body | band | tab
+  docValue:43,
+  // floppy
+  flopAspect:0.95,                       // 90mm x 94mm, real 3.5" disk
+  flopShutW:45, flopShutH:31, flopShutX:60, flopChamfer:16,
+  flopLabelTop:41, flopLabelInset:7, flopHub:0,
+  // business card (a vendor's card, not an ID badge - r200)
+  bizAspect:1.37,                        // a real business card is 1.75
+  bizLogo:56, bizMark:'square', bizShowEmoji:1,
+};
+
+// ── control rail ───────────────────────────────────────────────────────────
+const GROUPS = [
+  { name:'Global', open:true, rows:[
+    {t:'seg', k:'deck', label:'Deck', opts:[['spectrum','Spectrum'],['classic','Classic']]},
+    {t:'colors'},
+    {t:'range', k:'borderW', label:'Doc rarity border width', min:0, max:6, step:.5, unit:'px'},
+    {t:'range', k:'bodyTint', label:'Badge / floppy body tint - how far the object is mixed toward its rarity colour', min:0, max:100, step:1, unit:'%'},
+    {t:'range', k:'bodyBorderW', label:'Badge / floppy outline (normally 0 - the body carries the rarity)', min:0, max:5, step:.5, unit:'px'},
+    {t:'range', k:'glow',    label:'Rarity glow',         min:0, max:26, step:1, unit:'px'},
+    {t:'range', k:'radius',  label:'Corner radius',       min:0, max:12, step:.5, unit:'px'},
+  ]},
+  { name:'Grid fit', open:true, rows:[
+    {t:'range', k:'cellAspect', label:'Cell aspect (height / width). 1.32 = today, 0.76 = a card on its side', min:.55, max:1.7, step:.01},
+    {t:'seg', k:'_aspectPreset', label:'Presets', opts:[['1.316','Today 75x57'],['1','Square'],['0.76','On its side'],['0.645','Credit card']], apply:v=>{CFG.cellAspect=+v}},
+    {t:'range', k:'cols', label:'Columns', min:3, max:8, step:1},
+    {t:'range', k:'rows', label:'Rows',    min:3, max:8, step:1},
+    {t:'range', k:'boardMix', label:'Business cards scattered into the mock board', min:0, max:8, step:1},
+  ]},
+  { name:'Doc (card)', open:true, rows:[
+    {t:'seg', k:'docTab', label:'Silhouette', opts:[['fold','Document · folded corner'],['tab','Folder · tab']]},
+    {t:'range', k:'docFold', label:'Folded corner size', min:0, max:50, step:1, unit:'%'},
+    {t:'range', k:'docTabW', label:'Tab width',  min:20, max:80, step:1, unit:'%'},
+    {t:'range', k:'docTabH', label:'Tab height', min:6,  max:30, step:1, unit:'%'},
+    {t:'range', k:'docTabX', label:'Tab offset from left', min:0, max:60, step:1, unit:'%'},
+    {t:'seg', k:'docColorMode', label:'Where the card colour goes', opts:[['body','Whole body'],['band','Label band'],['tab','Tab only']]},
+    {t:'range', k:'docBand',  label:'Label band height', min:0, max:60, step:1, unit:'%'},
+    {t:'range', k:'docValue', label:'Value size', min:20, max:80, step:1, unit:'%'},
+  ]},
+  { name:'Floppy (Utility)', open:false, rows:[
+    {t:'range', k:'flopAspect',   label:'Aspect (h/w). 0.957 = a real 3.5in disk', min:.7, max:1.3, step:.005},
+    {t:'range', k:'flopChamfer',  label:'Chamfered corner', min:0, max:40, step:1, unit:'%'},
+    {t:'range', k:'flopShutW',    label:'Shutter width',  min:15, max:70, step:1, unit:'%'},
+    {t:'range', k:'flopShutH',    label:'Shutter height', min:8,  max:50, step:1, unit:'%'},
+    {t:'range', k:'flopShutX',    label:'Shutter x', min:0, max:100, step:1, unit:'%'},
+    {t:'range', k:'flopLabelTop', label:'Label top edge', min:20, max:70, step:1, unit:'%'},
+    {t:'range', k:'flopLabelInset', label:'Label side inset', min:0, max:25, step:1, unit:'%'},
+    {t:'range', k:'flopHub',      label:'Hub cutout (0 = off)', min:0, max:30, step:1, unit:'%'},
+  ]},
+  { name:'Business card (Vendor)', open:false, rows:[
+    {t:'range', k:'bizAspect', label:'Aspect (w/h). A real business card is 1.75', min:1.1, max:2.1, step:.01},
+    {t:'range', k:'bizLogo',   label:'Logo block width', min:0, max:70, step:1, unit:'%'},
+    {t:'seg',   k:'bizMark',   label:'Logo mark (stands in for the entity emoji)',
+      opts:[['square','Square'],['circle','Circle'],['diamond','Diamond'],['chevron','Chevron'],['bars','Bars']]},
+    {t:'seg',   k:'bizShowEmoji', label:'Logo block content', opts:[['1','The entity emoji'],['0','Geometric mark']]},
+  ]},
+];
+
+function buildRail(){
+  const rail = document.getElementById('rail');
+  rail.innerHTML = GROUPS.map(g => `
+    <details class="grp" ${g.open?'open':''}>
+      <summary>${g.name}</summary>
+      <div class="body">${g.rows.map(r => rowHTML(r)).join('')}</div>
+    </details>`).join('');
+  rail.addEventListener('input', onCtl);
+  rail.addEventListener('click', onCtl);
+}
+function rowHTML(r){
+  if (r.t === 'colors') return `<div class="row full"><label>Rarity colours · the only meaning colour carries</label></div>
+    <div class="swatches">${TIERS.map(t=>`<div class="sw"><input type="color" data-rar="${t}" value="${CFG.rar[t]}"><span>${TIER_WORD[t]}</span></div>`).join('')}</div>`;
+  if (r.t === 'seg') return `<div class="row full"><label>${r.label}</label></div>
+    <div class="seg" data-seg="${r.k}">${r.opts.map(([v,l])=>`<button data-v="${v}" class="${String(CFG[r.k])===v?'on':''}">${l}</button>`).join('')}</div>`;
+  return `<div class="row"><label>${r.label}</label><output data-out="${r.k}">${CFG[r.k]}${r.unit||''}</output>
+    <input class="full" style="grid-column:1/-1" type="range" data-k="${r.k}" min="${r.min}" max="${r.max}" step="${r.step}" value="${CFG[r.k]}"></div>`;
+}
+function onCtl(e){
+  const t = e.target;
+  if (t.dataset && t.dataset.k){
+    const k = t.dataset.k, r = GROUPS.flatMap(g=>g.rows).find(x=>x.k===k);
+    CFG[k] = parseFloat(t.value);
+    const o = document.querySelector(`[data-out="${k}"]`); if (o) o.textContent = CFG[k] + (r && r.unit ? r.unit : '');
+    return render();
+  }
+  if (t.dataset && t.dataset.rar){ CFG.rar[t.dataset.rar] = t.value; return render(); }
+  if (t.tagName === 'BUTTON' && t.parentElement.dataset.seg){
+    const k = t.parentElement.dataset.seg, v = t.dataset.v;
+    const r = GROUPS.flatMap(g=>g.rows).find(x=>x.k===k);
+    if (r && r.apply) r.apply(v); else CFG[k] = isNaN(+v) || k==='deck' ? v : (k.startsWith('badgeSlotOn') ? +v : v);
+    if (k === 'badgeSlotOn') CFG[k] = +v;
+    [...t.parentElement.children].forEach(b=>b.classList.toggle('on', b===t));
+    if (r && r.apply){ // preset buttons write another key - resync its slider
+      const s = document.querySelector('[data-k="cellAspect"]'); if (s){ s.value = CFG.cellAspect;
+        const o = document.querySelector('[data-out="cellAspect"]'); if (o) o.textContent = CFG.cellAspect; }
+    }
+    return render();
+  }
+}
+
+// ── grid fit, using the game's real numbers ────────────────────────────────
+const STAGE_W = 747, STAGE_H = 420, SLOT_X = .45, SLOT_Y = .1111, SLOT_W = .45, SLOT_H = .8611;
+const GAP = 5, PAD = 3, SAFETY = 5, MIN_W = 40, MIN_H = 53;
+
+function fitGrid(){
+  const slotW = STAGE_W * SLOT_W, slotH = STAGE_H * SLOT_H;
+  const innerW = slotW - SAFETY*2 - PAD*2 - GAP*(CFG.cols-1);
+  const innerH = slotH - SAFETY*2 - PAD*2 - GAP*(CFG.rows-1);
+  let w = Math.floor(innerW / CFG.cols), h = Math.floor(innerH / CFG.rows);
+  // the game's own constraint: take whichever dimension is the tighter fit
+  if (h / w > CFG.cellAspect) h = Math.round(w * CFG.cellAspect);
+  else                        w = Math.round(h / CFG.cellAspect);
+  // What the cell WANTED to be, before the floor clamps it. Keep both: a config
+  // only reaches a usable size by being clamped is not a config that fits, and
+  // reporting the clamped number alone hides that completely.
+  const rawW = w, rawH = h;
+  const hitFloor = w < MIN_W || h < MIN_H;
+  w = Math.max(w, MIN_W); h = Math.max(h, MIN_H);
+  const gw = CFG.cols*w + GAP*(CFG.cols-1) + PAD*2;
+  const gh = CFG.rows*h + GAP*(CFG.rows-1) + PAD*2;
+  const availW = slotW - SAFETY*2, availH = slotH - SAFETY*2;
+  // Unused width and height are reported SEPARATELY, not as one area figure.
+  // The whole question here is which axis the cell is wasting, and an area
+  // number averages that away - the two configs below both read "22% unused"
+  // while wasting it on opposite axes.
+  return { slotW, slotH, w, h, rawW, rawH, gw, gh, hitFloor,
+           overflowW: gw > availW, overflowH: gh > availH,
+           overflow: gw > availW || gh > availH,
+           unusedW: 1 - gw/availW, unusedH: 1 - gh/availH };
+}
+
+function renderFit(){
+  const f = fitGrid(), SC = 1.15;
+  const mock = document.getElementById('stageMock');
+  mock.style.width = (STAGE_W*SC)+'px'; mock.style.height = (STAGE_H*SC)+'px';
+  const sx = STAGE_W*SLOT_X*SC, sy = STAGE_H*SLOT_Y*SC;
+  // Draw the REAL objects in the mock board, docs and badges together. That is
+  // the only way to answer "does a short wide badge look wrong in a cell sized
+  // for a taller doc" - two aspect ratios are fine in the abstract and the
+  // question is entirely about how they sit side by side.
+  let cells = '';
+  const ox = sx + (f.slotW*SC - f.gw*SC)/2, oy = sy + (f.slotH*SC - f.gh*SC)/2;
+  const samples = CFG.deck==='spectrum' ? SPECTRUM_SAMPLES : CLASSIC_SAMPLES;
+  const total = CFG.rows*CFG.cols;
+  // Fixed positions, not random - the board must not reshuffle on every slider
+  // nudge or you cannot see what your change actually did.
+  const badgeAt = new Set();
+  for (let i=0;i<CFG.boardMix;i++) badgeAt.add(Math.floor((i+0.5) * total / Math.max(1,CFG.boardMix)) % total);
+  for (let r=0;r<CFG.rows;r++) for (let c=0;c<CFG.cols;c++){
+    const i = r*CFG.cols + c;
+    const L = ox+PAD*SC+c*(f.w+GAP)*SC, T = oy+PAD*SC+r*(f.h+GAP)*SC;
+    const cw = f.w*SC, chh = f.h*SC;
+    const tier = TIERS[(i*3+r) % TIERS.length];
+    let inner;
+    if (badgeAt.has(i)){
+      // A badge is shorter than the cell, so it is bottom-anchored - centred, it
+      // floats and reads as a rendering mistake rather than as an object lying
+      // among the paperwork.
+      const bh = cw / CFG.bizAspect;
+      inner = `<div style="position:absolute;left:0;bottom:0;width:${cw}px;height:${bh}px">${bizCardSVG(tier, cw, BIZ_SAMPLES[i % BIZ_SAMPLES.length])}</div>`;
+    } else {
+      inner = docSVG('common', samples[i%samples.length], cw, chh);
+    }
+    cells += `<div style="position:absolute;left:${L}px;top:${T}px;width:${cw}px;height:${chh}px">${inner}</div>`;
+  }
+  mock.innerHTML = `<div id="slotBox" style="left:${sx}px;top:${sy}px;width:${f.slotW*SC}px;height:${f.slotH*SC}px"></div>${cells}`;
+
+  const uW = Math.round(f.unusedW*100), uH = Math.round(f.unusedH*100);
+  document.getElementById('fitread').innerHTML = `
+    <div class="stat ${f.hitFloor?'warn':''}"><b>Cell</b><span>${f.w} x ${f.h}${f.hitFloor?' *':''}</span></div>
+    <div class="stat"><b>Grid</b><span>${f.gw} x ${f.gh}</span></div>
+    <div class="stat ${f.overflowW?'warn':(uW>22?'warn':'ok')}"><b>Unused width</b><span>${uW<0?'over':uW+'%'}</span></div>
+    <div class="stat ${f.overflowH?'warn':(uH>22?'warn':'ok')}"><b>Unused height</b><span>${uH<0?'over':uH+'%'}</span></div>
+    <div class="stat ${f.hitFloor?'warn':'ok'}"><b>Hit size floor</b><span>${f.hitFloor?'YES ('+f.rawW+'x'+f.rawH+')':'no'}</span></div>`;
+
+  const base = fitBaseline();
+  const areaDelta = Math.round(((f.w*f.h)/(base.w*base.h) - 1) * 100);
+  const head = `At <b>${CFG.cols}x${CFG.rows}</b> and aspect <b>${CFG.cellAspect.toFixed(3)}</b> a cell is
+    <b>${f.w}x${f.h}</b>, <b style="color:${areaDelta<0?'var(--rar-legendary)':'var(--rar-common)'}">${areaDelta>=0?'+':''}${areaDelta}%</b>
+    of today's 49x65. `;
+  // Blocking conditions first. An earlier version led with the waste figure and
+  // said "fills the slot well" while the grid was overflowing its slot, which is
+  // the one thing this panel exists to catch.
+  let body;
+  if (f.overflow) body = `<b style="color:var(--rar-legendary)">This overflows the slot</b>
+      (${f.overflowW?'too wide':''}${f.overflowW&&f.overflowH?' and ':''}${f.overflowH?'too tall':''}) - in the real
+      game the grid spills toward ${f.overflowW?'the action buttons':'the clock bar'}. Drop a ${f.overflowW?'column':'row'}.`;
+  else if (f.hitFloor) body = `<b style="color:var(--rar-legendary)">The cell was clamped to the minimum size</b>
+      - it wanted to be ${f.rawW}x${f.rawH} and the floor (40x53) pushed it back up. It only looks like it fits.
+      Fewer ${f.rawW < MIN_W ? 'columns' : 'rows'}, or a less extreme aspect.`;
+  else if (uH > 22 || uW > 22) body = `<b>${Math.max(uW,uH)}% of the slot's ${uH>uW?'height':'width'} goes unused.</b>
+      The slot is 336 wide by 362 tall, so a wide cell leaves a dead band above and below.
+      ${uH>uW ? 'Adding a row is the fix, not shrinking the cell.' : 'Adding a column would take up the slack.'}`;
+  else body = `Fits cleanly, no floor clamp, both axes well used.`;
+  document.getElementById('verdict').innerHTML = head + body;
+}
+function fitBaseline(){
+  const keep = {a:CFG.cellAspect, c:CFG.cols, r:CFG.rows};
+  CFG.cellAspect = 75/57; CFG.cols = 5; CFG.rows = 5;
+  const f = fitGrid();
+  CFG.cellAspect = keep.a; CFG.cols = keep.c; CFG.rows = keep.r;
+  return f;
+}
+
+// ── shape builders (SVG, so the geometry is exact and scales) ─────────────
+const esc = s => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+// Rarity as an OUTLINE. Docs keep this; badges and floppies do not (r199) -
+// their rarity is the colour of the object itself, so borderW is normally 0
+// for them and the stroke is left in only as a tuning option.
+function rarStyle(t, w){
+  const bw = (w === undefined) ? CFG.borderW : w;
+  const glow = CFG.glow ? `;filter:drop-shadow(0 0 ${CFG.glow}px ${CFG.rar[t]}88)` : '';
+  return bw > 0 ? `stroke:${CFG.rar[t]};stroke-width:${bw}${glow}` : `stroke:none${glow}`;
+}
+
+// ── colour maths ───────────────────────────────────────────────────────────
+// A saturated rarity colour used as a BODY has to be pulled down toward the
+// object's own material, or a mint floppy comes out fluorescent and the cream
+// label plate on top of it loses all its contrast. `bodyTint` is how far along
+// that mix the object sits: 0 = the old dark plastic, 100 = the raw rarity hue.
+const _hx = h => { h = h.replace('#',''); return [0,2,4].map(i => parseInt(h.slice(i,i+2),16)); };
+const _hex = a => '#' + a.map(v => Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,'0')).join('');
+function mixHex(a, b, t){ const A=_hx(a), B=_hx(b); return _hex(A.map((v,i)=>v+(B[i]-v)*t)); }
+// Relative luminance, for picking ink that stays readable on whatever the body
+// mixed to. Without this a Deluxe magenta body and a Lite mint body would get
+// the same ink and one of them would be unreadable.
+function lum(h){ const [r,g,b] = _hx(h).map(v => { v/=255; return v<=.03928 ? v/12.92 : Math.pow((v+.055)/1.055, 2.4); });
+  return .2126*r + .7152*g + .0722*b; }
+const inkOn = h => lum(h) > 0.42 ? '#14110c' : '#f4eeda';
+// The body colour for a rarity, at the current tint.
+function bodyFor(tier, base){ return mixHex(base, CFG.rar[tier], CFG.bodyTint/100); }
+
+function docSVG(tier, sample, W, H){
+  const r = CFG.radius, c = CFG.rar[tier];
+  const faceCol = CFG.deck==='spectrum' ? COLOR_HEX[sample.c] : CFG.faceDark;
+  const ink = (CFG.deck==='spectrum' && (sample.c==='white'||sample.c==='yellow')) ? '#1a1712' : '#f4eeda';
+  const bodyFill = CFG.docColorMode==='body' ? faceCol : CFG.faceDark;
+  let outline, tabEl='';
+  if (CFG.docTab === 'fold'){
+    const f = H * CFG.docFold/100;
+    outline = `<path d="M${r},0 H${W-f} L${W},${f} V${H-r} a${r},${r} 0 0 1 -${r},${r} H${r} a${r},${r} 0 0 1 -${r},-${r} V${r} a${r},${r} 0 0 1 ${r},-${r} z"
+      fill="${bodyFill}" style="${rarStyle(tier)}"/>
+      <path d="M${W-f},0 L${W},${f} H${W-f} z" fill="rgba(0,0,0,.42)" stroke="${c}" stroke-width="${Math.max(1,CFG.borderW*.6)}"/>`;
+  } else {
+    const tw = W*CFG.docTabW/100, th = H*CFG.docTabH/100, tx = W*CFG.docTabX/100;
+    outline = `<path d="M${tx+r},0 h${tw-2*r} a${r},${r} 0 0 1 ${r},${r} v${th-r} H${W-r} a${r},${r} 0 0 1 ${r},${r}
+      V${H-r} a${r},${r} 0 0 1 -${r},${r} H${r} a${r},${r} 0 0 1 -${r},-${r} V${th+r} a${r},${r} 0 0 1 ${r},-${r} H${tx}
+      V${r} a${r},${r} 0 0 1 ${r},-${r} z" fill="${bodyFill}" style="${rarStyle(tier)}"/>`;
+    if (CFG.docColorMode==='tab') tabEl = `<rect x="${tx+1}" y="1" width="${tw-2}" height="${th}" fill="${faceCol}" rx="${r}"/>`;
+  }
+  const topPad = CFG.docTab==='tab' ? H*CFG.docTabH/100 : 0;
+  const bandH = (H-topPad) * CFG.docBand/100;
+  const band = CFG.docBand>0 ? `<rect x="${W*.1}" y="${H-bandH-H*.07}" width="${W*.8}" height="${bandH}"
+      fill="${CFG.docColorMode==='band'?faceCol:'rgba(240,230,200,.13)'}" rx="2"/>` : '';
+  const label = CFG.deck==='spectrum' ? esc(sample.v) : esc(sample.v)+esc(sample.s);
+  const fs = (H-topPad) * CFG.docValue/100;
+  return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">${outline}${tabEl}${band}
+    <text x="${W/2}" y="${topPad + (H-topPad-bandH)/2}" fill="${CFG.docColorMode==='body'?ink:'#f4eeda'}"
+      font-family="Orbitron,sans-serif" font-weight="800" font-size="${fs}"
+      text-anchor="middle" dominant-baseline="central">${label}</text></svg>`;
+}
+
+function floppySVG(tier, W, uid){
+  const H = W*CFG.flopAspect, ch = W*CFG.flopChamfer/100, r = CFG.radius;
+  const sw = W*CFG.flopShutW/100, sh = H*CFG.flopShutH/100;
+  const sx = (W - sw) * CFG.flopShutX/100;
+  const lt = H*CFG.flopLabelTop/100, li = W*CFG.flopLabelInset/100;
+  const hub = W*CFG.flopHub/100;
+  // The shell IS the rarity (r199). Mixed toward the plastic so the label plate
+  // that sits on top of it keeps its contrast at every tier.
+  const shell = bodyFor(tier, '#1b1813');
+  const gid = 'metal' + (uid || '');
+  const body = `<path d="M${r},0 H${W-ch} L${W},${ch} V${H-r} a${r},${r} 0 0 1 -${r},${r} H${r}
+    a${r},${r} 0 0 1 -${r},-${r} V${r} a${r},${r} 0 0 1 ${r},-${r} z" fill="${shell}" style="${rarStyle(tier, CFG.bodyBorderW)}"/>
+    <path d="M${W-ch},0 L${W},${ch} H${W-ch} z" fill="rgba(0,0,0,.3)"/>`;
+  const shutter = `<g>
+    <rect x="${sx}" y="${H*.045}" width="${sw}" height="${sh}" rx="1.5" fill="#b9bcc2"/>
+    <rect x="${sx}" y="${H*.045}" width="${sw}" height="${sh}" rx="1.5" fill="url(#${gid})"/>
+    <rect x="${sx+sw*.16}" y="${H*.045+sh*.16}" width="${sw*.42}" height="${sh*.68}" rx="1" fill="#2a2d33"/>
+  </g>`;
+  const label = `<rect x="${li}" y="${lt}" width="${W-li*2}" height="${H-lt-H*.09}" rx="2"
+    fill="rgba(244,238,218,.94)"/>
+    <rect x="${li+W*.05}" y="${lt+H*.09}" width="${(W-li*2)*.62}" height="${H*.05}" fill="rgba(30,26,20,.4)"/>
+    <rect x="${li+W*.05}" y="${lt+H*.20}" width="${(W-li*2)*.44}" height="${H*.05}" fill="rgba(30,26,20,.25)"/>`;
+  const hubEl = hub>0 ? `<circle cx="${W/2}" cy="${lt-H*.055}" r="${hub/2}" fill="#0e0c09" stroke="rgba(0,0,0,.5)"/>` : '';
+  return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">
+    <defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e6e9ee" stop-opacity=".95"/><stop offset=".5" stop-color="#9aa0a8" stop-opacity=".9"/>
+      <stop offset="1" stop-color="#cfd4da" stop-opacity=".92"/></linearGradient></defs>
+    ${body}${hubEl}${shutter}${label}</svg>`;
+}
+
+// A VENDOR'S BUSINESS CARD, not an ID badge (r200). The Sleight roster is
+// Warehouse, Lighthouse, Whetstone, Flywheel, Catalyst, Piggy Bank, Petty Cash
+// - not one of the 43 is a person's name, and every one reads as a small
+// company. So the object is a card from your rolodex: a logo mark and a company
+// name, never a photo and a face.
+const BIZ_MARKS = {
+  // Simple geometric marks that survive being 20px wide on the board. In the
+  // real game this slot carries the Sleight's own emoji; these stand in for it.
+  square:  (x,y,r,f) => `<rect x="${x-r}" y="${y-r}" width="${r*2}" height="${r*2}" rx="${r*.22}" fill="${f}"/>`,
+  circle:  (x,y,r,f) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${f}"/>`,
+  diamond: (x,y,r,f) => `<path d="M${x},${y-r} L${x+r},${y} L${x},${y+r} L${x-r},${y} z" fill="${f}"/>`,
+  chevron: (x,y,r,f) => `<path d="M${x-r},${y+r*.55} L${x},${y-r*.55} L${x+r},${y+r*.55} L${x+r*.55},${y+r*.55} L${x},${y-r*.05} L${x-r*.55},${y+r*.55} z" fill="${f}"/>`,
+  bars:    (x,y,r,f) => `<g fill="${f}"><rect x="${x-r}" y="${y-r*.75}" width="${r*.55}" height="${r*1.5}" rx="1"/>`
+                      + `<rect x="${x-r*.28}" y="${y-r}" width="${r*.55}" height="${r*2}" rx="1"/>`
+                      + `<rect x="${x+r*.45}" y="${y-r*.45}" width="${r*.55}" height="${r*.9}" rx="1"/></g>`,
+};
+
+function bizCardSVG(tier, W, sampleMark){
+  const H = W/CFG.bizAspect, r = CFG.radius;
+  const stock = bodyFor(tier, '#191510');
+  const dark  = lum(stock) > 0.42;
+  const ink   = inkOn(stock);
+  const plate = dark ? 'rgba(20,17,12,.22)' : 'rgba(0,0,0,.30)';
+  const nameC = dark ? 'rgba(20,17,12,.86)' : 'rgba(244,238,218,.90)';
+  const ruleC = dark ? 'rgba(20,17,12,.40)' : 'rgba(244,238,218,.40)';
+  const lw = W*CFG.bizLogo/100;             // logo block width
+  const pad = W*.055;
+  const ly = H/2;
+  const mr = Math.min(lw, H) * 0.30;        // mark radius
+  // The geometric mark STANDS IN FOR the emoji - they are alternatives, never
+  // layered. Drawing both put a glyph on top of a solid block and read as noise
+  // at cell size, which is the only size that matters here.
+  const markEl = CFG.bizShowEmoji ? '' : (BIZ_MARKS[CFG.bizMark] || BIZ_MARKS.square)(pad + lw/2, ly, mr, ink);
+  const logo = lw > 0 ? `<rect x="${pad}" y="${H*.13}" width="${lw}" height="${H*.74}" rx="2" fill="${plate}"/>${markEl}` : '';
+  // In the game this is the Sleight's emoji; shown here so the block is judged
+  // at the size it will really be read at.
+  const emoji = (lw > 0 && sampleMark) ? `<text x="${pad+lw/2}" y="${ly}" font-size="${Math.min(lw,H)*.62}"
+    text-anchor="middle" dominant-baseline="central">${sampleMark}</text>` : '';
+  const tx = pad + (lw > 0 ? lw + W*.06 : 0);
+  const tw = W - tx - pad;
+  const text = `
+    <rect x="${tx}" y="${H*.24}" width="${tw*.94}" height="${H*.14}" rx="1.5" fill="${nameC}"/>
+    <rect x="${tx}" y="${H*.47}" width="${tw*.66}" height="${H*.055}" rx="1" fill="${ruleC}"/>
+    <rect x="${tx}" y="${H*.60}" width="${tw*.82}" height="${H*.055}" rx="1" fill="${ruleC}" opacity=".7"/>
+    <rect x="${tx}" y="${H*.73}" width="${tw*.50}" height="${H*.055}" rx="1" fill="${ruleC}" opacity=".55"/>`;
+  return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">
+    <rect x="0" y="0" width="${W}" height="${H}" rx="${r}" fill="${stock}" style="${rarStyle(tier, CFG.bodyBorderW)}"/>
+    ${logo}${CFG.bizShowEmoji ? emoji : ''}${text}</svg>`;
+}
+
+// ── render ─────────────────────────────────────────────────────────────────
+function render(){
+  renderFit();
+  const f = fitGrid();
+  document.getElementById('modeNote').textContent =
+    CFG.deck==='spectrum' ? 'Spectrum deck · colour + value, no suit' : 'Classic deck · rank + suit';
+
+  const samples = CFG.deck==='spectrum' ? SPECTRUM_SAMPLES : CLASSIC_SAMPLES;
+  document.getElementById('shelfFile').innerHTML = TIERS.map((t,i) => `
+    <div class="spec">${docSVG(t, samples[i%samples.length], f.w, f.h)}<div class="cap">${TIER_WORD[t]}</div></div>`).join('')
+    + `<div class="spec" style="opacity:.75">${docSVG('rare', samples[0], f.w*1.9, f.h*1.9)}<div class="cap">detail</div></div>`;
+
+  document.getElementById('shelfFloppy').innerHTML = TIERS.map(t => `
+    <div class="spec">${floppySVG(t, 74, 'a'+t)}<div class="cap">${TIER_WORD[t]}</div></div>`).join('')
+    + `<div class="spec" style="opacity:.9">${floppySVG('legendary', 150, 'big')}<div class="cap">detail</div></div>`;
+
+  document.getElementById('shelfBadge').innerHTML = TIERS.map((t,i) => `
+    <div class="spec">${bizCardSVG(t, f.w, BIZ_SAMPLES[i % BIZ_SAMPLES.length])}<div class="cap">${HIRE_WORD[t]}</div></div>`).join('')
+    + `<div class="spec" style="opacity:.9">${bizCardSVG('epic', f.w*2.1, '\u{1F3ED}')}<div class="cap">detail</div></div>`;
+
+  dump(f);
+}
+
+function dump(f){
+  document.getElementById('dumpText').value =
+`// art-preview.html -> paste into js/data/ or css custom properties.
+// Cell geometry is what the GRID uses; the rest is per-entity shape.
+const ART_CFG = {
+  deck: '${CFG.deck}',
+  grid: { rows: ${CFG.rows}, cols: ${CFG.cols}, cellAspect: ${CFG.cellAspect},
+          // resulting cell at the real landscape slot (336 x 362 design px):
+          cardW: ${f.w}, cardH: ${f.h},
+          unusedW: '${Math.round(f.unusedW*100)}%', unusedH: '${Math.round(f.unusedH*100)}%',
+          clampedByFloor: ${f.hitFloor}${f.hitFloor ? ", // wanted "+f.rawW+"x"+f.rawH : ''} },
+  rarity: {
+    common:    '${CFG.rar.common}',
+    rare:      '${CFG.rar.rare}',
+    epic:      '${CFG.rar.epic}',
+    legendary: '${CFG.rar.legendary}',
+  },
+  chrome: { docBorderW: ${CFG.borderW}, glow: ${CFG.glow}, radius: ${CFG.radius},
+            // badges + floppies carry rarity as their BODY colour, not a border
+            bodyTint: ${CFG.bodyTint}, bodyBorderW: ${CFG.bodyBorderW} },
+  doc:    { silhouette: '${CFG.docTab}', fold: ${CFG.docFold}, tabW: ${CFG.docTabW},
+            tabH: ${CFG.docTabH}, tabX: ${CFG.docTabX}, colorMode: '${CFG.docColorMode}',
+            band: ${CFG.docBand}, valueSize: ${CFG.docValue} },
+  floppy: { aspect: ${CFG.flopAspect}, chamfer: ${CFG.flopChamfer}, shutterW: ${CFG.flopShutW},
+            shutterH: ${CFG.flopShutH}, shutterX: ${CFG.flopShutX}, labelTop: ${CFG.flopLabelTop},
+            labelInset: ${CFG.flopLabelInset}, hub: ${CFG.flopHub} },
+  biz:    { aspect: ${CFG.bizAspect}, logo: ${CFG.bizLogo}, mark: '${CFG.bizMark}',
+            showEmoji: ${!!CFG.bizShowEmoji} },
+};`;
+}
+document.getElementById('copyBtn').addEventListener('click', () => {
+  const t = document.getElementById('dumpText'); t.select(); document.execCommand('copy');
+  const b = document.getElementById('copyBtn'); b.textContent = 'Copied'; setTimeout(()=>b.textContent='Copy', 1200);
+});
+
+buildRail(); render();
+</script>
+</body>
+</html>

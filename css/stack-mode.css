@@ -1,0 +1,54 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   STACKED (r730, js/stack-mode.js): a cell holds a stack. The under-cards are
+   `.stk-peek` children of #grid at the stack's cell, under every surface card
+   (negative z-index; #grid isolates so that works whatever the DOM order),
+   stepped a few px down and right at rest. The fan (`.stk-out`) slides them
+   a card-height step apart below the surface card (above, `.stk-out-up`, when
+   the board has no room). The surface card lists what is beneath it in
+   `.stk-list`. The clock is hidden in an untimed run, the Focus gauge always.
+   ═══════════════════════════════════════════════════════════════════════════ */
+#stage.stk-mode #grid { isolation: isolate; }
+#grid > .stk-peek {
+  pointer-events: none;
+  --stk-step: 3px;
+  translate: calc(var(--stk-step) * var(--si, 1)) calc(var(--stk-step) * var(--si, 1));
+  transition: translate .18s ease, filter .18s ease;
+  filter: brightness(calc(1 - 0.12 * var(--si, 1)));
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+}
+#grid > .stk-peek.stk-sel { box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35), 0 0 0 2px rgba(120, 220, 160, 0.55); }
+#grid > .stk-peek.stk-out {
+  pointer-events: none;   /* a preview on a mouse: what is under the fan stays clickable */
+  translate: 0 var(--stk-fan, 0px);
+  filter: brightness(0.97);
+  cursor: var(--cur-pointer, pointer);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(0, 0, 0, 0.5);
+}
+#grid.stk-touchfan > .stk-peek.stk-out { pointer-events: auto; }   /* opened by a long press: a tap on a face brings it up */
+#grid.stk-touchfan > .stk-peek.stk-out:hover { filter: brightness(1.08); }
+#grid > .card.stk-fanned { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.25); }
+/* the list of what is beneath, along the surface card's lower edge */
+.card .stk-list {
+  position: absolute; left: 2px; right: 2px; bottom: 1px;
+  display: flex; justify-content: center; gap: 3px;
+  font: 700 8.5px/1 'VT323 Local', 'VT323', 'Courier New', monospace;
+  letter-spacing: 0; pointer-events: none; z-index: 3;
+  white-space: nowrap; overflow: hidden;
+}
+.card .stk-list b { color: #2a2416; background: rgba(255, 252, 240, 0.78); border-radius: 2px; padding: 0 1px; font-weight: 700; }
+.card .stk-list b i { font-style: normal; }
+.card .stk-list b.s-h, .card .stk-list b.s-d { color: #b02a2a; }
+.card .stk-list b.sk-w { color: #7a3fb0; }
+.card.phosphor-face .stk-list b, html.cf-phosphor .card .stk-list b { background: rgba(0, 0, 0, 0.6); color: #ddd; }
+/* the pull (r731): a pulled card's chip lights and its face lifts a step */
+.card .stk-list b.in { background: #ffd86a; color: #1a1408; box-shadow: 0 0 0 1px #8a6a10, 0 0 6px rgba(255, 216, 106, 0.8); }
+#grid > .stk-peek.stk-in:not(.stk-out) { --stk-step: 3px; translate: calc(var(--stk-step) * var(--si, 1)) calc(var(--stk-step) * var(--si, 1) + 6px); filter: brightness(1); box-shadow: 0 0 0 2px #ffd86a, 0 0 8px rgba(255, 216, 106, 0.7); }
+/* off the board only the pulled cards' chips show (the preview's copy of the card) */
+/* r732: off the board the list is not shown; a pulled card is a preview card of its own. */
+body > .card .stk-list, .dnc-outer .stk-list, #dnc-queue .stk-list, #selected-cards .stk-list { display: none; }
+#grid > .stk-peek.stk-flying { pointer-events: none; }
+/* an untimed run has no clock to show; a boss round brings it back */
+#stage.stk-noclock #clock-area:not(:has(#clock.boss-mode)) { visibility: hidden; }
+#stage.stk-noclock #run-progress-pt .rp-clock { visibility: hidden; }
+/* no Focus here: the gauge goes dark */
+#stage.stk-nofocus #focus-meter-wrap { visibility: hidden; }

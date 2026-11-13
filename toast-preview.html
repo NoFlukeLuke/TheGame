@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Printer Toasts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Share+Tech+Mono&family=VT323&display=swap" rel="stylesheet">
+<style>
+/* Printer toast preview (r431). Four ways the top-of-screen notices could be
+   printed onto paper. Nothing here is shipped yet: pick one and it replaces
+   .toast in css/style.css, driven by the same showMessage(text, color, opts). */
+:root{
+  --bg:#0c0a08; --panel:#17130e; --line:#3a3128; --cream:#f0e2c0; --dim:#a89878;
+  --gold:#ffc23a; --red:#ff4a4a; --mint:#35d59b; --cyan:#3fd8ff; --violet:#b07cff;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--cream);
+  font-family:'Share Tech Mono',ui-monospace,monospace;font-size:14px;overflow:hidden}
+#wrap{display:grid;grid-template-columns:320px 1fr;height:100%}
+#ctl{background:var(--panel);border-right:1px solid var(--line);padding:16px;overflow:auto}
+h1{font-family:Orbitron,sans-serif;font-size:18px;letter-spacing:2px;margin:0 0 4px;font-weight:800}
+.sub{color:var(--dim);font-size:12px;margin:0 0 14px;line-height:1.45}
+.grp{margin:0 0 16px}
+.grp > b{display:block;font-family:Orbitron,sans-serif;font-size:11px;letter-spacing:2px;color:var(--dim);margin:0 0 6px}
+.opts{display:grid;gap:6px}
+.opt{display:block;width:100%;text-align:left;padding:8px 10px;border:1px solid var(--line);border-radius:6px;
+  background:#0f0c09;color:var(--cream);font:inherit;cursor:pointer}
+.opt small{display:block;color:var(--dim);font-size:11px;margin-top:2px;line-height:1.35}
+.opt.on{border-color:var(--mint);box-shadow:0 0 0 1px var(--mint) inset;background:#10201a}
+.fire{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.btn{padding:7px 8px;border:1px solid var(--line);border-radius:6px;background:#0f0c09;color:var(--cream);font:inherit;font-size:12px;cursor:pointer;text-align:left}
+.btn:hover,.opt:hover{border-color:#6a5a48}
+.btn i{font-style:normal;display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:1px}
+.row{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:12px}
+.row label{flex:0 0 96px;color:var(--dim)}
+.row input[type=range]{flex:1}
+.row output{flex:0 0 46px;text-align:right}
+.tog{display:flex;gap:6px;flex-wrap:wrap}
+.tog .btn.on{border-color:var(--mint);color:var(--mint)}
+pre{background:#0a0806;border:1px solid var(--line);border-radius:6px;padding:8px;font-size:11px;white-space:pre-wrap;color:var(--dim);max-height:180px;overflow:auto}
+
+/* ── the mock board ─────────────────────────────────────────────── */
+#view{position:relative;overflow:hidden;
+  background:radial-gradient(ellipse at 50% 40%,#173326 0%,#0c1712 60%,#070b09 100%)}
+#board{position:absolute;left:50%;top:58%;transform:translate(-50%,-50%);
+  display:grid;grid-template-columns:repeat(5,var(--cw));gap:8px;--cw:min(9.2vw,74px)}
+.card{width:var(--cw);aspect-ratio:.76;border-radius:6px;background:#f4ead2;border:1px solid #2a2016;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font-family:Orbitron,sans-serif;font-weight:800;color:#1b1610;font-size:calc(var(--cw)*.32);line-height:1}
+.card span{font-size:.7em;margin-top:3px}
+.card.r{color:#b8231b}
+#hud{position:absolute;left:0;right:0;top:0;height:9%;min-height:46px;background:linear-gradient(#1c1610,#120e0a);
+  border-bottom:1px solid #000;display:flex;align-items:center;justify-content:center;gap:18px;
+  font-family:Orbitron,sans-serif;font-size:12px;letter-spacing:2px;color:var(--dim)}
+#hud b{color:var(--cream);font-size:15px;margin-left:6px}
+
+#stage{position:absolute;inset:0}
+@media (max-width:760px){
+  #wrap{grid-template-columns:1fr;grid-template-rows:auto 1fr}
+  #ctl{max-height:46vh;border-right:0;border-bottom:1px solid var(--line);padding:12px}
+  #board{--cw:15vw;gap:5px}
+}
+</style>
+<link rel="stylesheet" href="css/print-toast.css">
+</head>
+<body>
+<div id="wrap">
+  <div id="ctl">
+    <h1>PRINTER NOTICES</h1>
+    <p class="sub">The real thing, loaded from js/print-toast.js. Notices fired together print on one slip. A slip hangs for the hold time per line, then is pulled back up. A new notice pulls the old slip back at once.</p>
+    <div class="grp"><b>FIRE</b>
+      <div class="fire">
+        <button class="btn" data-m="+5 credits|var(--gold)|💰"><i style="background:var(--gold)"></i>Credits</button>
+        <button class="btn" data-m="No swaps left|var(--red)"><i style="background:var(--red)"></i>Refused</button>
+        <button class="btn" data-m="Double Dutch! +4 Focus|#5aa9e6"><i style="background:#5aa9e6"></i>Focus</button>
+        <button class="btn" data-m="7♠ cursed: Leaden|#9b59b6"><i style="background:#9b59b6"></i>Curse</button>
+        <button class="btn" data-m="Rich Soil improved to v2.0|var(--mint)|⬆"><i style="background:var(--mint)"></i>Improve</button>
+        <button class="btn" data-m="Suspended: Get Even (half the round)|var(--cream)"><i style="background:var(--cream)"></i>Long</button>
+        <button class="btn" id="grp3"><i style="background:var(--cream)"></i>Three at once</button>
+        <button class="btn" id="rep"><i style="background:var(--cream)"></i>Repeat x3</button>
+      </div>
+    </div>
+    <div class="grp"><b>TUNE</b>
+      <div class="row"><label>Hold / line</label><input data-k="holdPerLine" type="range" min="500" max="5000" step="100"><output></output></div>
+      <div class="row"><label>Pull back ms</label><input data-k="pullMs" type="range" min="80" max="900" step="20"><output></output></div>
+      <div class="row"><label>Group window</label><input data-k="groupMs" type="range" min="40" max="600" step="10"><output></output></div>
+      <div class="row"><label>Print ms / char</label><input data-k="charMs" type="range" min="2" max="30"><output></output></div>
+      <div class="row"><label>Line max ms</label><input data-k="lineMaxMs" type="range" min="80" max="900" step="10"><output></output></div>
+      <div class="row"><label>Paper width</label><input data-k="width" type="range" min="180" max="480" step="5"><output></output></div>
+      <div class="row"><label>Text size</label><input data-k="fontPx" type="range" min="14" max="30"><output></output></div>
+    </div>
+    <div class="grp"><b>DUMP</b><button class="btn" id="dump">Print PT_CFG</button><pre id="out" hidden></pre></div>
+  </div>
+  <div id="view">
+    <div id="stage">
+      <div id="hud">LEVEL<b>4</b> &nbsp; SCORE<b>2,140</b> &nbsp; GOAL<b>3,500</b></div>
+      <div id="board"></div>
+    </div>
+  </div>
+</div>
+<script>
+// stand-ins for the game's audio plumbing, so the real file runs on its own
+let _ac = null;
+function getAudioCtx(){ _ac = _ac || new (window.AudioContext||window.webkitAudioContext)(); if (_ac.state==='suspended') _ac.resume(); return _ac; }
+function sfxVolume(){ return 0.45; }
+function sfxOut(ctx){ return ctx.destination; }
+function fxRandom(){ return Math.random(); }
+</script>
+<script src="js/print-toast.js"></script>
+<script>
+const $ = s => document.querySelector(s);
+const ranks=['A','7','7','K','3','9','Q','5','J','10','2','8','4','6','K','A','9','3','Q','7'], suits=['♠','♥','♦','♣'];
+$('#board').innerHTML = ranks.map((r,i)=>{const s=suits[(i*3)%4];return `<div class="card ${s==='♥'||s==='♦'?'r':''}">${r}<span>${s}</span></div>`}).join('');
+document.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{ const [t,c,i]=b.dataset.m.split('|'); printToast(t,c,{icon:i}); });
+$('#grp3').onclick=()=>{ printToast('+5 credits','var(--gold)',{icon:'💰'}); printToast('No discards left','var(--red)'); printToast('Primed: Quake +1','#b07cff'); };
+$('#rep').onclick=()=>{ printToast('+2 swaps','var(--cyan)'); setTimeout(()=>printToast('+2 swaps','var(--cyan)'),400); setTimeout(()=>printToast('+2 swaps','var(--cyan)'),800); };
+document.querySelectorAll('[data-k]').forEach(el=>{ const k=el.dataset.k, o=el.nextElementSibling;
+  el.value=PT_CFG[k]; const up=()=>{ PT_CFG[k]=+el.value; o.textContent=el.value; }; el.oninput=up; up(); });
+// the game is drawn at the stage zoom (about 1.9 on a desktop); this stands in for it
+$('#dump').onclick=()=>{ const o=$('#out'); o.hidden=false; o.textContent='const PT_CFG = '+JSON.stringify(PT_CFG,null,2)+';'; };
+setTimeout(()=>$('#grp3').click(), 400);
+</script>
+</body>
+</html>

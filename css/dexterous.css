@@ -1,0 +1,35 @@
+/* DEXTEROUS (r741, js/dexterous.js): a Sleight drawn as a playing card. The
+   element is the ordinary .card (rank, suit, bands, stock) and carries
+   .sleight-card too, so every Sleight hook that finds its tile by class still
+   does; the plain .sleight-card rules are undone here and the Sleight's icon sits
+   bottom middle, its charges bottom left, both in its rarity colour (--sl-rc). */
+.card.dex-sl {
+  justify-content: center !important; padding: 0; gap: 0 !important;
+  /* css/dev-overlays.css paints every .sleight-card dark with a violet border; this one is card stock. */
+  background: var(--card-bg, #fff9ef) !important; border-color: transparent !important;
+}
+.card.dex-sl .dex-ico {
+  position: absolute; left: 0; right: 0; bottom: 4%; z-index: 3;
+  display: flex; justify-content: center; align-items: flex-end;
+  font-size: calc(var(--card-h, 75px) * 0.22); line-height: 1; pointer-events: none;
+  filter: drop-shadow(0 0 2px rgba(0,0,0,.45));
+}
+.card.dex-sl .dex-uses {
+  position: absolute; left: 6%; bottom: 4%; z-index: 4; pointer-events: none;
+  font-family: 'Share Tech Mono', monospace; font-size: calc(var(--card-h, 75px) * 0.10);
+  line-height: 1; color: var(--sl-rc, #cc88ff); text-shadow: 0 0 2px #000, 0 1px 1px #000;
+}
+.card.dex-sl .dex-rule {
+  position: absolute; right: 6%; bottom: 4%; z-index: 4; pointer-events: none;
+  font-family: 'Share Tech Mono', monospace; font-size: calc(var(--card-h, 75px) * 0.10);
+  line-height: 1; color: var(--sl-rc, #cc88ff); text-shadow: 0 0 2px #000;
+}
+.card.dex-sl .sleight-float { position: absolute; right: 5%; top: 4%; z-index: 4; font-size: calc(var(--card-h, 75px) * 0.14); pointer-events: none; }
+/* The rarity edge: a thin ring in the Sleight's colour under the selection ring. */
+.card.dex-sl:not(.selected):not(.swap-pending) { box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--sl-rc, #cc88ff) 80%, #000), 0 0 8px -2px var(--sl-rc, #cc88ff); }
+.card.dex-sl.sleight-spent:not(.selected):not(.swap-pending), .card.dex-sl.sleight-inert:not(.selected):not(.swap-pending) { filter: saturate(.6) brightness(.85); }
+.card.dex-sl.sl-spin { animation: sleight-spin .42s ease-out; }
+.card.dex-sl.sl-rar-common    { --sl-rc: var(--c-mint,#35d59b); }
+.card.dex-sl.sl-rar-rare      { --sl-rc: var(--c-cyan,#16c8d8); }
+.card.dex-sl.sl-rar-epic      { --sl-rc: var(--c-purple,#9a6cff); }
+.card.dex-sl.sl-rar-legendary { --sl-rc: var(--c-magenta,#ff2f8e); }

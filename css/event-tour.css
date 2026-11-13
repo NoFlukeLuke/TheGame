@@ -1,0 +1,31 @@
+/* Event tour (r581, js/event-tour.js): the verdict panel, body-level, viewport px. */
+#event-tour { position: fixed; left: 12px; bottom: 12px; z-index: 99990; width: 270px; box-sizing: border-box;
+  background: rgba(14, 12, 22, .96); border: 1px solid #4b4370; border-radius: 10px; color: #e9e2cc;
+  font: 12px/1.3 'Share Tech Mono', ui-monospace, monospace; box-shadow: 0 8px 24px rgba(0,0,0,.6); }
+#event-tour .et-head { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-bottom: 1px solid #2c2744; }
+#event-tour .et-head b { letter-spacing: 2px; color: #b9a7ff; }
+#event-tour .et-n { flex: 1; text-align: right; color: #9b93b5; }
+#event-tour .et-body { padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 7px; }
+#event-tour.folded .et-body { display: none; }
+#event-tour .et-name { font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 15px; color: #fff; }
+#event-tour .et-id { color: #8a83a3; font-size: 11px; margin-top: -4px; }
+#event-tour .et-row { display: flex; gap: 6px; align-items: center; }
+#event-tour button { flex: 1; background: #1d1930; color: #e9e2cc; border: 1px solid #4b4370; border-radius: 6px;
+  padding: 6px 4px; font: inherit; letter-spacing: 1px; cursor: var(--cur-pointer, pointer); }
+#event-tour button:hover { border-color: #8f7fe0; }
+#event-tour .et-min { flex: 0 0 26px; padding: 2px 0; }
+#event-tour .et-v button[data-v="keep"].on { background: #1c5a43; border-color: #35d59b; }
+#event-tour .et-v button[data-v="edit"].on { background: #5e4a12; border-color: #f0c040; }
+#event-tour .et-v button[data-v="cut"].on  { background: #5c1d1d; border-color: #ff5a4e; }
+#event-tour textarea { width: 100%; box-sizing: border-box; min-height: 56px; resize: vertical; background: #0b0a12;
+  color: #e9e2cc; border: 1px solid #3a3352; border-radius: 6px; padding: 6px; font: inherit; }
+#event-tour .et-out { display: none; min-height: 90px; }
+#event-tour .et-count { flex: 1.4; color: #9b93b5; font-size: 11px; text-align: right; }
+#event-tour .et-hp, #event-tour .et-hn { flex: 0 0 26px; padding: 2px 0; }
+#event-tour.folded .et-head { border-bottom: 0; }
+#event-tour.folded .et-head b { letter-spacing: 0; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* A phone: across the top, over the HUD rather than the event panel. */
+@media (max-width: 700px) {
+  #event-tour { top: 8px; bottom: auto; left: 8px; right: 8px; width: auto; }
+  #event-tour textarea { min-height: 38px; }
+}

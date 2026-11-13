@@ -1,0 +1,33 @@
+/* ── DICE (r743) - js/dice-sim.js ────────────────────────────────────────
+   A cube of six faces thrown across a tray. Every px is the tray's own px
+   (a stage px inside #event-body, a design px in the body-level .ds-pop). */
+.ds-tray { position: relative; perspective: 520px; perspective-origin: 50% 40%; }
+.ds-die { position: absolute; inset: 0; transform-style: preserve-3d; pointer-events: none; }
+.ds-cube { position: absolute; left: 0; top: 0; width: var(--ds); height: var(--ds); transform-style: preserve-3d; will-change: transform; }
+.ds-f { position: absolute; inset: 0; backface-visibility: hidden; background-size: 100% 100%; background-repeat: no-repeat; }
+.ds-f.ds-white { background-color: #eeeeee; }
+.ds-f.ds-red   { background-color: #af3333; }
+.ds-f > i { position: absolute; inset: 0; background: #000; opacity: 0; pointer-events: none; }
+.ds-txt { display: flex; align-items: center; justify-content: center; font-family: 'Orbitron', sans-serif; font-weight: 900;
+  font-size: calc(var(--ds) * .38); color: #2b2b2b; box-shadow: inset 0 0 0 2px rgba(0,0,0,.12); }
+.ds-txt.ds-red { color: #fff; }
+.ds-shadow { position: absolute; left: 0; top: 0; width: var(--ds); height: var(--ds); border-radius: 22%;
+  background: radial-gradient(ellipse at center, rgba(0,0,0,.8), rgba(0,0,0,0) 72%); transform-origin: 50% 50%; }
+
+/* the table inside an event */
+.evt-die-tray { width: 150px; height: 100px; border-radius: 6px; overflow: hidden;
+  background: radial-gradient(ellipse at 50% 40%, rgba(40,90,60,.55), rgba(10,26,18,.85) 80%);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.08), inset 0 6px 14px rgba(0,0,0,.6); }
+#event-overlay.ev-console .evt-die-tray {
+  background: radial-gradient(ellipse at 50% 40%, rgba(70,48,10,.45), rgba(12,8,2,.9) 80%);
+  box-shadow: inset 0 0 0 1px rgba(255,176,60,.35), inset 0 6px 14px rgba(0,0,0,.6); }
+
+/* a throw over the board (the D6 Trick) */
+.ds-pop { position: fixed; z-index: 9400; pointer-events: none; }
+.ds-pop-out { opacity: 0; transition: opacity .28s ease-in; }
+.ds-pop-label { position: absolute; left: 0; right: 0; top: -2px; text-align: center; font-family: 'Orbitron', sans-serif;
+  font-weight: 900; font-size: 13px; letter-spacing: 1px; color: #fff; text-shadow: 0 1px 0 #000, 0 0 6px rgba(0,0,0,.8);
+  animation: ds-label-in .25s ease-out; }
+.ds-pop-label.pips { color: #5cc8ff; }
+.ds-pop-label.mult { color: #ff6a52; }
+@keyframes ds-label-in { from { transform: translateY(6px); opacity: 0; } to { transform: none; opacity: 1; } }
