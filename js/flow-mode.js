@@ -143,16 +143,22 @@ function goalScaleRows(id) { return (GOAL_SCALES[id] || GOAL_SCALES.goldilocks).
 // after the table is x1.25 the last row, and every level after multiplies by 0.1
 // more than the one before (x1.35, x1.45, x1.55...), whichever table it is.
 const GOAL_PAST_BASE = 1.25, GOAL_PAST_STEP = 0.1;
-function goalTableAt(t, lv) {
+// r765 (owner): the Schedule asks levels to 36, so there a table's end is bridged
+// first: x MAP_PAST_MULT a level from 25 to MAP_PAST_UNTIL, and the 1.25 / +0.1 rule
+// only past that. `past` = { mult, until } asks for the bridge; Flow passes none.
+const MAP_PAST = { mult: 1.15, until: 36 };
+function goalTableAt(t, lv, past) {
   const n = t.length;
   lv = Math.max(1, Math.round(lv || 1));
   if (lv <= n) return t[lv - 1];
-  let g = t[n - 1];
-  for (let k = n + 1; k <= lv; k++) g *= GOAL_PAST_BASE + GOAL_PAST_STEP * (k - n - 1);
+  let g = t[n - 1], k = n + 1;
+  if (past) for (; k <= Math.min(lv, past.until); k++) g *= past.mult;
+  const from = k;   // the first level the growing rule applies to
+  for (; k <= lv; k++) g *= GOAL_PAST_BASE + GOAL_PAST_STEP * (k - from);
   return g;
 }
 // The growth rate the Endless and Limitless terms read: the first step past the table.
-function goalTableRatio(t) { return GOAL_PAST_BASE; }
+function goalTableRatio(t, past) { return past ? past.mult : GOAL_PAST_BASE; }
 function goalScaleBase(id, lv) { return goalTableAt(goalScaleRows(id), lv); }
 
 const FLOW_GOAL_SCALE_DEFAULT = 'goldilocks';

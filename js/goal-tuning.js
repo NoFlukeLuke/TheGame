@@ -103,8 +103,8 @@ function mapGoalForLevel(lv) {
   const step  = Math.max(1, goalTune('classicRoundTo'));
   // r761: dev -> Schedule / Settings -> Run can point the Schedule at one of Flow's goal tables.
   const tbl = (typeof mapGoalScale === 'function' && mapGoalScale() !== 'curve') ? goalScaleRows(mapGoalScale()) : null;
-  const scale = tbl ? goalTableRatio(tbl) : 1 + goalTune('mapGrowth') / 100;
-  let g = tbl ? goalTableAt(tbl, lv) * goalTune('globalMult')
+  const scale = tbl ? goalTableRatio(tbl, MAP_PAST) : 1 + goalTune('mapGrowth') / 100;
+  let g = tbl ? goalTableAt(tbl, lv, MAP_PAST) * goalTune('globalMult')
               : goalTune('classicBase') * goalTune('globalMult') * Math.pow(scale, Math.max(0, lv - 1));
   if (typeof endlessGoalMult === 'function') g *= endlessGoalMult(lv, scale);   // r680
   if (typeof limitlessGoalMult === 'function') g *= limitlessGoalMult(lv, scale);   // r749: Limitless's back half

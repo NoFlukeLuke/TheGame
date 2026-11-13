@@ -1,4 +1,4 @@
-const BUILD = "2026-11-10 · r764 · past a goal table's end: x1.25, then 0.1 more each level";
+const BUILD = "2026-11-13 · r765 · the Schedule bridges a goal table x1.15 a level to 36 before the growing rule";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

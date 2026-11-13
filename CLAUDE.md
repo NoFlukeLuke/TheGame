@@ -4787,3 +4787,10 @@ pick stored and cleared; the dev selects list 4 and 5 options; the Run tab draws
 27 x1.45, and so on (`GOAL_PAST_BASE` 1.25, `GOAL_PAST_STEP` 0.1), for every scale in Flow and on the
 Schedule. r761's "last step repeats" rule is gone; `goalTableRatio` returns the 1.25 for the Endless
 and Limitless terms. Goldilocks: level 25 2,187,500, 26 2,953,100, 28 5,673,900, 36 about 1.7 billion.
+
+## r765 - the Schedule bridges a goal table at x1.15 to level 36 (owner)
+`goalTableAt(t, lv, past)` takes an optional bridge `{ mult, until }`: `mapGoalForLevel` passes
+`MAP_PAST` (1.15, 36), so on the Schedule levels 25 to 36 of a table grow x1.15 a level and the
+r764 rule (x1.25, +0.1 a level) only starts at 37. Flow passes none and keeps r764 from 25.
+`goalTableRatio(t, past)` returns the bridge's rate for the Endless and Limitless terms.
+Goldilocks on the Schedule: level 27 2,661,000, 36 9,363,000 (r764 had 1.6 billion).

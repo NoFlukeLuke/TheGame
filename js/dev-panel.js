@@ -1163,7 +1163,7 @@ function devRenderGoalPanel(liveLine) {
   if (fg && document.activeElement !== fg) fg.value = flowGoalTable().join(', ');
   const fgn = document.getElementById('dev-flow-goals-note');
   if (fgn) fgn.textContent = (flowGoalTableIsDefault() ? `The ${GOAL_SCALES[flowGoalScale()].name} table.` : 'Your table (stored in this browser).')
-    + ` Past level ${flowGoalTable().length}: x${GOAL_PAST_BASE}, then x${(GOAL_PAST_BASE + GOAL_PAST_STEP).toFixed(2)}, x${(GOAL_PAST_BASE + 2 * GOAL_PAST_STEP).toFixed(2)}... (+${GOAL_PAST_STEP} a level).`
+    + ` Past level ${flowGoalTable().length}: x${GOAL_PAST_BASE}, then x${(GOAL_PAST_BASE + GOAL_PAST_STEP).toFixed(2)}, x${(GOAL_PAST_BASE + 2 * GOAL_PAST_STEP).toFixed(2)}... (+${GOAL_PAST_STEP} a level). On the Schedule a table bridges x${MAP_PAST.mult} a level to ${MAP_PAST.until} first.`
     + ` Reviews ask level ${FLOW_BOSS_GOAL_LEVELS.join(' / ')}, or your level if you are past it (+${FLOW_AHEAD_PAY} credits a level ahead).`;
   if (typeof mapGoalForLevel === 'function') fill('dev-goal-map-preview', _devGoalCurveLine(mapGoalForLevel, [1, 2, 3, 6, 9, 12, 15, 18, 27, 36]));
 
