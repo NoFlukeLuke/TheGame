@@ -90,7 +90,7 @@ const IMPROVE_STEP = {
   long_pause:     { multiplier: 0.2 },  // 1.5x -> 1.7x, not 1.5x -> 2.0x
   coin_toss:      { chance: 0.15 },
   jury_rig:       { chance: 0.15 },
-  time_slip:      { chance: 0.10 },
+  time_slip:      { chance: 0.05 },   // r771: 10 15 20 25 30 45% (was 25 35 45 55 65 95)
   replay_rewind:  { chance: 0.20 },
   prime_time:     { pips_per_card: 11 }, // owner: +11 per improvement, not +23
   hyper_focus:    { focus_mult: 1 },     // 2x Focus -> 3x -> 4x

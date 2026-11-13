@@ -4913,3 +4913,20 @@ Measured in headless Chromium at 1440x820 and 420x900, dev mode on: chips in a 4
 110-150ms apart, sat 420-500ms, then flew; a 24-event hand with x pips, x mult and replays, a 4-hand
 burst, a Flow goal hand: no timeline drift, no page errors; pace after 24 payouts 1.24 (was 1.6). Golden:
 838 cases match. Stage without ?lab unchanged (1436 x 807).
+
+## r773 - the timer's level-up lines stay put; Time Slip 10%; the phone's timer bar (owner)
+- **Level-up lines on the session clock** (js/clock-track.js): `startRoundTimer` wiped every line
+  whenever `roundSeconds > roundStartSeconds` ("the clock gained time"), which was also true after a
+  rewind that carried the clock past the level's start, or a level-start time bonus, so a quarter's
+  earlier lines vanished. Lines now clear only on a real refill: `flowNextRoundSeconds` (a new Flow
+  session), `crunchBeginQuarter`, a new run. They are hidden during a boss window (that clock is the
+  boss's own), and each bar keeps its own redraw key (`track._markKey` / `_winKey`), so a rebuilt
+  track never inherits a key and stays empty. Measured at 1440x820 and 420x900: 10 level-ups with a
+  40s rewind between the 2nd and 3rd kept all 10 lines (before: 7, the first three wiped); a refill
+  cleared them; none drawn in a boss window.
+- **Time Slip** (`time_slip`): 10% (was 25%), +5% an improvement: 10 / 15 / 20 / 25 / 30 / 45%
+  (was 25 / 35 / 45 / 55 / 65 / 95).
+- **The phone's timer bar** (css/clock-track.css): 4px corners instead of a pill; the Flow skull
+  (`#clock-boss`) is a child of `#clock-bar-wrap`, inside its right end, the track stopping short of
+  it (the landscape bar already worked this way). Measured at 420x900: skull 302-316 inside the bar's
+  170-319, track ends at 301, tap opens the boss bubble.

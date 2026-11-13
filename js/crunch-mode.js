@@ -115,6 +115,7 @@ function crunchBeginQuarter() {
   if (!crunchActive()) return;
   const grant = Math.round(CRUNCH_ACT_SECONDS * CRUNCH_CARRY_FRACTION);
   const before = Math.max(0, roundSeconds);
+  if (typeof clockMarksReset === 'function') clockMarksReset();   // r771: a new quarter's bank
   roundSeconds = Math.min(CRUNCH_ACT_SECONDS, before + grant);
   if (typeof updateClockUI === 'function') updateClockUI();
   if (typeof showMessage === 'function')

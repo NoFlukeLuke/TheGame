@@ -1,4 +1,4 @@
-const BUILD = "2026-11-13 · r772 · scoring preview (?lab); score chips leave one at a time; gentler speed-up; primes read the scored cards";
+const BUILD = "2026-11-13 · r773 · timer level-up lines stay; Time Slip 10%; phone timer: rounded corners, skull inside";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
