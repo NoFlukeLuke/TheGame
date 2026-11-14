@@ -1111,6 +1111,7 @@ function cloudNineCheck() {
 function scalingCount(hand, handCells, reps) {
   // r706: the unlock counters read the hand here, once, board intact (js/unlocks.js).
   if (typeof unlockNoteHand === 'function') { try { unlockNoteHand(hand, handCells, reps); } catch (e) { console.error('[UNLOCK]', e); } }
+  if (typeof curioNoteHand === 'function') curioNoteHand(handCells);   // r777
   const _n = (r, c, x) => (reps && reps[cellKey([r, c, x])]) || 1;
   const _cells = handCells.map(cl => ({ r: cl[0], c: cl[1], card: cellCard(cl), n: _n(cl[0], cl[1], cl[2]) }))
     .filter(x => x.card);

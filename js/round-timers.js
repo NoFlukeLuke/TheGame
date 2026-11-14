@@ -56,6 +56,7 @@ function startRoundTimer() {
   // r399: a shaped round (js/level-types.js) says what it is as it goes live.
   if (typeof roundQuotaAnnounce === 'function') { roundQuotaAnnounce(); roundQuotaPaint(); }
   if (typeof crOnRoundStart === 'function') crOnRoundStart();   // a challenge round's first card
+  if (typeof curioRoundStart === 'function') curioRoundStart(); // r777: Curio adds its card
   if (typeof chgRoundStart === 'function') chgRoundStart();     // r676: Temp and Floater change (once a level, before the save point)
   if (typeof stkScheduleCheck === 'function') stkScheduleCheck(1500);   // r730: a Stacked board dealt with no hand on it ends at once
   if (typeof sfxSetMuffle === 'function') sfxSetMuffle(false);

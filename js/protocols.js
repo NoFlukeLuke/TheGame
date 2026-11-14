@@ -37,7 +37,7 @@ const PROTOCOLS = [
   // r776 (owner): Past Capacity, an overfull deck. Open from the start (`open`: not in
   // the unlock chain). `mode` is laid over the base mode: no wilds, the extra cards
   // (modeExtraCards, js/data/cards.js) and Short Suit at the start (startKnacks).
-  { id: 'capacity', name: 'Past Capacity', accent: '#d9a84a', flag: 'capacity', open: true, short: 'An overfull deck: Crowns and Crescents, no wilds.',
+  { id: 'capacity', name: 'Past Capacity', accent: '#d9a84a', flag: 'capacity', open: true, need: capacityEarned, short: 'An overfull deck: Crowns and Crescents, no wilds.',
     say: { any: 'No wild cards. Eight Crowns (three Jacks, three Queens, two Kings) and thirteen Crescents (Ace to King) on top of the 52: 73 cards. Start with Short Suit, so Flush of 3 and Flush of 4 score.' },
     mode: { wilds: 0, startKnacks: ['short_suit'],
       extraCards: [['J', '♛'], ['J', '♛'], ['J', '♛'], ['Q', '♛'], ['Q', '♛'], ['Q', '♛'], ['K', '♛'], ['K', '♛'],
@@ -45,7 +45,8 @@ const PROTOCOLS = [
 ];
 // r749 (owner): each protocol opens with a won run of the one before it, in this
 // order. A win in Flow or the Schedule counts for both (protoWon). An `open`
-// protocol is outside the chain: unlocked from the start.
+// protocol is outside the chain. r777: a row's `need` is a hidden condition of its
+// own; the screen says only LOCKED.
 const PROTOCOL_ORDER = PROTOCOLS.filter(p => !p.open).map(p => p.id);
 function protocolDef(id) { return PROTOCOLS.find(p => p.id === id) || PROTOCOLS[0]; }
 function protocolSay(id, base) {
@@ -83,7 +84,18 @@ function _protoWinSet() { try { const a = JSON.parse(localStorage.getItem(PROTO_
 // so (a win before r749 opened tier 2 of its protocol).
 function protoWon(id) { return _protoWinSet().has(id) || difficultyMax(protoKey(id)) >= 2; }
 function protoBefore(id) { const i = PROTOCOL_ORDER.indexOf(id); return i > 0 ? PROTOCOL_ORDER[i - 1] : null; }
-function protoUnlocked(id) { const b = protoBefore(id); return !b || protoWon(b); }
+function protoUnlocked(id) {
+  const p = protocolDef(id);
+  if (p.need && !p.need()) return false;
+  const b = protoBefore(id); return !b || protoWon(b);
+}
+// r777 (owner): Past Capacity opens after 100 Flush of 3s played, ever (the
+// unlock counters, js/unlocks.js). Never printed: the screen says LOCKED.
+const CAPACITY_FLUSH3_NEED = 100;
+function capacityEarned() {
+  const s = (typeof unlockStore !== 'undefined' && unlockStore && unlockStore.s) || {};
+  return (s['h:Flush of 3'] || 0) >= CAPACITY_FLUSH3_NEED;
+}
 // Dev: every protocol open.
 function protoUnlockAll() { try { localStorage.setItem(PROTO_WIN_KEY, JSON.stringify(PROTOCOL_ORDER)); } catch (e) {} }
 
@@ -129,7 +141,7 @@ function protoPaint() {
     (selOpen
       ? `<div class="pk-proto-diff" style="--mode-accent:${sel.accent}">${modeDiffHTML(protoKey(sel.id), base)}</div>` +
         `<div class="pk-note pk-proto-note">Difficulty belongs to the protocol: a win in Flow or the Schedule unlocks the next tier for both.${protoKnackLine(sel.id)}</div>`
-      : `<div class="pk-note pk-proto-note pk-proto-lock">\u{1F512} Win a run of ${protocolDef(protoBefore(sel.id)).name}, in Flow or the Schedule, to unlock ${sel.name}.</div>`);
+      : `<div class="pk-note pk-proto-note pk-proto-lock">\u{1F512} ${protoBefore(sel.id) && !sel.need ? `Win a run of ${protocolDef(protoBefore(sel.id)).name}, in Flow or the Schedule, to unlock ${sel.name}.` : 'Locked.'}</div>`);
   body.querySelectorAll('.pk-opt').forEach(b => { b.onclick = () => { _protoSel = b.dataset.opt; if (protoUnlocked(_protoSel)) protoSavePick(base, _protoSel); protoPaint(); }; });
   const dv = body.querySelector('.pk-proto-diff');
   if (dv) {
@@ -227,6 +239,7 @@ function protocolLimitsSetup() {
 }
 // Loadout: after acquiredKnacks is reset.
 function protocolRunSetup() {
+  curioLastRank = null; curioLevel = 0;   // r777
   if (typeof limitlessFlowFrom !== 'undefined') limitlessFlowFrom = Infinity;
   if (!precisionOn()) return;
   ['meditation', 'attention_to_detail'].forEach(id => {
@@ -366,7 +379,34 @@ const PROTO_KNACKS = [
   { id: 'ambidextrous',  protocol: 'dexterous' },
   { id: 'measure_twice', protocol: 'precision' },
   { id: 'growth_mindset', protocol: 'limitless' },   // r750
+  { id: 'curio',          protocol: 'capacity' },    // r777
 ];
+// ── CURIO (r777, owner): Past Capacity's Knack. At the start of each round a card
+// of the last rank you scored joins your deck, in a random suit, with a random
+// buff (the deck editor's rows, rollBuffs). The rank is the last scoring card of
+// the last hand (scoring order, no wilds, Sleights or stones; curioNoteHand from
+// scalingCount). Once a level (curioLevel), shuffled into the draw pile.
+let curioLastRank = null, curioLevel = 0;
+function curioNoteHand(cells) {
+  for (let i = (cells || []).length - 1; i >= 0; i--) {
+    const c = typeof cellCard === 'function' ? cellCard(cells[i]) : null;
+    if (!c || !c.rank || c._isSleight || c._isStone || (typeof isWildCard === 'function' && isWildCard(c))) continue;
+    curioLastRank = c.rank; return;
+  }
+}
+function curioRoundStart() {
+  if (typeof hasKnack !== 'function' || !hasKnack('curio') || !curioLastRank) return;
+  if (curioLevel === level) return;
+  curioLevel = level;
+  const suits = (typeof ACTIVE_SUITS !== 'undefined' && ACTIVE_SUITS.length) ? ACTIVE_SUITS : SUITS;
+  const card = stampId({ rank: curioLastRank, suit: suits[Math.floor(Math.random() * suits.length)] });
+  const b = (typeof rollBuffs === 'function') ? rollBuffs(1, {})[0] : null;
+  if (b) enhanceCardKey(cardId(card), b.e);
+  drawPile.splice(Math.floor(Math.random() * (drawPile.length + 1)), 0, card);
+  expectedDeckTotal++;
+  if (typeof updateDeckHud === 'function') updateDeckHud();
+  showMessage(`${knackName('curio')}: ${card.rank}${card.suit}${b ? ' ' + b.label : ''} joins your deck`, 'var(--gold)');
+}
 // Growth Mindset (r750, working name): limit rewards twice as common in every
 // reward roll (Flow's chain, the pick of three, the Balance Sheet, the shop's shelf).
 // The owner's other idea, a second random limit on every limit raise, is Knock-On.

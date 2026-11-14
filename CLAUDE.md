@@ -5028,3 +5028,24 @@ Landscape folds r544's big LEVEL readout into the row; on a phone the block is s
 (`rp-live`) and stands in for the top bar's LEVEL stat. A boss shows its sigil under the row. Measured at
 1440x820, 420x900, 375x667 and 360x740 in Flow, the Schedule, Classic and Stacked at levels 3, 12 and
 37: every part inside the block, quarter and level never touching, nothing over the clock, bar or credits.
+
+## r778 - the protocol screen is back; Past Capacity is locked; Curio (owner)
+- **The protocol screen never opened** after r768: that commit (a golden-baseline rewrite) carried a
+  stale js/menu.js and undid r748's wiring, so PLAY on Flow or the Schedule started a Standard run at
+  once, and `MODES.dexterous` and its card row came back. Restored as r748 had it: `isProtoBase` in
+  `buildModeCard` (the card lists the protocols, PLAY runs `protoOpen`), `modeDiffHTML` /
+  `modeDiffBind` take `sayId` again, the Dexterous MODE is gone.
+- **Past Capacity is locked** until 100 Flush of 3s have been played, ever (`CAPACITY_FLUSH3_NEED`,
+  `capacityEarned()` reads `unlockStore.s['h:Flush of 3']`, js/unlocks.js). A protocol row's `need`
+  is checked first in `protoUnlocked`. Owner: the condition is never printed; the screen says
+  "Locked." and START RUN refuses.
+- **Curio** (rare Knack `curio`, Past Capacity's protocol Knack in `PROTO_KNACKS`; "Collector" is
+  taken by the `carry_discards` Knack): at each round's start (`curioRoundStart`, startRoundTimer,
+  once a level via `curioLevel`) a card of the last rank scored (`curioLastRank`, the last scoring
+  card of the last hand, from `curioNoteHand` in scalingCount) joins the deck in a random suit with
+  a random buff (`rollBuffs`), shuffled into the draw pile, `expectedDeckTotal` + 1. Both in
+  SAVE_VARS, reset in `protocolRunSetup`. Icon 🏺 = delapouite/porcelain-vase (sheet 164 cells).
+Measured in headless Chromium at 1440x820 (click) and 420x900 (tap) from the real carousel: Flow's
+PLAY opened the protocol screen with six options, Past Capacity read "Locked." and START refused; at
+100 Flush of 3s it opened and a run dealt 73 cards; Curio added K♥ with x1.5 pips (desktop) and J♦
+with x1.5 mult (phone), once a level, audit 74/74; no page errors.

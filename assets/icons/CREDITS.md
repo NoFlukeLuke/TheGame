@@ -85,6 +85,7 @@ to a 32px grid and recoloured by `tools/icons/build.js`.
 - 🚚 forklift
 - 🔌 charging
 - 🎁 present
+- 🏺 porcelain-vase
 - 🏪 shop
 - 💸 pay-money
 - 📉 chart
