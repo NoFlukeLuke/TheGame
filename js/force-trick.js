@@ -1,6 +1,18 @@
 // ══════════════════════════════════════════════
 // FORCED TRICK FIRES (r234) - going off with the "if" removed
 // ══════════════════════════════════════════════
+// r781 (owner) CHANGED HOW THIS IS APPLIED. Read calcPrimePass (js/scoring.js) first:
+//   - a forced trigger of a Trick that went off this hand is one more copy of its
+//     first trigger, written into the timeline;
+//   - only a Trick that did NOT go off pays the listed value below, once (on the
+//     first card for a per-card Trick, after the cards for any other);
+//   - a forced trigger sets the Trick's primes off, and counts in trickFires, so the
+//     Trick's other payouts (Focus, seconds, credits) pay the trigger where their
+//     own site runs. A payout whose site is skipped because the condition failed
+//     still pays nothing: that needs per-Trick behaviours (SCORING_REWORK.md).
+//   - the x8 cap is gone. `force_cap_x` in BAL is unread.
+// What follows is the r234 note, kept for the listed-value half.
+//
 // The game already had one way to make a Trick fire again: PRIMING. A primed
 // Trick (Inspirato, Prime Times, Rehearsal's permanent `_rank`, the Understudy
 // knack) replays the pip/mult DELTA it reported this hand - `_cp[id]` / `_cm[id]`

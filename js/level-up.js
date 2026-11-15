@@ -266,7 +266,7 @@ function triggerLevelUp() {
       const _ctN = luckRoll(BAL.coin_toss.chance) * BAL.coin_toss.charges;
       for (let i = 0; i < _ctN && card._usesLeft < cap; i++) { card._usesLeft++; _refilled++; }
     });
-    if (_refilled) showMessage(`Coin Toss: ${_refilled} Sleight${_refilled > 1 ? 's' : ''} regained a charge`, 'var(--gold)');
+    if (_refilled) knackNotice('coin_toss', `Coin Toss: ${_refilled} Sleight${_refilled > 1 ? 's' : ''} regained a charge`);
   }
   // Green Station (r647): a charge back per Sleight; a dormant one wakes with it.
   if (typeof greenStationRecharge === 'function') greenStationRecharge();

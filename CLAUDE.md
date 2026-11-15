@@ -5072,3 +5072,64 @@ Sleight once beside the card it traded with, and slides every card from its old 
 Measured at 1440x820 (click) and 420x900 (tap): the six sentences; limit 2 -> 3 -> 4 and then held;
 4 cards A B C D became C D A B, 3 cards A B C became B C A, one swap each; at a hand size of 3 the
 4th card would not select; no page errors.
+
+## r781 - primes go off on the first trigger; forced triggers; trigger sounds; Undersight; Standing Order (owner)
+- **The rule** (owner): a prime is one more TRIGGER of its Trick. All of a Trick's primes go off the first
+  time it triggers in a hand: on the first card that triggers a per-card Trick, after the cards for a hand
+  Trick. A multiply stacks (x2 with 2 primes is x2 x2 x2). A hand it does not trigger in keeps them. A prime
+  earned by a hand still waits (it is granted after the hand scores). r772's "whole-hand repeat at the end"
+  is gone. Face Value, 2 primes, K K K: the first King +10, +20, +20, +20; 130 pips (was 210).
+- **How** (`calcPrimePass`, js/scoring.js): calcScore finishes the natural hand, then writes the extra
+  triggers INTO the timeline as copies of the Trick's own events (a copy sits right after its original and
+  is pinned to that replay, `onRep`; flagged `prime` + `primeN`, or `forced`) and reads the totals back with
+  **`timelineEval`**, the walk the dance does. Checked first: across the golden test's 834 cases the walk
+  lands on calcScore's own pips and mult every time, and no hand event comes before a card event.
+  `tlBeatEvents(events, rep)` is the one rule for which events a replay plays (the dance, the scoring
+  preview and the walk). A hand that can have primes or forced triggers always keeps a ledger
+  (`calcNeedsTimeline`). The ledger bills the extras to "Primed fires" / the forced Trick.
+- **Quarter limit** (owner): any number of primes may be HELD; at most the quarter's number go off at once
+  (`primeExtraFor` = min(primes + permanent primes, `qrlLimit()`), permanent ones first), and only those
+  are spent (`primeSpendFor`); the rest wait. r484's prime-SOURCE limit is gone. `trickFires` reads the
+  same number. **Undersight** (epic Trick `undersight`): `qrlLimit()` is Infinity while held (`qrlLifted`).
+- **Replays**: a primed replay Trick replays its first card that many more times (`REPLAY_SRC_TRICK`, in
+  the card loop after the QRL cut): one prime on a 3-replay Trick is 3 more.
+- **Standing Order** (legendary Knack `standing_order`, working name): primes go off on every trigger of
+  the hand, every card and every replay (`primeEveryTrigger`). Still spent after that hand.
+- **Forced triggers**: one more copy of the Trick's first trigger; a Trick that did not go off pays its
+  listed value once (`trickForcedPayout`: one card's worth on the first card for a Trick tagged `card`,
+  else after the cards). A forced trigger sets the primes off and spends them. **The x8 cap is gone.**
+  `handForcedIds` (set from the banked ledger for the length of playHand) makes `trickFires` count the
+  trigger, so a forced Trick's Focus / seconds / credits pay where their own site runs. **Not done:** a
+  forced non-scoring Trick whose condition failed still pays nothing (its site never runs), and Focus
+  Tricks are paid before the hand scores, so they do not see the force. Both need per-Trick behaviours
+  (SCORING_REWORK.md). Dev -> Change the game now: "QRL also limits forced triggers" (`qrlForceCap`, off).
+- **Dance** (js/score-dance.js): a prime's chips sit at random places round the Trick (`dncFly` `o.scatter`);
+  each further prime of one Trick halves its gap and its flight (floor `DANCE_CFG.primeMinFlight` 240ms);
+  numbers still land in order (`marks`). A prime stays with the trigger it repeats when adds are reordered.
+- **Sounds** (`js/score-sounds.js`): a sound when a card or a Trick TRIGGERS (`sfxScoreCard` /
+  `sfxScoreTrick`, catalog `score_card` / `score_trick`), a soft tick when a chip lands (`sfxScoreTick`).
+  Settings -> Audio -> **Scoring sounds** (`SETTINGS.scoreSounds`): Sound pack (the pack's pip and mult
+  sounds, default) and eight pairs (`SCORE_SETS`: keys and vibes, pluck and brass, felt and chime, marimba
+  and glock, chip and stack, upright and snap, key and carriage bell, glass and bowl, blip and pickup).
+  Variants: prime (a step up per prime, a tick in front), forced (a thump under it), a wild card (a fifth
+  down, quieter), and a Trick's own tail (`scoreVoiceFor`: face-card Tricks get a three-note royal figure;
+  `SCORE_VOICES` / `SS_TAILS` take custom ones). **Cut-off** (`ssVoice` / `ssPushAway`): each trigger sound
+  is its own gain node; the next one drops the last to a third, fades it in 0.2s and bends its oscillators
+  five semitones down. A voice swaps `window.sfxOut` while it is built: nothing else may hold it.
+- **Other sounds**: Focus landing on the total plays `sfxFocusAgain` for every application, the first
+  included (js/pmf-merge.js). High Roller's fly-to-preview is Lounge's. Every pack's discard is
+  `packRiffleOut` (the riffle alone, falling in pitch; a forced discard longer and lower).
+- **Knacks say it on the chip** (`knackNotice(id, text)` / `entityPing(type, id)`, js/tray-fx.js): a quiet
+  notice (the drawer keeps it), a flash, a ring (`.ent-burst`) and `sfxEntityPing`. Understudy, Buddy
+  System, Hallmark, Coin Toss, Curio, Green Station, Jugaad, Stacked, Finishing Touch, Stretch Goal. A
+  chance Trick that went off pings too (`CHANCE_TRICK_IDS`, js/chance-count.js). **A new Knack notice uses
+  `knackNotice`.**
+- **Words**: keywords `prime` and `force` (js/keywords.js) are where the rule is said; the handbook's
+  Primed entry and the tip follow. Understudy's sentence no longer explains priming.
+- The scoring preview (`?lab`) prints PRIMED / FORCED lines where they happen and how many primes were kept.
+Measured in headless Chromium at 1440x820 and 420x900 through `?lab`, dev mode on: the rule cases above
+(2 primes, 5 primes with the limit on and off, a forced Trick with primes, Ornery x2 x2 x2, Double Take
+forcing twice, Encore replaying its first card twice, Standing Order, Undersight), a 4-hand burst and a Flow
+goal hand: no timeline drift, no page errors. Primes launched 75 / 46 / 26ms apart. Every pair's two sounds
+and the variants built without an error. The golden baseline is rewritten in r782 (a new Trick moves the
+harness's seeds; with Undersight held out only `tray36`, which has a forced trigger, differed).

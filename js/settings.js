@@ -65,6 +65,12 @@ const SETTINGS_DEF = [
     type: 'select', default: (typeof PAYOUT_COIN_DEFAULT !== 'undefined') ? PAYOUT_COIN_DEFAULT : 'pack',
     options: (typeof payoutCoinOptions === 'function') ? payoutCoinOptions() : [['pack', 'Pack coin']],
     apply: () => { if (typeof sfxPayoutCoin === 'function' && navigator.userActivation && navigator.userActivation.isActive) sfxPayoutCoin(2, 3); } },
+  // r781: the scoring sounds (js/score-sounds.js). Read at every trigger; a change plays the pair.
+  { group: 'Audio', id: 'scoreSounds', label: 'Scoring sounds',
+    hint: 'What a card and a Trick sound like when they trigger.',
+    type: 'select', default: (typeof SCORE_SET_DEFAULT !== 'undefined') ? SCORE_SET_DEFAULT : 'pack',
+    options: (typeof scoreSetOptions === 'function') ? scoreSetOptions() : [['pack', 'Sound pack']],
+    apply: () => { if (typeof scoreSetDemo === 'function' && navigator.userActivation && navigator.userActivation.isActive) scoreSetDemo(); } },
   // Sound source (r186). Files beat packs beat classic - see the resolution order
   // in js/audio-assets.js. Both rows are read there rather than applied from here,
   // so there is no `apply` to keep in step.

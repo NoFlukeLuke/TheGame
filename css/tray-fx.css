@@ -35,3 +35,7 @@ html.tray-pit #stage.landscape #score-left > :not(#score-progress-bar-wrap) { po
 
 /* r505 (owner): the Tricks tray is a little more yellow than plain orange. */
 #stage #trick-tray-area { --tray-c: #ffa01f !important; }
+
+/* r781: the ring that bursts off a Knack or chance Trick going off (entityPing, js/tray-fx.js). Body-level, viewport px. */
+.ent-burst { position: fixed; z-index: 205; pointer-events: none; border-radius: 50%; box-sizing: border-box;
+  border: 2px solid #ffe9a8; box-shadow: 0 0 14px 3px rgba(255, 220, 130, .7), inset 0 0 10px rgba(255, 233, 168, .5); }

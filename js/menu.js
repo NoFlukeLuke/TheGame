@@ -1,4 +1,4 @@
-const BUILD = "2026-11-15 · r780 · Jeitinho: two extra swaps, then 3- and 4-card swaps";
+const BUILD = "2026-11-15 · r781 · primes go off on the first trigger; forced triggers uncapped; trigger sounds, 8 pairs; Undersight; Standing Order";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

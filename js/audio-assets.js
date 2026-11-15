@@ -44,6 +44,10 @@ const SFX_CATALOG = [
   { id: 'particle_pip',  fn: 'sfxParticleStep',    group: 'Scoring', label: 'Pip particle',    args: ['pip'] },
   { id: 'particle_mult', fn: 'sfxParticleStep',    group: 'Scoring', label: 'Mult particle',   args: ['mult'], variantOf: 'particle_pip' },
   { id: 'score_tick',    fn: 'sfxScoreTick',       group: 'Scoring', label: 'Score climb tick' },
+  // r781 (js/score-sounds.js): the sound of a card or a Trick triggering, in the pair chosen in Settings.
+  { id: 'score_card',    fn: 'sfxScoreCard',       group: 'Scoring', label: 'Card triggers' },
+  { id: 'score_trick',   fn: 'sfxScoreTrick',      group: 'Scoring', label: 'Trick triggers' },
+  { id: 'entity_ping',   fn: 'sfxEntityPing',      group: 'Scoring', label: 'Knack or chance Trick goes off' },
   { id: 'focus_beat',    fn: 'sfxFocusBeat',       group: 'Scoring', label: 'Focus beat' },
   { id: 'focus_again',   fn: 'sfxFocusAgain',      group: 'Scoring', label: 'Focus applies again', args: [1],
     note: 'r571: the multiplier applying a second (third...) time: the beat a tone up per application.' },

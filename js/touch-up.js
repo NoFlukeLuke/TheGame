@@ -73,5 +73,5 @@ function touchUpOnClear(leaving) {
   const tray = document.getElementById('knack-list');
   if (tray && typeof trayFxTrigger === 'function') trayFxTrigger(tray);
   const k = acquiredKnacks.find(x => x && x.id === 'touch_up');
-  showMessage(`${k ? k.name : 'Finishing Touch'}: ${said.join(', ')}`, '#e8c04a');
+  knackNotice('touch_up', `${k ? k.name : 'Finishing Touch'}: ${said.join(', ')}`);
 }

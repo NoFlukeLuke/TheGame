@@ -111,6 +111,15 @@ function vgHopper(n, { spread = 0.9, gain = 0.075, delay = 0, lo = 0, hi = 14 } 
            { spread, jitter: 0.5, delay, accel: 0.72 });
 }
 
+// r781 (owner): the discard is the fly-to-preview's riffle without its last beat: brushed
+// cards, falling in pitch as they go (the fly rises). A forced discard is longer and lower.
+// Every pack plays it. Built from the DSP toolkit alone: the Lounge helpers load further down.
+function packRiffleOut(loud) {
+  const n = loud ? 9 : 6;
+  dCascade(n, (i, at) => dNoise({ kind: 'pink', dur: 0.035, gain: (loud ? 0.085 : 0.065), delay: at, type: 'bandpass',
+    freq: 2300 - i * (loud ? 170 : 210), to: 700, q: 0.8, attack: 0.006, verb: 0.16 }), { spread: loud ? 0.26 : 0.17, jitter: 0.5, accel: 0.8 });
+}
+
 const VEGAS_PACK = {
   // A cabinet button with a spring under it. The relay IS the commit.
   card_select: () => {
@@ -148,18 +157,8 @@ const VEGAS_PACK = {
   // Cards into the hopper: the stroke, then the slot swallowing them. The forced
   // version (The Marker) is a SLAM with a sub under it, because it is something
   // happening to you rather than something you did.
-  card_discard: (loud) => {
-    const g = loud ? 1.75 : 1;
-    dNoise({ kind: 'pink', dur: loud ? 0.1 : 0.07, gain: 0.09 * g, type: 'bandpass',
-             freq: loud ? 1500 : 2100, to: 700, q: 1.2, attack: 0.0008, verb: 0.12 });
-    dWood({ freq: loud ? 130 : 200, dur: 0.13, gain: 0.13 * g, delay: 0.01, verb: 0.14 });
-    dThump({ freq: loud ? 150 : 105, to: loud ? 38 : 50, dur: loud ? 0.3 : 0.15,
-             gain: 0.14 * g, delay: 0.012, sat: 0.65, verb: 0.14 });
-    if (loud) {
-      dNoise({ kind: 'metal', dur: 0.22, gain: 0.05, delay: 0.05, type: 'bandpass',
-               freq: 3400, to: 1400, q: 0.7, rate: 1.4, verb: 0.3 });
-    }
-  },
+  card_discard: (loud) => packRiffleOut(loud),   // r781 (owner): the riffle alone
+
   // A `variantOf` catalog row is looked up by its OWN id, so a pack that
   // defines only card_discard leaves the forced one playing the classic sound.
   card_discard_forced: () => VEGAS_PACK.card_discard(true),
@@ -427,10 +426,8 @@ const HIGHROLLER_PACK = {
   },
 
   // Air, then the deck landing.
-  flip_shuffle: () => {
-    dNoise({ kind: 'white', dur: 0.24, gain: 0.05, type: 'bandpass', freq: 900, to: 4200, q: 1.2, up: true, verb: 0.3 });
-    hrHit({ gain: 0.12, delay: 0.24, size: 0.8, verb: 0.3 });
-  },
+  // r781 (owner): Lounge's fly, the brushed riffle and its thump.
+  flip_shuffle: () => LOUNGE_PACK.flip_shuffle(),
 
   // A minor second in the brass, which is the most reliably wrong-sounding
   // interval there is, over a sub that just sits there. No resolution.
@@ -440,13 +437,8 @@ const HIGHROLLER_PACK = {
     dSub({ freq: 49, dur: 0.5, gain: 0.16, sat: 0.5 });
   },
 
-  card_discard: (loud) => {
-    const g = loud ? 1.8 : 1;
-    dNoise({ kind: 'white', dur: loud ? 0.12 : 0.09, gain: 0.08 * g, type: 'bandpass',
-             freq: 2600, to: 700, q: 0.9, attack: 0.001, verb: 0.2 });
-    hrHit({ gain: (loud ? 0.3 : 0.15), delay: 0.012, size: loud ? 1.25 : 0.7, verb: 0.28 });
-    if (loud) hrBrass(-14, { dur: 0.5, gain: 0.1, bite: 3, verb: 0.3, voices: 4 });
-  },
+  card_discard: (loud) => packRiffleOut(loud),   // r781 (owner): the riffle alone
+
   // A `variantOf` catalog row is looked up by its OWN id, so a pack that
   // defines only card_discard leaves the forced one playing the classic sound.
   card_discard_forced: () => HIGHROLLER_PACK.card_discard(true),
@@ -687,12 +679,8 @@ const NEON_PACK = {
     neKick({ gain: 0.16, size: 1.2, verb: 0.1 });
   },
 
-  card_discard: (loud) => {
-    const g = loud ? 1.8 : 1;
-    dSweep({ kind: 'noise', from: 5200, to: 700, dur: loud ? 0.2 : 0.13, gain: 0.07 * g, q: 1.2, up: false, verb: 0.18 });
-    neKick({ gain: (loud ? 0.3 : 0.15), delay: 0.01, size: loud ? 1.4 : 0.8, verb: 0.14 });
-    if (loud) neSaw(-15, { dur: 0.4, gain: 0.1, bite: 2.2, verb: 0.22, voices: 5 });
-  },
+  card_discard: (loud) => packRiffleOut(loud),   // r781 (owner): the riffle alone
+
   // A `variantOf` catalog row is looked up by its OWN id, so a pack that
   // defines only card_discard leaves the forced one playing the classic sound.
   card_discard_forced: () => NEON_PACK.card_discard(true),
@@ -901,12 +889,8 @@ const LOUNGE_PACK = {
     loBass(-12, { dur: 0.5, gain: 0.12, verb: 0.1 });
   },
 
-  card_discard: (loud) => {
-    const g = loud ? 1.8 : 1;
-    loBrush({ dur: loud ? 0.16 : 0.1, gain: 0.07 * g, freq: 1600, to: 500, verb: 0.2 });
-    loThump({ gain: (loud ? 0.26 : 0.13), delay: 0.01, size: loud ? 1.3 : 0.75, verb: 0.24 });
-    if (loud) loBass(-17, { dur: 0.7, gain: 0.13, verb: 0.16 });
-  },
+  card_discard: (loud) => packRiffleOut(loud),   // r781 (owner): the riffle alone
+
   // A `variantOf` catalog row is looked up by its OWN id, so a pack that
   // defines only card_discard leaves the forced one playing the classic sound.
   card_discard_forced: () => LOUNGE_PACK.card_discard(true),

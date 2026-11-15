@@ -405,7 +405,7 @@ function curioRoundStart() {
   drawPile.splice(Math.floor(Math.random() * (drawPile.length + 1)), 0, card);
   expectedDeckTotal++;
   if (typeof updateDeckHud === 'function') updateDeckHud();
-  showMessage(`${knackName('curio')}: ${card.rank}${card.suit}${b ? ' ' + b.label : ''} joins your deck`, 'var(--gold)');
+  knackNotice('curio', `${knackName('curio')}: ${card.rank}${card.suit}${b ? ' ' + b.label : ''} joins your deck`);
 }
 // Growth Mindset (r750, working name): limit rewards twice as common in every
 // reward roll (Flow's chain, the pick of three, the Balance Sheet, the shop's shelf).

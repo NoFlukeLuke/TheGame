@@ -260,7 +260,8 @@
   <div class="dev-section" data-group="game">
     <div class="dev-section-title">Quarter resource limits</div>
     <div class="dev-row">
-      <label><input type="checkbox" id="dev-qrl" onchange="qrlSetEnabled(this.checked)" onclick="event.stopPropagation()"> QRL on (quarter N: N buffs per card, N replay sources, N prime sources)</label>
+      <label><input type="checkbox" id="dev-qrl" onchange="qrlSetEnabled(this.checked)" onclick="event.stopPropagation()"> QRL on (quarter N: N buffs per card, N replay sources, N primes going off at once)</label>
+      <label><input type="checkbox" id="dev-qrl-force" onchange="qrlSetForceCap(this.checked)" onclick="event.stopPropagation()"> QRL also limits forced triggers (N per Trick per hand)</label>
     </div>
   </div>
 
@@ -1915,6 +1916,7 @@
 <script src="js/audio-dsp.js"></script>
 <script src="js/audio-packs.js"></script>
 <script src="js/coin-sounds.js"></script>
+<script src="js/score-sounds.js"></script>
 <script src="js/controls.js"></script>
 <script src="js/settings.js"></script>
 <script src="js/menu-size.js"></script>

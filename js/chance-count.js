@@ -48,6 +48,8 @@ function chanceCountPaint() {
     const out = orig.apply(this, arguments);
     if (typeof handsPlayed !== 'undefined' && handsPlayed > before && typeof _lastHandProcs !== 'undefined') {
       _ccHold = { counts: Object.assign({}, _lastHandProcs), until: Infinity };
+      // r781 (owner): a chance Trick that went off says so on its chip.
+      if (typeof entityPing === 'function') CHANCE_TRICK_IDS.forEach(id => { if (_lastHandProcs[id] > 0 && typeof hasTrick === 'function' && hasTrick(id)) entityPing('trick', id); });
       chanceCountPaint();
     }
     return out;

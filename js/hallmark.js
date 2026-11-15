@@ -107,7 +107,7 @@ function hallmarkTick(elapsedRound) {
   hallmarkPlanted = true;
   const card = pool[Math.floor(Math.random() * pool.length)];
   hallmarkCardId = cardId(card);
-  if (typeof showMessage === 'function') showMessage('🔖 Hallmark - a card is marked', '#d9a129');
+  if (typeof knackNotice === 'function') knackNotice('hallmark', 'Hallmark: a card is marked');
   if (typeof sfxCoin === 'function') { try { sfxCoin(); } catch (e) {} }
   if (typeof render === 'function') render();
 }
@@ -169,6 +169,6 @@ function hallmarkResolve(cards) {
   }
 
   hallmarkCardId = null;
-  if (typeof showMessage === 'function') showMessage(`🔖 Hallmark · ${note}`, pick.color);
+  if (typeof knackNotice === 'function') knackNotice('hallmark', `Hallmark: ${note}`);
   return pick;
 }

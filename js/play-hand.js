@@ -386,6 +386,8 @@ function playHand() {
   _ulLastHand = { score: finalScore, pips: _bankLedger.finalPips, mult: _bankLedger.finalMult };   // r706: max:handscore etc. (js/unlocks.js)
   result._bankContrib = _bankContrib;
   result._bankLedger = _bankLedger;
+  handForcedIds = (_bankLedger.forcedIds || []).slice();   // r781: a forced Trick's other payouts count the trigger (trickFires)
+  if (handForcedIds.length) Promise.resolve().then(() => { handForcedIds = []; });   // this hand's payouts only (they are all paid before playHand returns)
   // Hard Labour (r461): this hand's club scores, advanced in scalingCount after the
   // dance. It used to advance HERE, above the canonical score, so every hand was
   // scored five rungs (or however many clubs) further up the ladder than it had climbed.
@@ -646,7 +648,7 @@ function playHand() {
     captureGoalHand(toRemove);   // r371: taken off the board at the round's end
     commitRoundContrib(_contribSnapshot);
     dncPlayOrQueue(result, toRemove, true /* goalHand */);
-    runHandPriming(hand, handCells, result._bankContrib);
+    runHandPriming(hand, handCells, result._bankContrib, result._bankLedger);
     scalingCount(hand, _scoredCells, _handRetrigByCell);
     climbAfterHand(_scoredCells);   // r398: after the dance took its ledger
     return;
@@ -675,7 +677,7 @@ function playHand() {
     commitRoundContrib(_contribSnapshot); // goal-clearing hand counts toward the tally
     // Run the score animation; goal interlude fires at end of dance via isGoalHand path
     dncPlayOrQueue(result, toRemove, true /* goalHand */);
-    runHandPriming(hand, handCells, result._bankContrib);
+    runHandPriming(hand, handCells, result._bankContrib, result._bankLedger);
     scalingCount(hand, _scoredCells, _handRetrigByCell);
     climbAfterHand(_scoredCells);   // r398: after the dance took its ledger
     return;
@@ -1007,7 +1009,7 @@ function playHand() {
   dncPlayOrQueue(result, toRemove, false);
   cellCardFrozen = _fz;
   try {
-    runHandPriming(hand, handCells, result._bankContrib);
+    runHandPriming(hand, handCells, result._bankContrib, result._bankLedger);
     scalingCount(hand, _scoredCells, _handRetrigByCell);
     climbAfterHand(_scoredCells);   // r398
   } finally { cellCardFrozen = null; }
@@ -1225,27 +1227,22 @@ function scalingCount(hand, handCells, reps) {
   qrlSeed++;   // QRL: the next hand picks its working buffs afresh (after every read of this hand's pick)
 }
 
-function runHandPriming(hand, handCells, bankedContrib) {
-  // Consume primes that contributed this hand (their extra trigger already fired
-  // in scoring). lastPreFocusMult is saved across the recompute the way the dance
-  // saves it: this now runs after the dance's own calcScore, so leaving it moved
-  // would hand the next read a value this speculative call produced.
+function runHandPriming(hand, handCells, bankedContrib, bankedLedger) {
+  // Primes are spent by the Trick going off (r781): its pips or mult are in the
+  // contributions, or it paid something else (the fire record, js/scoring.js), or it was
+  // forced. A Trick that did not go off keeps them. The quarter limits how many go off
+  // at once (primeExtraFor), so a Trick holding more keeps the rest for its next hand.
   if (trickTray.some(t => t._primed > 0)) {
     let _pc = bankedContrib;
     if (!_pc) { const _savedPFM = lastPreFocusMult; _pc = []; calcScore(hand, handCells, _pc); lastPreFocusMult = _savedPFM; }
     const _ids = new Set(_pc.map(e => e.id));
-    // ALL OF A TRICK'S STACKS FIRE ON ONE HAND, SO ALL OF THEM ARE SPENT (r296).
-    // The firing half was never the question - the replay loop has always run
-    // once per stack and trickFires() has always returned 1 + _primed - but only
-    // ONE was spent, so a +2 paid two extra fires and then one more on the hand
-    // after. Owner's call: a prime is a charge on the NEXT firing, not a lease.
-    //
-    // The fired test is the ledger OR the fire record: _pc carries pips and mult,
-    // and a Trick paying in Focus, seconds or credits appears only in the record
-    // (js/scoring.js). Neither alone covers the tray.
+    const _forced = new Set((bankedLedger && bankedLedger.forcedIds) || []);
     trickTray.forEach(t => {
-      if (t._primed > 0 && (_ids.has(t.id) ||
-          (typeof trickFiredThisHand === 'function' && trickFiredThisHand(t.id)))) { t._primed = 0; t._primeSrc = []; }
+      if (!(t._primed > 0)) return;
+      if (!(_ids.has(t.id) || _forced.has(t.id) || (typeof trickFiredThisHand === 'function' && trickFiredThisHand(t.id)))) return;
+      if ((t._primed || 0) + (t._rank || 0) > qrlLimit()) qrlNotice('prime');
+      t._primed -= primeSpendFor(t);
+      if (!(t._primed > 0)) { t._primed = 0; t._primeSrc = []; }
     });
   }
   // Inspirato: a scored Ace primes the first and last tray Tricks

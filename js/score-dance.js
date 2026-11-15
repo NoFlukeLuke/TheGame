@@ -53,7 +53,7 @@ const DANCE_CFG = {
   // is the SAME Trick paying twice, so it lands right behind the beat in front of
   // it and several of them keep that quick pace until the last one has fired.
   // Both are ms/scale at 1x and both ride dncPace() like everything else.
-  primeRest:130, primeFlight:0.45,
+  primeRest:130, primeFlight:0.45, primeMinFlight:240,
   // The plate's size multiplier, on top of PARTICLE_CFG.size. 1.15 is the owner's
   // "+15%". pScale above is the OLD bare-text scale and is now unused by the
   // plate shapes - it still drives the no-plate fallback.
@@ -496,7 +496,7 @@ function ptBaseFlight(){ return PARTICLE_CFG.flightMs || DANCE_CFG.pFlight; }
 // dncResetBlips (called from playPreviewDance), exactly as dncResetAccel is for
 // pace: each hand winds up from its own base size.
 let dncBlipN = 0;
-function dncResetBlips(){ dncBlipN = 0; }
+function dncResetBlips(){ dncBlipN = 0; if(typeof ssReset === 'function') ssReset(); }
 function dncBlipScale(){
   const C = PARTICLE_CFG;
   const start = (C.growStart === undefined) ? 5 : C.growStart;
@@ -634,7 +634,7 @@ function ptLaunch(a, b, kind, label, color, dur, opts){
   return el;
 }
 
-function dncFly(srcEl, boxEl, label, color, onLand, durOverride, kind){
+function dncFly(srcEl, boxEl, label, color, onLand, durOverride, kind, o){
   let a=srcEl?srcEl.getBoundingClientRect():null; const b=boxEl.getBoundingClientRect();
   // BELT AND BRACES FOR THE (0,0) LAUNCH (r304). danceEntityEl now refuses a dead
   // anchor and fireEvent re-resolves at fire time, but THE FALLBACK ANCHOR CAN BE
@@ -657,6 +657,9 @@ function dncFly(srcEl, boxEl, label, color, onLand, durOverride, kind){
   // PIPS and MULT boxes do), so two chips from one card or one Trick do not cover each other.
   else if(!dncFF && kind){ const sx = a.width * (kind.startsWith('pip') ? -.2 : kind.startsWith('mult') ? .2 : 0);
     if(sx) a = { left: a.left + sx, top: a.top, width: a.width, height: a.height }; }
+  // r781 (owner): a prime's chips sit at random places round the Trick, so a run of them rings it.
+  if(o && o.scatter > 0 && a !== b && !dncFF){ const ang = fxRandom() * Math.PI * 2, rad = Math.max(a.width, a.height) * (.42 + fxRandom() * .22);
+    a = { left: a.left + Math.cos(ang) * rad, top: a.top + Math.sin(ang) * rad, width: a.width, height: a.height }; }
   const base = ptBaseFlight();
   const dur = durOverride || (dncFF ? Math.max(60, base/DANCE_CFG.ff) : Math.max(60, base/dncPace()));
   // The blip counter advances whether or not a plate is drawn, so a skipped one
@@ -1692,7 +1695,9 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   // behind the beat in front of it is to cut the rest that beat was about to take.
   // Consecutive primes each shorten the gap before them, and the first ordinary
   // step after the run takes a full tickRest, which is the pace resuming.
-  const restAfter = si => (steps[si+1] && steps[si+1].prime) ? DANCE_CFG.primeRest : DANCE_CFG.tickRest;
+  // r781: each further prime of one Trick plays twice as fast as the one before it (buh, b-buh, b-b-buh).
+  const primeK = st => Math.max(1, (st && st.event && st.event.primeN) || 1);
+  const restAfter = si => (steps[si+1] && steps[si+1].prime) ? Math.max(18, DANCE_CFG.primeRest / Math.pow(2, primeK(steps[si+1]) - 1)) : DANCE_CFG.tickRest;
   // A prime's own flight is shortened to match. dncFly computes its own duration
   // when handed none, so an override has to divide by the pace itself.
   const primeFlight = () => Math.max(60, ptBaseFlight() * DANCE_CFG.primeFlight / (dncFF ? DANCE_CFG.ff : dncPace()));
@@ -1728,7 +1733,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   // particle's own landing, so a whole beat can launch together and still apply
   // its values in emission order (see the beat loop below).
   // `plate` (r738): false = no plate of its own (it rides another plate's label); a string = that label.
-  const fireEvent = (ev, fallbackEl, subRef, awaitIt, inBeat, dur, defer, plate) => {
+  const fireEvent = (ev, fallbackEl, subRef, awaitIt, inBeat, dur, defer, plate, fo) => {
     const el = dncEntEl(ev);
     if(el) dncReleaseReal(el);
     const src = el || fallbackEl;
@@ -1742,10 +1747,16 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
       else { rm = _rnd(rm*ev.value, ev.rnd); showMult(); }
       // r661: at x4 and up (two or more hands waiting) a beat plays ONE payout sound, not one per plate.
       // r670: likewise a hand played out at the skip speed in front of a winning hand.
-      if(typeof sfxParticleStep==='function' && !((dncQueue.length >= 2 || dncFF) && subRef._sfx)){ subRef._sfx = true; sfxParticleStep((ev.op==='pip+'||ev.op==='pip*')?'pip':'mult'); }
+      // r781 (owner): the SOUND is the trigger's (below); a landing is a soft tick.
+      if(typeof sfxScoreTick==='function' && !((dncQueue.length >= 2 || dncFF) && subRef._tick)){ subRef._tick = true; sfxScoreTick(); }
     };
     if(plate === false) return defer ? land : null;
-    const p = dncFly(src, box, typeof plate === 'string' ? plate : evLabel(ev), evColor(ev), defer ? null : land, dur, evKind(ev));
+    // The trigger's sound, as the chip appears: the card's, or the Trick's; a prime and a forced
+    // trigger have their own (js/score-sounds.js). A rushed beat plays one, not one per chip.
+    if(!((dncQueue.length >= 2 || dncFF) && subRef._sfx)){ subRef._sfx = true;
+      const so = { prime: ev.prime ? (ev.primeN || 1) : 0, forced: !!ev.forced, id: ev.id, dull: !!(fo && fo.dull) && !el };
+      if(el){ if(typeof sfxScoreTrick==='function') sfxScoreTrick(so); } else if(typeof sfxScoreCard==='function') sfxScoreCard(so); }
+    const p = dncFly(src, box, typeof plate === 'string' ? plate : evLabel(ev), evColor(ev), defer ? null : land, dur, evKind(ev), { scatter: ev.prime ? (ev.primeN || 1) : 0 });
     return defer ? land : (awaitIt ? p : null);
   };
 
@@ -1759,7 +1770,15 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   let beatsCut = false;
   // r772: whole-hand adds play in the same order as a card's (dncOrderAdds). Card steps
   // and primes stay where they are.
-  dncOrderAdds(steps, st => st.kind === 'hand' ? dncEntEl(st.event) : null, st => st.kind === 'hand' && !st.prime ? st.event : null);
+  // r781: a prime stays with the trigger it repeats while the adds are put in order.
+  { const folded = [];
+    steps.forEach(st => {
+      if(st.kind === 'hand' && st.prime){ let h = null;
+        for(let k = folded.length - 1; k >= 0 && folded[k].kind === 'hand'; k--) if(folded[k].event.id === st.event.id && folded[k].event.op === st.event.op){ h = folded[k]; break; }
+        if(h){ (h._primes = h._primes || []).push(st); return; } }
+      folded.push(st); });
+    dncOrderAdds(folded, st => st.kind === 'hand' ? dncEntEl(st.event) : null, st => st.kind === 'hand' && !st.prime ? st.event : null);
+    steps.length = 0; folded.forEach(st => { steps.push(st); if(st._primes) steps.push(...st._primes); }); }
   for(let si=0; !skipBeats && si<steps.length; si++){
     if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
     if(flushed()){ beatsCut = true; break; }
@@ -1771,7 +1790,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
       const ev = step.event;
       const anchor = (ev.from >= 0 && cardEls[slotOf(ev.from)]) ? cardEls[slotOf(ev.from)]
                    : ((ev.op==='pip+'||ev.op==='pip*') ? pipsBox : multBox);
-      await fireEvent(ev, anchor, { v:0 }, true, false, step.prime ? primeFlight() : undefined);
+      await fireEvent(ev, anchor, { v:0 }, true, false, step.prime ? Math.max(Math.min(primeFlight(), DANCE_CFG.primeMinFlight), primeFlight() / Math.pow(2, primeK(step) - 1)) : undefined);
       await dwait(restAfter(si));
       continue;
     }
@@ -1824,8 +1843,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
       // everything else, but not those, or the chip drifts above the real total.
       // `vals` (Hard Labour, r461): an event worth a different amount on each replay.
       // `replay` (Chorus, r637) is the reverse of `once`: replays only, never rep 0.
-      const beatEvents = (rep === 0 ? step.events.filter(ev => !ev.replay) : step.events.filter(ev => !ev.once))
-        .map(ev => ev.vals ? Object.assign({}, ev, { value: ev.vals[rep] }) : ev);
+      const beatEvents = tlBeatEvents(step.events, rep);   // js/scoring.js: the one rule for which events a replay plays
       // ONE PLATE PER CHIP FROM THE CARD (r738). Everything a card adds that has no tray
       // tile of its own (the card's pips, a +pips buff, double scaling's +1, a mult buff)
       // flies from the card on the same frames, so the plates sat exactly on top of each
@@ -1835,6 +1853,9 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
       const plan = [], open = {};
       beatEvents.forEach(ev => {
         const chip = (ev.op==='pip+'||ev.op==='pip*') ? 'p' : 'm';
+        // r781: a prime rides behind the trigger it repeats (same Trick, same chip).
+        if(ev.prime){ let h = null; for(let k = plan.length - 1; k >= 0; k--) if(!plan[k].ride && plan[k].ev.id === ev.id && plan[k].ev.op === ev.op){ h = plan[k]; break; }
+          if(h){ (h.primes = h.primes || []).push(ev); return; } }
         if(!(ev.op==='pip+'||ev.op==='mult+')){ open[chip] = null; plan.push({ ev }); return; }
         const fromCard = !dncEntEl(ev);
         if(fromCard && open[chip]){ open[chip].sum += ev.value; plan.push({ ev, ride: true }); return; }
@@ -1852,20 +1873,30 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
         if(g.ride && head[chip]){ head[chip].rides.push(g); return; }
         g.rides = []; vis.push(g); if(g.own) head[chip] = g; else if(g.sum === undefined) head[chip] = null;
       });
-      const gap = (dncFF || vis.length < 2) ? 0 : TALLY_CFG.gap / dncPace();
-      const marks = [];
-      vis.forEach((g, i) => { marks.push({ t: i * gap, g, go: true }); marks.push({ t: i * gap + beatDur, g }); });
-      marks.sort((a, b) => a.t - b.t || (a.go ? 0 : 1) - (b.go ? 0 : 1));
+      // The running order: each trigger, then its primes, each prime twice as fast as the
+      // one before it (its gap and its flight both halve). A number never lands before the
+      // one in front of it, whatever its chip's speed.
+      const seq = [];
+      vis.forEach(g => { seq.push({ g, k: 0 }); (g.primes || []).forEach((pe, n) => seq.push({ g: { ev: pe, rides: [] }, k: pe.primeN || (n + 1) })); });
+      const gap = (dncFF || seq.length < 2) ? 0 : TALLY_CFG.gap / dncPace();
+      const _wild = typeof WILD_RANK !== 'undefined' && ((_ledger.cards || [])[step.card] || {}).rank === WILD_RANK;
+      const marks = []; let _t = 0, _landed = 0;
+      seq.forEach((q, i) => { const sp = Math.pow(2, q.k);
+        if(i > 0 && gap > 0) _t += Math.max(18, gap / sp);
+        q.d = q.k ? Math.max(Math.min(beatDur, DANCE_CFG.primeMinFlight), beatDur / sp) : beatDur;   // a prime's flight halves each time, down to a floor it can still be seen at
+        _landed = Math.max(_landed, _t + q.d);
+        marks.push({ t: _t, q, go: true, i }); marks.push({ t: _landed, q, i }); });
+      marks.sort((a, b) => a.t - b.t || (a.go ? 0 : 1) - (b.go ? 0 : 1) || a.i - b.i);
       let _now = 0, _cut = false;
       for(const mk of marks){
         if(mk.t > _now){ await dncWait(mk.t - _now); _now = mk.t; }
         if(aborted()){ _cut = true; break; }
+        const g = mk.q.g;
         if(mk.go){
-          const g = mk.g;
-          g.fns = [fireEvent(g.ev, cardEl, subRef, false, true, beatDur, true,
-            (g.sum !== undefined && g.sum !== g.ev.value) ? '+' + (g.chip === 'p' ? Math.round(g.sum) : fmtM(g.sum)) : undefined)]
-            .concat(g.rides.map(r => fireEvent(r.ev, cardEl, subRef, false, true, beatDur, true, false)));
-        } else (mk.g.fns || []).forEach(fn => { if(fn) fn(); });
+          g.fns = [fireEvent(g.ev, cardEl, subRef, false, true, mk.q.d, true,
+            (g.sum !== undefined && g.sum !== g.ev.value) ? '+' + (g.chip === 'p' ? Math.round(g.sum) : fmtM(g.sum)) : undefined, { dull: _wild })]
+            .concat(g.rides.map(r => fireEvent(r.ev, cardEl, subRef, false, true, mk.q.d, true, false)));
+        } else (g.fns || []).forEach(fn => { if(fn) fn(); });
       }
       if(_cut || aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
       // The card's pips join the hand total once its own beat has resolved, so a

@@ -37,7 +37,7 @@ const KNACK_POOL = [
   { id:'safety_net',      emoji:'🪢',  name:'Safety Net',       rarity:'rare',   desc:'Once per game: if you miss the round goal, the round goes on with 30s on the clock instead of failing.', tags:['shield','time','other','level'] },
   { id:'last_swap',       emoji:'🔀',  name:'Last Swap',        rarity:'rare',   desc:'End a round with exactly one swap left and you can trade two touching tiles on the ' + gridName('reward') + '. Double-tap a tile, then tap its neighbour. Uses the swap.', tags:['other','reward','level','cost'] },
   { id:'free_range_t',    emoji:'🦅',  name:'Jeitinho',       rarity:'rare',   desc:'Can swap any two non-adjacent cards. When taken, sets your swap limit to 2.', tags:['stock','other','swap','cost'] },
-  { id:'understudy',      emoji:'🎭',  name:'Understudy',       rarity:'rare',   desc:'Every 30 seconds one of your tricks is primed: it fires an extra time on your next hand.', tags:['retrigger','other','clock','tricks'] },
+  { id:'understudy',      emoji:'🎭',  name:'Understudy',       rarity:'rare',   desc:'Every 30 seconds one of your Tricks is primed.', tags:['retrigger','other','clock','tricks'] },
   { id:'hallmark',        emoji:'🔖',  name:'Hallmark',         rarity:'rare',   desc:'Once a round a card on the board is marked. Score it and it takes a random buff.', tags:['deck','card','position','scaling','chance'] },
   { id:'turnover',        emoji:'♻️',  name:'Turnover',         rarity:'rare',   desc:'Any card you leave alone for 45 seconds becomes Fodder until it leaves the board: swapping or discarding it costs no time and no stock.', tags:['stock','other','clock','swap','discard'] },
   // r556 (owner): a dial you turn by double-tapping the chip. challengeDial (js/challenge-round.js) holds its direction.
@@ -61,6 +61,7 @@ const KNACK_POOL = [
   { id:'high_and_mighty', emoji:'👑',  name:'High and Mighty',  rarity:'rare',   desc:'The highest-ranked cards in each scored hand replay once.', tags:['replay','card','scores','rank'] },
   { id:'low_and_behold',  emoji:'🐛',  name:'Low and Behold',   rarity:'rare',   desc:'Any played hand containing the grid’s lowest rank replays the whole hand once.', tags:['replay','hand','scores','rank'] },
   { id:'down_and_back_in',emoji:'🔁',  name:'Down and Back In', rarity:'common', desc:'Discarding a card of the grid’s highest rank grants +2 discards or +2 swaps (alternating) and +5 credits.', tags:['stock','credits','other','discard','rank'] },
+  { id:'standing_order',  emoji:'🔁',  name:'Standing Order',   rarity:'legendary', desc:'Primes go off every time their Trick triggers in the hand, not only the first.', tags:['retrigger','other','tricks'] },   // r781 (owner; working name)
   { id:'muscle_memory',   emoji:'🤝',  name:'Buddy System',     rarity:'common', desc:'Whenever a Trick is primed, a different Trick is primed too.', tags:['retrigger','other','tricks'] },
   { id:'curator',         emoji:'✦',   name:'Curator',          rarity:'rare',   desc:`+1 Trick Slot. After each boss you beat, ${KNACK_BOSS_GROW_PCT}% chance it gives 1 more.`, tags:['limit','other','boss','scaling','chance'] },
   { id:'short_suit',      emoji:'🃏',  name:'Short Suit',       rarity:'rare',   desc:'Flush of 3 and Flush of 4 become scorable hands.', tags:['other','flush','size'] },

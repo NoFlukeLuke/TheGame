@@ -70,6 +70,11 @@ const KEYWORD_DEFS = [
     name:'Buy',      def:'Spend credits in the shop. Buying several at once earns a bundle discount.' },
   { key:'draw',      cls:'kw-play',    terms:['draw','draws','drawn'],
     name:'Draw',     def:'Pull a new card from the deck onto the grid.' },
+  // r781 (owner): priming and forced triggers, said once, here.
+  { key:'prime',     cls:'kw-replay',  terms:['permaprimed','permaprime','primed','primes','to prime','prime a','prime the','prime your'],
+    name:'Prime',    def:'The next time a primed Trick triggers, it triggers again, once for each prime. Then those primes are gone.' },
+  { key:'force',     cls:'kw-replay',  terms:['force-triggers','force-trigger','force triggers','force trigger'],
+    name:'Force trigger', def:'The Trick triggers once whether or not its condition is met. That sets off its primes.' },
   { key:'retrigger', cls:'kw-replay',  terms:['retrigger','retriggers','replay','replays','replayed'],
     name:'Retrigger',def:'Fire an effect a second time. Retriggered scoring counts fully again.' },
 

@@ -398,7 +398,7 @@ function onFocusMaxed() {
     // Each max lowers the ceiling by 5 (permanent, floored in focusCapNodes); the random
     // limit is banked once and granted at round end (triggerLevelUp) if you maxed at all.
     growthSpurtMaxedThisRound = true;
-    showMessage(`🌱 ${knackName('growth_spurt')} - max Focus −${BAL.growth_spurt.cap_reduction}`, 'var(--gold)');
+    knackNotice('growth_spurt', `${knackName('growth_spurt')}: max Focus −${BAL.growth_spurt.cap_reduction}`);
   }
   if (keepFrac !== null || dropFlat > 0 || _gs) setTimeout(() => {
     if (_gs) growthSpurtCapPenalty += BAL.growth_spurt.cap_reduction;

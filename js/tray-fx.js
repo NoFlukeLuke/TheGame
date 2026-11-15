@@ -199,6 +199,33 @@ function trayFxTrigger(el) {
   };
   requestAnimationFrame(step);
 }
+// ── A Knack, or a chance Trick, going off (r781, owner) ─────────────────────
+// Its chip flashes and swells, a ring bursts off it and a small sound plays. This is how
+// a Knack says it did something: its notice is a quiet one (the drawer keeps it).
+function entityPing(type, id) {
+  if (typeof sfxEntityPing === 'function') sfxEntityPing();
+  const el = (typeof danceEntityEl === 'function') ? danceEntityEl(type, id) : null;
+  if (!el || document.body.classList.contains('reduced-motion')) return;
+  try {
+    el.animate([{ scale: '1', filter: 'brightness(1)' }, { scale: '1.28', filter: 'brightness(2.3)', offset: .3 }, { scale: '1', filter: 'brightness(1)' }],
+      { duration: 460, easing: 'cubic-bezier(.2,.8,.3,1)' });
+    const r = el.getBoundingClientRect(); if (!r.width) return;
+    const ring = document.createElement('div'); ring.className = 'ent-burst';
+    const d = Math.max(r.width, r.height);
+    ring.style.cssText = `left:${r.left + r.width / 2}px;top:${r.top + r.height / 2}px;width:${d}px;height:${d}px;`;
+    document.body.appendChild(ring);
+    const a = ring.animate([{ transform: 'translate(-50%,-50%) scale(.5)', opacity: .95 }, { transform: 'translate(-50%,-50%) scale(1.9)', opacity: 0 }],
+      { duration: 520, easing: 'cubic-bezier(.2,.7,.3,1)' });
+    a.onfinish = a.oncancel = () => ring.remove();
+  } catch (e) {}
+  const tray = el.closest('#knack-list-area, #trick-tray-area, #knack-tray, #trick-tray');
+  if (tray) trayFxTrigger(tray);
+}
+// A Knack's notice: quiet (the drawer lists it), with the burst on its chip.
+function knackNotice(id, text) {
+  if (typeof noteMessage === 'function') noteMessage(text);
+  entityPing('knack', id);
+}
 // The dance's release on a real chip (js/score-dance.js) is the trigger moment.
 function trayFxWatchTriggers() {
   const orig = window.dncReleaseReal; if (typeof orig !== 'function' || orig._tfxWrapped) return;

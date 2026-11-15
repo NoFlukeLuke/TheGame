@@ -225,9 +225,9 @@ const INFO_TOPICS = [
 
   { id: 'priming', group: 'owned', title: 'Primed - the violet +2',
     body: [
-      'A PRIMED {trick} fires again on your next hand. The violet pill on the tile is how many extra fires are stacked up, and all of them go off on the same hand.',
-      'The stack is then spent. The Extra Rep event primes a {trick} PERMANENTLY, so that one fires an extra time every hand for the rest of the run.',
-      'A prime cannot make a {trick} fire when its condition was not met, and a {trick} that sat the hand out keeps its stack. A FORCED fire is the other thing: it ignores the condition and pays anyway.',
+      'The next time a PRIMED {trick} triggers, it triggers again, once for each prime. The violet pill on the tile is how many primes it holds.',
+      'They all go off on that first trigger: on the first card for a {trick} that pays per card, after the cards for one that pays per hand. Then they are gone. A permanent prime (the gold pill) is never used up.',
+      'A {trick} that does not trigger keeps its primes. A FORCED trigger makes it trigger once whatever its condition says, and that sets its primes off.',
     ] },
 
   // ── Between rounds ────────────────────────────────────────────────────────

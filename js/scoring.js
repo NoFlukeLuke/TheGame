@@ -111,6 +111,9 @@ let staticPips = 0, staticMult = 0;
 function calcScore(handName, cells, contrib = null, ledger = null) {
   const base = HAND_BASE[handName];
   if (!base) return 0;
+  // r781: primes and forced triggers are worked out on the timeline, so a hand that can have either keeps one.
+  if (!ledger && calcNeedsTimeline()) ledger = {};
+  const _primeX = primeExtraMap();   // tray id -> extra triggers this hand
   // ── KICKERS (r385) ──
   // A kicker is a selected card no component claims (js/limits.js). Without the
   // Pip In knack it scores NOTHING, so it is stripped here and never reaches the
@@ -473,6 +476,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // per-card MULT / coin / time bonuses re-fire on replay too (not just pips).
   const retrigByKey = {};
   const _ledgerCells = ledger ? [] : null;
+  const _primeAny = Object.keys(_primeX).length > 0, _primeAll = primeEveryTrigger(), _primeRepUsed = {};
   // r392 DUAL IDENTITY: a card carrying a second rank or suit scores its trick
   // block a SECOND time as that identity (a GHOST pass, cardGhostFor in
   // js/deck-grid.js). So a double heart fires a heart Trick twice, a heart/spade
@@ -658,6 +662,14 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
       if (_cutIds.has('3c')) _3c = false;   if (_cutIds.has('rule')) _rule = 0;   if (_cutIds.has('ins')) _ins = 0;
       _qrlReplayCut = true;
     }
+    // r781 (owner): a primed replay Trick replays its card that many more times: one prime on a
+    // 3-replay Trick is 3 more. The first card it replays (every card with Standing Order).
+    if (!_G && _primeAny) _srcs.forEach(x => {
+      const _pid = REPLAY_SRC_TRICK[x[0]]; if (!_pid) return;
+      const _tid = _fid(_pid), _pn = _primeX[_tid]; if (!_pn) return;
+      if (!_primeAll && _primeRepUsed[_tid]) return;
+      _primeRepUsed[_tid] = 1; x[1] *= (1 + _pn);
+    });
     _srcs.forEach(x => { _retrig += x[1]; });
     if (_compReps) _retrig += (_compReps[_cKey] || 0); // Layered hand: this card scores again for each extra component it is in
     // The Rerun (boss): every replay past the first is a coin flip. Deterministic,
@@ -1334,48 +1346,9 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     if (_cp[mid]) { const _d = _cp[mid]; totalPips += _d; bPip('mirror', _d); }
     if (_cm[mid]) { const _d = _cm[mid]; mult += _d; bMult('mirror', _d); }
   });
-  // Primed Tricks (Inspirato / Prime Times): a primed Trick fires its effect an extra
-  // time PER STACK on the hand it naturally contributes to, and since r296 every one
-  // of those stacks is then spent together in playHand - a prime is a charge on the
-  // next firing, not a lease on the next few hands.
-  // _rank is a PERMANENT prime (Rehearsal event, r194): it fires the Trick an
-  // extra time exactly as a prime stack does, but playHand's consumption block
-  // only clears _primed, so a rank never runs out. Reusing the prime loop is
-  // what makes a Trick upgrade generic - it needs no code in any of the 177
-  // Tricks, because it duplicates whatever pip/mult delta the Trick reported.
-  trickTray.forEach(t => {
-    const _extra = (t._primed || 0) + (t._rank || 0);
-    if (_extra <= 0) return;
-    const _pd = _cp[t.id] || 0, _md = _cm[t.id] || 0;
-    if (!_pd && !_md) return;
-    // THE EVENT IS THE TRICK'S; THE LEDGER ROW IS STILL 'primed' (r294).
-    // These paid through bPip('primed') / bMult('primed'), so the timeline event
-    // carried the literal id `primed` - and danceEntityEl looks a tray chip up by
-    // Trick id, so it resolved to NOTHING. The prime's score landed and the
-    // primed Trick never popped for it: the owner's "I didn't notice the prime
-    // making the trick animate twice". Measured on a +2 Kindred: two `mult+ 6`
-    // events on the timeline, both with id 'primed', both unresolvable.
-    //
-    // So the emit is split off and re-attributed while the ledger write stays
-    // exactly where it was - the quiet variants write `_cp`/`_cm` and bill the
-    // proc without emitting, and `_ev` is called with the Trick's own id. That
-    // keeps this BALANCE-NEUTRAL, which matters for one reason: _proc feeds the
-    // RIDER penalty (2s per proc, billed per Trick id in playHand), so billing a
-    // prime's extra fires to the Trick instead of to 'primed' would make a
-    // Rider-attached Trick cost real seconds it does not cost today.
-    // `bPipQ(id, d, procs)` defaults procs to 0, so the 1 is passed explicitly to
-    // reproduce bPip's single proc per call.
-    //
-    // `prime` is PACING ONLY - the dance plays a marked event as the quick second
-    // thump of a heartbeat instead of waiting a full beat for it (r296). The
-    // events stay exactly where calcScore emits them: the timeline replay has to
-    // reproduce calcScore's arithmetic (r220), so an event may be re-TIMED and
-    // never re-ORDERED.
-    for (let k = 0; k < _extra; k++) {
-      if (_pd) { totalPips += _pd; bPipQ('primed', _pd, 1);  const e = _ev(t.id, 'pip+',  _pd); if (e) e.prime = true; }
-      if (_md) { mult      += _md; bMultQ('primed', _md, 1); const e = _ev(t.id, 'mult+', _md); if (e) e.prime = true; }
-    }
-  });
+  // Primes and forced triggers are worked out at the END of the hand-level block, on the
+  // finished timeline (r781, calcPrimePass below): the old loop here re-added a Trick's
+  // whole-hand delta once per prime, after every multiply.
   // Extra Rep's ENCORE (r590): one more firing's worth each hand, per stack -
   // the Trick's hand delta divided by how many times it fired. Same emit and
   // ledger as a prime, so the dance pops the Trick for it.
@@ -1464,39 +1437,8 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
       _forceIds.push(pool[h % pool.length]);
     }
   });
-  if (_forceIds.length && typeof trickForcedPayout === 'function') {
-    // A forced fire may MULTIPLY a hand; it may not REPLACE it. Forcing pays the
-    // Trick's real value, and a Trick's real value spans two orders of magnitude:
-    // measured over 20 boards, the median forced fire is x2 (common/rare/epic),
-    // x3 legendary and x5.7 mythic - but **Rogue Wave reached x130**, because it
-    // pays 80 pips AND 16 mult per card and a 5-card hand collects both.
-    //
-    // So each axis gets a budget, and the budget is sqrt(cap) rather than cap:
-    // pips and mult MULTIPLY each other, so capping each at the full factor would
-    // let the two compound to cap^2 (measured: an x8 per-axis cap landed at x64).
-    // Nothing at the median comes near this - a +2 pip common on a 30-pip hand is
-    // x1.07 - so the cap only ever bites the outliers it was written for.
-    //
-    // Clamped BEFORE it is emitted, never scaled back afterwards: the dance
-    // replays this timeline and must reproduce calcScore exactly (r220), so a
-    // correction applied after the event is written would be a drift by
-    // construction.
-    const _fcX  = (BAL.hallmark && BAL.hallmark.force_cap_x) || 8;
-    const _fAx  = Math.sqrt(_fcX) - 1;
-    let _fpLeft = Math.max(0, totalPips * _fAx);
-    let _fmLeft = Math.max(0, mult * _fAx);
-    const _fT0 = _tl ? _tl.length : 0;   // r772: forced events are marked, for the scoring preview's list
-    _forceIds.forEach(fid => {
-      const fp = trickForcedPayout(fid, cards.length);
-      const _fpAdd = Math.min(fp.pips, _fpLeft); _fpLeft -= _fpAdd;
-      const _fmAdd = Math.round(Math.min(fp.mult, _fmLeft) * 10) / 10; _fmLeft -= _fmAdd;
-      if (_fpAdd) { totalPips += _fpAdd; bPip(fid, _fpAdd); }
-      if (_fmAdd) { mult      += _fmAdd; bMult(fid, _fmAdd); }
-      if (fp.pipX !== 1)  { const _pre = totalPips; totalPips = Math.round(totalPips * fp.pipX);        bPipX(fid, fp.pipX,  totalPips - _pre); }
-      if (fp.multX !== 1) { const _pre = mult;      mult      = Math.round(mult * fp.multX * 10) / 10;  bMultX(fid, fp.multX, mult - _pre); }
-    });
-    if (_tl) for (let i = _fT0; i < _tl.length; i++) _tl[i].forced = true;
-  }
+  // The forced ids are applied with the primes, on the finished timeline (calcPrimePass, r781).
+  // The r234 cap (x8 per hand) is gone (owner): quarter limits are what holds this back.
 
   // Move as One: if 3+ owned Tricks share a keyword (tag), the lowest-rarity Trick carrying a
   // qualifying keyword scores its effect a second time - reuses the priming contribution model
@@ -1607,6 +1549,34 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // MULT stays "pure" - Focus is a SEPARATE third multiplier applied at the end (see below).
   // A negative Static Bonus (r590) can leave a hand's pips below zero: the floor is
   // a timeline event, so the PIPS chip lands on 0 with the score, not under it.
+  const _basePipsL = Math.round(handBasePips(handName) * levelScale) + staticPips + _altarPips
+                   + _extraLayers.reduce((a, h) => a + Math.round(handBasePips(h) * levelScale), 0);
+  const _baseMultL = handBaseMult(handName, _handN) + sleightAmplifierMult + staticMult + _altarMult + _dexM
+                   + _extraLayers.reduce((a, h) => a + handBaseMult(h, _handN), 0);
+  // ── PRIMES AND FORCED TRIGGERS (r781, owner) ────────────────────────────────
+  // A prime is one more TRIGGER of its Trick, and all of a Trick's primes go off the
+  // first time it triggers in the hand: on the first card for a per-card Trick, after
+  // the cards for a hand Trick. A forced trigger is one more trigger too (or, for a
+  // Trick that did not go off, its listed value once), and it sets the primes off.
+  // Both are written INTO the timeline as copies of the Trick's own events and the
+  // totals are read back by walking it (timelineEval), the walk the dance does, so
+  // the score, the preview and the dance are one piece of arithmetic.
+  if (_tl && (_primeAny || _forceIds.length)) {
+    const _reps = _ledgerCells.map(x => x.reps || 1);
+    const _r0 = timelineEval(_basePipsL, _baseMultL, _tl, _reps);
+    const _ok = Math.abs(_r0.pips - totalPips) <= 0.5 && Math.abs(_r0.mult - mult) <= 0.051;
+    const _res = calcPrimePass(_tl, _primeX, _forceIds, { cards: cards.length, all: _primeAll, base: [_basePipsL, _baseMultL], reps: _reps });
+    if (_res.changed) {
+      const _r1 = _res.total;
+      const _np = _ok ? _r1.pips : totalPips + (_r1.pips - _r0.pips), _nm = _ok ? _r1.mult : mult + (_r1.mult - _r0.mult);
+      // The ledger: what the forced triggers and the primes added, billed to the Trick / to "Primed fires".
+      Object.keys(_res.bill).forEach(id => { const b = _res.bill[id];
+        if (b.p) bPipQ(id, b.p, id === 'primed' ? b.n : 1); if (b.m) bMultQ(id, b.m, id === 'primed' ? b.n : 1); if (!b.p && !b.m) _proc(id, 1); });
+      totalPips = _np; mult = _nm;
+    }
+    ledger.forcedIds = _forceIds.slice();
+    ledger.primeUsed = _res.used;
+  }
   if (totalPips < 0) { _ev('_floor', 'pip+', -totalPips, 'static'); totalPips = 0; }
   lastPreFocusMult = mult;   // kept for dance compatibility (now == pure mult)
   lastCalcMult = mult;       // pure mult for the MULT box
@@ -1682,13 +1652,150 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     // second hand's worth of base pips and mult directly, with no ledger call, so
     // they belong HERE rather than as events - they are part of what the hand is
     // worth before anything fires.
-    ledger.basePips  = Math.round(handBasePips(handName) * levelScale) + staticPips + _altarPips
-                     + _extraLayers.reduce((a, h) => a + Math.round(handBasePips(h) * levelScale), 0);
-    ledger.baseMult  = handBaseMult(handName, _handN) + sleightAmplifierMult + staticMult + _altarMult + _dexM
-                     + _extraLayers.reduce((a, h) => a + handBaseMult(h, _handN), 0);
+    ledger.basePips  = _basePipsL;
+    ledger.baseMult  = _baseMultL;
   }
 
   return Math.round(s);
+}
+
+// ── Primes and forced triggers (r781, owner) ────────────────────────────────
+// How many extra triggers a Trick's primes give this hand: its permanent primes and its
+// primes, at most the quarter's number at once (QRL; Undersight lifts it).
+function primeExtraFor(t) {
+  if (!t) return 0;
+  const n = (t._primed || 0) + (t._rank || 0);
+  return n > 0 ? Math.min(n, qrlLimit()) : 0;
+}
+// How many of its (spendable) primes a Trick that went off uses up. Permanent ones go first and are never spent.
+function primeSpendFor(t) { return Math.max(0, Math.min(t._primed || 0, primeExtraFor(t) - (t._rank || 0))); }
+function primeExtraMap() {
+  const m = {};
+  (typeof trickTray !== 'undefined' ? trickTray : []).forEach(t => {
+    if (typeof isTrickDisabledByBoss === 'function' && isTrickDisabledByBoss(t.id)) return;
+    const n = primeExtraFor(t); if (n > 0) m[t.id] = n; });
+  return m;
+}
+// Standing Order (legendary Knack): primes go off on every trigger of the hand, not only the first.
+function primeEveryTrigger() { return typeof hasKnack === 'function' && hasKnack('standing_order'); }
+function calcNeedsTimeline() {
+  if (typeof trickTray === 'undefined') return false;
+  if (typeof forcedTrickIds !== 'undefined' && forcedTrickIds.length) return true;
+  if (trickTray.some(t => (t._primed || 0) + (t._rank || 0) > 0 || t._chain > 0)) return true;
+  return hasTrick('twos_retrigger') || hasTrick('temporal_rift') || hasTrick('obligatory') || (typeof hasKnack === 'function' && hasKnack('four_by_four'));
+}
+// A replay source's key in calcScore's card loop -> the Trick that gives it (Knack and Sleight sources cannot be primed).
+const REPLAY_SRC_TRICK = { r8: 'eights_retrigger', rl: 'rowcol_retrigger', pt: 'perfect_timing', res: 'eye_of_storm', rip: 'ripple',
+  evb: 'even_better', wod: 'what_odds', twn: 'twinners', rne: 'closing_time', ech: 'echo_hand', wp: 'woodpecker', enc: 'encore',
+  '3c': 'third_charm', ins: 'insurance_policy' };
+// The ids forced this hand (from the banked ledger), so a forced Trick's other payouts count the trigger (trickFires).
+let handForcedIds = [];
+// Writes forced triggers and prime triggers into a finished timeline, in place.
+//   forced: one more trigger of the Trick's first trigger. A Trick with no event this
+//           hand pays its listed value once (js/force-trick.js): on the first card for a
+//           per-card Trick (tag `card`), after the cards for any other.
+//   prime:  `primeX[id]` more copies of the Trick's first trigger (every trigger with `all`).
+// A copy sits right after the event it repeats and is pinned to that replay (`onRep`).
+// Returns { changed, total: { pips, mult }, bill: { id: { p, m, n } }, used: { id: n } }.
+function calcPrimePass(tl, primeX, forceIds, o) {
+  const evalNow = () => timelineEval(o.base[0], o.base[1], tl, o.reps);
+  let last = evalNow(), changed = false;
+  const bill = {}, used = {};
+  const note = (id, n) => { const now = evalNow(); const b = bill[id] = bill[id] || { p: 0, m: 0, n: 0 };
+    b.p += now.pips - last.pips; b.m += Math.round((now.mult - last.mult) * 1000) / 1000; b.n += n; last = now; changed = true; };
+  const own = (e, id) => e.id === id && !e._copy;
+  // The Trick's first trigger: its events in the first card that has any, else its whole-hand events.
+  const firstGroup = (id, every) => {
+    const ci = tl.find(e => own(e, id) && e.card >= 0);
+    if (ci && !every) return tl.filter(e => own(e, id) && e.card === ci.card);
+    return tl.filter(e => own(e, id) && (every || e.card < 0));
+  };
+  const copies = (id, n, flag, every) => {
+    const g = firstGroup(id, every); if (!g.length || !(n > 0)) return 0;
+    g.forEach(e => {
+      const at = tl.indexOf(e), add = [];
+      for (let k = 1; k <= n; k++) {
+        const c = Object.assign({}, e, { _copy: true });
+        if (flag === 'prime') { c.prime = true; c.primeN = k; } else c.forced = true;
+        if (e.card >= 0 && !every) { c.onRep = e.onRep != null ? e.onRep : (e.replay ? 1 : 0); if (e.vals) { c.value = e.vals[c.onRep]; delete c.vals; } delete c.once; delete c.replay; }
+        add.push(c);
+      }
+      tl.splice(at + 1, 0, ...add);
+    });
+    return n;
+  };
+  // Forced first, so a forced trigger is there for the primes to go off on.
+  const fc = {}; forceIds.forEach(id => { const t = (typeof fusedActingFor === 'function' && fusedActingFor(id)) || id; fc[t] = (fc[t] || 0) + 1; });
+  Object.keys(fc).forEach(id => {
+    let n = (typeof qrlForceCapOn === 'function' && qrlForceCapOn()) ? Math.min(fc[id], qrlLimit()) : fc[id];
+    if (!firstGroup(id, false).length && !tl.some(e => own(e, id))) {
+      // It did not go off: its listed value, once.
+      const t = trickTray.find(x => x.id === id), perCard = !!(t && (t.tags || []).includes('card'));
+      const host = perCard ? tl.find(e => e.card >= 0) : null;
+      const fp = trickForcedPayout(id, host ? 1 : o.cards);
+      const mk = (op, value) => ({ id, source: 'trick', op, value, card: host ? host.card : -1, from: host ? host.card : -1,
+        scope: host && (op === 'pip*' || op === 'mult*') ? 'card' : 'hand', forced: true,
+        rnd: host ? 'none' : op === 'pip*' ? 'int' : op === 'mult*' ? 'dp1' : 'none', ...(host ? { onRep: 0 } : {}) });
+      const evs = [];
+      if (fp.pips) evs.push(mk('pip+', fp.pips)); if (fp.mult) evs.push(mk('mult+', fp.mult));
+      if (fp.pipX !== 1) evs.push(mk('pip*', fp.pipX)); if (fp.multX !== 1) evs.push(mk('mult*', fp.multX));
+      if (!evs.length) return;
+      if (host) { let at = tl.indexOf(host); while (at < tl.length && tl[at].card === host.card) at++;
+        // before a card x pips on the whole total, which ends its card's beat
+        while (at > 0 && tl[at - 1].card === host.card && tl[at - 1].scope === 'total') at--;
+        tl.splice(at, 0, ...evs); }
+      else tl.push(...evs);
+      n--;
+    }
+    copies(id, n, 'forced', false);
+    note(id, fc[id]);
+  });
+  Object.keys(primeX).forEach(id => {
+    const n = copies(id, primeX[id], 'prime', !!o.all);
+    if (n) { used[id] = n; note('primed', n); }
+  });
+  tl.forEach(e => { delete e._copy; });
+  return { changed, total: last, bill, used };
+}
+
+// ── Walking a timeline (r781) ───────────────────────────────────────────────
+// The dance, the scoring preview and calcScore's own prime / forced pass all walk
+// the timeline with these two, so they cannot disagree.
+// One beat's events for replay `rep` of a card: `onRep` pins an event to one
+// replay (a prime's extra triggers), `replay` is replays only, `once` the first only.
+function tlBeatEvents(events, rep) {
+  return events.filter(ev => ev.onRep != null ? ev.onRep === rep : (rep === 0 ? !ev.replay : !ev.once))
+    .map(ev => ev.vals ? Object.assign({}, ev, { value: ev.vals[rep] }) : ev);
+}
+// The pips and mult a timeline ends on, from the base it was seeded with. `reps` is replays per card index.
+function timelineEval(basePips, baseMult, tl, reps) {
+  const rnd = (v, how) => how === 'int' ? Math.round(v) : how === 'dp1' ? Math.round(v * 10) / 10 : v;
+  let rp = basePips, rm = baseMult;
+  for (let i = 0; i < tl.length;) {
+    const ev = tl[i];
+    if (ev.card >= 0) {
+      const ci = ev.card, s0 = i; while (i < tl.length && tl[i].card === ci) i++;
+      const evs = tl.slice(s0, i), n = reps[ci] || 1;
+      for (let rep = 0; rep < n; rep++) {
+        let sub = 0;
+        tlBeatEvents(evs, rep).forEach(e => {
+          if (e.op === 'pip+') sub += e.value;
+          else if (e.op === 'pip*' && e.scope === 'total') { rp = rnd((rp + sub) * e.value, e.rnd); sub = 0; }
+          else if (e.op === 'pip*') sub = rnd(sub * e.value, e.rnd);
+          else if (e.op === 'mult+') rm += e.value;
+          else rm = rnd(rm * e.value, e.rnd);
+        });
+        rp += sub;
+      }
+    } else {
+      i++;
+      if (ev.op === 'pip+') rp += ev.value;
+      else if (ev.op === 'pip*') rp = rnd(rp * ev.value, ev.rnd);
+      else if (ev.op === 'mult+') rm += ev.value;
+      else rm = rnd(rm * ev.value, ev.rnd);
+    }
+  }
+  return { pips: rp, mult: rm };
 }
 
 // ══════════════════════════════════════════════
@@ -1888,8 +1995,9 @@ function trickFires(id) {
   if (!hasTrick(id)) return 0;
   let n = 1;
   const t = trickTray.find(b => b.id === id) || (typeof fusedTrickFor === 'function' ? fusedTrickFor(id) : null);   // r651: the fused Trick's primes
-  if (t) n += (t._primed || 0) + (t._rank || 0);
+  if (t) n += primeExtraFor(t);   // r781: at most the quarter's number at once
   n += mirroredTrickIds().filter(m => m === id).length;
+  if (t && handForcedIds.length) n += handForcedIds.filter(f => f === t.id || f === id).length;   // r781: a forced trigger pays everything
   _trickFiredThisHand.add(t ? t.id : id);
   return n;
 }
@@ -1933,7 +2041,7 @@ function primeTrick(t, n = 1, opts = {}) {
   // A new source past that is refused; a source it already holds may add more.
   const _src = opts.src || 'other';
   const _held = t._primeSrc || [];
-  if (!_held.includes(_src) && _held.length >= qrlLimit()) { qrlNotice('prime'); return null; }
+  // r781 (owner): no limit on HOLDING primes; the quarter limits how many go off at once (primeExtraFor).
   if (!_held.includes(_src)) t._primeSrc = _held.concat(_src);
   t._primed = (t._primed || 0) + n;
   if (!opts.echo && typeof hasKnack === 'function' && hasKnack('muscle_memory')) {
@@ -1941,7 +2049,7 @@ function primeTrick(t, n = 1, opts = {}) {
       x !== t && !(typeof isTrickDisabledByBoss === 'function' && isTrickDisabledByBoss(x.id)));
     if (pool.length) {
       const buddy = pool[Math.floor(Math.random() * pool.length)];
-      if (primeTrick(buddy, n, { echo: true, src: 'muscle_memory' }) && typeof showMessage === 'function') showMessage('🤝 Buddy System - ' + buddy.name + ' primed', '#8a5cf0');
+      if (primeTrick(buddy, n, { echo: true, src: 'muscle_memory' }) && typeof knackNotice === 'function') knackNotice('muscle_memory', knackName('muscle_memory') + ': ' + buddy.name + ' primed');   // r781 (owner): no printed notice, the Knack flashes
     }
   }
   return t;

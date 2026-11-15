@@ -156,7 +156,7 @@
   const rnd = (v, how) => how === 'int' ? Math.round(v) : how === 'dp1' ? Math.round(v * 10) / 10 : v;
   const what = (ev, v) => ev.op === 'pip+' ? '+' + fmtN(v) + ' pips' : ev.op === 'mult+' ? '+' + fmtM(v) + ' mult'
     : ev.op === 'pip*' ? '×' + (Math.round(v * 100) / 100) + ' pips' : '×' + (Math.round(v * 100) / 100) + ' mult';
-  const tagOf = ev => ev.forced ? 'forced' : ev.prime ? 'prime' : ev.id === 'mirror' ? 'mirror' : ev.id === 'move_as_one' ? 'again' : '';
+  const tagOf = ev => ev.prime ? 'prime' : ev.forced ? 'forced' : ev.id === 'mirror' ? 'mirror' : ev.id === 'move_as_one' ? 'again' : '';
 
   // The dance's own walk (js/score-dance.js), with a line written per event.
   function trace(L) {
@@ -172,8 +172,8 @@
         for (let rep = 0; rep < reps; rep++) {
           rows.push({ k: 'card', text: `${cardName(cd.card || cd)} ${rep ? 'scores again (replay ' + rep + ' of ' + (reps - 1) + ')' : 'scores'}` });
           let sub = 0;
-          (rep === 0 ? evs.filter(e => !e.replay) : evs.filter(e => !e.once)).forEach(e0 => {
-            const v = e0.vals ? e0.vals[rep] : e0.value;
+          tlBeatEvents(evs, rep).forEach(e0 => {
+            const v = e0.value;
             let extra = '';
             if (e0.op === 'pip+') sub += v;
             else if (e0.op === 'pip*' && e0.scope === 'total') { rp = rnd((rp + sub) * v, e0.rnd); sub = 0; extra = 'the whole pip total'; }
@@ -198,33 +198,31 @@
   }
 
   const snap = () => ({
-    tricks: trickTray.map(t => ({ id: t.id, name: t.name, primed: t._primed || 0, rank: t._rank || 0 })),
+    tricks: trickTray.map(t => ({ id: t.id, name: t.name, primed: t._primed || 0, rank: t._rank || 0, extra: primeExtraFor(t), spend: primeSpendFor(t) })),
     armed: (typeof forcedTrickIds !== 'undefined' ? forcedTrickIds.slice() : []),
     score, focus: (typeof focusMultiplier === 'function' ? focusMultiplier() : 1),
   });
-  // What the hand did to primes and forced fires, in words.
+  // What the hand did to primes and forced triggers, in words.
   function aftermath(before, after, result, tr) {
-    const out = [], tl = (result._bankLedger.timeline || []);
+    const out = [], L = result._bankLedger, tl = (L.timeline || []);
     const paid = new Set((result._bankContrib || []).map(e => e.id));
+    const forcedIds = L.forcedIds || [];
+    const pl = (n, w) => n + ' ' + w + (n === 1 ? '' : 's');
     before.tricks.forEach(b => {
       const a = after.tricks.find(x => x.id === b.id); if (!a) return;
       const primeEvs = tl.filter(e => e.prime && e.id === b.id).length;
-      const scored = tl.some(e => e.id === b.id && !e.prime && !e.forced);
-      const forced = tl.some(e => e.id === b.id && e.forced);
-      const fired = paid.has(b.id) || (typeof trickFiredThisHand === 'function' && trickFiredThisHand(b.id));
-      const stacks = b.primed + b.rank;
-      if (b.primed > 0 && fired) {
-        if (primeEvs) out.push({ c: 'spend', t: `${b.name} used its ${b.primed} prime${b.primed > 1 ? 's' : ''}: its payout this hand was paid ${stacks} more time${stacks > 1 ? 's' : ''}${b.rank ? ' (' + b.rank + ' of them from its permanent prime)' : ''}.` });
-        else if (forced && !scored) out.push({ c: 'warn', t: `${b.name} lost its ${b.primed} prime${b.primed > 1 ? 's' : ''} and they paid nothing: it only went off because it was forced, and a prime repeats a natural payout only.` });
-        else out.push({ c: 'spend', t: `${b.name} used its ${b.primed} prime${b.primed > 1 ? 's' : ''} on a payout that is not pips or mult (Focus, seconds, credits or stock).` });
-      } else if (b.primed > 0) out.push({ c: 'keep', t: `${b.name} did not go off, so it keeps its ${b.primed} prime${b.primed > 1 ? 's' : ''}.` });
-      else if (b.rank > 0 && primeEvs) out.push({ c: 'spend', t: `${b.name} fired ${b.rank} more time${b.rank > 1 ? 's' : ''} from its permanent prime (never used up).` });
-      const gained = a.primed - (b.primed > 0 && fired ? 0 : b.primed);
-      if (gained > 0) out.push({ c: 'gain', t: `${b.name} was primed${gained > 1 ? ' ' + gained + ' times' : ''} by this hand. The prime waits for the next hand ${b.name} goes off in.` });
+      const fired = paid.has(b.id) || forcedIds.includes(b.id) || (typeof trickFiredThisHand === 'function' && trickFiredThisHand(b.id));
+      if (b.extra > 0 && fired) {
+        const how = primeEvs ? '' : ' (as replays, or a payout that is not pips or mult)';
+        out.push({ c: 'spend', t: `${b.name} triggered ${pl(b.extra, 'more time')} from its primes${how}.` + (b.rank ? ` ${pl(Math.min(b.rank, b.extra), 'permanent prime')} among them, never used up.` : '') });
+        if (b.primed > b.spend) out.push({ c: 'keep', t: `${b.name} keeps ${pl(b.primed - b.spend, 'prime')}: only ${b.extra} can go off at once this quarter.` });
+      } else if (b.primed > 0) out.push({ c: 'keep', t: `${b.name} did not trigger, so it keeps its ${pl(b.primed, 'prime')}.` });
+      const gained = a.primed - (b.primed - (fired ? b.spend : 0));
+      if (gained > 0) out.push({ c: 'gain', t: `${b.name} was primed${gained > 1 ? ' ' + gained + ' times' : ''} by this hand. The prime waits for the next time ${b.name} triggers.` });
     });
-    if (before.armed.length) {
-      const names = before.armed.map(id => nameOf(id) || id).join(', ');
-      out.push({ c: 'spend', t: `Armed forced fire${before.armed.length > 1 ? 's' : ''} used: ${names}.` });
+    if (forcedIds.length) {
+      const n = {}; forcedIds.forEach(id => { const k = nameOf(id) || id; n[k] = (n[k] || 0) + 1; });
+      out.push({ c: 'spend', t: 'Forced this hand: ' + Object.keys(n).map(k => n[k] > 1 ? `${k} ×${n[k]}` : k).join(', ') + '.' });
     }
     return out;
   }

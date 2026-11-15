@@ -25,7 +25,7 @@ function qrlSetEnabled(on) {
   try { on ? localStorage.removeItem('lethe.qrl.v1') : localStorage.setItem('lethe.qrl.v1', '0'); } catch (e) {}
 }
 // The dev checkbox reads the live value whenever the panel is built.
-if (typeof document !== 'undefined') document.addEventListener('DOMContentLoaded', () => { const cb = document.getElementById('dev-qrl'); if (cb) cb.checked = qrlEnabled; });
+if (typeof document !== 'undefined') document.addEventListener('DOMContentLoaded', () => { const cb = document.getElementById('dev-qrl'); if (cb) cb.checked = qrlEnabled; const cf = document.getElementById('dev-qrl-force'); if (cf) cf.checked = qrlForceCap; });
 function qrlOn() {
   if (!qrlEnabled || !ACTIVE_MODE) return false;
   return ACTIVE_MODE.actStructure === true || !!ACTIVE_MODE.flow;
@@ -39,7 +39,13 @@ function qrlEndlessOff() {
   return (typeof endlessRun !== 'undefined' && !!endlessRun) || (typeof survivalEndless !== 'undefined' && !!survivalEndless);
 }
 // The one number. Infinity when QRL does not apply, or the run is in Endless.
-function qrlLimit() { return (qrlOn() && !qrlEndlessOff()) ? qrlQuarter() : Infinity; }
+function qrlLimit() { return (qrlOn() && !qrlEndlessOff() && !qrlLifted()) ? qrlQuarter() : Infinity; }
+// Undersight (Trick, r781): removes every quarter limit while it is held.
+function qrlLifted() { return typeof hasTrick === 'function' && typeof trickTray !== 'undefined' && hasTrick('undersight'); }
+// Dev switch (r781, owner undecided): forced triggers of one Trick in one hand are limited to the quarter's number too.
+let qrlForceCap = (() => { try { return localStorage.getItem('lethe.qrlForce.v1') === '1'; } catch (e) { return false; } })();
+function qrlForceCapOn() { return qrlForceCap; }
+function qrlSetForceCap(on) { qrlForceCap = !!on; try { on ? localStorage.setItem('lethe.qrlForce.v1', '1') : localStorage.removeItem('lethe.qrlForce.v1'); } catch (e) {} }
 
 // A card's buff KINDS. Scaling pips/mult belong to their flat kind (what they
 // grow into). Only gains count: a minus-pips penalty always applies.
@@ -84,7 +90,7 @@ const _qrlS = n => n === 1 ? '' : 's';
 const QRL_TEXT = {
   buff:      () => { const L = qrlLimit(); return `Only ${L} buff${_qrlS(L)} per card permitted in Q${qrlQuarter()} due to QRL`; },
   replay:    () => { const L = qrlLimit(); return `Replays are limited to ${L} source${_qrlS(L)} in Q${qrlQuarter()} due to QRL`; },
-  prime:     () => { const L = qrlLimit(); return `Tricks are limited to ${L} prime source${_qrlS(L)} in Q${qrlQuarter()} due to QRL`; },
+  prime:     () => { const L = qrlLimit(); return `Only ${L} prime${_qrlS(L)} per Trick go${L === 1 ? 'es' : ''} off at once in Q${qrlQuarter()} due to QRL`; },
   full:      () => 'Quarter resource limit (QRL) reached',
   fullWhy:   () => { const L = qrlLimit(); return `Q${qrlQuarter()} allows ${L} buff${_qrlS(L)} per card. Each quarter allows one more.`; },
   clearance: () => 'Clearance granted for early resource expansion',

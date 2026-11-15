@@ -432,7 +432,7 @@ const PRIZE_TIER_W   = [30, 55, 12, 3];
 const IMPROVE_TIER_W = [40, 30, 20, 10];
 
 const DESC_TEMPLATES = {
-  understudy: 'Every {interval_seconds} seconds one of your tricks is primed: it fires an extra time on your next hand.',
+  understudy: 'Every {interval_seconds} seconds one of your Tricks is primed.',
   hallmark:   'Once a round a card on the board is marked. Score it and it takes a random buff: +{mult} mult, +{pips} pips, an extra replay, rewind the clock {seconds}s, pause the clock for {seconds}s, or a trick primed or forced.',
   turnover:   'Any card you leave alone for {idle_seconds} seconds becomes Fodder until it leaves the board: swapping or discarding it costs no time and no stock.',
   challenge_dial: 'Challenge cards show up {pct}% more often. Double-tap this to make them {pct}% rarer instead, and back.',

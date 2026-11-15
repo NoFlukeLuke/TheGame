@@ -78,6 +78,9 @@ const SFX_MIX = {
   // ── score ── the dance
   particle_pip:  { bus: 'score', gap: 22 },
   particle_mult: { bus: 'score', gap: 22 },
+  score_card:    { bus: 'score', gap: 12 },
+  score_trick:   { bus: 'score', gap: 12 },
+  entity_ping:   { bus: 'event', gap: 120 },
   focus_beat:    { bus: 'score', gain: 0.90 },
   hand_scored:   { bus: 'score' },
   bonus_hand:    { bus: 'score', gain: 0.85 },

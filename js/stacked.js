@@ -35,5 +35,5 @@ function stackedTick(elapsed) {
   if (typeof renderTrickTray === 'function') renderTrickTray();
   const k = acquiredKnacks.find(x => x && x.id === 'stacked');
   const n = {}; primed.forEach(x => { n[x] = (n[x] || 0) + 1; });
-  showMessage(`${k ? k.name : 'Stacked'}: ${Object.keys(n).map(x => n[x] > 1 ? `${x} ×${n[x]}` : x).join(', ')} primed`, '#b48cff');
+  knackNotice('stacked', `${k ? k.name : 'Stacked'}: ${Object.keys(n).map(x => n[x] > 1 ? `${x} ×${n[x]}` : x).join(', ')} primed`);
 }

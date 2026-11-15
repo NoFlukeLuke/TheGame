@@ -282,7 +282,7 @@ async function _pmfSlide(handScore, pips, mult, speed, sig, p, o) {
     merged.querySelector('.pmf-merged-val').textContent = _pmfFmt(st.val);
     if (last) { merged.classList.remove('pmf-step1'); merged.classList.add('pmf-gold'); }
     _pmfAnim(merged.querySelector('.pmf-merged-val'), [{ transform: 'scale(.8)' }, { transform: 'scale(1.18)', offset: .45 }, { transform: 'scale(1)' }], { duration: 320 / speed, easing: 'ease-out' });
-    if (st.k > 1 && typeof sfxFocusAgain === 'function') sfxFocusAgain(st.k - 1); else if (typeof sfxFocusBeat === 'function') sfxFocusBeat();
+    if (typeof sfxFocusAgain === 'function') sfxFocusAgain(st.k); else if (typeof sfxFocusBeat === 'function') sfxFocusBeat();   // r781 (owner): Focus landing on the total has its own sound, not the combine's
     await _pmfWait(M * .3 + S); if (bail()) return false;
     _pmfAnim(bl, [{ opacity: 1 }, { opacity: 0 }], { duration: 160 / speed, fill: 'forwards' });
   }
@@ -328,7 +328,7 @@ async function _pmfHold(handScore, pips, mult, speed, sig, p, o) {
     await _pmfWait(H * .5); if (bail()) return false;
     mv.textContent = _pmfFmt(st.val); pop(multB);
     if (last) mv.classList.add('pmf-hold-score');
-    if (st.k > 1 && typeof sfxFocusAgain === 'function') sfxFocusAgain(st.k - 1); else if (typeof sfxFocusBeat === 'function') sfxFocusBeat();
+    if (typeof sfxFocusAgain === 'function') sfxFocusAgain(st.k); else if (typeof sfxFocusBeat === 'function') sfxFocusBeat();   // r781 (owner): Focus landing on the total has its own sound, not the combine's
     await _pmfWait(H * .5 + S); if (bail()) return false;
   }
   _pmfFlyFrom = multB; _pmfFlyText = _pmfFmt(handScore);
@@ -369,7 +369,7 @@ function _pmfPopVal(el, big) {
     { duration: big ? 380 : 300, easing: 'cubic-bezier(.2,.8,.2,1)' });
 }
 function _pmfSound(k) {
-  if (k > 1 && typeof sfxFocusAgain === 'function') sfxFocusAgain(k - 1);
+  if (typeof sfxFocusAgain === 'function') sfxFocusAgain(k);   // r781 (owner): every Focus application, the first included
   else if (typeof sfxFocusBeat === 'function') sfxFocusBeat();
 }
 
