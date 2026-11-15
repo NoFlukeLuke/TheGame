@@ -38,8 +38,6 @@ function computeRoundResources() {
   // Swap Shop / Harvest are already in baseSwaps / baseDiscards above. They were
   // also added here until r525, so each paid twice what it said (+4, not +2).
   if (hasKnack('time_bank'))      sec += BAL.time_bank.seconds;
-  // r767 (owner): Free Range (Jeitinho) SETS the round's swap stock (was base swaps - 1).
-  if (hasKnack('free_range_t'))   s = BAL.free_range_t.swaps;
 
   // NOTE: Tempo is NOT special-cased here. It sets limits.swaps/discards.current to 2 once
   // (applyTempoLimitOnce), so the normal computation above already reflects it via the

@@ -4830,7 +4830,7 @@ shows under UNDISCOVERED. A notice or preview label never types an entity's name
 Beside the names: Perk Package +6 mult, Eagle Eye +15, Night Owl +16, Five Stack +15 / +20;
 Straight Shot counts buffs from v1 and improves once, to v6; **The Vulture is a Knack** (same id,
 the Trick retired); **Clockmaker is retired** (`knackOfferable` refuses `retired`, r753); Free
-Range (Jeitinho) sets the round's swap stock to `BAL.free_range_t.swaps` (2); Traveler
+Range (Jeitinho) sets the swap limit (r779: once, when taken); Traveler
 (Well-Rounded) also grants a discard. The golden baseline was rewritten in the next commit: the
 Vulture leaving the Trick pool moves the harness's random line placement, so line Tricks' cases
 change with no scoring change (checked by putting the Vulture back: all match).
@@ -5049,3 +5049,12 @@ Measured in headless Chromium at 1440x820 (click) and 420x900 (tap) from the rea
 PLAY opened the protocol screen with six options, Past Capacity read "Locked." and START refused; at
 100 Flush of 3s it opened and a run dealt 73 cards; Curio added K♥ with x1.5 pips (desktop) and J♦
 with x1.5 mult (phone), once a level, audit 74/74; no page errors.
+
+## r779 - Jeitinho sets the swap limit once, when taken (owner)
+r767 made Jeitinho (Knack `free_range_t`) set the swap stock to 2 at every round's start. Owner: it
+sets the LIMIT to `BAL.free_range_t.swaps` (2) when taken, and anything later raises or lowers it as
+usual. `applyFreeRangeLimitOnce` (js/limits.js) is Tempo's pattern, run from `updateKnackList`;
+its flag `freeRangeInitApplied` is reset in startGame and is in SAVE_VARS, and so is
+`tempoInitApplied` now (it was not, so a resumed run with Tempo set its limits back to 2 again).
+Measured at 1440x820 and 420x900: limit 3 -> 2 on taking it (stock 3 -> 2), a raise after it held
+at 3 through two more `updateKnackList` calls, and the next round dealt 3 swaps.

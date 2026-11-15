@@ -298,6 +298,7 @@ function updateRunProgressUI() {
 let _knackCountShown = 0;
 function updateKnackList() {
   if (typeof detailSync === 'function') detailSync();   // r749: Attention to Detail rebuilds BAL when gained or lost
+  applyFreeRangeLimitOnce();   // r779: Jeitinho sets the swap limit to 2 the first time it's owned
   applyTempoLimitOnce();   // Tempo sets the swap/discard limits to 2 the first time it's owned
   applyShortSuitOnce();    // Short Suit turns on Flush of 3 / Flush of 4 where they aren't already active
   if (typeof recomputeFocusDecayInterval === 'function') recomputeFocusDecayInterval();   // r708: Meditation (a Knack) works from the moment it is held

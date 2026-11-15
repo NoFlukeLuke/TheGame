@@ -303,6 +303,17 @@ function applyTempoLimitOnce() {
   if (typeof discards === 'number') discards = Math.min(discards, n);
 }
 
+// r779 (owner): Jeitinho (Free Range, `free_range_t`) sets the swap LIMIT to BAL.free_range_t.swaps
+// once, when taken, exactly as Tempo does; anything later raises or lowers it as usual.
+// `freeRangeInitApplied` is in SAVE_VARS, so a resumed run does not set it again.
+function applyFreeRangeLimitOnce() {
+  if (typeof hasKnack !== 'function' || !hasKnack('free_range_t') || freeRangeInitApplied) return;
+  freeRangeInitApplied = true;
+  const n = BAL.free_range_t.swaps;
+  limits.swaps.current = n;
+  if (typeof swaps === 'number') swaps = Math.min(swaps, n);
+}
+
 // Short Suit (knack): unlocks Flush of 3 and Flush of 4 in the modes that don't
 // start with them. startGame only seeds flush3/flush4 when ACTIVE_MODE.suitCount
 // >= 6 (Six Suits, Spectrum), because on a 4-suit deck short flushes are common

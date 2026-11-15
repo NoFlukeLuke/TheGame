@@ -1,4 +1,4 @@
-const BUILD = "2026-11-14 · r778 · protocol screen back; Past Capacity locked; the Curio knack";
+const BUILD = "2026-11-15 · r779 · Jeitinho sets the swap limit once, when taken";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

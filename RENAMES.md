@@ -476,8 +476,8 @@ Changes the sheet carried beside the names (its What it does / Note columns):
 - Straight Shot counts buffed pips from v1; its one improvement goes straight to the 6-line shape (v6).
 - The Vulture is a Knack (same id; the Trick row is retired; its unlock row is gone).
 - Clockmaker is removed (`retired` on the Knack row; `knackOfferable` refuses retired Knacks).
-- Free Range (Jeitinho) SETS the round's swap stock to 2 (`BAL.free_range_t.swaps`; it was base
-  swaps - 1). Its improvement adds 1.
+- Free Range (Jeitinho) sets the swap LIMIT to 2 when taken (`BAL.free_range_t.swaps`; it was base
+  swaps - 1); later raises and cuts apply as usual (r779; r767 had set the stock every round).
 - Traveler (Well-Rounded) grants +1 swap and +1 discard.
 - Wording: Every Day Essentials, Middle Man ("during play"), The Vulture, Card Counter.
 - Notices and preview labels that typed a name read it now (`trickNameOf(id)`, js/improve.js;
