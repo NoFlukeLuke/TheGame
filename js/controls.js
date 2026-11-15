@@ -194,15 +194,13 @@ setInterval(ctlIdleTick, 1000);
 // events within 400ms of the last one are swallowed, not repeated.
 let _wheelAt = 0;
 document.getElementById('grid')?.addEventListener('wheel', e => {
-  if (!ctlOn('ctlWheelSwap') || selected.length !== 2 || !ctlLiveBoard()) return;
+  if (!ctlOn('ctlWheelSwap') || !swapCountOk(selected.length) || !ctlLiveBoard()) return;
   if (animating || falling || roundEnded || isPaused) return;
   e.preventDefault();
   const now = Date.now(), quiet = now - _wheelAt > 400;
   _wheelAt = now;
   if (!quiet) return;
-  const [[r1, c1], [r2, c2]] = selected;
-  cancelAutoSubmit();
-  doSwap(r1, c1, r2, c2);
+  swapSelected();   // r780: 2 cards, or Jeitinho's 3 / 4
 }, { passive: false });
 
 function keyBindsReset() {

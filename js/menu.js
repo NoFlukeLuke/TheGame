@@ -1,4 +1,4 @@
-const BUILD = "2026-11-15 · r779 · Jeitinho sets the swap limit once, when taken";
+const BUILD = "2026-11-15 · r780 · Jeitinho: two extra swaps, then 3- and 4-card swaps";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

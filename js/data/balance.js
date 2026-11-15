@@ -327,7 +327,7 @@ const BAL = {
   replay_rewind: { chance: 0.25, seconds: 2 },
   deja_vu: { seconds: 15 },
   clockmaker: { goal_fraction: 0.30, seconds: 15 },
-  free_range_t: { swaps: 2 },   // r779 (owner): sets the swap limit once, when taken
+  free_range_t: { swaps: 2, extra: 0, four: 0, three: 0 },   // r779 / r780 (owner): the limit set when taken; extra from improvements; 3- / 4-card swaps (IMPROVE_PLAN)
   time_bank: { seconds: 30 },
   inheritance: { coins: 5 },
   lucky_seven: { interval_hands: 7, swaps: 1 },
@@ -564,7 +564,7 @@ const DESC_TEMPLATES = {
   ninesong: "If the hand's pip total is divisible by 3, one of the following happens: rewind the clock {seconds}s, +{mult} mult, +{focus} Focus, or all three",
   deja_vu: 'Playing the same ranks in two hands in a row rewinds the clock {seconds}s.',
   clockmaker: 'Any time a single hand scores at least 30% of the round goal, rewind the clock {seconds}s.',
-  free_range_t: 'Can swap any two non-adjacent cards. When taken, sets your swap limit to {swaps}.',
+  free_range_t: 'Can swap any two non-adjacent cards. When taken, sets your swap limit to {swaps}[[extra: (+{extra} from improvements)]].[[four: SWAP takes 4 selected cards: the 1st and 3rd trade places, and the 2nd and 4th.]][[three: SWAP takes 3 selected cards: each moves to the cell of the card picked before it, the 1st to the last one\'s.]]',
   mockingbird: 'Every 4 hands you play without a same-type streak grants +1 swap and +1 discard',
   piggy_bank: 'Double-tap: gain {coins} credits, once per round. Becomes inert on use: it can no longer be swapped or discarded. (5 charges)',
   steady_hand: 'Swaps no longer count against the swap limit, but cost {swap_mult}x the time.',

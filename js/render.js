@@ -375,7 +375,7 @@ function render() {
   // by design: a swap the board refuses still says so out loud.
   { const _si = document.getElementById('swap-indicator');
     if (_si) _si.classList.toggle('swap-armed',
-      !_takeover && selected.length === 2 && swaps > 0 && !roundEnded && !(animating && !falling)); }
+      !_takeover && swapCountOk(selected.length) && swaps > 0 && !roundEnded && !(animating && !falling)); }
 
   // Marked-row / marked-column lines. Drawn last, for the same reason
   // reapplyClockFreeze is called here: it reads the finished DOM. Its "is the

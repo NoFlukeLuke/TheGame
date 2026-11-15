@@ -86,7 +86,6 @@ const IMPROVE_STEP = {
   time_bank:      { seconds: 15 },
   carry_time:     { max_seconds: 15 },
   safety_net:     { seconds: 15 },
-  free_range_t:   { swaps: 1 },
   long_pause:     { multiplier: 0.2 },  // 1.5x -> 1.7x, not 1.5x -> 2.0x
   coin_toss:      { chance: 0.15 },
   jury_rig:       { chance: 0.15 },
@@ -200,6 +199,8 @@ const IMPROVE_PLAN = {
   // +2 charges a tier; the 5th gives 2 swaps a use
   // +10% a tier; the 5th adds a 30% chance of a second charge
   // r677 (owner): v2 x buffs, v3 6 cards, v4 up to 3 buffed allowed, v5 second rank / suit, v6 8 cards and up to 6
+  // r780 (owner): Jeitinho. v2 / v3 each give a swap (the hook); v4 4-card swaps, v5 3-card, v6 both.
+  free_range_t:     t => ({ swaps: 2, extra: Math.min(t, 2), four: (t === 3 || t >= 5) ? 1 : 0, three: t >= 4 ? 1 : 0 }),
   touch_up:         t => ({ cards: t >= 5 ? 8 : t >= 2 ? 6 : 3, max: t >= 5 ? 6 : t >= 3 ? 3 : 0, kinds: t >= 4 ? 3 : t >= 1 ? 2 : 1 }),
   // r685 (owner): Trophy Case v2 epic, v3 arrive at v2, v4 at v3, v5 legendary, v6 at v5
   trophy_case:      t => ({ epic: t >= 1 ? 1 : 0, legend: t >= 4 ? 1 : 0, starts: [1, 1, 2, 3, 3, 5][t] }),
@@ -278,6 +279,8 @@ const IMPROVE_PLAN = {
 // the owned Trick, cards into the deck. Run by improveEntity after the tiers are
 // applied, with the tier just reached. The owned Trick object (if any) is passed.
 const IMPROVE_HOOKS = {
+  // r780: Jeitinho's 1st and 2nd improvements each raise the swap limit by 1 and give the swap now.
+  free_range_t: tier => { if (tier <= 2 && typeof hasKnack === 'function' && hasKnack('free_range_t') && incrementLimit('swaps')) swaps = Math.min(99, swaps + 1); },
   shape_line: tier => (tier >= 1 && tier < 5) ? 5 : undefined,   // r767: one improvement, straight to v6 (buffs count from the start)
   undue_influence: tier => (tier >= 1 && tier < 5) ? 5 : undefined,
   nines_mult: () => { if (typeof cloudNineAddNines === 'function') cloudNineAddNines(3); },

@@ -301,6 +301,111 @@ function doSwap(r1, c1, r2, c2) {
   if (typeof stkScheduleCheck === 'function') stkScheduleCheck();   // r730: Stacked ends the round when no hand is left
 }
 
+// ── r780 (owner): Jeitinho's 3- and 4-card swaps ──
+// Its 3rd improvement (v4) lets SWAP take 4 selected cards: the 1st and 3rd trade
+// places, the 2nd and 4th (selection order; any even count pairs card i with card
+// i + n/2). Its 4th (v5) takes 3 instead: each card moves into the cell of the card
+// picked before it and the 1st goes to the last one's cell (any odd count). Its 5th
+// (v6) takes both. The selection is the ordinary one, so never past the Hand Size.
+// One swap: one stock, one swap's seconds, one swap for every counter.
+function swapCountOk(n) {
+  if (n === 2) return true;
+  if (!(n >= 3) || typeof hasKnack !== 'function' || !hasKnack('free_range_t')) return false;
+  const b = BAL.free_range_t || {};
+  return n % 2 ? !!b.three && n === 3 : !!b.four && n === 4;
+}
+function swapCountsSay() {
+  const ok = [2, 3, 4].filter(swapCountOk);
+  return ok.length === 1 ? 'exactly 2' : ok.slice(0, -1).join(', ') + ' or ' + ok[ok.length - 1];
+}
+// The SWAP key, the S key and the wheel all come here with the selection.
+function swapSelected() {
+  if (selected.length === 2) { const [[r1, c1], [r2, c2]] = selected; cancelAutoSubmit(); doSwap(r1, c1, r2, c2); return true; }
+  if (swapCountOk(selected.length)) { const cells = selected.map(([r, c]) => [r, c]); cancelAutoSubmit(); doSwapMulti(cells); return true; }
+  if (selected.length > 0) refuse(`Select ${swapCountsSay()} cards to swap them`, { color: 'var(--cream-dim)' });
+  return false;
+}
+function doSwapMulti(cells) {
+  if (typeof bossJumpRunning === 'function' && bossJumpRunning()) return;
+  if (typeof cascadeRunning === 'function' && cascadeRunning()) return;
+  if (typeof bossInteractBlocked === 'function' && bossInteractBlocked('swap')) return;
+  const n = cells.length;
+  const cardOf = ([r, c]) => gridData[r]?.[c];
+  const _fodder = cells.some(cl => typeof cardIsFodder === 'function' && cardIsFodder(cardOf(cl)))
+               || (typeof freeHandActive === 'function' && freeHandActive());
+  const _free = sleightFreeSwapPending;
+  const _recFree = !_free && !_fodder && typeof recyclerFreeLeft !== 'undefined' && recyclerFreeLeft > 0;
+  if (swaps <= 0 && !hasKnack('steady_hand') && !_free && !_fodder && !_recFree) {
+    refuse('No swaps left'); swapPending = null; render(); return;
+  }
+  // Where each card is drawn now (design px), keyed by card id, for the slide.
+  const _pos = ([r, c]) => [cellLeft(c) + cardColOffset(c), cellTop(r) + cardRowOffset(r)];
+  const was = new Map();
+  cells.forEach(cl => { const cd = cardOf(cl); if (cd && cd._id) was.set(cd._id, _pos(cl)); });
+  // The swap as pairwise trades (Stacked moves a cell's stack with each one), and each
+  // card's partner (the card it traded with) for the on_swap Sleights.
+  const trades = [], partner = new Map();
+  if (n % 2 === 0) {
+    for (let i = 0; i < n / 2; i++) trades.push([cells[i], cells[i + n / 2]]);
+    trades.forEach(([a, b]) => { partner.set(cardOf(a), cardOf(b)); partner.set(cardOf(b), cardOf(a)); });
+  } else {
+    for (let i = 0; i < n - 1; i++) trades.push([cells[i], cells[i + 1]]);   // card k ends in cell k-1, card 1 in the last cell
+    cells.forEach((cl, i) => partner.set(cardOf(cl), cardOf(cells[(i + n - 1) % n])));
+  }
+  trades.forEach(([[r1, c1], [r2, c2]]) => {
+    const tmp = gridData[r1][c1]; gridData[r1][c1] = gridData[r2][c2]; gridData[r2][c2] = tmp;
+    if (typeof stkOnSwap === 'function') stkOnSwap(r1, c1, r2, c2);
+  });
+  if (typeof horsemenOnSwap === 'function') horsemenOnSwap(cells);
+  if (_recFree) { recyclerFreeLeft--; noteMessage(`♻️ Recycler: free swap (${recyclerFreeLeft} left)`); }
+  else if (!hasKnack('steady_hand') && !_free && !_fodder) swaps--;
+  swapsUsedRound++;
+  if (typeof ulBump === 'function') ulBump('swaps');
+  swapsUsedGame++;
+  if (typeof rsNote === 'function') rsNote('swap');
+  if (sleightFreeSwapPending) sleightFreeSwapPending = false;
+  let t = swapSecondsBase();
+  if (_free || _fodder || _recFree || hasKnack('free_swaps')) t = 0;
+  else if (hasKnack('steady_hand')) t = steadyHandSwapSecs();
+  t = Math.round(t * bossInteractMult() * interactTimeCostMult());
+  if (t > 0) { roundSeconds = Math.max(1, roundSeconds - t); showTimeCost(`-${t}s`); }
+  updateClockUI();
+  if (typeof bossOnInteract === 'function') bossOnInteract('swap');
+  lastSwapTime = Date.now();
+  lastSwapRoundSeconds = roundSeconds;
+  resetFocusDecayTimer();
+  cullPay();
+  selected = [];
+  swapPending = null;
+  if (typeof cardStatesTouchCells === 'function') cardStatesTouchCells(cells);
+  // on_swap Sleights fire once each, beside the card they traded with.
+  const at = cd => { for (const [r, c] of cells) if (gridData[r]?.[c] === cd) return [r, c]; return null; };
+  const _fired = new Set();
+  cells.forEach(cl => {
+    const cd = cardOf(cl); if (!cd || !cd._isSleight || _fired.has(cd)) return;
+    const p = at(partner.get(cd)); if (!p) return;
+    _fired.add(cd); if (partner.get(cd)?._isSleight) _fired.add(partner.get(cd));
+    fireSleightsOnSwap(cl[0], cl[1], p[0], p[1]);
+  });
+  feedWhetstones(cells);
+  juryRigRoll(cells);
+  render();
+  // Every card slides from where it was drawn to its new cell.
+  const g = document.getElementById('grid');
+  const ms = cardSwapMs();
+  if (g && !document.body.classList.contains('reduced-motion')) cells.forEach(cl => {
+    const cd = cardOf(cl); const from = cd && cd._id ? was.get(cd._id) : null; if (!from) return;
+    const to = _pos(cl), dx = from[0] - to[0], dy = from[1] - to[1];
+    const el = g.querySelector(`[data-card-id="${cd._id}"]`);
+    if (el && (dx || dy)) {
+      const a = el.animate([{ translate: `${dx}px ${dy}px` }, { translate: '0px 0px' }], { duration: ms, easing: 'cubic-bezier(.3,.7,.25,1)' });
+      a.onfinish = () => a.cancel();
+    }
+  });
+  if (match3Active()) setTimeout(() => match3Resolve(), ms + 20);
+  if (typeof stkScheduleCheck === 'function') stkScheduleCheck();
+}
+
 // Remove a card from selection, then keep only the largest connected component.
 // Ties broken by keeping the component containing the lowest selection index.
 function deselect(r, c) {
@@ -772,13 +877,7 @@ document.getElementById('swap-indicator')?.addEventListener('click', () => {
     || (typeof squaresActive === 'function' && squaresActive())
     || (typeof mapActive === 'function' && mapActive());
   if (takeover || animating || roundEnded || falling) return;
-  if (selected.length !== 2) {
-    if (selected.length > 0) refuse('Select exactly 2 cards to swap them', { color: 'var(--cream-dim)' });
-    return;
-  }
-  const [[r1, c1], [r2, c2]] = selected;
-  cancelAutoSubmit();
-  doSwap(r1, c1, r2, c2);
+  swapSelected();   // r780: 2 cards, or Jeitinho's 3 / 4
 });
 
 // ══════════════════════════════════════════════

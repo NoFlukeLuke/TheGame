@@ -5058,3 +5058,17 @@ its flag `freeRangeInitApplied` is reset in startGame and is in SAVE_VARS, and s
 `tempoInitApplied` now (it was not, so a resumed run with Tempo set its limits back to 2 again).
 Measured at 1440x820 and 420x900: limit 3 -> 2 on taking it (stock 3 -> 2), a raise after it held
 at 3 through two more `updateKnackList` calls, and the next round dealt 3 swaps.
+
+## r780 - Jeitinho's ladder: two extra swaps, then 3- and 4-card swaps (owner)
+`IMPROVE_PLAN.free_range_t` (js/improve.js) + `IMPROVE_HOOKS.free_range_t`: v2 and v3 each raise the
+swap limit by 1 (`incrementLimit`, so Knock-On applies) and give the swap now; v4 lets SWAP take 4
+selected cards (1st and 3rd trade places, 2nd and 4th: card i with card i + n/2), v5 takes 3 instead
+(each card moves to the cell of the card picked before it, the 1st to the last one's), v6 both. The
+selection is the ordinary one, so a hand size under the count stops it. **`swapSelected()`**
+(js/input.js) is the one entry for the SWAP key, the S key and the wheel; `swapCountOk(n)` says which
+counts work (also the SWAP key's armed look in render); `doSwapMulti(cells)` charges ONE swap (stock,
+seconds, every counter), does the trades pairwise (Stacked's stacks follow), fires each on_swap
+Sleight once beside the card it traded with, and slides every card from its old drawn place.
+Measured at 1440x820 (click) and 420x900 (tap): the six sentences; limit 2 -> 3 -> 4 and then held;
+4 cards A B C D became C D A B, 3 cards A B C became B C A, one swap each; at a hand size of 3 the
+4th card would not select; no page errors.
