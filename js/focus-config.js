@@ -86,6 +86,7 @@ let focusAnimRunning = false;
 let focusDecayBaseMs     = parseFloat(localStorage.getItem('focusDecayBaseMs')) || 2000;
 let focusDecayIntervalMs = focusDecayBaseMs;
 let focusDecayTimerId    = null;   // setInterval id
+const FOCUS_HOLD_TICKS   = 2;      // extra decay ticks Focus holds on a whole multiplier (ADHD x3, js/protocols.js)
 let focusDecayBuffer     = 0;      // grace ticks held while sitting on a whole-number (x.0) multiplier
 let focusBeatDurationMs  = parseFloat(localStorage.getItem('focusBeatDurationMs')) || 300;
 

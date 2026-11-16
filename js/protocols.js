@@ -399,6 +399,7 @@ const PROTO_KNACKS = [
   { id: 'ambidextrous',  protocol: 'dexterous' },
   { id: 'measure_twice', protocol: 'precision' },
   { id: 'growth_mindset', protocol: 'limitless' },   // r750
+  { id: 'adhd', protocol: 'hyperfocus' },   // r789
   { id: 'curio',          protocol: 'capacity' },    // r777
 ];
 // ── CURIO (r777, owner): Past Capacity's Knack. At the start of each round a card
@@ -510,6 +511,12 @@ function curioFly(card, cell) {
 // Growth Mindset (r750, working name): limit rewards twice as common in every
 // reward roll (Flow's chain, the pick of three, the Balance Sheet, the shop's shelf).
 // The owner's other idea, a second random limit on every limit raise, is Knock-On.
+// r789: ADHD (Hyperfocus's unlock Knack): the grace Focus holds at a whole multiplier
+// (FOCUS_HOLD_TICKS decay ticks, js/focus.js) lasts ADHD_HOLD_MULT times as long.
+const ADHD_HOLD_MULT = 3;
+function focusHoldTicks() {
+  return FOCUS_HOLD_TICKS * ((typeof hasKnack === 'function' && hasKnack('adhd')) ? ADHD_HOLD_MULT : 1);
+}
 function limitOfferMult() { return (typeof hasKnack === 'function' && hasKnack('growth_mindset')) ? 2 : 1; }
 const PROTO_KNACK_KEY = 'lethe.protocolKnacks.v1';
 function _protoKnackSet() { try { const a = JSON.parse(localStorage.getItem(PROTO_KNACK_KEY) || '[]'); return new Set(Array.isArray(a) ? a : []); } catch (e) { return new Set(); } }

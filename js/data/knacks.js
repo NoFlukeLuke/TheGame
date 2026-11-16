@@ -129,6 +129,7 @@ const KNACK_POOL = [
   { id:'attention_to_detail', emoji:'🔍', name:'Attention to Detail', rarity:'rare', startOnly:true, desc:'Tricks that pay for a card\'s rank, suit, buffs or position pay 50% more', tags:['pips','mult','other','rank','suit','position'] },
   { id:'curio',          emoji:'🏺',  name:'Curio',            rarity:'rare',   desc:'At the start of each round, a card of the last rank you scored joins your deck, in a random suit with a random buff.', tags:['deck','other','start','rank'] },
   { id:'growth_mindset', emoji:'📈',  name:'Growth Mindset',   rarity:'rare',   desc:'Limit rewards are twice as common', tags:['limit','other','reward'] },
+  { id:'adhd',          emoji:'🧠',  name:'ADHD',             rarity:'rare',   desc:'Focus holds 3x as long at each whole multiplier (x2.0, x3.0...) before it fades', tags:['focus','other'] },   // r789: Hyperfocus's unlock
   { id:'measure_twice', emoji:'📏',  name:'Measure Twice',    rarity:'rare',   desc:'The speed bonus is half as strong, but stays the same for 10 seconds after a hand, then fades over 20 seconds', tags:['focus','other','clock'] },
   // ── r739: ROLE CHANGES. A Sleight's 5th improvement turns it into one of these (sleightRoleChange). Never offered
   // (roleOnly: knackOfferable). Each reads the Sleight's own BAL row at its 5th tier. ──

@@ -537,7 +537,8 @@ function focusDecayTick() {
   // Buffer: when focus lands on a whole-number multiplier (x.0 - i.e. focusNodes is a
   // multiple of the threshold), hold for 3 ticks before dropping to (x-1).9. Feels nicer.
   if (focusNodes >= FOCUS_THRESHOLD && focusNodes % FOCUS_THRESHOLD === 0) {
-    if (focusDecayBuffer < 2) { focusDecayBuffer++; return; }
+    const _hold = (typeof focusHoldTicks === 'function') ? focusHoldTicks() : FOCUS_HOLD_TICKS;   // r789: ADHD triples it
+    if (focusDecayBuffer < _hold) { focusDecayBuffer++; return; }
   }
   focusDecayBuffer = 0;
   removeFocus(1, true);

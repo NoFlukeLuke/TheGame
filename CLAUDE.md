@@ -5234,3 +5234,12 @@ lands. The card is in the draw pile first, and the board swap waits for a still 
 the drawn card's size (`CARD_VIS_W` / `CARD_VIS_H`). Reduced motion skips the flight. Measured at
 1440x820 and 420x900 in Classic: both paths flew from the chip to their target, the cell stayed
 hidden until the landing, deck count and audit matched, no page errors.
+
+## r789 - ADHD, Hyperfocus's Knack; a round's first hand earns no speed bonus (owner)
+- **ADHD** (rare Knack `adhd`, `PROTO_KNACKS` row for `hyperfocus`): Focus sitting on a whole
+  multiplier holds `FOCUS_HOLD_TICKS` (2, js/focus-config.js) decay ticks before it fades; with ADHD
+  `focusHoldTicks()` (js/protocols.js) is `ADHD_HOLD_MULT` (3) times that. Unlocked by a won
+  Hyperfocus run, never offered inside Hyperfocus. Measured: at x2.0 Focus held 6 ticks, then fell.
+- **No speed bonus on a round's first hand** (`generateHandFocus`, js/play-hand.js): with no hand
+  before it (`firstHandThisRound`, or `lastHandTime` 0) the hand used to read as played at 0 seconds
+  and took the full bonus (+12 at the run's start). Now 0. The handbook's speed bonus entry says so.

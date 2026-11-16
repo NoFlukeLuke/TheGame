@@ -1,4 +1,4 @@
-const BUILD = "2026-11-16 · r788 · Curio: the Knack pulses and its card flies onto the board or into Records";
+const BUILD = "2026-11-16 · r789 · ADHD, Hyperfocus's Knack; no speed bonus on a round's first hand";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

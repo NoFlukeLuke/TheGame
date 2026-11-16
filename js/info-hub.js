@@ -179,7 +179,7 @@ const INFO_TOPICS = [
   { id: 'speed_bonus', group: 'scoring', title: 'The speed bonus',
     body: [
       'A hand\'s {FOCUS} comes from two things: what the hand IS, and how fast you played it after the previous one.',
-      'The speed part is largest the instant a hand lands and fades over the next few seconds. Playing slowly earns only the hand\'s own {FOCUS}.',
+      'The speed part is largest the instant a hand lands and fades over the next few seconds. Playing slowly earns only the hand\'s own {FOCUS}. A round\'s first hand earns no speed bonus.',
       'Pair, Flush of 3 and Flush of 4 earn half the speed bonus. Some things scale it: Overclock multiplies it, and Long Fuse and Governor give you longer to earn the same amount.',
     ] },
 
@@ -384,7 +384,7 @@ const INFO_TOPICS = [
     body: [
       'Flow and the Schedule are played under a protocol, chosen after the mode: Standard, Dexterous or Precision. A protocol changes a few rules; the mode stays the same.',
       'Difficulty belongs to the protocol. A win in Flow or the Schedule unlocks the next tier of that protocol for both.',
-      'Winning a run of Dexterous, Precision or Limitless unlocks its Knack (Ambidextrous, Measure Twice, Growth Mindset), which can then be offered in any other run.',
+      'Winning a run of Dexterous, Precision, Limitless or Hyperfocus unlocks its Knack (Ambidextrous, Measure Twice, Growth Mindset, ADHD), which can then be offered in any other run.',
       'Standard is open from the start. Each protocol after it opens with a won run of the one before it, in Flow or the Schedule: Dexterous, Precision, Limitless, Hyperfocus.',
     ] },
   { id: 'mode_dexterous', group: 'modes', title: 'Dexterous',
