@@ -1,4 +1,4 @@
-const BUILD = "2026-11-16 · r783 · Undersight is a Knack and a protocol; one console run screen; chance bursts on every chance Knack";
+const BUILD = "2026-11-16 · r784 · golden baseline for r783; Undersight is a Knack and a protocol; one console run screen; chance bursts";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
