@@ -54,11 +54,11 @@ const PROB_TABLES = [
   { id: 'svpick', group: 'Pick of three', type: 'w', title: 'Flow / Survival pick of three',
     desc: 'The TYPE of each of the three offers on a Flow or Survival level-up pick. Each offer rolls its type on its own, so three Tricks in one pick is normal.',
     how: 'Ratios. Raise Limit to see Limits more often. A type with nothing left to offer is skipped, so the pick always shows three.',
-    rows: () => _ptObjRows(SURVIVAL_PICK_WEIGHTS, { trick: 'Trick', sleight: 'Sleight', knack: 'Knack', limit: 'Limit' }) },
+    rows: () => _ptObjRows(SURVIVAL_PICK_WEIGHTS, { trick: 'Trick', sleight: 'Sleight', knack: 'Knack', limit: 'Limit', event: 'Event' }) },
   { id: 'guidedpick', group: 'Pick of three', type: 'w', title: 'Schedule / Guided pick of three',
     desc: 'The type of each offer on the Schedule\'s pick of three (after a cleared round) and Guided\'s free pick. Rolled per offer, like the Flow table.',
     how: 'Ratios. There is no Limit row here: the Schedule sells limits through its Raise obligation instead.',
-    rows: () => _ptObjRows(GUIDED_PICK_WEIGHTS, { trick: 'Trick', sleight: 'Sleight', knack: 'Knack' }) },
+    rows: () => _ptObjRows(GUIDED_PICK_WEIGHTS, { trick: 'Trick', sleight: 'Sleight', knack: 'Knack', event: 'Event' }) },
 
   { id: 'rgbuff', group: gridName('reward'), type: 'w', title: `${gridName('reward')} tiles`,
     desc: 'What each buff tile on ' + gridName('reward', { a: true }) + ' is. Every buff cell rolls this table. Tricks are also guaranteed a minimum count per grid, so their real share is higher than the raw weight.',

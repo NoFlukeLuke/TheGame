@@ -1,4 +1,4 @@
-const BUILD = "2026-11-16 · r792 · Turbo protocol";
+const BUILD = "2026-11-16 · r793 · event files, Rewards Member, walkthrough rewrite";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

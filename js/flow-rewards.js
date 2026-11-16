@@ -502,6 +502,7 @@ function flowrOddsNow() {
   // r741: Dexterous weighs the Sleights step 4x among the non-Trick kinds (js/dexterous.js).
   if (typeof dexSleightOfferMult === 'function') o.sleights = (o.sleights || 0) * dexSleightOfferMult();
   if (typeof limitOfferMult === 'function') o.limits = (o.limits || 0) * limitOfferMult();   // r750: Growth Mindset
+  if (typeof eventOfferMult === 'function') o.event = (o.event || 0) * eventOfferMult();   // r793: Rewards Member
   if (typeof cardOfferMult === 'function') { const _cm = cardOfferMult(); o.cards = (o.cards || 0) * _cm; o.deck = (o.deck || 0) * _cm; }   // r783: Undersight protocol
   // r548: TRICKS take flowrTrickShare() percent of every screen; the other
   // kinds split the rest in the ratios the table sets.

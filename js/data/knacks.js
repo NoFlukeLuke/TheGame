@@ -128,6 +128,7 @@ const KNACK_POOL = [
   { id:'ambidextrous',  emoji:'🃏',  name:'Ambidextrous',     rarity:'rare',   desc:'Every Sleight is dealt a rank and a suit. Sleights count as cards in a hand and do their thing when played. Sleights are twice as common in rewards', tags:['board','other','sleights'] },
   { id:'attention_to_detail', emoji:'🔍', name:'Attention to Detail', rarity:'rare', startOnly:true, desc:'Tricks that pay for a card\'s rank, suit, buffs or position pay 50% more', tags:['pips','mult','other','rank','suit','position'] },
   { id:'curio',          emoji:'🏺',  name:'Curio',            rarity:'rare',   desc:'At the start of each round, a card of the last rank you scored joins your deck, in a random suit with a random buff.', tags:['deck','other','start','rank'] },
+  { id:'rewards_member', emoji:'🎲',  name:'Rewards Member',   rarity:'rare',   desc:'Events are 3 times as common in rewards.', tags:['other','reward'] },   // r793 (owner): locked until 15 events are filed (js/event-files.js)
   { id:'growth_mindset', emoji:'📈',  name:'Growth Mindset',   rarity:'rare',   desc:'Limit rewards are twice as common', tags:['limit','other','reward'] },
   { id:'adhd',          emoji:'🧠',  name:'ADHD',             rarity:'rare',   desc:'Focus holds 3x as long at each whole multiplier (x2.0, x3.0...) before it fades', tags:['focus','other'] },   // r789: Hyperfocus's unlock
   { id:'measure_twice', emoji:'📏',  name:'Measure Twice',    rarity:'rare',   desc:'The speed bonus is half as strong, but stays the same for 10 seconds after a hand, then fades over 20 seconds', tags:['focus','other','clock'] },
@@ -142,7 +143,8 @@ const KNACK_POOL = [
 // r748: a protocol Knack is not offered (nor listed in Builds) while locked.
 // r749: a startOnly Knack (Precision's Attention to Detail) is never offered.
 // r753: a retired Knack is never offered; a saved run keeps it.
-function knackOfferable(k) { return !!k && !k.roleOnly && !k.startOnly && !k.retired && !(typeof protoKnackLocked === 'function' && protoKnackLocked(k.id)) && !(k.id === 'undersight' && typeof undersightEarned === 'function' && !undersightEarned()); }
+function knackOfferable(k) { return !!k && !k.roleOnly && !k.startOnly && !k.retired && !(typeof protoKnackLocked === 'function' && protoKnackLocked(k.id)) && !(k.id === 'undersight' && typeof undersightEarned === 'function' && !undersightEarned())
+    && !(k.id === 'rewards_member' && typeof rewardsMemberBanned === 'function' && rewardsMemberBanned()); }
 // ── SLEIGHT POOL ──
 // Sleights live in the deck as special cards (_isSleight:true). They fall onto the grid,
 // can be swapped/discarded/selected/played like normal cards.

@@ -419,11 +419,13 @@ const MAP_KIND_META = {
                 blurb: 'The end of the schedule, on its own quota.' },
 };
 
+// r793: an event is named ahead of time only once it is filed (js/event-files.js).
+function mapEventNamed(t) { return !t.eventId || typeof eventKnown !== 'function' || eventKnown(t.eventId); }
 function mapTileFace(t) {
   // What the PLAYER sees - a mystery hides its kind until confirmed.
   if (t.mystery && !t.revealed) return { icon: '?', name: '???', full: 'Unconfirmed', cls: 'mk-mystery' };
   const m = MAP_KIND_META[mapTileMetaKey(t)] || MAP_KIND_META.event;
-  if (t.kind === 'event' && t.eventName) return { ...m, name: t.eventName };
+  if (t.kind === 'event' && t.eventName && mapEventNamed(t)) return { ...m, name: t.eventName };
   return m;
 }
 // A challenge tile's face: audit, one-on-one (a mini def) or priority.
@@ -447,7 +449,7 @@ function mapTileDesc(t, legalIds) {
       + `${G} +${Math.round(((t.challenge?.goalMult || 1.2) - 1) * 100)}%.${goal} Pays +${t.challenge?.credits || 0} credits and ` + (mapTileIsMini(t) ? 'an improvement you pick (1 of 3).' : `${gridName('reward', { a: true })} (a path of up to ${mapRewardPath()}).`);
     case 'shop':       return `The company store. Buy Tricks, Sleights, Knacks and upgrades. You hold ${coins} credits.`;
     case 'reward':     return `A ${limits.grid_rows.current}x${limits.grid_cols.current} ${gridName('reward')}. Take a connected path of up to ${mapRewardPath()} tiles.`;
-    case 'event':      return t.eventFlavor || 'Something happens.';
+    case 'event':      return (t.eventId && typeof eventShownDoes === 'function') ? eventShownDoes(t.eventId) : (t.eventFlavor || 'Something happens.');
     case 'limitbreak': return 'Raise a limit, or trade one away for credits.';
     case 'boss': {
       const b = (t.hidden && !t.visited) ? null : mapBossPreset(t);
@@ -1119,7 +1121,7 @@ function mapRender(animateIn) {
     div.style.gridColumn = isBoss ? '2 / -1' : (t.lane + 2) + (t.cols > 1 ? ' / span ' + t.cols : '');
     const hidden = t.mystery && !t.revealed;
     // An event's line is its own name; every other line is its kind's word.
-    const isEv = t.kind === 'event' && t.eventName && !hidden;
+    const isEv = t.kind === 'event' && t.eventName && !hidden && mapEventNamed(t);
     const word = hidden ? '???' : isEv ? t.eventName : (MAP_KIND_META[mapTileMetaKey(t)] || MAP_KIND_META.event).name;
     const stake = mapTileStake(t, legalIds);
     const boss = isBoss ? peekBossPresetSafe() : null;
@@ -1372,7 +1374,7 @@ function mapBarCommand(t, move) {
   }
   // The name beside CLOCK IN is the whole point of the line, so no verb eats it.
   const face = mapTileFace(t);
-  const name = (t.kind === 'event' && t.eventName && !(t.mystery && !t.revealed)) ? t.eventName : (face.full || face.name);
+  const name = (t.kind === 'event' && t.eventName && mapEventNamed(t) && !(t.mystery && !t.revealed)) ? t.eventName : (face.full || face.name);
   const can = !!move && !move.doomed;
   el.innerHTML = `<span class="mb-verb">&gt;</span> <b class="mb-name">${name}</b>${can ? cur : ''}`;
   el.title = name;
