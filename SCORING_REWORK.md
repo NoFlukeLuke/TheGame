@@ -22,6 +22,30 @@ golden test below: the same hands, scored the old way and the new way, must matc
 down to the animation's beats. Balance changes happen in their own passes, never inside a
 migration pass.
 
+## Progress (r785)
+
+- **Stage 2, the runner: built.** `js/trick-fx/core.js`: `TRICK_FX`, `fxDefine`, `fxTrayWalk`
+  (the tray, left to right, a fused Trick and Temp running their parts), `fxLive(moment, h)`,
+  `trickCount(id)`. Copies are still paid once (`FX_COPIES` false) until stage 5.
+- **Stage 3, families moved: 2 of about 9, 30 Tricks of about 190.**
+  - per-card flat adds (21): `handWhen(h)` + `card(card, h, at)`, `js/trick-fx/per-card.js`.
+    The old `PER_CARD_PAYERS` table is gone.
+  - per-card x mult (9): `cardXMult(x)`, `js/trick-fx/card-x.js`. The inline `_xl` branches are gone.
+  Both are asked in tray order. Golden: all 834 cases match, fingerprints included. `hasTrick(`
+  calls in js/scoring.js: 130 -> 121.
+- **Forced triggers pay what is not pips or mult** (owner's ask, ahead of stage 4):
+  `fxForcedSettle` pays a forced Trick that did not go off its listed Focus, seconds, pause,
+  credits, swaps or discards (`forced(x)` on its behaviour, else the default that reads its BAL
+  row through `FX_RES`), with its primes, after the hand's own sites have run. A forced Trick
+  whose own condition IS met counts the trigger at its own site, Focus Tricks included
+  (playHand reads the hand's forced list before Focus is made). `forceableTrickIds` lists such
+  Tricks now. Not covered by the default: payouts that are not a plain listed number
+  (Hyperphagia, Overtime, The Cuckoo, Buried Treasure, Undue Influence, card buffs). Each needs
+  a `forced(x)` of its own, which is what stage 4 writes.
+- **Next, in order:** per-card x pips and replay sources (`replays(x)`), hand-level adds, hand x
+  multipliers, line Tricks, then stage 1b (the golden test through `playHand`) before any of the
+  45 payout sites in js/play-hand.js move.
+
 ## Where it stands today (measured, r719)
 
 - `calcScore` (js/scoring.js) is one function of 1,533 lines. `hasTrick(` appears 247 times

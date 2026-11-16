@@ -106,7 +106,7 @@
     else if (act === 'p-') { t._primed = Math.max(0, (t._primed || 0) - 1); if (!t._primed) t._primeSrc = []; }
     else if (act === 'r+') t._rank = (t._rank || 0) + 1;
     else if (act === 'r-') t._rank = Math.max(0, (t._rank || 0) - 1);
-    else if (act === 'f+') { if (trickCanForce(id)) armForcedTrick(id); else note(t.name + ' has no number a forced fire can pay'); }
+    else if (act === 'f+') { if (trickCanForce(id) || (typeof fxForcedHasPay === 'function' && fxForcedHasPay(id))) armForcedTrick(id); else note(t.name + ' has no number a forced fire can pay'); }
     else if (act === 'f-') { const i = forcedTrickIds.indexOf(id); if (i >= 0) forcedTrickIds.splice(i, 1); }
     else if (act === 'v+') { try { improveEntity(id); } catch (e) {} }
     else if (act === 'l') return moveTrick(id, -1);

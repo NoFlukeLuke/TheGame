@@ -374,6 +374,16 @@ function playHand() {
   // that record is what lets runHandPriming spend the primes of a Trick paying in
   // Focus, seconds or credits, which the contributions ledger cannot see.
   if (typeof resetTrickFires === 'function') resetTrickFires();
+  // r785: the hand's forced triggers are known BEFORE Focus is made, so a forced Focus Trick whose
+  // own condition is met counts the trigger (trickFires reads handForcedIds). calcScore is read-only
+  // and its force rolls are deterministic, so this speculative pass names the same Tricks the banked one will.
+  if (typeof calcNeedsTimeline === 'function' && calcNeedsTimeline()) {
+    const _pl = {}, _svPFM = lastPreFocusMult;
+    try { calcScore(hand, handCells, [], _pl); } catch (e) {}
+    lastPreFocusMult = _svPFM;
+    handForcedIds = (_pl.forcedIds || []).slice();
+    if (handForcedIds.length) Promise.resolve().then(() => { handForcedIds = []; });
+  }
   generateHandFocus(hand, _scoredCells, _vultureSec);
   // Re-score the winning hand now that Focus reflects this hand's own gains.
   // r399: the canonical score is taken WITH its ledger, and the dance and the
@@ -1236,6 +1246,10 @@ function runHandPriming(hand, handCells, bankedContrib, bankedLedger) {
   // contributions, or it paid something else (the fire record, js/scoring.js), or it was
   // forced. A Trick that did not go off keeps them. The quarter limits how many go off
   // at once (primeExtraFor), so a Trick holding more keeps the rest for its next hand.
+  // r785: a forced Trick that did not go off at its own site is paid its listed Focus, seconds,
+  // credits or stock here, before its primes are spent (js/trick-fx/core.js).
+  if (bankedLedger && bankedLedger.forcedIds && bankedLedger.forcedIds.length && typeof fxForcedSettle === 'function')
+    fxForcedSettle(bankedLedger.forcedIds, id => typeof trickFiredThisHand === 'function' && trickFiredThisHand(id), { cells: handCells, hand });
   if (trickTray.some(t => t._primed > 0)) {
     let _pc = bankedContrib;
     if (!_pc) { const _savedPFM = lastPreFocusMult; _pc = []; calcScore(hand, handCells, _pc); lastPreFocusMult = _savedPFM; }

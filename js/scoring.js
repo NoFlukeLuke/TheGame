@@ -313,7 +313,6 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // what it adds on its first scoring only, its own x mult, and how many times
   // it scores. Replayed against `mult` below (see _cardMultSeq's use).
   const _cardMultSeq = [];
-  const _flRanks = hasTrick('feelin_lucky') ? (ownedTrickObj('feelin_lucky')?._luckyRanks || null) : null;   // Feelin Lucky (r360)
 
   // ── PER-CARD PAYERS (r226) ───────────────────────────────────────────────
   // Seventeen Tricks pay "a rate x a number of CARDS" - Get Even is +2 mult per
@@ -341,41 +340,8 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   //      is where they sit in the real arithmetic, so that is where they emit.
   // The accumulators are still ADDED at each Trick's original site further down,
   // so nothing moves in the order of operations either.
-  const PER_CARD_PAYERS = [
-    { id:'early_bird',    cond:x => x.earlyThird,                     pays:()  => ({ pip:  BAL.early_bird.pips_per_card }) },
-    { id:'night_owl',     cond:x => x.lateThird,                      pays:()  => ({ mult: BAL.night_owl.mult_per_card }) },
-    { id:'overgrowth',    cond:x => x.isRun,                          pays:()  => ({ pip:  TB('overgrowth').pips_per_card }) },
-    { id:'long_road',     cond:x => x.isRun,                          pays:()  => ({ mult: TB('long_road').mult_per_card }) },
-    { id:'edge_pips',     cond:() => true,                            pays:(c,x,at) => isOnEdge([at]) ? ({ pip: BAL.edge_pips.pips_per_card }) : null },   // r609: per card on an edge cell
-    { id:'balanced_diet', cond:x => x.suitCount === 2,                pays:()  => ({ mult: BAL.balanced_diet.mult_per_card }) },
-    { id:'column_rush',   cond:x => x.allSameCol,                     pays:()  => ({ mult: BAL.column_rush.mult_per_card }) },
-    { id:'row_power',     cond:x => x.allSameRow,                     pays:()  => ({ mult: BAL.row_power.mult_per_card }) },
-    { id:'stand_up',      cond:x => x.allSameCol,                     pays:()  => ({ mult: BAL.stand_up.mult_per_card }) },
-    { id:'rich_soil',     cond:() => true,                            pays:()  => ({ mult: BAL.rich_soil.mult }) },
-    { id:'tidal_force',   cond:x => x.isFlush,                        pays:()  => ({ mult: BAL.tidal_force.mult_per_card }) },
-    { id:'number_crunch', cond:x => x.rankCount >= 4,                 pays:()  => ({ mult: BAL.number_crunch.mult_per_card }) },
-    { id:'heavy_hand',    cond:x => x.real5,                          pays:()  => ({ pip:  BAL.heavy_hand.pips_per_card }) },
-    { id:'prime_time',    cond:() => true,                            pays:c => ['A','2','3','5','7'].includes(c.rank) ? ({ pip: TB('prime_time').pips_per_card }) : null },
-    // Hyper Focus: mult per card = focus_mult x the Focus multiplier (x1.5 Focus, 2x -> +3 mult).
-    { id:'hyper_focus',   cond:() => true,                            pays:(c,x) => ({ mult: Math.round(BAL.hyper_focus.focus_mult * x.focusMult * 100) / 100 }) },
-    // Flow State joined the table in r238. It used to pay from a site AFTER the
-    // x pips block, so it escaped Undertow / Scalper / Knave Power / Interest; it
-    // is an ordinary additive per-card pip now and they all multiply it. That is
-    // a deliberate buff - a per-card Trick fires on the card, and a pip in the
-    // additive region is a pip.
-    { id:'flow_state',    cond:x => x.focusMult >= 1.5,                pays:()  => ({ pip:  BAL.flow_state.pips_per_card }) },
-    // These two count only the cards that qualify, not the whole hand, and they
-    // have NO minimum (r226, owner's call). The old "3+ even cards" gate meant a
-    // hand with one or two even cards paid nothing at all, which reads as the
-    // Trick being broken rather than as a condition being unmet - and it is the
-    // one gate in this table that the player cannot see coming while choosing.
-    { id:'even_score',    cond:() => true,                            pays:c => _rankIsEvenRank(c.rank) ? ({ pip:  TB('even_score').pips_per_card }) : null },
-    { id:'odd_squad',     cond:() => true,                            pays:c => _rankIsOddRank(c.rank)  ? ({ mult: TB('odd_squad').mult_per_card })  : null },
-    { id:'gold_standard', cond:() => true,                            pays:c => c.suit === '♦' ? (n => n > 0 ? ({ pip: n }) : null)(goldStandardPips()) : null },   // r722 (js/money.js)
-    { id:'men_of_means',  cond:() => true,                            pays:c => rkHas('men_of_means', c.rank) ? ({ pip: BAL.men_of_means.pips, mult: BAL.men_of_means.mult }) : null },   // r651 fused: Men of Repute + Face Value
-    // Quake / Shock pay per card in the LARGEST matching rank group.
-    { id:'kindred',       cond:x => x.maxCount >= 2,                  pays:(c,x) => x.topRanks.has(c.rank) ? ({ mult: BAL.kindred.mult_per_card }) : null },
-  ];
+  // r785: the rows are behaviours now, TRICK_FX[id].handWhen / .card (js/trick-fx/per-card.js),
+  // asked in TRAY order, left to right (fxLive), not in a fixed table order.
   // Hand-level facts every row above is allowed to ask about. Computed ONCE,
   // before the loop, from things already known at this point.
   const _pcRankCounts = {};
@@ -403,7 +369,8 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     topRanks:   new Set(Object.keys(_pcRankCounts).filter(r => _pcRankCounts[r] === _pcMax)),
   };
   // Which rows are live this hand, resolved once.
-  const _pcLive = PER_CARD_PAYERS.filter(row => hasTrick(row.id) && row.cond(_pcCtx));
+  const _pcLive = fxLive('card', _pcCtx).map(w => ({ id: w.id, pays: w.fx.card }));
+  const _xmLive = fxLive('cardXMult', _pcCtx);
   const _pcPips = {}, _pcMult = {};   // id -> total, for the LEDGER only (applied per card, r233)
   let _qrlReplayCut = false; // QRL cut a replay source this hand (snapshot for playHand's notice)
   let _clubHits = 0; // Hard Labour: counts club scoring hits, including retriggers
@@ -417,7 +384,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   let _asmCards = 0;                                 // r646: cards scored from its line(s) this hand, replays included
   const _asmPer = _asmOn ? asmLinePerCard() : 0;     // mult per line card: last round's count x the rate
   // r646 line Tricks
-  const _lwOn = hasTrick('line_xpips'), _hvOn = hasTrick('line_xmult'), _csOn = hasTrick('coin_sword');
+  const _lwOn = hasTrick('line_xpips'), _csOn = hasTrick('coin_sword');
   let _csHits = 0;                                   // Coin and the Sword: mult rolls that landed this hand
   // Five Stack: 5-card hands add per-card pips+mult, replay-aware (folds through the retrigger loop).
   const _fiveCard = hasTrick('five_stack') && _handN === 5;
@@ -772,7 +739,6 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     //    suppressed - truncating them here would make the timeline under-report.
     //    One emit per card; the dance repeats the beat `_retrig` times, so the
     //    particle count lands on the same total the accumulator does.
-    const _isHeartC = card.suit === '♥';   // r392: a second heart is the ghost pass's
     // `_cmAdd` is what this card pays EVERY time it scores. `_cmOnce` is what it
     // pays on its FIRST scoring only - NOTHING FEEDS IT TODAY (the per-card payers
     // became replay-weighted in r236). It is kept as the seam a future
@@ -839,26 +805,11 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     // emitted after the enhancement and billed to its own Trick.
     const _xl = [];
     if (_xm !== 1) _xl.push({ id: 'perm_mult', f: _xm });
-    if (!_mute) {
-      if (hasTrick('what_odds') && _rankIsOddRank(baseRank)) _xl.push({ id: 'what_odds', f: TB('what_odds').mult_mult });
-      // Rainbow (r539): a four-suit hand, x mult on each card (was +pips +mult per card).
-      if (!_G && hasTrick('full_color') && _pcCtx.suitCount === 4 && !isWildCard(card)) _xl.push({ id: 'full_color', f: BAL.full_color.mult_mult });
-      if (hasTrick('patient_rulers') && (rkHas('patient_rulers', baseRank) || (ownedTrickObj('patient_rulers')?._prRanks || []).includes(baseRank)) && (pausesThisRound > 0 || rewindsThisRound > 0)) _xl.push({ id: 'patient_rulers', f: BAL.patient_rulers.mult_mult });   // r625: rolled extra ranks at the 5th
-      if (hasTrick('obsessed') && _isHeartC && coins > 0) _xl.push({ id: 'obsessed', f: 1 + coins / TB('obsessed').per_credits });
-      // Relentless (r367): x(0.05 per spade scored since taking it), but never
-      // below x1 - so it does nothing until the 21st spade.
-      if (hasTrick('relentless') && card.suit === '♠') {
-        const _rf = Math.round(spadesRelentless * BAL.relentless.mult_per_spade * 100) / 100;
-        if (_rf > 1) _xl.push({ id: 'relentless', f: _rf });
-      }
-      if (_flRanks && _flRanks.includes(baseRank)) _xl.push({ id: 'feelin_lucky', f: BAL.feelin_lucky.mult_mult });
-      // Ornery (r607): a card in a corner cell, x mult on the card, once per replay.
-      if (!_G && hasTrick('two_corners') && isCorner(r, c)) _xl.push({ id: 'two_corners', f: TB('two_corners').mult_mult });
-      // Chorus (r637, owner): x mult on each REPLAY of the card, on that beat, last in
-      // it. `replay`: not on the card's first scoring (the dance skips it on rep 0).
-      if (!_G && hasTrick('chorus') && _retrig > 1) _xl.push({ id: 'chorus', f: TB('chorus').mult_mult, replay: true });
-      // High Voltage (r646): x mult on a card in its marked line; the second line pays the base value.
-      if (!_G && _hvOn) { const _k = markedLineKind(r, c, 'line_xmult'); if (_k) { const _f = _k === 'main' ? TB('line_xmult').mult_mult : TB('line_xmult').line2; if (_f > 0 && _f !== 1) _xl.push({ id: 'line_xmult', f: _f }); } }
+    // r785: the Tricks are behaviours (TRICK_FX[id].cardXMult, js/trick-fx/card-x.js), asked in tray order.
+    if (!_mute && _xmLive.length) {
+      const _xx = { card, rank: baseRank, ghost: _G, at: [r, c], reps: _retrig, h: _pcCtx };
+      _xmLive.forEach(w => { const v = w.fx.cardXMult(_xx); if (v == null) return;
+        if (typeof v === 'number') _xl.push({ id: w.id, f: v }); else _xl.push({ id: w.id, f: v.f, replay: !!v.replay }); });
     }
     _xl.forEach(x => { if (x.id !== 'perm_mult') { const e = _ev(x.id, 'mult*', x.f, 'trick', undefined, 'none'); if (e && x.replay) e.replay = true; } });
     // The EVENTS are emitted here, where they belong on the timeline. The

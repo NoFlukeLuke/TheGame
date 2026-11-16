@@ -5172,3 +5172,33 @@ protocols, no name clipped; Undersight read "Locked." and START refused; 20 noti
 20, the Knack became offerable and the protocol opened; a Schedule run under it started with both
 Knacks and `qrlLimit()` Infinity; two bursts drawn from two pings; no page errors. Golden: with the
 old Trick row put back all 838 cases match (its removal moves the harness's seeds; baseline in r784).
+
+## r785 - the scoring rebuild, stages 2 and 3 begun: Trick behaviours; forced triggers pay resources (owner)
+SCORING_REWORK.md has the plan and a Progress section. `js/trick-fx/` (classic scripts, loaded right
+after js/scoring.js):
+- **`core.js`**: `TRICK_FX[id]` is a Trick's BEHAVIOUR, one function per moment; `fxDefine(id, def)`
+  adds to it. `fxTrayWalk()` is the tray left to right as `{ inst, id }` (a fused Trick and Temp run
+  their parts' ids; a switched-off Trick is skipped as `hasTrick` skips it; a second copy is skipped
+  while `FX_COPIES` is false). `fxLive(moment, h)` is the walk filtered to behaviours that have the
+  moment and pass `handWhen(h)`. `trickCount(id)`. Nothing in the folder reads the DOM. Godot: a
+  behaviour is a script extending TrickBehaviour, the tray entry a TrickInstance, `h` / `x` the ScoreContext.
+- **Moved out of calcScore** (asked in TRAY order now, golden test all match): the 21 per-card flat
+  adds (`per-card.js`: `handWhen(h)`, `card(card, h, at)`; the `PER_CARD_PAYERS` table is gone) and the 9
+  per-card x mult Tricks (`card-x.js`: `cardXMult(x)` returns a factor, or `{ f, replay: true }`).
+  **A new per-card Trick is an `fxDefine` row in one of those files, not a branch in calcScore.**
+- **Forced triggers pay Focus, seconds, pauses, credits and stock.** `forceableTrickIds` (so Temporal
+  Rift, Obligatory, the 4x4 Knack and armed forces) now also lists Tricks with `fxForcedHasPay(id)`.
+  (1) Condition met: playHand runs one speculative calcScore before `generateHandFocus` when
+  `calcNeedsTimeline()` and sets `handForcedIds`, so `trickFires` counts the trigger at every site,
+  Focus included (it used to be set after Focus was made). (2) Condition not met: `fxForcedSettle`
+  (top of `runHandPriming`) pays each forced Trick the fire record does not hold: `TRICK_FX[id].forced(x)`
+  if written, else the default `fxForcedPlan`, which reads the BAL row through `FX_RES` (key name ->
+  focus / rewind / pause / credits / swaps / discards; `_per_card` keys x the hand's cards), once per
+  forced trigger plus the primes that go off (`primeExtraFor`), which `runHandPriming` then spends. A
+  quiet notice and the chip's burst say so. `FX_FORCE_SKIP` lists rows whose number is a cost.
+  A payout that is not a plain listed number pays nothing forced until it has its own `forced(x)`.
+- The scoring preview's F key arms such Tricks too.
+Measured through `?lab` at 1440x820: Deluge forced on a Pair rewound 15s (0 unforced), 45s with two
+primes and the primes spent; Lucky Sevens on 7 7 made 10 Focus plain and 20 forced, and 5 forced on
+4 4; Release Valve forced +1 swap. Real hands with Rich Soil, Ornery, Get Even, What are The Odds and
+Chorus and a replaying card at 1440x820 and 420x900: no timeline drift, no page errors. Golden: 834 match.

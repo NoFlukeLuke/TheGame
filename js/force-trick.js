@@ -153,7 +153,7 @@ function trickCanForce(id) {
 function forceableTrickIds() {
   if (typeof trickTray === 'undefined') return [];
   return trickTray
-    .filter(t => t && t.id && trickCanForce(t.id))
+    .filter(t => t && t.id && (trickCanForce(t.id) || (typeof fxForcedHasPay === 'function' && fxForcedHasPay(t.id))))   // r785: Focus, seconds, credits and stock count too
     .filter(t => !(typeof isTrickDisabledByBoss === 'function' && isTrickDisabledByBoss(t.id)))
     .map(t => t.id);
 }
