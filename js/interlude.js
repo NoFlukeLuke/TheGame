@@ -297,7 +297,7 @@ async function showPayoutUI() {
     // cell units the cards are and nothing sits outside the grid's footprint.
     // Released at the Valued tap, below - runPayoutPick (r244) brings the real
     // board back immediately afterwards and must not inherit this one.
-    const _g = gridScreenTakeover(PAYOUT_ROWS, PAYOUT_COLS);
+    const _g = gridScreenTakeover(payoutRows(), PAYOUT_COLS);
     el.classList.add('in-grid', 'po-tiled');
     (_g || document.body).appendChild(el);
     payoutPlaceTiles(el);
@@ -447,12 +447,14 @@ async function showPayoutUI() {
   await ffSleep(400);
 
   // ── 3. Unspent swaps and discards ──
-  el.querySelector('#po-line-unspent').classList.add('show');
-  await ffSleep(500);
-  await animateCount('po-unspent', unspentCoins);
-  coins += unspentCoins;
-  updateCoinsUI();
-  await ffSleep(400);
+  if (unspentPays()) {
+    el.querySelector('#po-line-unspent').classList.add('show');
+    await ffSleep(500);
+    await animateCount('po-unspent', unspentCoins);
+    coins += unspentCoins;
+    updateCoinsUI();
+    await ffSleep(400);
+  }
 
   // ── 4. Divider + total ──
   el.querySelector('#po-divider').classList.add('show');
@@ -683,6 +685,8 @@ const PAYOUT_TILED = true;
 // switching to Contributions left row 5's left half empty - and an empty cell
 // is exactly what a board screen may not have. It is also true on both tabs.
 const PAYOUT_COLS = 6, PAYOUT_ROWS = 6;
+// r799: no Unspent line (the Schedule) is a row shorter.
+function payoutRows() { return unspentPays() ? PAYOUT_ROWS : PAYOUT_ROWS - 1; }
 
 // `data-box` is "row,col,width,height" in cells; payoutPlaceTiles turns each
 // into a real box once the board has been re-laid (the metrics are not known
@@ -700,7 +704,7 @@ function payoutTiledHTML(c) {
       <button class="payout-tab" id="po-tab-contrib-btn">Contributions</button>
     </div>
     <div id="po-view-contrib" class="po-view" style="display:none">
-      <div class="po-tile po-tile-contrib show" data-box="2,0,6,3">
+      <div class="po-tile po-tile-contrib show" data-box="2,0,6,${payoutRows() - 3}">
         <div class="contrib-head">This round · ${roundHandsScored} hand${roundHandsScored === 1 ? '' : 's'} scored</div>
         <div class="contrib-scroll">${roundContributionRowsHTML()}</div>
       </div>
@@ -727,7 +731,7 @@ function payoutTiledHTML(c) {
           <span class="pl-coins" id="po-efficiency">0</span>
         </div>
       </div>
-      <div class="po-tile payout-line" id="po-line-unspent" data-box="4,0,6,1">
+      <div class="po-tile payout-line" id="po-line-unspent" data-box="4,0,6,1"${unspentPays() ? '' : ' style="display:none !important"'}>
         <div class="pl-left">
           <div class="pl-name">Unspent</div>
           <div class="pl-desc">${unspentPayoutDesc()} · ${c.unspentActions} left</div>
@@ -742,11 +746,11 @@ function payoutTiledHTML(c) {
          separation), but the stage sequencing still calls .show on it, so it
          stays in the DOM and is hidden by css/payout-grid.css. -->
     <div class="payout-divider" id="po-divider"></div>
-    <div class="po-tile payout-total" id="po-total" data-box="5,0,3,1">
+    <div class="po-tile payout-total" id="po-total" data-box="${payoutRows() - 1},0,3,1">
       <span class="pt-label">Total</span>
       <span class="pt-coins" id="po-total-coins">${creditsTxt(0)}</span>
     </div>
-    <button class="payout-valued-btn po-tile" id="po-valued" data-box="5,3,3,1">Valued.</button>`;
+    <button class="payout-valued-btn po-tile" id="po-valued" data-box="${payoutRows() - 1},3,3,1">Valued.</button>`;
 }
 
 // Turn every data-box into a real box, in the same cell units the cards use
@@ -841,7 +845,7 @@ function payoutPanelHTML(c) {
           <span class="pl-coins" id="po-efficiency">0</span>
         </div>
       </div>
-      <div class="payout-line" id="po-line-unspent">
+      <div class="payout-line" id="po-line-unspent"${unspentPays() ? '' : ' style="display:none !important"'}>
         <div class="pl-left">
           <div class="pl-name">Unspent</div>
           <div class="pl-desc">${unspentPayoutDesc()} · ${c.unspentActions} left</div>

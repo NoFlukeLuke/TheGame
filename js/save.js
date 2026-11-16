@@ -157,7 +157,7 @@ const SAVE_VARS = [
   // this run - gates the ordering phases, so a resumed run keeps its phase.
   'flowrExtraEarned', 'flowrPrdMisses', 'flowrKnacksSeen', 'flowrFirstTrick', 'flowrPick3Tricks',
   // ── Seed (keeps future reward grids / shops deterministic) ──
-  'runSeed', 'rewardVisitIndex', 'shopVisitIndex', 'earlyLimitDone', 
+  'runSeed', 'runSeedEntered', 'rewardVisitIndex', 'shopVisitIndex', 'earlyLimitDone', 
 ];
 
 // `const` objects can't be reassigned, so their CONTENTS are copied instead.
@@ -303,6 +303,7 @@ function resumeSavedRun() {
   // Re-pin the run's seed so reward grids and shops still follow the same
   // sequence after resuming (they key off runSeed + visit index - see seed.js).
   if (typeof setPendingRunSeed === 'function') setPendingRunSeed(save.state.runSeed || null);
+  if (typeof _seedResume !== 'undefined') _seedResume = true;
 
   // finally, not a bare clear: a restore that THROWS used to leave
   // _restoringSave true for the whole session - no checkpoint was ever taken

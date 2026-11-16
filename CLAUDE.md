@@ -5386,3 +5386,53 @@ back to the schedule with the Trick owned); all 52 handbook entries and 28 tips 
 in a run with no error; Builds -> EVENTS showed revealed / "visit 2 more times" / ???? ; an unvisited
 Schedule event read EVENT, a revealed one its name; the Flow and Schedule walkthroughs ran end to
 end, no page errors. Golden: 834 cases match.
+
+## r799 - suited runs layer; Crunch is a Schedule protocol; seeds; Old Tricks reworked; payout (owner)
+- **A Straight Flush is not a hand type.** `rankHandForGroup` (js/hand-detect.js) no longer names it:
+  a suited 5-card run is a Straight with the flush overlay on it, like a suited Run of 3 or 4, so
+  every card scores twice. **Owner's rule for hands that are flushes by nature (a suited set, a
+  suited Full House, future flush 5 / flush house): the rank hand plus the overlay, never a new
+  name.** Gone from `ALL_HAND_KEYS`, `achievableHandTypes`, the challenge asks, Records' hand list
+  and the legacy unlock paths. `HAND_BASE` keeps its row for Match-3 and Poker Squares, which name
+  hands themselves. Perfect Storm reads "a Straight that is also a Flush" (`x.hand === 'Straight'`
+  with a Flush layer). Measured: 5 6 7 8 9 of hearts 525 -> 2,100, replays 2 each; a Straight with
+  three hearts unchanged (525). The golden baseline is rewritten in r800 (every case's suited
+  straight hand x4, nothing else moved).
+- **Crunch is a protocol of the Schedule only** (`PROTOCOLS` row `crunch`, `bases: ['map']`, open
+  from the start, its own difficulty key). `protocolsFor(base)` / `protocolFits(id, base)` are what
+  the run screen, the old protocol screen and `protoLastPick` read; `protocolMode` falls back to the
+  base for a protocol that does not fit. The flag is what `crunchActive()` already read.
+  `crunchSay()` prints the rules from the mode's own constants. `MODES.crunch` stays for saved runs
+  and is off the dev Modes list. Its 13:00 was tuned for the old 4 x 6 Schedule: not retuned.
+- **Seeds** (js/seed.js): every run plays on a seed. `seedForNewRun(pinned)` (startGame) takes the
+  mode's or the walkthrough's pinned seed, else the one entered, else `randomSeedString()`, and
+  clears `pendingRunSeed` so the next run rolls its own. `runSeedEntered` (SAVE_VARS) says the
+  player typed it. The run screen's keys row has a SEED toggle and a field (`seedClean`: letters,
+  digits, dashes, 16); `protoStart(base, proto, seed)`. The finale prints SEED with COPY
+  (`seedCopy`); the share image and History already printed a seed. **`seedAuto = false`** in the
+  headless tools (golden, sim, trick audit) keeps their runs unseeded. An entered seed counts for
+  unlocks and tokens like any run (owner has not said otherwise). Handbook: Seeds.
+- **Old Tricks** (Knack `old_tricks`, js/owned-offers.js): Tricks, Knacks and Sleights you own can
+  stand on the store's Trick / Knack / Sleight shelves (`ownedOfferSwap` in the three shelf
+  builders, `OWNED_OFFER.chance` 35% a slot, dev -> Probabilities). Buying one opens a typed board
+  screen (`ownedAsk`): "You've purchased an entity you already own." / "Take additional copy?" /
+  "Improve the original."; click a line, or on a mouse type one or two (1 / 2) and Enter. No key
+  reaches the game while it is up. **A second copy only where it does something**
+  (`ownedCopyBlock`): a Sleight always; a Trick only if its scoring is a behaviour in js/trick-fx/
+  (68 today), it has no line and no pickup state, and a slot is free; a Knack never. A blocked
+  option is shown dimmed with its reason; an owned entity that can do neither is not shelved.
+  `FX_COPIES` is true: each copy in the tray runs its behaviour; both share the Trick's tier. Its
+  old family-pooling rule is gone (it did nothing under double scaling). TBD: both copies' chips
+  fly from the first tile; primes are read per id.
+- **Payout:** `EFFICIENCY_SECONDS_PER_COIN` 20 -> 15. The Schedule pays no Unspent line
+  (`unspentPays()`, js/data/cards.js): its leftover stock is the pick's free rerolls (r797). The
+  payout board is a row shorter there (`payoutRows()`). Classic keeps the line.
+- **Rewards Member** unlocks at 10 revealed events (`REWARDS_MEMBER_NEED`).
+Measured in headless Chromium at 1440x820 and 420x900: the run screen lists Crunch under the
+Schedule only and switching to Flow drops it; a Crunch run started at 13:00 with `crunchActive()`
+true; the typed seed TESTSEED-9 dealt the same draw pile twice and the next run rolled its own; the
+finale printed the seed; the Schedule's payout showed Interest and the bonus only, total right; a
+second Perk Package took a K K K from mult 24 to 42 with no timeline drift; "three" was refused and
+"two" improved the Sleight; a Knack's copy line was dimmed; an owned Trick bought in the real shop
+by click and tap (L¢11) opened the screen over the shop, PLAY and Space did nothing, the copy
+landed in the tray. All 54 handbook entries build. No page errors.

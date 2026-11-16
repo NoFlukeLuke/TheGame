@@ -558,7 +558,10 @@ function rankHandForGroup(cells) {
   // whole-group degenerate case without needing a rule inside _wildFitsPattern.
   const _setOK = counts.length > 0;
   const _fits = pattern => _setOK && _wildFitsPattern(counts, wilds, pattern);
-  if (n === 5 && isStr && allSameSuitStrict) add('Straight Flush');
+  // r799 (owner): a Straight Flush is not a hand type of its own. A suited run is the run
+  // with the flush overlay on it, at every size, so its cards score twice. Hands that are
+  // flushes by their nature (a suited set, a suited Full House) are built the same way:
+  // the rank hand, plus the overlay. Never a new name here.
   if (_fits([n])) add(SET_BY_SIZE[n]);                           // n of a kind
   if (n === 5 && _fits([3, 2])) add('Full House');
   if (n === 4 && _fits([2, 2])) add('Two Pair');

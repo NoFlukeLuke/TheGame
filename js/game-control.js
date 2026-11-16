@@ -329,9 +329,10 @@ function startGame() {
   // everyone's first Schedule is the same board and a bug report against it is
   // reproducible. Otherwise the dev panel's seed is used, and with neither the
   // run is plain unseeded.
-  applyRunSeed(ACTIVE_MODE.seed
-    || ((typeof tutorialRunSeed === 'function') ? tutorialRunSeed() : null)
-    || pendingRunSeed || null);
+  // r799: with none of those the run rolls a random seed (seedForNewRun), so every
+  // run can be shared afterwards.
+  applyRunSeed(seedForNewRun(ACTIVE_MODE.seed
+    || ((typeof tutorialRunSeed === 'function') ? tutorialRunSeed() : null)));
 
   // Pick the suit + rank lists for this mode BEFORE any deck is built. Six Suits
   // uses the expanded 6-suit list, Spectrum swaps both lists for the numeric
@@ -508,7 +509,7 @@ function startGame() {
   // The big hands (r199) are always in the list - they need Selection Size past 5
   // to be reachable at all, which is gate enough. flush3/flush4 stay OUT: they are
   // still not something you may PLAY here, only something a hand may LAYER.
-  const ALL_HAND_KEYS = ['run3','threeofakind','fourofakind','run4','pair','twopair','straight','flush','fullhouse','straightflush','highcard','blackjack',
+  const ALL_HAND_KEYS = ['run3','threeofakind','fourofakind','run4','pair','twopair','straight','flush','fullhouse','highcard','blackjack',
                          'run6','run7','flush6','flush7','fiveofakind','sixofakind','sevenofakind'];
   const BASE_HAND_KEYS = ['run3','threeofakind','twopair','fourofakind'];
   // Match-3 scores real hand names (Flush, Straight, Straight Flush, Run of 4…),

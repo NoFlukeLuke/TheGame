@@ -250,3 +250,18 @@ body.kb-keys.map-keys .mapk { visibility: hidden; }
 @keyframes rvBlink { 50% { opacity: 0; } }
 .rv-line.rv-done b { animation: rvFlash .5s steps(2) 2; }
 @keyframes rvFlash { 50% { opacity: .35; } }
+
+/* r799: the owned-entity purchase (js/owned-offers.js). A blocker under the glass keeps the shop's keys out of reach. */
+.oo-screen { isolation: isolate; }
+.oo-screen::before { content: ''; position: fixed; inset: -200vmax; z-index: -1; }
+.oo-screen .bs-body { display: flex; flex-direction: column; gap: 12px; padding-top: 10px; }
+.oo-say { font-size: 17px; line-height: 1.15; color: var(--am); }
+.oo-opt { display: block; text-align: left; font: inherit; font-size: 17px; line-height: 1.15; color: var(--am-hi); background: transparent; border: 1px solid var(--am-dim); border-radius: 2px; padding: 7px 8px; cursor: var(--cur-pointer, pointer); }
+.oo-opt::before { content: attr(data-n) '. '; color: var(--am-dim); }
+@media (hover: hover) { .oo-opt:hover:not(:disabled) { background: rgba(255,176,46,.14); border-color: var(--am); } }
+.oo-opt.oo-off { color: var(--am-dim); cursor: var(--cur-no, not-allowed); }
+.oo-opt small { display: block; font-size: 13px; color: var(--am-dim); margin-top: 2px; }
+.oo-t.oo-wait { visibility: hidden; }
+.oo-in { display: flex; align-items: center; gap: 6px; font-size: 17px; color: var(--am-hi); }
+.oo-in input { flex: 1 1 auto; min-width: 0; background: transparent; border: 0; border-bottom: 1px solid var(--am-dim); color: var(--am-hi); font: inherit; font-size: 17px; letter-spacing: 1px; outline: none; padding: 2px 0; }
+.oo-in input::placeholder { color: var(--am-dim); }

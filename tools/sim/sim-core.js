@@ -338,7 +338,7 @@ function SIM_diag(res) {
 
 // ── full runs per mode. goalFn(level) -> goal. Returns {win, diedLevel, log} ──
 function SIM_runClassic(goalFn, quarters) {
-  ACTIVE_MODE = MODES.normal; startGame(); SIM_resetCharges();
+  ACTIVE_MODE = MODES.normal; if (typeof seedAuto !== "undefined") seedAuto = false; startGame(); SIM_resetCharges();
   roundGoal = goalFn(1);
   let gridsSeen = 0;
   for (let q = 1; q <= quarters; q++) {
@@ -364,7 +364,7 @@ function SIM_runClassic(goalFn, quarters) {
 }
 
 function SIM_runSchedule(goalFn, quarters, bossMult) {
-  ACTIVE_MODE = SIM_protoMode('map'); startGame();
+  ACTIVE_MODE = SIM_protoMode('map'); if (typeof seedAuto !== "undefined") seedAuto = false; startGame();
   // r683: startGame opens the schedule screen, which lays the board out as the
   // schedule (5 x 4 since r655) over the 4 x 4 play board, so the bot's first
   // hand read a row gridData does not have and every run crashed. Clock in.
@@ -436,7 +436,7 @@ function SIM_flowReward(kind) {
 var SIM_PROTOCOL = null;
 function SIM_protoMode(base) { return (SIM_PROTOCOL && typeof protocolMode === 'function') ? protocolMode(base, SIM_PROTOCOL) : (MODES[base] || MODES.normal); }
 function SIM_runFlow(goalFn) {
-  ACTIVE_MODE = SIM_protoMode('flow'); startGame(); SIM_resetCharges();
+  ACTIVE_MODE = SIM_protoMode('flow'); if (typeof seedAuto !== "undefined") seedAuto = false; startGame(); SIM_resetCharges();
   roundGoal = goalFn(1);
   for (let guard = 0; guard < 400; guard++) {
     const res = SIM_playRound();

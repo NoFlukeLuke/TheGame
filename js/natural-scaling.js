@@ -232,7 +232,7 @@ function naturalScaleBonus(handName) {
   if (typeof bossNoScaling !== 'undefined' && bossNoScaling && bossActive
       && !(typeof bossEffectsIgnored === 'function' && bossEffectsIgnored())) return { pips: 0, mult: 0 };
   const own = nsBonus[handName];
-  if (typeof hasKnack !== 'function' || !hasKnack('old_tricks')) return own ? { pips: own.pips, mult: own.mult } : { pips: 0, mult: 0 };
+  if (true) return own ? { pips: own.pips, mult: own.mult } : { pips: 0, mult: 0 };   // r799: Old Tricks no longer pools a family (js/owned-offers.js)
   let pips = own ? own.pips : 0, mult = own ? own.mult : 0;
   (NS_HAND_FAMILIES[handName] || []).forEach(f => NS_FAMILIES[f].forEach(n => {
     const b = nsBonus[n];
@@ -367,6 +367,5 @@ function naturalScaleSummary() {
       return `${n}: +${b.pips} pips / +${b.mult} mult (${nsPlays[n] || 0} played)`;
     });
   if (!rows.length) return 'nothing played yet';
-  if (typeof hasKnack === 'function' && hasKnack('old_tricks')) rows.push('Old Tricks: every hand reads its family best');
   return rows.join('\n');
 }

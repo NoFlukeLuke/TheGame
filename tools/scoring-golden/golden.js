@@ -80,6 +80,7 @@ var __gsHands = {
 function __gsSetup(seed) {
   __gsSeed = seed;
   try { if (typeof fallCancelAll === 'function') fallCancelAll(); } catch (e) {}
+  if (typeof seedAuto !== "undefined") seedAuto = false;
   startGame();
   Math.random = __gsRand;   // startGame hands Math.random back to the native one on an unseeded run
   trickTray.length = 0; acquiredTricks.length = 0; acquiredKnacks.length = 0;

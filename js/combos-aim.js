@@ -277,7 +277,7 @@ function achievableHandTypes() {
   if (cap >= 2) t.push('Pair');
   if (cap >= 3) t.push('Three of a Kind', 'Run of 3');
   if (cap >= 4) t.push('Two Pair', 'Four of a Kind', 'Run of 4');
-  if (cap >= 5) t.push('Straight', 'Flush', 'Full House', 'Straight Flush');
+  if (cap >= 5) t.push('Straight', 'Flush', 'Full House');
   return t;
 }
 

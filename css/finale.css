@@ -45,3 +45,8 @@
 #pause-builds .pb-row.on { border-color: var(--c-mint); color: var(--c-mint); }
 #pause-builds .pb-row input { margin: 0; }
 #pause-builds .pb-note { color: var(--cream-dim); font-size: 10px; line-height: 1.4; margin-top: 4px; }
+
+/* r799: the run's seed, to share */
+.fn-seed { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 16px; letter-spacing: 1px; color: var(--am-dim); margin: 2px 0 4px; }
+.fn-seed b { color: var(--am-hi); font-weight: normal; letter-spacing: 2px; }
+.fn-seed .fn-seed-copy { font-size: 14px; padding: 1px 8px; }

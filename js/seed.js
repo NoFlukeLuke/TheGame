@@ -70,6 +70,30 @@ function applyRunSeed(seed) {
 let pendingRunSeed = null;
 function setPendingRunSeed(seed) { pendingRunSeed = (seed === '' ? null : seed); return pendingRunSeed; }
 
+// r799 (owner): seeds are back for players. EVERY run plays on a seed, so any run can
+// be shared afterwards: one entered on the run screen (js/run-select.js), else a
+// random one. `seedAuto` false (the headless tools) leaves a run with no seed unseeded.
+// `runSeedEntered` says the player typed this run's seed (SAVE_VARS).
+let seedAuto = true;
+let runSeedEntered = false;
+function seedForNewRun(pinned) {
+  const typed = !pinned && pendingRunSeed ? pendingRunSeed : null;
+  const seed = pinned || typed || (seedAuto ? randomSeedString() : null);
+  runSeedEntered = !!typed && !_seedResume;
+  pendingRunSeed = null; _seedResume = false;   // consumed: the next run rolls its own
+  return seed;
+}
+let _seedResume = false;   // a resumed save hands its own seed back (js/save.js)
+// A seed as typed: letters, digits and dashes, 16 at most, upper case.
+function seedClean(v) { return String(v || '').toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0, 16); }
+function seedCopy(seed, btn) {
+  const done = () => { if (btn) { const w = btn.textContent; btn.textContent = 'COPIED'; setTimeout(() => { btn.textContent = w; }, 1200); } };
+  try { navigator.clipboard.writeText(seed).then(done, () => seedCopyOld(seed, done)); } catch (e) { seedCopyOld(seed, done); }
+}
+function seedCopyOld(seed, done) {
+  try { const t = document.createElement('textarea'); t.value = seed; t.style.cssText = 'position:fixed;opacity:0'; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove(); done(); } catch (e) {}
+}
+
 // ── SPLIT STREAMS (r147) ─────────────────────────────────────────────────────
 // One shared stream is enough to pin the OPENING deal (the deck is shuffled
 // immediately after the seed is installed, before the player can do anything),

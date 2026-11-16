@@ -181,7 +181,7 @@ function crOnRoundStart() {
 const CR_CLEAR_HOLD = 6;
 const CR_HANDS_LOW = ['Pair', 'Run of 3', 'Three of a Kind'];
 const CR_HANDS_MID = ['Two Pair', 'Run of 4', 'Straight'];
-const CR_HANDS_TOP = ['Flush', 'Full House', 'Straight Flush', 'Four of a Kind'];
+const CR_HANDS_TOP = ['Flush', 'Full House', 'Four of a Kind'];
 function _crCanMake() {
   return new Set((typeof achievableHandTypes === 'function' ? achievableHandTypes() : ['Pair'])
     .filter(h => (typeof HAND_BASE === 'undefined' || HAND_BASE[h]) && (typeof handIsActive !== 'function' || handIsActive(h))));
@@ -205,7 +205,7 @@ const _crTouch = l => l.map(t => ({ d: Math.min(3, t.d + 1), n: t.n }));
 // over gets the EASY one. The hand lists are by board availability (r178 survey:
 // Pair on every board, Run of 3 73%, Straight 34%, Flush 17%, Four of a Kind 1-2%).
 const CR_HAND_SIZE = { 'Pair': 2, 'Three of a Kind': 3, 'Run of 3': 3, 'Two Pair': 4, 'Run of 4': 4, 'Four of a Kind': 4,
-                       'Straight': 5, 'Flush': 5, 'Full House': 5, 'Straight Flush': 5 };
+                       'Straight': 5, 'Flush': 5, 'Full House': 5 };
 // Every type the board can actually support right now, with its ladder.
 function crTypeDefs() {
   const sel = limits.selection.current, can = _crCanMake(), out = [];
@@ -244,7 +244,7 @@ function crRollReq(b) {
 // come up 4x less often than the easy ones. A hand not played yet this run (once a few
 // hands are in) is asked CR_UNPLAYED_W as often again. Every other kind weighs 1.
 const CR_HAND_W = { 'Two Pair': 0.8, 'Run of 4': 0.8, 'Straight': 0.6, 'Flush': 0.5, 'Full House': 0.5,
-                    'Four of a Kind': 0.25, 'Straight Flush': 0.25 };
+                    'Four of a Kind': 0.25 };
 const CR_UNPLAYED_W = 0.6, CR_UNPLAYED_AFTER = 5;
 function crReqWeight(t) {
   // r555: the two tiers of one ask share a little more than one ask's weight.

@@ -453,7 +453,7 @@ const DESC_TEMPLATES = {
   long_road: 'Runs score +{mult_per_card} mult per card',
   river_run: 'Runs add +{focus_per_card} Focus per card',
   correct_run: 'Runs played in correct sequential order score one of the following: +{pips} pips, +{mult} mult, +{focus} Focus',
-  perfect_storm: 'Straight Flush ×{pip_mult} pips',
+  perfect_storm: 'A Straight that is also a Flush scores ×{pip_mult} pips',
   summit: 'The highest-ranking card in each hand scores +(level x {pips_per_level}) pips.',
   light_touch: '2-card hands score +{mult} mult',
   heavy_hand: '5-card hands score +{pips_per_card} pips per card',

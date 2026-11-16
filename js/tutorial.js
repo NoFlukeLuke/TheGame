@@ -394,7 +394,7 @@ const TUTORIAL_STEPS = [
     gate: true, hold: true, next: true, noAutoPlay: true,
     eyebrow: 'Basics',
     title: 'What you can play',
-    body: `<b>Set</b>: cards of one rank. A pair counts.<br><b>Run</b>: three or more ranks in a row.<br><b>Flush</b>: five cards of one suit.<br><br>A run of 3 or 4 all in one suit is a flush as well, and its cards score twice.`,
+    body: `<b>Set</b>: cards of one rank. A pair counts.<br><b>Run</b>: three or more ranks in a row.<br><b>Flush</b>: five cards of one suit.<br><br>A run all in one suit is a flush as well, and its cards score twice.`,
   },
   {
     id: 'valuation', anchor: () => tutEl('#score-subboxes'), side: 'bottom',
@@ -591,7 +591,7 @@ const TUTORIAL_STEPS = [
     when: () => !!document.querySelector('#po-valued.show'),
     eyebrow: 'Payout',
     title: 'End of round pay',
-    body: () => `<b>Interest</b>: 10% of your credits.<br><br><b>Early Finish Bonus</b>: 1 credit per <b>${(typeof efficiencySecondsPerCoin === 'function') ? efficiencySecondsPerCoin() : EFFICIENCY_SECONDS_PER_COIN} seconds</b> left.<br><br><b>Unspent</b>: swaps and discards you did not use.`,
+    body: () => `<b>Interest</b>: 10% of your credits.<br><br><b>Early Finish Bonus</b>: 1 credit per <b>${(typeof efficiencySecondsPerCoin === 'function') ? efficiencySecondsPerCoin() : EFFICIENCY_SECONDS_PER_COIN} seconds</b> left.${(typeof unspentPays === 'function' && !unspentPays()) ? '' : '<br><br><b>Unspent</b>: swaps and discards you did not use.'}`,
     until: () => !tutPayoutEl(),
   },
   {

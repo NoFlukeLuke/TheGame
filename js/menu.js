@@ -1,4 +1,4 @@
-const BUILD = "2026-11-16 · r797 · one set of pick keys, event files in two steps, tips and handbook pass";
+const BUILD = "2026-11-16 · r799 · suited runs layer, Crunch protocol, seeds, owned offers, payout";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
@@ -297,7 +297,7 @@ const MODE_SELECT_LIST = [...modeChainWithSiblings(), ...MODE_FINALE_GROUP, ...M
 // Custom's colour deck. (Survival's mode entry went in r417, Six Suits' in r416;
 // the Survival ENGINE stays because Flow runs on it.)
 // r783 (owner): Classic, Custom, Stacked and Poker Squares too. The run screen offers Flow and the Schedule only.
-const MODE_HIDDEN_LIST = ['normal', 'picker', 'stacks', 'squares', 'match3', 'zen', 'crunch', 'guided', 'spectrum', 'climb'];
+const MODE_HIDDEN_LIST = ['normal', 'picker', 'stacks', 'squares', 'match3', 'zen', 'guided', 'spectrum', 'climb'];   // r799: Crunch is a protocol of the Schedule (MODES.crunch stays for saved runs)
 const MODE_META = {
   normal:   { accent: 'var(--c-yellow)', suits: '♠ ♥ ♦ ♣',
               blurb: `Four suits. Four quarters, each five rounds and then a review. Reach each round's goal before the clock runs out. Between rounds you pick a path on the ${gridName('reward')}, and some paths lead to the shop or an event.` },
@@ -407,7 +407,7 @@ function buildModeCard(id) {
     `<div class="mode-card-name">${modeDisplayName(id)}</div>` +
     `<div class="mode-card-suits">${open ? (meta.suits || '') : '\u{1F512}'}</div>` +
     // r748: Flow and the Schedule choose a protocol first; the tier is on that screen.
-    (open ? (isProtoBase ? `<div class="mode-card-diff-say mode-card-proto">${PROTOCOLS.map(p => p.name).join(' · ')}</div>` : modeDiffHTML(id)) : '') +
+    (open ? (isProtoBase ? `<div class="mode-card-diff-say mode-card-proto">${protocolsFor(id).map(p => p.name).join(' · ')}</div>` : modeDiffHTML(id)) : '') +
     `<div class="mode-card-blurb">${meta.blurb || MODES[id].desc}` +
       (typeof infoTopic === 'function' && infoTopic('mode_' + id)
         ? ` <a class="mode-card-more" href="#">Read more in the handbook.</a>` : '') +

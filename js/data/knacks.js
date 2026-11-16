@@ -70,7 +70,7 @@ const KNACK_POOL = [
   // Natural Scaling is per HAND TYPE now, so a family's growth sits in whichever
   // hand you actually play. This pools it: every hand in a family reads the best
   // bonus in that family. It REPLACES the hand's own bonus, never adds to it.
-  { id:'old_tricks',      emoji:'🎩',  name:'Old Tricks',       rarity:'epic',   desc:'Every hand type scores with the best growth anywhere in its family - sets, runs and flushes each pool their own. It replaces what that hand had earned, it does not add to it.', tags:['hand','scores'] },
+  { id:'old_tricks',      emoji:'🎩',  name:'Old Tricks',       rarity:'epic',   desc:'Tricks, Knacks and Sleights you already own can appear in the company store. Buying one improves the original, or adds a second copy.', tags:['other','shop'] },   // r799: reworked (js/owned-offers.js)
   // ── Passenger knack (r201) ──
   // A hand normally has to use every card you select; a spare makes it not a hand,
   // and the spare is billed as a penalty card. This lifts that.

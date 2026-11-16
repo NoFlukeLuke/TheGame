@@ -11,6 +11,8 @@
 // difficulty are chosen on one page; START RUN is protoStart.
 // ══════════════════════════════════════════════
 let _rsBase = null, _rsProto = 'standard';
+// r799: the seed toggle. On, the run plays on the seed typed (blank rolls one).
+let _rsSeedOn = false, _rsSeed = '';
 const RS_BASE_KEY = 'lethe.runBase.v1';   // the mode last started ('map' only: Flow is the default)
 
 function runSelectBases() { return PROTOCOL_BASES.filter(id => MODES[id]); }
@@ -39,7 +41,7 @@ function runSelectRender() {
       `<i>${open ? (meta.suits || '') : 'LOCKED'}</i>` +
       `<span>${open ? (meta.blurb || MODES[id].desc || '') : `Finish a run of ${modeDisplayName(modeUnlockedBy(id))} to unlock.`}</span></button>`;
   }).join('');
-  const protos = PROTOCOLS.map(p => {
+  const protos = protocolsFor(base).map(p => {
     const open = protoUnlocked(p.id), on = p.id === sel.id;
     return `<button class="rs-proto${on ? ' on' : ''}${open ? '' : ' rs-locked'}" data-proto="${p.id}">` +
       `<b>${rsBox(on, !open)} ${p.name.toUpperCase()}</b>` +
@@ -60,13 +62,16 @@ function runSelectRender() {
             `<div class="rs-note">Difficulty belongs to the protocol: a win in Flow or the Schedule unlocks the next tier for both.${protoKnackLine(sel.id)}</div></div>`
           : '') +
       `</div>` +
-      `<div class="rs-keys"><button class="rs-key rs-back">BACK</button>${more}<div class="rs-sum">${modeDisplayName(base).toUpperCase()} · ${sel.name.toUpperCase()}</div>` +
+      `<div class="rs-keys"><button class="rs-key rs-back">BACK</button>${more}` +
+        `<button class="rs-key rs-seed${_rsSeedOn ? ' on' : ''}" title="Play a seed someone shared">${rsBox(_rsSeedOn)} SEED</button>` +
+        (_rsSeedOn ? `<input class="rs-seed-in" type="text" maxlength="16" spellcheck="false" autocomplete="off" autocapitalize="characters" placeholder="TYPE A SEED" value="${_rsSeed}">`
+                   : `<div class="rs-sum">${modeDisplayName(base).toUpperCase()} · ${sel.name.toUpperCase()}</div>`) +
         `<button class="rs-key rs-go${selOpen ? '' : ' rs-off'}">START RUN</button></div>` +
     `</div>`;
   inner.querySelectorAll('.rs-mode').forEach(b => { b.onclick = () => {
     if (!modeUnlocked(b.dataset.mode)) { rsRefuse(); return; }
     _rsBase = b.dataset.mode; rsSaveBase(_rsBase);
-    if (!protoUnlocked(_rsProto)) _rsProto = protoLastPick(_rsBase);
+    if (!protoUnlocked(_rsProto) || !protocolFits(_rsProto, _rsBase)) _rsProto = protoLastPick(_rsBase);
     rsClick(); runSelectRender();
   }; });
   inner.querySelectorAll('.rs-proto').forEach(b => { b.onclick = () => {
@@ -83,8 +88,14 @@ function runSelectRender() {
   const mb = inner.querySelector('.rs-more'); if (mb) mb.onclick = () => openInfoHub('mode_' + base);
   inner.querySelector('.rs-go').onclick = () => {
     if (!selOpen) { rsRefuse(); return; }
-    protoStart(base, sel.id);
+    protoStart(base, sel.id, _rsSeedOn ? seedClean(_rsSeed) : '');
   };
+  inner.querySelector('.rs-seed').onclick = () => { _rsSeedOn = !_rsSeedOn; rsClick(); runSelectRender(); if (_rsSeedOn) inner.querySelector('.rs-seed-in')?.focus(); };
+  const si = inner.querySelector('.rs-seed-in');
+  if (si) {
+    si.oninput = () => { _rsSeed = seedClean(si.value); if (si.value !== _rsSeed) si.value = _rsSeed; };
+    si.onkeydown = e => { e.stopPropagation(); if (e.key === 'Enter') inner.querySelector('.rs-go').click(); };
+  }
 }
 function rsClick() { try { if (typeof sfxKeyClick === 'function') sfxKeyClick('down'); } catch (e) {} }
 function rsRefuse() { if (typeof refuse === 'function') { try { refuse(); } catch (e) {} } }

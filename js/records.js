@@ -626,13 +626,11 @@ const REC_HAND_EX = {
   'Run of 6': '5♠ 6♥ 7♦ 8♣ 9♥ 10♠', 'Run of 7': '5♠ 6♥ 7♦ 8♣ 9♥ 10♠ J♦',
   'Flush of 3': '2♥ 9♥ K♥', 'Flush of 4': '2♥ 5♥ 9♥ K♥', 'Flush': '2♥ 5♥ 9♥ J♥ K♥',
   'Flush of 6': '2♥ 4♥ 5♥ 9♥ J♥ K♥', 'Flush of 7': '2♥ 4♥ 5♥ 9♥ J♥ Q♥ K♥',
-  'Straight Flush': '5♥ 6♥ 7♥ 8♥ 9♥',
 };
 const REC_FOCUS_GROUPS = [
   { word: 'SETS',    hands: ['Pair', 'Three of a Kind', 'Two Pair', 'Four of a Kind', 'Full House', 'Five of a Kind', 'Six of a Kind', 'Seven of a Kind'] },
   { word: 'RUNS',    hands: ['Run of 3', 'Run of 4', 'Straight', 'Run of 6', 'Run of 7'] },
   { word: 'FLUSHES', hands: ['Flush of 3', 'Flush of 4', 'Flush', 'Flush of 6', 'Flush of 7'] },
-  { word: 'BOTH',    hands: ['Straight Flush'] },
 ];
 
 function _recSel() { return (typeof limits !== 'undefined' && limits.selection) ? limits.selection.current : 5; }

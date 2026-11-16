@@ -70,7 +70,6 @@ function checkUnlocks() {
     { key:'straight',     cond: () => C.run4 >= 10 },
     { key:'flush',        cond: () => C.sameSuitHands >= 5 || C.hearts >= 100 },
     { key:'fullhouse',    cond: () => C.threeofakind >= 5 },
-    { key:'straightflush',cond: () => (unlockedHands.has('straight') && unlockedHands.has('flush')) || C.flow3 >= 5 || C.flow4 >= 2 },
     { key:'highcard',     cond: () => C.aces >= 25 || C.goalInLastSecond },
     { key:'blackjack',    cond: () => (C.faces >= 20 && C.aces >= 20) },
   ];
@@ -200,10 +199,6 @@ const UNLOCK_PROGRESS = [
   ]},
   { key:'fullhouse',    name:'Full House',    paths:[
     { label:'Three of a Kinds', cur:()=>C.threeofakind, goal:5 },
-  ]},
-  { key:'straightflush',name:'Straight Flush',paths:[
-    { label:'Flow 3s', cur:()=>C.flow3, goal:5 },
-    { label:'Flow 4s', cur:()=>C.flow4, goal:2 },
   ]},
   { key:'blackjack',    name:'Blackjack',     paths:[
     { label:'Raw pips = 21 (any hand)', cur:()=>'-', goal:1 },

@@ -32,9 +32,11 @@ const TRICK_FX = {};
 function fxDefine(id, def) { TRICK_FX[id] = Object.assign(TRICK_FX[id] || {}, def); return TRICK_FX[id]; }
 function fxOf(id) { return TRICK_FX[id] || null; }
 
-// Copies: a second copy of one Trick pays once today (hasTrick is a yes / no).
-// Stage 5 turns this on, with the owner's calls on versions and tray order.
-const FX_COPIES = false;
+// Copies (r799, on): each copy of a Trick in the tray runs its behaviour. Only Old
+// Tricks (js/owned-offers.js) hands out a second copy, and only of a Trick whose
+// scoring lives in this folder; a Trick still scored inside calcScore pays once
+// however many copies are held (hasTrick is a yes / no).
+const FX_COPIES = true;
 
 // The tray as behaviours, left to right: [{ inst, id }], `id` the behaviour that
 // runs (the Trick's own, or each part a fused Trick / Temp stands in for). A Trick

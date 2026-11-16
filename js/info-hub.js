@@ -103,7 +103,7 @@ const INFO_TOPICS = [
   { id: 'hand_layers', group: 'basics', title: 'A hand can be several hands',
     body: [
       'A played hand is broken into COMPONENTS. Seven cards can be a Run of 4 and a Three of a Kind at once. A card in two components scores twice.',
-      'A run of 3 or 4 all in one suit is a run and a flush, and each card scores twice. A flush only layers when every card in the hand shares the suit.',
+      'A run all in one suit is a run and a flush, and each card scores twice. A flush only layers when every card in the hand shares the suit.',
       'The hand label names every layer.',
     ] },
 
@@ -114,7 +114,7 @@ const INFO_TOPICS = [
       () => (swapSecondsBase() > 0 || discardSecondsBase() > 0)
         ? `At this difficulty a swap costs ${swapSecondsBase()}s and a discard ${discardSecondsBase()}s, whatever its size.`
         : 'At this difficulty neither costs time. From ENTRY LEVEL up, each costs seconds.',
-      'The ones you did not use are your free rerolls on the reward screens. On the Schedule they also pay credits at the payout.',
+      'The ones you did not use are your free rerolls on the reward screens.',
     ] },
 
   { id: 'sleight_grid', group: 'board', title: '{Sleights} sit on the board',
@@ -238,10 +238,9 @@ const INFO_TOPICS = [
   // ── Between rounds ────────────────────────────────────────────────────────
   { id: 'payout', group: 'between', title: 'The payout',
     body: [
-      'On the Schedule, clearing the {GOAL} pays credits. Three lines:',
+      'On the Schedule, clearing the {GOAL} pays credits. Two lines:',
       () => ['Interest on the credits you are holding.',
-       `Early Finish Bonus: 1 credit per ${(typeof efficiencySecondsPerCoin === 'function') ? efficiencySecondsPerCoin() : 10} seconds left on the clock.`,
-       'Swaps and discards you did not spend.'],
+       `Early Finish Bonus: 1 credit per ${(typeof efficiencySecondsPerCoin === 'function') ? efficiencySecondsPerCoin() : 10} seconds left on the clock.`],
       () => `Flow pays at each level-up instead: ${creditsTxt(SURVIVAL_LEVEL_COINS)} for the clear, more for score over the {GOAL}, and interest.`,
       'The Contributions view on the same screen breaks the round down by what earned it.',
     ] },
@@ -378,12 +377,17 @@ const INFO_TOPICS = [
       'A round\'s goal is set by its slot. The review\'s goal is fixed when the schedule is drawn.',
       () => `Clearing a round offers a pick of three. Weights per offer: ${typeof GUIDED_PICK_WEIGHTS !== 'undefined' ? `{trick} ${GUIDED_PICK_WEIGHTS.trick}, {sleight} ${GUIDED_PICK_WEIGHTS.sleight}, {knack} ${GUIDED_PICK_WEIGHTS.knack}, event ${GUIDED_PICK_WEIGHTS.event}` : ''}. A priority account pays ${gridName('reward', { a: true })} instead; a one-on-one pays an improvement you pick. An audit pays its challenge cards\u2019 rewards and nothing more.`,
     ] },
+  { id: 'seeds', group: 'modes', title: 'Seeds',
+    body: [
+      'Every run plays on a seed. The end of run screen shows it, with COPY.',
+      'To play a seed, turn SEED on at the foot of the run screen and type it. The same seed deals the same opening board, bosses and reward grids. What you play changes the rest.',
+    ] },
   { id: 'mode_protocols', group: 'modes', title: 'Protocols',
     body: [
       () => `Flow and the Schedule are played under a protocol, chosen on the run screen: ${PROTOCOLS.map(p => p.name).join(', ')}. A protocol changes a few rules. The mode stays the same.`,
       'Difficulty belongs to the protocol. A win in Flow or the Schedule unlocks the next tier of that protocol for both.',
       'Winning a run of Dexterous, Precision, Limitless, Hyperfocus or Past Capacity unlocks its Knack (Ambidextrous, Measure Twice, Growth Mindset, ADHD, Curio), which can then be offered in any other run (ADHD in Hyperfocus too).',
-      'Standard and Turbo are open from the start. Dexterous, Precision, Limitless and Hyperfocus each open with a won run of the one before, in Flow or the Schedule.',
+      'Standard, Turbo and Crunch are open from the start. Crunch is the Schedule\'s only. Dexterous, Precision, Limitless and Hyperfocus each open with a won run of the one before, in Flow or the Schedule.',
     ] },
   { id: 'mode_dexterous', group: 'modes', title: 'Dexterous',
     body: [
@@ -413,6 +417,11 @@ const INFO_TOPICS = [
       'A protocol of Flow and the Schedule, open from the start.',
       'Flow: the quarter\'s clock starts at half, and every reward comes twice.',
       () => `The Schedule: one obligation a slot. Each review unlocks at ${TURBO.reviewNeed} bookings in its two lanes.`,
+    ] },
+  { id: 'mode_crunch', group: 'modes', title: 'Crunch',
+    body: [
+      'A protocol of the Schedule.',
+      () => crunchSay(),
     ] },
   { id: 'mode_flow', group: 'modes', title: 'Flow',
     body: [

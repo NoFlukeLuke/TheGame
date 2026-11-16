@@ -205,7 +205,7 @@ const INSIGHTS = [
 
   { id: 'payout', screen: 'any', title: 'What the round paid',
     anchor: ['#po-valued'],
-    body: 'Interest on your credits, the Early Finish Bonus, and unused swaps and discards.',
+    body: () => 'Interest on your credits and the Early Finish Bonus.' + ((typeof unspentPays === 'function' && !unspentPays()) ? '' : ' Unused swaps and discards pay too.'),
     when: () => !!document.querySelector('#po-valued.show') },
 
   { id: 'limit_break', screen: 'any', title: 'The first pick is free',

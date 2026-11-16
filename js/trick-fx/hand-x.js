@@ -34,7 +34,7 @@ fxDefine('blackjack_bonus', { xOrder: 110, handX: x => {
   const total = x.cards.reduce((s, c) => { const v = c.rank === 'A' ? 11 : ['J', 'Q', 'K'].includes(c.rank) ? 10 : parseInt(c.rank); return s + (isNaN(v) ? 0 : v); }, 0);
   return total === 21 ? { pipX: BAL.blackjack_bonus.pip_mult } : null;
 } });
-fxDefine('perfect_storm',   { xOrder: 120, handX: x => x.hand === 'Straight Flush' ? { pipX: BAL.perfect_storm.pip_mult } : null });
+fxDefine('perfect_storm',   { xOrder: 120, handX: x => (x.hand === 'Straight Flush' || (x.hand === 'Straight' && x.layers && x.layers.includes('Flush'))) ? { pipX: BAL.perfect_storm.pip_mult } : null });
 fxDefine('extinction',      { xOrder: 130, handX: x => x.hand === 'Four of a Kind' ? { multX: BAL.extinction.mult_mult } : null });
 // Deep Breath: while the clock is paused.
 fxDefine('deep_breath',     { xOrder: 140, handX: () => clockPausedForHand() ? { pipX: BAL.deep_breath.pip_mult } : null });

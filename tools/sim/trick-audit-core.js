@@ -37,6 +37,7 @@ const AUD_PRIMES = ['A', '2', '3', '5', '7'];
 function AUD_init(cfg) {
   AUD.cfg = cfg;
   ACTIVE_MODE = MODES.flow;
+  if (typeof seedAuto !== "undefined") seedAuto = false;
   startGame();
   level = cfg.level;
   survivalBossesBeaten = cfg.quarter - 1;          // QRL reads the quarter from this in Flow

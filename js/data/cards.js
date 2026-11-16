@@ -374,7 +374,8 @@ const ROUND_DURATION = 180;
 // player was ending runs drowning in credits, and this paid in every mode). r546
 // halves it again, 10 -> 20 (owner: Classic paid too much; Flow does not use it).
 // (r722: Time and a Half no longer touches this; it pays late hands, js/money.js.)
-const EFFICIENCY_SECONDS_PER_COIN = 20;
+// r799 (owner): 20 -> 15.
+const EFFICIENCY_SECONDS_PER_COIN = 15;
 // Every reader goes through this, never the raw constant, so the knack reaches
 // the payout figure, the printed labels, the count-up tick and Survival at once.
 function efficiencySecondsPerCoin() {
@@ -393,7 +394,11 @@ function efficiencySecondsPerCoin() {
 // 16 -> 10 and capped INTEREST as well. The cap is what does the work late: the
 // rate alone is linear in a stock that grows all run, so at 12 held actions the
 // pre-r304 line paid 36 and this one pays 10.
+// r799 (owner): the Schedule pays no Unspent line. Its leftover swaps and discards are
+// the pick's free rerolls (r797), so paying them too counted them twice.
+function unspentPays() { return !(typeof mapActive === 'function' && mapActive()); }
 function unspentPayout(actions) {
+  if (!unspentPays()) return 0;
   const R = _payoutRes();
   const rate = R.unspent_credits != null ? R.unspent_credits : 2;
   return _payoutCapped(Math.max(0, actions) * rate, R.unspent_cap);

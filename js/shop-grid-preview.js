@@ -241,23 +241,23 @@ function shopgDrawCats(prev) {
 // a payload with `_span: 2` covers two cells and counts twice against n. ──
 function shopgKnackPayloads(n) {
   const owned = new Set(acquiredKnacks.map(t => t.id));
-  return shuffle(KNACK_POOL.filter(t => knackOfferable(t) && !owned.has(t.id))).slice(0, n)
-    .map(k => ({ entity:'knack', label:k.name, desc:k.desc, emoji:k.emoji, rarity:k.rarity || 'common',
-                 price: shopRaised(SHOP_KNACK_PRICE, 'knack'), buy: () => { acquiredKnacks.push({ ...k }); updateKnackList?.(); } }));
+  const mk = k => ({ entity:'knack', label:k.name, desc:k.desc, emoji:k.emoji, rarity:k.rarity || 'common',
+                 price: shopRaised(SHOP_KNACK_PRICE, 'knack'), buy: () => { acquiredKnacks.push({ ...k }); updateKnackList?.(); } });
+  return ownedOfferSwap('knack', shuffle(KNACK_POOL.filter(t => knackOfferable(t) && !owned.has(t.id))).slice(0, n).map(mk), mk);   // r799: Old Tricks
 }
 function shopgTrickPayloads(n) {
   const owned = new Set(acquiredTricks.map(b => b.id));
   const bb = (typeof buybackPayload === 'function') ? buybackPayload() : null;   // r722: Buyback takes the first shelf
-  const out = shuffle(TRICK_POOL.filter(b => !owned.has(b.id) && !(bb && b.id === buybackItem.id))).slice(0, bb ? n - 1 : n)
-    .map(t => ({ entity:'trick', label:shownEntityName(t, 'trick'), desc:t.desc, emoji:trickEmoji(t), rarity:t.tier || 'common', tier:t.tier || 'common',
-                 price: shopRaised(SHOP_TRICK_PRICES[t.tier] || 8), buy: () => injectTrickAfterReward(t) }));
+  const mk = t => ({ entity:'trick', label:shownEntityName(t, 'trick'), desc:t.desc, emoji:trickEmoji(t), rarity:t.tier || 'common', tier:t.tier || 'common',
+                 price: shopRaised(SHOP_TRICK_PRICES[t.tier] || 8), buy: () => injectTrickAfterReward(t) });
+  const out = ownedOfferSwap('trick', shuffle(TRICK_POOL.filter(b => !owned.has(b.id) && !(bb && b.id === buybackItem.id))).slice(0, bb ? n - 1 : n).map(mk), mk);   // r799: Old Tricks
   return bb && n > 0 ? [bb, ...out] : out;
 }
 function shopgSleightPayloads(n) {
-  return pickSleightByRarity(n, _grantedSleightSet())
-    .map(s => ({ entity:'sleight', label:s.name, desc:s.desc, emoji:s.emoji || '🃏',
+  const mk = s => ({ entity:'sleight', label:s.name, desc:s.desc, emoji:s.emoji || '🃏',
                  uses: s.durability === 'infinite' ? '∞' : `${s.durability}×`, rarity:s.rarity || 'common',
-                 price: shopRaised(SHOP_SLEIGHT_PRICES[s.rarity] || 12), buy: () => grantSleight(s) }));
+                 price: shopRaised(SHOP_SLEIGHT_PRICES[s.rarity] || 12), buy: () => grantSleight(s) });
+  return ownedOfferSwap('sleight', pickSleightByRarity(n, _grantedSleightSet()).map(mk), mk);   // r799: Old Tricks
 }
 function shopgLimitPayloads(n) {
   // `reroll` is excluded: shop rerolls are rationed by leftover swaps now, so

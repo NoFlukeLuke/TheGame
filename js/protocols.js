@@ -49,7 +49,18 @@ const PROTOCOLS = [
   // r792 (owner): Turbo, a shorter run. Open from the start.
   { id: 'turbo', name: 'Turbo', accent: '#7cf0a0', flag: 'turbo', open: true, short: 'A shorter run. More rewards in Flow.',
     say: { flow: () => turboSay('flow'), map: () => turboSay('map') } },
+  // r799 (owner): Crunch, the Schedule on one clock (js/crunch-mode.js reads the flag).
+  // `bases` limits a protocol to the modes listed: the Schedule only.
+  { id: 'crunch', name: 'Crunch', accent: '#e8734a', flag: 'crunch', open: true, bases: ['map'], short: 'One clock for the whole quarter.',
+    say: { map: () => crunchSay() } },
 ];
+// The protocols a mode offers (a row with `bases` is offered only there).
+function protocolsFor(base) { return PROTOCOLS.filter(p => !p.bases || p.bases.includes(base)); }
+function protocolFits(id, base) { const p = PROTOCOLS.find(x => x.id === id); return !!p && (!p.bases || p.bases.includes(base)); }
+function crunchSay() {
+  const f = n => formatTime(n), c = CRUNCH_TILE_COST;
+  return `One clock for the quarter: ${f(CRUNCH_ACT_SECONDS)}. It does not refill between rounds. A shop or a reward costs ${c.shop}s, an event or a raise ${c.event}s. Clearing a round in under ${f(CRUNCH_PAR_SECONDS)} pays credits. The review is fought on what is left. A new quarter adds ${f(Math.round(CRUNCH_ACT_SECONDS * CRUNCH_CARRY_FRACTION))}, up to ${f(CRUNCH_ACT_SECONDS)}.`;
+}
 // r749 (owner): each protocol opens with a won run of the one before it, in this
 // order. A win in Flow or the Schedule counts for both (protoWon). An `open`
 // protocol is outside the chain. r777: a row's `need` is a hidden condition of its
@@ -69,7 +80,7 @@ function activeProtocol() { return (typeof ACTIVE_MODE !== 'undefined' && ACTIVE
 function protocolMode(baseId, protoId) {
   const base = MODES[baseId] || MODES.flow;
   const p = protocolDef(protoId);
-  if (p.id === 'standard') return base;
+  if (p.id === 'standard' || (p.bases && !p.bases.includes(base.id))) return base;
   const m = { ...base, protocol: p.id, name: `${base.name} · ${p.name}`, noWalkthrough: true };
   if (p.flag) m[p.flag] = true;
   if (p.mode) Object.assign(m, p.mode);
@@ -109,7 +120,7 @@ function protoUnlockAll() { try { localStorage.setItem(PROTO_WIN_KEY, JSON.strin
 // The last protocol chosen for each base ({ flow: 'precision' }), overrides only.
 const PROTO_PICK_KEY = 'lethe.protocol.v1';
 function _protoPicks() { try { return JSON.parse(localStorage.getItem(PROTO_PICK_KEY) || '{}') || {}; } catch (e) { return {}; } }
-function protoLastPick(base) { const id = _protoPicks()[base]; return PROTOCOLS.some(p => p.id === id) && protoUnlocked(id) ? id : 'standard'; }
+function protoLastPick(base) { const id = _protoPicks()[base]; return protocolFits(id, base) && protoUnlocked(id) ? id : 'standard'; }
 function protoSavePick(base, id) {
   const all = _protoPicks();
   if (id === 'standard') delete all[base]; else all[base] = id;
@@ -139,7 +150,7 @@ function protoPaint() {
   if (!body || !foot) return;
   const base = _protoBase, sel = protocolDef(_protoSel), selOpen = protoUnlocked(sel.id);
   body.innerHTML = `<div class="pk-q">Which protocol?</div>` +
-    `<div class="pk-opts">` + PROTOCOLS.map(p => {
+    `<div class="pk-opts">` + protocolsFor(_protoBase).map(p => {
       const lv = difficultySetting(protoKey(p.id)), open = protoUnlocked(p.id);
       return `<button class="pk-opt${p.id === sel.id ? ' on' : ''}${open ? '' : ' pk-locked'}" data-opt="${p.id}" style="--pa:${p.accent}">` +
         `<div class="pk-opt-head"><span class="pk-opt-name">${p.name}</span><span class="pk-opt-tag">${open ? difficultyDollars(lv) : '\u{1F512}'}</span></div>` +
@@ -175,8 +186,9 @@ function protoClose() {
   if (ov) { ov.classList.remove('show'); ov.classList.remove('pk-proto'); }
   const title = document.getElementById('picker-title'); if (title) title.textContent = 'BUILD A MODE';
 }
-function protoStart(baseId, protoId) {
+function protoStart(baseId, protoId, seed) {
   ACTIVE_MODE = protocolMode(baseId, protoId);
+  if (seed !== undefined && typeof setPendingRunSeed === 'function') setPendingRunSeed(seed || null);
   document.getElementById('main-menu-overlay')?.classList.remove('show');
   document.getElementById('mode-select-overlay')?.classList.remove('show');
   startGame();

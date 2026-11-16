@@ -4,14 +4,14 @@
 // Two steps (r797). One visit opens an event's FILE: Builds -> EVENTS shows its name
 // and what it does (eventSeen). EVENT_KNOW_NEED (5) visits REVEAL it (eventKnown):
 // from then on the Schedule's line and the pick of three's event tile name it. Until
-// then both read plain EVENT, with no count. REWARDS_MEMBER_NEED (15) revealed events
+// then both read plain EVENT, with no count. REWARDS_MEMBER_NEED (10) revealed events
 // unlock the Rewards Member Knack.
 //
 // One store, `lethe.eventVisits.v1` { id: opens }. `eventVisitNote(id)` is the one
 // writer (openEvent, guidedOpenNamedEvent); tours and test drives do not count.
 const EVENT_VISIT_KEY     = 'lethe.eventVisits.v1';
 const EVENT_KNOW_NEED     = 5;
-const REWARDS_MEMBER_NEED = 15;
+const REWARDS_MEMBER_NEED = 10;   // r799 (owner): was 15
 // Rewards Member: events `mult` times as common in rewards; on the Schedule and in
 // Flow, `grid`% of ordinary Balance Sheets carry a Next: Event tile.
 const REWARDS_MEMBER = { mult: 3, grid: 50 };
