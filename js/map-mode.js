@@ -1540,7 +1540,33 @@ function mapCloseScreen() {
 
 // The owner's transition: everything falls out the bottom, THEN the grid snaps
 // back to play size and the round deals in behind the 3-2-1.
+// r794 (owner): a REVEAL. A mystery booked, or the hidden review, does not print a
+// notice: the schedule deals out, and one command line in the middle of the glass
+// types what it was ("> IT WAS: PRIORITY ACCOUNT", an event by its own name). It
+// holds MAP_REVEAL_HOLD after typing (a tap ends the typing, a second the hold),
+// then the screen closes as usual. Set by mapConfirm, read once by mapFallOutAndClose.
+let _mapReveal = null;
+const MAP_REVEAL_HOLD = 1300;
+function mapRevealPlay(rv) {
+  const term = document.querySelector('#grid .map-term');
+  if (!term) return Promise.resolve();
+  const line = document.createElement('div');
+  line.className = 'map-reveal';
+  line.innerHTML = `<span class="mrv-text">&gt; ${rv.label}:<br><b class="${rv.cls}">${rv.name}</b></span>`;
+  term.appendChild(line);
+  const ctl = {};
+  let holdEnd = null;
+  const tap = (e) => { e.stopPropagation(); if (ctl.finishTyping) ctl.finishTyping(); else if (holdEnd) holdEnd(); };
+  line.addEventListener('pointerdown', tap);
+  try { sfxPrintLine?.(); } catch (e) {}
+  return bsType(line.querySelector('.mrv-text'), ctl).then(() => {
+    try { sfxRewardTaken?.(); } catch (e) {}
+    line.classList.add('mrv-done');
+    return new Promise(res => { const t = setTimeout(res, MAP_REVEAL_HOLD); holdEnd = () => { clearTimeout(t); res(); }; });
+  });
+}
 function mapFallOutAndClose(next) {
+  const rv = _mapReveal; _mapReveal = null;
   const gridEl = document.getElementById('grid');
   const tiles = gridEl ? [...gridEl.querySelectorAll('.map-tile')] : [];
   document.getElementById('map-bar')?.classList.remove('show');
@@ -1549,10 +1575,17 @@ function mapFallOutAndClose(next) {
     { opacity: 0, transform: 'translateY(420px)' },
   ], { duration: 360, delay: (tiles.length - i) * 18, easing: 'cubic-bezier(.5,0,.9,.4)', fill: 'forwards' }));
   try { sfxCardDiscard?.(); } catch (e) {}
-  Promise.all(anims.map(a => a.finished)).catch(() => {}).then(() => {
-    mapCloseScreen();
-    next();
-  });
+  // With a reveal the rest of the screen goes too (the times, the slot rules, the toolbar).
+  if (rv) document.getElementById('map-bar')?.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 220, fill: 'forwards' });
+  if (rv && gridEl) [...gridEl.querySelectorAll('.mtm-list > :not(.map-tile):not(.mtm-reviews)')].forEach((el, i) => el.animate(
+    [{ opacity: 1, transform: 'translateY(0)' }, { opacity: 0, transform: 'translateY(420px)' }],
+    { duration: 360, delay: i * 14, easing: 'cubic-bezier(.5,0,.9,.4)', fill: 'forwards' }));
+  Promise.all(anims.map(a => a.finished)).catch(() => {})
+    .then(() => rv ? mapRevealPlay(rv) : null)
+    .then(() => {
+      mapCloseScreen();
+      next();
+    });
 }
 
 // ══════════════════════════════════════════════
@@ -1574,8 +1607,11 @@ function mapConfirm() {
   // Mystery reveals AT COMMIT - that is the gamble it is.
   if (t.mystery && !t.revealed) {
     t.revealed = true;
-    showMessage(`It was: ${mapTileFace(t).name}`, 'var(--gold)');
-  }
+    const f = mapTileFace(t);
+    const nm = (t.kind === 'event' && t.eventName) ? t.eventName : (f.full || f.name);
+    _mapReveal = { label: 'IT WAS', name: String(nm).toUpperCase(), cls: f.cls };
+    noteMessage(`It was: ${nm}`);
+  } else _mapReveal = null;
 
   // Skip payout: leaving a set after exactly one visit. Checked BEFORE the
   // position moves. THE STEP INTO THE REVIEW PAYS IT TOO (r293): the funnel
@@ -1635,7 +1671,7 @@ function mapConfirm() {
     case 'boss':
       // r702: the review you booked is the one you face (takeActBoss hands it over).
       if (t.presetId && typeof actBossId !== 'undefined' && (t.slot !== 'a' || !actBossId)) actBossId = t.presetId;
-      if (t.hidden) { const hp = mapBossPreset(t); if (hp) showMessage(`The review: ${hp.name}`, 'var(--gold)'); }
+      if (t.hidden) { const hp = mapBossPreset(t); if (hp) { _mapReveal = { label: 'THE REVIEW', name: hp.name.toUpperCase(), cls: 'mk-boss' }; noteMessage(`The review: ${hp.name}`); } }
       mapBossArmed = true;
       nodeInAct = 5; updateActProgressUI?.();
       if (typeof bossesEnabled !== 'function' || bossesEnabled()) forceBossNextRound = true;

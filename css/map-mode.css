@@ -406,3 +406,21 @@ body.map-keys :is(#btn-play, #btn-discard, #swap-indicator).mapk-on .mapk-ico { 
 #map-legend.ml-narrow .ml-chip { flex: 0 0 auto; width: 18px; height: 18px; font-size: 13px; }
 #map-legend.ml-narrow .ml-chip .mk-svg { width: 11px; height: 11px; }
 #map-legend.ml-narrow .ml-row b { flex: 0 0 auto; width: 100%; font-size: 12px; }
+
+/* r794: the reveal. One command line in the middle of the glass, the list gone. */
+#grid .map-term .map-reveal {
+  position: absolute; inset: 0; z-index: 6; display: flex; align-items: center; justify-content: center;
+  padding: 0 8%; text-align: center; font-size: 26px; line-height: 1.15; color: var(--am-hi);
+  cursor: var(--cur-pointer, pointer);
+}
+#stage:not(.landscape) #grid .map-term .map-reveal { font-size: 21px; }
+#grid .map-term .map-reveal b { font-weight: normal; font-size: 1.25em; color: var(--rc, var(--am-hi)); text-shadow: 0 0 8px var(--rc, rgba(255,176,46,.6)); }
+#grid .map-term .map-reveal b.mk-level     { --rc: #94ecb0; }
+#grid .map-term .map-reveal b.mk-challenge { --rc: #ff7656; }
+#grid .map-term .map-reveal b.mk-audit     { --rc: #ff8fb8; }
+#grid .map-term .map-reveal b.mk-mini      { --rc: #cde37e; }
+#grid .map-term .map-reveal b.mk-reward    { --rc: #a4c6ff; }
+#grid .map-term .map-reveal b.mk-event     { --rc: #d6a8ff; }
+#grid .map-term .map-reveal b.mk-boss      { --rc: #ff5c5c; }
+#grid .map-term .map-reveal.mrv-done b { animation: mrvFlash .5s steps(2) 2; }
+@keyframes mrvFlash { 50% { opacity: .35; } }

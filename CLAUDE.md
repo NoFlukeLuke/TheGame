@@ -5276,3 +5276,13 @@ row moved out from under the finger, so the tap never became a click. Tiles and 
 description through `mapTileTap`. Measured by touch at 420x900, 375x667 and 390x844 over whole
 quarters: every review tap landed (before: the left one failed from the first booking on); mouse hover
 at 1440x820 unchanged.
+
+## r794 - a mystery is revealed on the glass, not printed (owner)
+Booking a mystery tile (or the hidden review) no longer prints "It was: ..." / "The review: ...". mapConfirm
+sets `_mapReveal` ({ label, name, cls }); `mapFallOutAndClose` reads it once: the tiles, the times, the slot
+rules and the toolbar fall out, then `mapRevealPlay` types one line in the middle of the glass ("> IT WAS:" over
+the name in its kind's colour; an event by its own name, a challenge by its full name) through `bsType` at the
+game's text speed, with `sfxPrintLine` and `sfxRewardTaken`, holds `MAP_REVEAL_HOLD` (1300ms) and the screen
+closes as before. A tap ends the typing, a second the hold. The notice drawer still keeps the line (`noteMessage`).
+Measured at 1440x820 (click) and 420x900 (tap): an event mystery read LUCKY DICE and opened the event, a priority
+mystery read PRIORITY ACCOUNT and dealt the round; no page errors.

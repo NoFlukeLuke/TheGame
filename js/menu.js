@@ -1,4 +1,4 @@
-const BUILD = "2026-11-16 · r793 · Schedule: tapping a review on a phone";
+const BUILD = "2026-11-16 · r794 · Schedule: a mystery is revealed on the glass";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
