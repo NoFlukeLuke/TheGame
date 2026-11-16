@@ -569,7 +569,7 @@ function renderInfoHub() {
   const nav  = document.getElementById('info-nav');
   if (!body) return;
   const q = infoHubQuery;
-  const shown = INFO_TOPICS.filter(t => !t.dev && infoHubMatch(t, q));   // r796: dev-only modes are not listed
+  const shown = INFO_TOPICS.filter(t => !t.dev && infoHubMatch(t, q));   // r797: dev-only modes are not listed
 
   if (nav) {
     // Only groups that still have something in them, so a search never leaves a

@@ -1,7 +1,7 @@
 // ══════════════════════════════════════════════
 // EVENT FILES (r795, owner)
 // ══════════════════════════════════════════════
-// Two steps (r796). One visit opens an event's FILE: Builds -> EVENTS shows its name
+// Two steps (r797). One visit opens an event's FILE: Builds -> EVENTS shows its name
 // and what it does (eventSeen). EVENT_KNOW_NEED (5) visits REVEAL it (eventKnown):
 // from then on the Schedule's line and the pick of three's event tile name it. Until
 // then both read plain EVENT, with no count. REWARDS_MEMBER_NEED (15) revealed events

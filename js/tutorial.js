@@ -426,7 +426,7 @@ const TUTORIAL_STEPS = [
   },
   {
     // r284 taught a cap AND a floor; r385 removed the floor.
-    // r796: the size shows as squares on the PLAY key (stock squares on); else the count beside the board.
+    // r797: the size shows as squares on the PLAY key (stock squares on); else the count beside the board.
     id: 'selection', anchor: () => tutStockSquares() ? tutEl('#btn-play') : tutEls('#sel-count', '#sel-display', '#hand-name'), side: 'left',
     hold: true, next: true,
     when: () => tutRoundLive(),
@@ -622,7 +622,7 @@ const TUTORIAL_STEPS = [
     eyebrow: 'Rewards',
     title: 'Take your pick',
     // r441: Flow's rerolls are the two keys, free up to the stock the round ended with.
-    // r796: the same keys in Flow and on the Schedule.
+    // r797: the same keys in Flow and on the Schedule.
     body: `Tap an offer, then press <b>CONFIRM</b>.<br><br>The other two keys reroll. Swaps and discards left from the round make rerolls free.`,
     until: () => !tutPickOpen(),
   },

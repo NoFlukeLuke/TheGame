@@ -337,7 +337,7 @@ function gridPickPaintSelection() {
 // up, PLAY is CONFIRM and DISCARD is SKIP - the shop's BUY/LEAVE takeover shape:
 // markup saved, restored on close, render() kept off them (its _takeover guard).
 let _gpBtnSaved = null;
-// r796: the Schedule's pick of three wears the same keys (a pick opened with `split`), so
+// r797: the Schedule's pick of three wears the same keys (a pick opened with `split`), so
 // both modes read CONFIRM / REROLL OPTIONS / REROLL REWARD TYPE and Skip is a tile.
 function gpSplit() { return !!gridPickState && (!!gridPickState.split || (typeof flowSplitRerolls === 'function' && flowSplitRerolls())); }
 function gpSplitTiles() {

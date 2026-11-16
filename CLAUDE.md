@@ -5327,7 +5327,22 @@ Next: Event (0 without) and taking it by tap opened the event and returned to th
 Flow and Schedule walkthroughs ran end to end with no page errors. Golden: 834 cases match.
 Not shipped in the walkthrough yet: the shop and Balance Sheet steps still run only in Classic.
 
-## r796 - one set of pick keys; event files in two steps; the tips and handbook pass (owner)
+## r796 - Flow's event step is revealed on the board; the text blip (owner)
+- **The reveal** (`revealEventOnBoard(id)`, js/reveal-line.js, loads after js/board-screen.js): Flow's
+  `event` chain step passes `reveal` to `openEvent` (`opts.reveal(id)` runs after the event is picked
+  and resolves to a cleanup run once the event is shown). What #grid holds falls out of its box
+  (fill forwards, cancelled in the cleanup so the board under the event is whole), the board screen's
+  glass comes up (`boardScreenOpen`, cls `rv-screen`), a block cursor blinks `REVEAL_CFG.beats` (3) times
+  of `beat` (520ms), then "> EVENT:" types over the event's name (lilac, its own line) and holds `hold`
+  (1100ms). A tap skips the beats, ends the typing, then the hold. The drawer keeps "Event: NAME".
+- **The text blip** (`sfxTypeTick(k)`, js/audio.js; catalog `type_tick`, Board; mixer `detail` 0.8, gap
+  20ms): a dry bandpassed key click over a 32ms square blip whose pitch steps through a pentatonic set
+  per character. `bsType` plays it per non-space character when the controller has `typeSound: true`;
+  the Flow reveal and the Schedule's mystery reveal (r794, which no longer plays the printer line) set it.
+Measured at 1440x820 and 420x900 in Flow (a chain armed with event then tricks): the cursor blinked
+~1.5s, the line typed THEME DRAFT / CLEAN UP with 17 / 14 blips, the event opened, Skip moved the chain
+to its Tricks step with three offers and no board element left hidden; no page errors.
+## r797 - one set of pick keys; event files in two steps; the tips and handbook pass (owner)
 - **The pick's keys are the same in Flow and on the Schedule** (js/grid-pick.js, js/guided-mode.js):
   PLAY is CONFIRM, DISCARD is REROLL OPTIONS, SWAP is REROLL REWARD TYPE, Skip is a tile. A pick
   opened with `split: { onType }` wears Flow's split keys outside Flow (`gpSplit()`, `gpSplitTiles`,

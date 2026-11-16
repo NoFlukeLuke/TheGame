@@ -33,6 +33,7 @@ const SFX_CATALOG = [
     note: 'The riffle that plays as a hand leaves the board.' },
   { id: 'no_swaps',      fn: 'sfxNoSwaps',         group: 'Board',   label: 'Action refused' },
   { id: 'key_click',     fn: 'sfxKeyClick',        group: 'Board',   label: 'Button press', args: ['down'] },
+  { id: 'type_tick',     fn: 'sfxTypeTick',        group: 'Board',   label: 'Text blip', args: [0] },
   { id: 'key_release',   fn: 'sfxKeyClick',        group: 'Board',   label: 'Button release', args: ['up'], variantOf: 'key_click' },
   { id: 'print_line',    fn: 'sfxPrintLine',       group: 'Board',   label: 'Notice printing', args: [240] },
   { id: 'print_feed',    fn: 'sfxPrintFeed',       group: 'Board',   label: 'Notice paper feed' },

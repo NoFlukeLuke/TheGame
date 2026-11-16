@@ -153,11 +153,21 @@ function openEvent(afterFn, opts) {
   recentEventIds.push(activeEventId);
   if (recentEventIds.length > EVENT_NO_REPEAT) recentEventIds.shift();
   if (typeof evmScheduled === 'function') activeEventId = evmScheduled(activeEventId);
-  if (typeof eventVisitNote === 'function') eventVisitNote(activeEventId);   // r795: event files
-  if (typeof moneyOnEvent === 'function') moneyOnEvent();   // r722: Excursion Fund
-  eventState = {};
-  renderEventShell(activeEventId);
-  evShow();
+  const show = () => {
+    if (typeof eventVisitNote === 'function') eventVisitNote(activeEventId);   // r795: event files
+    if (typeof moneyOnEvent === 'function') moneyOnEvent();   // r722: Excursion Fund
+    eventState = {};
+    renderEventShell(activeEventId);
+    evShow();
+  };
+  // r795: `opts.reveal(id)` plays first (Flow's event step names the event on the
+  // board) and resolves to a cleanup run once the event is up.
+  if (opts && typeof opts.reveal === 'function') {
+    const id = activeEventId;
+    Promise.resolve(opts.reveal(id)).catch(() => null).then(done => { if (activeEventId !== id) return; show(); if (typeof done === 'function') done(); });
+    return;
+  }
+  show();
 }
 
 function closeEvent() {

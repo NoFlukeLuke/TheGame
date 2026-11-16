@@ -668,7 +668,7 @@ function guidedPickActions(redraw) {
   ];
 }
 
-// r796: REROLL REWARD TYPE on the Schedule's pick. The screen becomes one kind (Tricks,
+// r797: REROLL REWARD TYPE on the Schedule's pick. The screen becomes one kind (Tricks,
 // Sleights, Knacks, an improvement) or the pick of three again; no Limits (the Raise
 // obligation sells those). Weights follow the pick's own type table.
 const GUIDED_TYPE_W = { pick3: 40, tricks: 60, sleights: 25, knacks: 15, improve: 10 };
@@ -719,7 +719,7 @@ function guidedOpenPickThree(done, _rerolled) {
   if (!mk.length) { done(); return; }
 
   pickRerollsNewScreen();   // the PRICE ladder restarts on a new pick; the POOL carries
-  // r796: the free rerolls are the swaps and discards the round ended with, as in Flow.
+  // r797: the free rerolls are the swaps and discards the round ended with, as in Flow.
   // Not for a pick an event opens: that one spends what the round's pick left.
   if (!_rerolled && typeof flowRrSnapshot === 'function' && !activeEventId && !(typeof flowActive === 'function' && flowActive())) flowRrSnapshot();
 
