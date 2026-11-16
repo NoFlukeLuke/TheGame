@@ -273,10 +273,10 @@ function sleightChargeSpent(card) {
       const pool = shuffle(_gridSleightsBelowCap(null));
       let got = 0; const names = [];
       pool.slice(0, BAL.trickle_charge.two ? 2 : 1).forEach(cd => { const g = _chargeGive(cd, BAL.trickle_charge.amount); if (g) { got += g; names.push(sleightDef(cd)?.name); } });
-      if (got) noteMessage(`🔌 Trickle Charge: ${names.join(' and ')} +${got} charge${got > 1 ? 's' : ''}`, '#6aaa6a');
+      if (got) knackNotice('trickle_charge', `${knackName('trickle_charge')}: ${names.join(' and ')} +${got} charge${got > 1 ? 's' : ''}`);
     }
     if (hasKnack('perpetual_motion') && BAL.perpetual_motion.spend && Math.random() < BAL.perpetual_motion.spend && _chargeGive(card, 1))
-      noteMessage(`🔄 Perpetual Motion: ${sleightDef(card)?.name || 'Sleight'} +1 charge`, '#6aaa6a');
+      knackNotice('perpetual_motion', `${knackName('perpetual_motion')}: ${sleightDef(card)?.name || 'Sleight'} +1 charge`);
   } finally { _chargeBackBusy = false; }
 }
 // Perpetual Motion: each replay (playHand, the hand's replay count) or, from its
@@ -289,7 +289,7 @@ function perpetualMotionRoll(times) {
     if (!cd || !cd._isSleight || sleightDef(cd)?.activation !== 'passive') continue;
     for (let i = 0; i < times; i++) if (luckRoll(BAL.perpetual_motion.chance) > 0) got += _chargeGive(cd, BAL.perpetual_motion.amount);
   }
-  if (got) noteMessage(`🔄 Perpetual Motion: +${got} charge${got > 1 ? 's' : ''}`, '#6aaa6a');
+  if (got) knackNotice('perpetual_motion', `${knackName('perpetual_motion')}: +${got} charge${got > 1 ? 's' : ''}`);
 }
 function perpetualMotionOnTime() { if (BAL.perpetual_motion && BAL.perpetual_motion.time) perpetualMotionRoll(1); }
 

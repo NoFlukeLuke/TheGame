@@ -358,6 +358,7 @@ function playHand() {
     let _rw = 0;
     // COUNTABLE: each replay rolls, and past 100% one replay can pay twice.
     for (let i = 0; i < _lastHandRetrigs; i++) _rw += luckRoll(BAL.replay_rewind.chance) * BAL.replay_rewind.seconds;
+    if (_rw > 0) if (typeof entityPing === 'function') entityPing('knack', 'replay_rewind');
     if (_rw > 0) rewindTime(_rw, `🔂 ${knackName('replay_rewind')} - rewound ${_rw}s`);
   }
   // Vulture: retrigger-aware pause-seconds from buffed cards in this hand (same fresh snapshot).
@@ -568,6 +569,7 @@ function playHand() {
       for (let k = 0; k < reps; k++) if (Math.random() < _p) _hits++;
     });
     if (_hits) {
+      if (typeof entityPing === 'function') entityPing('trick', 'buried_treasure');
       const _before = coins;
       let _after = coins; for (let k = 0; k < _hits; k++) _after = Math.max(_after + 1, Math.round(_after * _bt.credit_mult));
       if (trickFires('buried_treasure')) grantEntityCoins(_after - _before, 'trick', 'buried_treasure');
@@ -1139,7 +1141,8 @@ function scalingCount(hand, handCells, reps) {
       const t = lineSlotTrick(b, 'suggestive'); if (!t) return;
       const ch = (b._extra || b._fixed) ? BAL.suggestive.chance2 : BAL.suggestive.chance;
       let n = 0; for (let k = 0; k < x.n; k++) n += luckRoll(ch);
-      if (n > 0 && primeTrick(t, n, { src: 'suggestive' })) noteMessage(`+ ${trickNameOf('suggestive')} primed ${t.name}`, '#cf8cff');
+      if (n > 0 && primeTrick(t, n, { src: 'suggestive' })) { if (typeof entityPing === 'function') entityPing('trick', 'suggestive'); }
+      if (n > 0) noteMessage(`+ ${trickNameOf('suggestive')} primed ${t.name}`, '#cf8cff');
     });
   }
   // Separation Anxiety (r651 knack): a fused Trick that fired this hand has `chance` of priming the Tricks beside it.
@@ -1147,7 +1150,7 @@ function scalingCount(hand, handCells, reps) {
     if (!t || !t.fused || !_trickFiredThisHand.has(t.id)) return;
     const n = luckRoll(BAL.separation_anxiety.chance); if (!n) return;
     [trickTray[i - 1], trickTray[i + 1]].forEach(nb => { if (nb) primeTrick(nb, n, { src: 'separation_anxiety' }); });
-    noteMessage(`Separation Anxiety primed beside ${t.name}`, '#ff5a5a');
+    knackNotice('separation_anxiety', `${knackName('separation_anxiety')} primed beside ${t.name}`);
   });
   // Coin and the Sword (r646): the credits half. credit_chance per card in its line, once per
   // replay, of credits equal to the hand size (the mult half is rolled in calcScore).
@@ -1156,6 +1159,7 @@ function scalingCount(hand, handCells, reps) {
     for (const x of _cells) { const k = markedLineKind(x.r, x.c, 'coin_sword'); if (!k) continue;
       const ch = k === 'main' ? BAL.coin_sword.credit_chance : BAL_BASE.coin_sword.credit_chance;
       for (let i = 0; i < x.n; i++) if (luckRoll(ch) > 0) paid += handCells.length; }
+    if (paid > 0) if (typeof entityPing === 'function') entityPing('trick', 'coin_sword');
     if (paid > 0) { coins += paid; noteMessage(`¢ Coin and the Sword +${paid} credits`, '#d4a017'); if (typeof updateCoinsUI === 'function') updateCoinsUI(); }
   }
   // Relentless (r367): spades scored since you took it. Counts only while owned.

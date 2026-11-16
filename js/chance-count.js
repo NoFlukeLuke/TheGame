@@ -50,6 +50,8 @@ function chanceCountPaint() {
       _ccHold = { counts: Object.assign({}, _lastHandProcs), until: Infinity };
       // r781 (owner): a chance Trick that went off says so on its chip.
       if (typeof entityPing === 'function') CHANCE_TRICK_IDS.forEach(id => { if (_lastHandProcs[id] > 0 && typeof hasTrick === 'function' && hasTrick(id)) entityPing('trick', id); });
+      // r783: Knack rolls (kn:) and chance Tricks with no payout of their own (ch:) that landed in calcScore.
+      if (typeof entityPing === 'function') Object.keys(_lastHandProcs).forEach(k => { if (k.startsWith('kn:')) entityPing('knack', k.slice(3)); else if (k.startsWith('ch:')) entityPing('trick', k.slice(3)); });
       chanceCountPaint();
     }
     return out;

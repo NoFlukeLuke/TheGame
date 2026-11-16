@@ -687,6 +687,7 @@ function _generateRewardContent() {
     // r748: Dexterous / Ambidextrous weigh Sleight tiles up on the Balance Sheet too.
     { const _dx = (typeof dexSleightOfferMult === 'function') ? dexSleightOfferMult() : 1; if (_dx !== 1) cats = cats.map(c => c.kind === 'sleight' ? { ...c, weight: c.weight * _dx } : c); }
     { const _lm = (typeof limitOfferMult === 'function') ? limitOfferMult() : 1; if (_lm !== 1) cats = cats.map(c => c.kind === 'limit_up' ? { ...c, weight: c.weight * _lm } : c); }   // r750: Growth Mindset
+    { const _cm = (typeof cardOfferMult === 'function') ? cardOfferMult() : 1; if (_cm !== 1) cats = cats.map(c => c.kind === 'blessed' ? { ...c, weight: c.weight * _cm } : c); }   // r783: Undersight protocol
     const cat = weightedPick(cats);
     switch (cat.kind) {
       case 'trick':      return makeTrickPayload();

@@ -124,6 +124,21 @@ function eligibleEventIds(ids) {
   return ok.length ? ok : list;
 }
 
+// One event from `ids`. Even, unless a protocol weighs some up (eventOfferWeight, js/protocols.js).
+function evWeightedPick(ids) {
+  if (!ids || !ids.length) return null;
+  const w = id => (typeof eventOfferWeight === 'function') ? eventOfferWeight(id) : 1;
+  let roll = Math.random() * ids.reduce((s, id) => s + w(id), 0);
+  for (const id of ids) { roll -= w(id); if (roll <= 0) return id; }
+  return ids[ids.length - 1];
+}
+// The ids in a weighted random order (the Schedule's event pool).
+function evWeightedOrder(ids) {
+  const left = ids.slice(), out = [];
+  while (left.length) { const id = evWeightedPick(left); out.push(id); left.splice(left.indexOf(id), 1); }
+  return out;
+}
+
 // opts.exclude: ids this caller cannot host (Flow's chain, r706: events that take the board).
 function openEvent(afterFn, opts) {
   if (typeof rsScreen === 'function') rsScreen('event');   // r755: run stats
@@ -134,7 +149,7 @@ function openEvent(afterFn, opts) {
   const usable = eligibleEventIds(pool);
   const fresh = usable.filter(id => !recentEventIds.includes(id));
   const draw  = fresh.length ? fresh : usable;
-  activeEventId = draw[Math.floor(Math.random() * draw.length)];
+  activeEventId = evWeightedPick(draw);
   recentEventIds.push(activeEventId);
   if (recentEventIds.length > EVENT_NO_REPEAT) recentEventIds.shift();
   if (typeof evmScheduled === 'function') activeEventId = evmScheduled(activeEventId);

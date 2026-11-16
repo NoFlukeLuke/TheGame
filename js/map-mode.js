@@ -706,8 +706,8 @@ function _mapBuildOnce(opener, bosses) {
   // Events that can do something, only (js/events-core.js) - a map tile is one of
   // twelve free slots and a dead event spends one of them.
   const evPool = (typeof EVENT_META !== 'undefined')
-    ? _mapShuffle((typeof eligibleEventIds === 'function')
-        ? eligibleEventIds(Object.keys(EVENT_META)) : Object.keys(EVENT_META).slice())
+    ? evWeightedOrder(_mapShuffle((typeof eligibleEventIds === 'function')
+        ? eligibleEventIds(Object.keys(EVENT_META)) : Object.keys(EVENT_META).slice()))   // r783: a protocol may weigh events
     : [];
   let ei = 0;
   const evUsed = new Set(), auditShare = (typeof deptAuditShare === 'function') ? deptAuditShare(MAP_AUDIT_SHARE) : MAP_AUDIT_SHARE;

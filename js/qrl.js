@@ -40,8 +40,15 @@ function qrlEndlessOff() {
 }
 // The one number. Infinity when QRL does not apply, or the run is in Endless.
 function qrlLimit() { return (qrlOn() && !qrlEndlessOff() && !qrlLifted()) ? qrlQuarter() : Infinity; }
-// Undersight (Trick, r781): removes every quarter limit while it is held.
-function qrlLifted() { return typeof hasTrick === 'function' && typeof trickTray !== 'undefined' && hasTrick('undersight'); }
+// Undersight (a Knack since r783): removes every quarter limit while it is held.
+function qrlLifted() { return typeof hasKnack === 'function' && typeof acquiredKnacks !== 'undefined' && hasKnack('undersight'); }
+// r783 (owner): Undersight, and its protocol, open once a QRL notice has printed
+// UNDERSIGHT_NEED times, ever (the unlock counters; never printed anywhere).
+const UNDERSIGHT_NEED = 20;
+function undersightEarned() {
+  const s = (typeof unlockStore !== 'undefined' && unlockStore && unlockStore.s) || {};
+  return (s.qrlnotice || 0) >= UNDERSIGHT_NEED;
+}
 // Dev switch (r781, owner undecided): forced triggers of one Trick in one hand are limited to the quarter's number too.
 let qrlForceCap = (() => { try { return localStorage.getItem('lethe.qrlForce.v1') === '1'; } catch (e) { return false; } })();
 function qrlForceCapOn() { return qrlForceCap; }
@@ -101,5 +108,9 @@ function qrlNotice(kind) {
   const key = level + ':' + kind;
   if (_qrlSaid[kind] === key) return;
   _qrlSaid[kind] = key;
+  if (typeof ulBump === 'function') {
+    const was = undersightEarned(); ulBump('qrlnotice', 1);
+    if (!was && undersightEarned() && typeof showMessage === 'function') setTimeout(() => showMessage('UNLOCKED: Undersight · Knack and protocol', 'var(--gold)', { svgIcon: 'unlock', icon: '\u{1F513}' }), 900);
+  }
   if (typeof showMessage === 'function') showMessage(QRL_TEXT[kind](), 'var(--gold)');
 }

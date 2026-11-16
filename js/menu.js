@@ -1,4 +1,4 @@
-const BUILD = "2026-11-15 · r782 · golden baseline for r781; primes go off on the first trigger; forced triggers uncapped; trigger sounds, 8 pairs; Undersight; Standing Order";
+const BUILD = "2026-11-16 · r783 · Undersight is a Knack and a protocol; one console run screen; chance bursts on every chance Knack";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
@@ -296,7 +296,8 @@ const MODE_SELECT_LIST = [...modeChainWithSiblings(), ...MODE_FINALE_GROUP, ...M
 // `guided` and `spectrum` (r380): dev panel -> Modes, and Spectrum is still
 // Custom's colour deck. (Survival's mode entry went in r417, Six Suits' in r416;
 // the Survival ENGINE stays because Flow runs on it.)
-const MODE_HIDDEN_LIST = ['match3', 'zen', 'crunch', 'guided', 'spectrum', 'climb'];
+// r783 (owner): Classic, Custom, Stacked and Poker Squares too. The run screen offers Flow and the Schedule only.
+const MODE_HIDDEN_LIST = ['normal', 'picker', 'stacks', 'squares', 'match3', 'zen', 'crunch', 'guided', 'spectrum', 'climb'];
 const MODE_META = {
   normal:   { accent: 'var(--c-yellow)', suits: '♠ ♥ ♦ ♣',
               blurb: `Four suits. Four quarters, each five rounds and then a review. Reach each round's goal before the clock runs out. Between rounds you pick a path on the ${gridName('reward')}, and some paths lead to the shop or an event.` },
@@ -305,7 +306,7 @@ const MODE_META = {
   // the hidden list, with nothing to rewrite.
   crunch:   { accent: '#e8734a',         suits: '13:00 · ONE CLOCK',
               blurb: 'The schedule, played on one clock for the whole quarter. Rounds use it up as you play, and every obligation that is not a round costs a flat amount of time. The review is played on what is left. At zero the run ends.' },
-  map:      { accent: '#6fd08c',         suits: '4 × 6 + BOSS',
+  map:      { accent: '#6fd08c',         suits: '4 × 4 + REVIEW',
               blurb: `Each quarter is a schedule: four time slots, top to bottom, then a review. Every obligation you book happens: a round, a shop, ${gridName('reward', { a: true })}, an event and more. Up to two obligations per slot. Leaving a slot after one earns R&R: a perk. Clearing a round offers a pick of three.` },
   guided:   { accent: '#c9a0ff',         suits: '8 SLOTS',
               blurb: `Each quarter is eight slots and then a review. Before each slot you choose from four offers: a round, a hard round, the shop, ${gridName('reward', { a: true })}, a pick of three or an event. Rounds are free. Most other offers cost credits. The goal rises with every slot.` },
@@ -367,6 +368,7 @@ function chooseMode(id) {
 }
 
 function renderModeSelect() {
+  if (typeof runSelectRender === 'function') { runSelectRender(); return; }   // r783: the console run screen (js/run-select.js)
   const car = document.getElementById('mode-carousel');
   if (!car) return;
   car.innerHTML = '';

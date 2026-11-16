@@ -201,7 +201,7 @@ function knockOnLimit(id) {
   const say = `🔗 Knock-On: ${limitDeltaText(pick.id, 1)} ${pick.label}`;
   _knockOnBusy = true;
   try { incrementLimit(pick.id); } finally { _knockOnBusy = false; }
-  showMessage(say, 'var(--gold)');
+  knackNotice('knock_on', say);
 }
 // Helper: decrement a limit by its step (for sacrifice), returns true if
 // successful. Floors at the limit's own `min`, not at 0 - see the LIMITS_DEF note.
@@ -349,7 +349,7 @@ function knackBossGrowRoll() {
     if (!hasKnack(g.id) || Math.random() * 100 >= KNACK_BOSS_GROW_PCT) return;
     knackBossGrowth[g.id] = (knackBossGrowth[g.id] || 0) + 1;
     const k = KNACK_POOL.find(x => x.id === g.id);
-    showMessage(`${k ? k.name : g.id}: +1 ${g.say}`, 'var(--gold)');
+    knackNotice(g.id, `${k ? k.name : g.id}: +1 ${g.say}`);
   });
   if (hasKnack('curator') && typeof renderTrickTray === 'function') renderTrickTray();
 }

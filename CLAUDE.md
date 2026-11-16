@@ -265,8 +265,9 @@ stacks fire on the next firing and are then cleared; `_rank` is permanent. Force
 
 ## Modes
 
-Carousel: Flow, Schedule, Classic, Custom, Stacked (r730), Poker Squares. Hidden (dev panel -> Hidden
-Modes): Guided, Spectrum, Crunch, Match-3, Zen. Dominoes (r411), `tetris`/`autoplay` and the
+The run screen offers Flow and the Schedule only (r783). **Every new mode is built as a PROTOCOL of
+those two (js/protocols.js), never as its own card.** Off the run screen (dev panel -> Modes,
+`MODE_HIDDEN_LIST`): Classic, Custom, Stacked, Poker Squares, Guided, Spectrum, Crunch, Match-3, Zen, Climb. Dominoes (r411), `tetris`/`autoplay` and the
 20-minute game clock (r427), Six Suits and
 Orientation (the other r416) and the Survival mode entry (r417) were removed; **Flow runs on the Survival engine** (`js/survival.js`,
 `survivalActive()` is true for Flow), so that file and its flag stay. Every mode's first run is a seeded walkthrough (`tutorialArmForRun`, filtered
@@ -5133,3 +5134,41 @@ forcing twice, Encore replaying its first card twice, Standing Order, Undersight
 goal hand: no timeline drift, no page errors. Primes launched 75 / 46 / 26ms apart. Every pair's two sounds
 and the variants built without an error. The golden baseline is rewritten in r782 (a new Trick moves the
 harness's seeds; with Undersight held out only `tray36`, which has a forced trigger, differed).
+
+## r783 - Undersight is a Knack and a protocol; the run screen; chance bursts everywhere (owner)
+- **Undersight** is an epic **Knack** (id `undersight`; the r781 Trick row, its category entry and its
+  unlock row are gone). `qrlLifted()` reads `hasKnack('undersight')`. **Locked until a QRL notice has
+  printed 20 times, ever**: `qrlNotice` bumps the unlock counter `qrlnotice` (`ulBump`, so tours and test
+  drives do not count) and `undersightEarned()` (js/qrl.js, `UNDERSIGHT_NEED`) is asked by
+  `knackOfferable` and `survivalEntityBanned` (`undersightBanned()`: not earned, or inside its own
+  protocol). The condition is never printed; the moment it is met prints "UNLOCKED: Undersight".
+- **Undersight protocol** (`PROTOCOLS` row `undersight`, `open` + `need: undersightEarned`, in Flow and the
+  Schedule): starts with the Undersight and Overachiever (`yoked`) Knacks (`mode.startKnacks`). Card
+  rewards and card events are `UNDERSIGHT_PROTO.cards` (3) times as common: `cardOfferMult()` on Flow's
+  chain `cards` and `deck` odds, the Balance Sheet's `blessed` tiles and the shop's Cards shelf;
+  `eventOfferWeight(id)` (3 for `UNDERSIGHT_EVENTS`) through **`evWeightedPick(ids)`** in `openEvent` and
+  `evWeightedOrder` for the Schedule's event pool (js/events-core.js). Its own difficulty key
+  (`proto:undersight`); no protocol Knack. Measured: card events 32% of draws plain, 57% under it;
+  Flow's cards / deck weights 3 -> 6.4 each after the Tricks share.
+- **The run screen** (`js/run-select.js`, `css/run-select.css`): one amber console screen in place of the
+  mode carousel AND the protocol screen. It draws into `#mode-select-inner` under
+  `#mode-select-overlay.rs-console`: MODE (Flow / The Schedule as `[x]` boxes with their blurbs), PROTOCOL
+  (every protocol; a locked one reads `[#]`), the protocol's rules in a double box, DIFFICULTY (the same
+  `modeDiffHTML` / `modeDiffBind`), BACK / HANDBOOK / START RUN. `renderModeSelect` and `protoOpen` both
+  hand over to it (`runSelectRender`, `runSelectOpen(base)`); the last mode started is kept in
+  `lethe.runBase.v1` (stored only for the Schedule). `.rs-screen` is a size container: on a short glass
+  (the office monitor is about 600 x 425 at 1440x820) everything is a size down and protocol blurbs hide.
+  `MODE_FINALE_GROUP` and `MODE_EXTRA_LIST` are empty; Classic, Custom, Stacked and Poker Squares joined
+  `MODE_HIDDEN_LIST` and start from dev -> Modes. The old card builders stay for the fallback only.
+- **Chance bursts** (r781's `entityPing` / `knackNotice`) now cover every chance Knack: Swap Shop, Harvest,
+  Curator (the boss growth roll), Knock-On, Time Slip, eeruh eeruh, Separation Anxiety, Trickle Charge,
+  Perpetual Motion, Deluxe Subscription, and from inside calcScore Wait For Iiiit, High Roller's roll
+  (not its guaranteed part) and the 4x4 Knack's force: calcScore leaves `_procs['kn:<knack id>']` (or
+  `'ch:<trick id>'` for a chance Trick with no payout of its own: Insurance Policy) and the playHand wrap
+  in js/chance-count.js pings them. Chance Tricks that go off outside the scoring sequence ping at their
+  site: Second Hand, Hourglass, Suggestive, Coin and the Sword's credits, Buried Treasure.
+Measured in headless Chromium at 1440x820 and 420x900 by real clicks: the run screen with seven
+protocols, no name clipped; Undersight read "Locked." and START refused; 20 notices set the counter to
+20, the Knack became offerable and the protocol opened; a Schedule run under it started with both
+Knacks and `qrlLimit()` Infinity; two bursts drawn from two pings; no page errors. Golden: with the
+old Trick row put back all 838 cases match (its removal moves the harness's seeds; baseline in r784).

@@ -184,7 +184,7 @@ const DEV_GROUPS = [
   { g:'cardanim', icon:'🂠', label:'Card Animations', sub:() => `${CARD_ANIM_KINDS.length} movements · mock board and previews` },
   { g:'flow',     icon:'▶', label:'Flow',          sub:() => devModeSub('flow') },
   { g:'map',      icon:'▶', label:'Schedule',      sub:() => devModeSub('map') },
-  { g:'modes',    icon:'▶', label:'Modes',         sub:() => 'Classic · Custom · Climb · Poker Squares · ' + MODE_HIDDEN_LIST.length + ' hidden' },
+  { g:'modes',    icon:'▶', label:'Modes',         sub:() => MODE_HIDDEN_LIST.length + ' modes off the run screen' },
   { g:'tools',    icon:'✎', label:'Tools',         sub:() => 'save · run seed · tips · builds archive · event log' },
 ];
 function devModeSub(id) {
@@ -405,8 +405,8 @@ function devRenderModes() {
     `<div class="dev-note">Unlocks: ${done} finished · ${seen} played</div>` +
     `<button class="dev-btn" onclick="devUnlockAllModes()">Unlock every mode</button>` +
     `<button class="dev-btn" onclick="devResetModeProgress(); devRenderModes();">Reset unlocks + first runs</button>` +
-    MODE_HIDDEN_LIST.filter(id => MODES[id]).map(id =>
-      `<div class="dev-hidden-mode"><button class="dev-btn" onclick="devStartMode('${id}')">Start ${MODES[id].name || id}</button>${_devDeckChips(id)}</div>`
+    MODE_HIDDEN_LIST.filter(id => MODES[id] || id === 'picker').map(id =>
+      `<div class="dev-hidden-mode"><button class="dev-btn" onclick="devStartMode('${id}')">Start ${modeDisplayName(id)}</button>${id === 'picker' ? '' : _devDeckChips(id)}</div>`
     ).join('');
 }
 
@@ -421,6 +421,7 @@ function devStartMode(id) {
   document.getElementById('main-menu-overlay')?.classList.remove('show');
   document.getElementById('mode-select-overlay')?.classList.remove('show');
   if (id === 'picker') { openPickerMode(); return; }   // Custom opens its question screen
+  if (id === 'stacks' && typeof stkOpenStart === 'function') { stkOpenStart(); return; }
   chooseMode(id);
 }
 

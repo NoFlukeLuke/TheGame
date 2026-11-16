@@ -630,10 +630,10 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     // High Roller: guaranteed floor + one deterministic roll on the remainder.
     // Hash offset 3301 keeps its stream distinct from Wait For Iiiit's on the
     // same card in the same hand.
-    let _hr = 0;
+    let _hr = 0, _hrHit = false;
     if (_hrChance > 0) {
       _hr = Math.floor(_hrChance);
-      if (_detReplayRand((card._id || 0) + 3301, handsPlayedRound) < _hrChance - _hr) _hr++;
+      if (_detReplayRand((card._id || 0) + 3301, handsPlayedRound) < _hrChance - _hr) { _hr++; _hrHit = true; }
     }
     // Every replay SOURCE on this card and what it gives. QRL (r484): only the
     // `qrlLimit()` biggest sources pay; a cut source is switched off here so the
@@ -662,6 +662,8 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
       if (_cutIds.has('3c')) _3c = false;   if (_cutIds.has('rule')) _rule = 0;   if (_cutIds.has('ins')) _ins = 0;
       _qrlReplayCut = true;
     }
+    // r783: chance rolls that landed, for the chip's burst after the hand (js/chance-count.js). `kn:` = a Knack.
+    if (!_G) { if (_wfi > 0) _procs['kn:wait_for_it'] = 1; if (_hr > 0 && _hrHit) _procs['kn:high_roller'] = 1; if (_ins > 0) _procs['ch:insurance_policy'] = 1; }
     // r781 (owner): a primed replay Trick replays its card that many more times: one prime on a
     // 3-replay Trick is 3 more. The first card it replays (every card with Standing Order).
     if (!_G && _primeAny) _srcs.forEach(x => {
@@ -1405,7 +1407,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
       const cd = cellCard(cl);
       if (!cd || !rkFourByFourRanks().includes(cd.rank)) return;
       const _reps = retrigByKey[cellKey(cl)] || 1, _cid = cd._id || 0;
-      for (let k = 0; k < _reps; k++) if (_detReplayRand(_cid + 4441 + k * 7919, handsPlayedRound) < BAL.four_by_four.chance) _forceIds.push(_ft);
+      for (let k = 0; k < _reps; k++) if (_detReplayRand(_cid + 4441 + k * 7919, handsPlayedRound) < BAL.four_by_four.chance) { _forceIds.push(_ft); _procs['kn:four_by_four'] = 1; }
     });
   }
   // Obligatory (r646, owner): each card scored in its marked line has `chance` (its

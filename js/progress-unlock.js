@@ -30,12 +30,12 @@ function modeChainWithSiblings() {
 // Everything else opens AT ONCE when the chain is done, and is drawn as a
 // single stacked card until then - one locked object to work toward rather
 // than four identical padlocks.
-const MODE_FINALE_GROUP = ['normal', 'picker'];  // r380: Spectrum hidden
+const MODE_FINALE_GROUP = [];   // r783 (owner): Flow and the Schedule only; the rest start from dev -> Modes  // r380: Spectrum hidden
 
 // Appended AFTER the finale group and NOT gated. `modeUnlocked` already answers
 // true for anything in neither list, so a mode here is playable from a cold
 // install - which is what "add it to the end and unlock it" asks for.
-const MODE_EXTRA_LIST = ['stacks', 'squares'];   // r776: Past Capacity is a protocol (js/protocols.js)   // r741: Stacked   // r566: Climb moved to the hidden list (owner)
+const MODE_EXTRA_LIST = [];   // r783: emptied (see MODE_HIDDEN_LIST, js/menu.js)   // r776: Past Capacity is a protocol (js/protocols.js)   // r741: Stacked   // r566: Climb moved to the hidden list (owner)
 
 // The id the carousel uses for the stack itself. Not a mode; never reaches MODES.
 const MODE_STACK_ID = '__stack__';
@@ -131,7 +131,7 @@ function modeUnlockedBy(id) {
 function modeSelectList() {
   return finaleUnlocked()
     ? [...modeChainWithSiblings(), ...MODE_FINALE_GROUP, ...MODE_EXTRA_LIST]
-    : [...modeChainWithSiblings(), MODE_STACK_ID, ...MODE_EXTRA_LIST];
+    : [...modeChainWithSiblings(), ...(MODE_FINALE_GROUP.length ? [MODE_STACK_ID] : []), ...MODE_EXTRA_LIST];
 }
 
 // ── Dev ─────────────────────────────────────────────────────────────────────

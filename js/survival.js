@@ -252,6 +252,7 @@ function survivalEntityBanned(id) {
   // r748: a protocol's Knack is locked until a run of that protocol is won, and is
   // never offered inside its own protocol (it would change nothing; js/protocols.js).
   if (typeof protoKnackBanned === 'function' && protoKnackBanned(id)) return true;
+  if (id === 'undersight' && typeof undersightBanned === 'function' && undersightBanned()) return true;   // r783
   // r727: Free Swaps / Free Discards do nothing at a difficulty where they cost no time.
   if (typeof difficultyOfferBanned === 'function' && difficultyOfferBanned(id)) return true;
   // r741: Stacked has no Focus, no draw pile and no fall; untimed, no clock (js/stack-mode.js).

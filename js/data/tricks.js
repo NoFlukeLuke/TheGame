@@ -175,7 +175,6 @@ const TRICK_POOL = [
   { id:'sixes_perm',     name:'D6',                  tier:'epic',      tags:['deck','pips','mult','card','scaling','scores','chance'], desc:'Every 6th card scored permanently gains a random +1–6 pips or mult' },
   { id:'fours_perm',     name:'Middle Management',   tier:'common',    tags:['deck','pips','card','size','scaling','scores'], desc:'4-card hands permanently give the 4th card +8 pips' },
   { id:'twos_retrigger', name:'Double Take',         tier:'rare',      tags:['retrigger','card','rank','tricks'], desc:'Each 2 scored force triggers your rightmost Trick (other than this one)' },
-  { id:'undersight',     name:'Undersight',          tier:'epic',      tags:['limit','other'], desc:'Removes all QRLs.' },   // r781 (owner)
   { id:'prime_times',    name:'Prime Times',         tier:'rare',      tags:['retrigger','card','rank','tricks'], desc:'Scoring prime-ranked cards (A,2,3,5,7) primes your leftmost Trick' },
   { id:'eights_retrigger', name:'Sideways Infinity', tier:'rare',   tags:['replay','card','rank','scores'], desc:'Each scored 8 replays once for each other 8 in the hand' },
   { id:'queens_upgrade', name:'Royal Favour',        tier:'epic',      tags:['deck','card','rank','position','clock','scaling','cost'], desc:"Scoring a card adjacent to a Queen permanently increases that card's rank (after it scores). Queens are automatically discarded after they've been on the grid for 30 seconds" },
@@ -284,7 +283,7 @@ const TRICK_CATEGORIES = [
   { emoji:'🏦', ids:['four_oh_one'] },
   { emoji:'🧮', ids:['middle_man','interest','portfolio','compound_mult','acorns','plan_ahead','more_better','fives_discard','nines_mult','tens_mult','sixes_perm','fours_perm','twos_retrigger','prime_times','eights_retrigger','queens_upgrade','aces_absorb','monopoly'] }, // Accumulating
   { emoji:'🎲', ids:['sands_of_time','discard_pips','spade_flood','mirror','wild_side','wait_for_it'] }, // Situational pip
-  { emoji:'🔀', ids:['combo_score','move_as_one','undersight'] }, // Diverse conditions
+  { emoji:'🔀', ids:['combo_score','move_as_one'] }, // Diverse conditions
   { emoji:'🎯', ids:['study_hall','meditation','tunnel_vision','first_wind','rhythm','cull','expanse','kaleidoscope','flow_state','hyper_focus','overclock','release_valve','life_lessons','wellspring'] }, // Focus
   { emoji:'⭐', ids:['heartwood'] }, // Legendary misc
   { emoji:'💎', ids:['obsessed','buried_treasure','relentless','patient_rulers','even_better','what_odds','critical','twinners','marathon','feelin_lucky'] }, // r359 multipliers

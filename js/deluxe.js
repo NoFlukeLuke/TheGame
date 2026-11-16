@@ -25,6 +25,7 @@ function deluxeRoll(id) {
 function deluxeNote(x) {
   if (!x || !x.id || !deluxeKind(x.id)) return;
   const n = deluxeRoll(x.id);
+  if (n > 0) if (typeof entityPing === 'function') entityPing('knack', 'deluxe_subscription');
   if (n > 0) deluxeOffers[x.id] = Math.min(IMPROVE_MAX_TIER, entityTierOf(x.id) + n);
   else delete deluxeOffers[x.id];
 }

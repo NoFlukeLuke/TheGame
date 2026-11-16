@@ -1,0 +1,87 @@
+/* ══ THE RUN SCREEN (r783) - js/run-select.js ═══════════════════════════════
+   The board screens' amber glass (css/board-screen.css) at menu size: mode,
+   protocol and difficulty on one page. Sizes are plain px: the overlay sits on
+   the CRT, outside the stage zoom. */
+#mode-select-overlay.rs-console { background: #050704; padding: 10px; }
+#mode-select-overlay.rs-console #mode-select-inner { max-width: 860px; height: 100%; gap: 0; align-items: stretch; }
+.rs-screen {
+  --am: #ffb02e; --am-hi: #ffd98a; --am-dim: #9a6f2a; --am-ink: #0a0d06;
+  box-sizing: border-box; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column;
+  border-radius: 8px; border: 1px solid #000;
+  background: radial-gradient(ellipse at center, #17240f 0%, #0a0d06 82%);
+  box-shadow: inset 0 0 24px rgba(0,0,0,.8), inset 0 0 0 1px rgba(76,107,47,.46), inset 0 0 0 3px rgba(0,0,0,.55), inset 0 0 0 4px rgba(76,107,47,.24);
+  font-family: 'VT323 Local', 'VT323', monospace; color: var(--am); text-shadow: 0 0 6px rgba(255,176,46,.5);
+  container-type: size;
+}
+.rs-screen button { font: inherit; color: inherit; text-shadow: inherit; background: transparent; cursor: var(--cur-pointer, pointer); }
+.rs-head { flex: 0 0 auto; padding: 10px 14px 4px; font-size: 26px; line-height: 1; letter-spacing: 2px; color: var(--am-hi); }
+.rs-cur { display: inline-block; width: .5em; height: .9em; margin-left: 4px; vertical-align: -0.08em; background: currentColor; box-shadow: 0 0 6px currentColor; animation: bsBlink 1.06s steps(1) infinite; }
+.rs-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 6px 14px 8px; display: flex; flex-direction: column; gap: 12px; }
+.rs-sec { position: relative; border: 1px solid var(--am-dim); border-radius: 2px; padding: 12px 8px 8px; }
+.rs-label { position: absolute; left: 8px; top: -9px; padding: 0 5px; font-size: 16px; line-height: 1; letter-spacing: 2px; color: var(--am-hi); background: #0e150a; }
+.rs-modes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.rs-protos { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.rs-mode, .rs-proto {
+  box-sizing: border-box; min-width: 0; text-align: left; padding: 6px 8px; border: 1px solid var(--am-dim); border-radius: 2px;
+  display: grid; grid-template-columns: 1fr auto; column-gap: 8px; align-items: baseline;
+}
+.rs-mode > b, .rs-proto > b { font-weight: normal; font-size: 21px; line-height: 1.05; letter-spacing: 1px; color: var(--am-hi); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rs-proto > b { font-size: 18px; }
+.rs-mode > i, .rs-proto > i { font-style: normal; font-size: 15px; letter-spacing: 1px; color: var(--am-dim); white-space: nowrap; }
+.rs-mode > span, .rs-proto > span { grid-column: 1 / -1; font-size: 16px; line-height: 1.08; color: var(--am); opacity: .85; }
+.rs-proto > span { font-size: 15px; }
+@media (hover: hover) { .rs-mode:hover, .rs-proto:hover, .rs-key:hover { background: rgba(255,176,46,.1); border-color: var(--am); } }
+.rs-mode.on, .rs-proto.on { background: var(--am); border-color: var(--am-hi); color: var(--am-ink); text-shadow: none; }
+.rs-mode.on > *, .rs-proto.on > * { color: var(--am-ink); opacity: 1; }
+.rs-locked { opacity: .5; }
+.rs-proto.rs-locked > i { display: none; }
+.rs-locked.on { opacity: .8; }
+.rs-rules { font-size: 18px; line-height: 1.12; padding: 6px 9px; border: 3px double var(--am-dim); }
+.rs-note { font-size: 15px; line-height: 1.1; color: var(--am-dim); text-align: center; margin-top: 4px; }
+#mode-select-overlay.rs-console .rs-diff .mode-card-diff { flex-direction: row; margin: 0; width: 100%; display: flex; align-items: center; gap: 8px; }
+#mode-select-overlay.rs-console .rs-diff .mdf-arrow { background: transparent; color: var(--am); flex: 0 0 auto; width: 34px; height: 30px; border: 1px solid var(--am-dim); border-radius: 2px; font-size: 24px; line-height: 1; }
+.rs-diff .mdf-arrow.mdf-off { opacity: .3; }
+#mode-select-overlay.rs-console .rs-diff .mdf-mid { flex-direction: row; flex: 1 1 auto; min-width: 0; display: flex; align-items: baseline; justify-content: center; gap: 12px; }
+#mode-select-overlay.rs-console .rs-diff .mdf-dollars { font-family: inherit; font-weight: normal; font-size: 24px; letter-spacing: 2px; color: var(--am-hi); line-height: 1; }
+#mode-select-overlay.rs-console .rs-diff .mdf-name { font-family: inherit; color: var(--am); font-size: 18px; letter-spacing: 2px; white-space: nowrap; }
+#mode-select-overlay.rs-console .rs-diff .mode-card-diff-say { font-family: inherit; color: var(--am); font-size: 16px; line-height: 1.1; text-align: center; margin-top: 5px; min-height: 2.2em; }
+.rs-keys { flex: 0 0 auto; display: flex; align-items: center; gap: 8px; padding: 6px 14px 10px; }
+.rs-key { font-size: 20px; letter-spacing: 1px; line-height: 1; padding: 7px 14px 6px; border: 1px solid var(--am-dim); border-radius: 3px; white-space: nowrap; }
+.rs-sum { flex: 1 1 auto; min-width: 0; text-align: center; font-size: 17px; letter-spacing: 1px; color: var(--am-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rs-screen .rs-go { background: var(--am); color: var(--am-ink); text-shadow: none; border-color: var(--am-hi); }
+.rs-screen .rs-go:hover { filter: brightness(1.1); background: var(--am); }
+.rs-screen .rs-go.rs-off { filter: grayscale(1); opacity: .45; }
+@media (max-width: 620px) {
+  #mode-select-overlay.rs-console { padding: 6px; }
+  .rs-head { font-size: 22px; padding: 8px 10px 2px; }
+  .rs-body { padding: 6px 8px; gap: 11px; }
+  .rs-modes { grid-template-columns: 1fr; gap: 6px; }
+  .rs-protos { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .rs-proto > span { display: none; }
+  .rs-mode > span { font-size: 15px; }
+  .rs-rules { font-size: 16px; }
+  .rs-keys { padding: 6px 8px 8px; gap: 6px; }
+  .rs-key { font-size: 18px; padding: 7px 9px 6px; }
+  .rs-sum { display: none; }
+  .rs-keys .rs-go { margin-left: auto; }
+}
+/* A short glass (the office monitor on a desktop is about 600 x 425): everything a size down, no protocol blurbs. */
+@container (max-height: 560px) {
+  .rs-head { font-size: 20px; padding: 7px 12px 2px; }
+  .rs-body { gap: 10px; padding: 6px 12px; }
+  .rs-sec { padding: 9px 6px 6px; }
+  .rs-label { font-size: 14px; }
+  .rs-mode > b { font-size: 18px; }
+  .rs-mode > span { font-size: 14px; line-height: 1.05; }
+  .rs-proto { padding: 4px 6px; }
+  .rs-proto > b { font-size: 16px; }
+  .rs-proto > span { display: none; }
+  .rs-rules { font-size: 15px; padding: 4px 8px; }
+  .rs-note { display: none; }
+  #mode-select-overlay.rs-console .rs-diff .mdf-arrow { width: 28px; height: 24px; font-size: 20px; }
+  #mode-select-overlay.rs-console .rs-diff .mdf-dollars { font-size: 19px; }
+  #mode-select-overlay.rs-console .rs-diff .mdf-name { font-size: 16px; }
+  #mode-select-overlay.rs-console .rs-diff .mode-card-diff-say { font-size: 14px; margin-top: 3px; min-height: 1.1em; }
+  .rs-keys { padding: 4px 12px 8px; }
+  .rs-key { font-size: 17px; padding: 5px 11px 4px; }
+}

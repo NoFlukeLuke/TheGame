@@ -42,6 +42,10 @@ const PROTOCOLS = [
     mode: { wilds: 0, startKnacks: ['short_suit'],
       extraCards: [['J', '♛'], ['J', '♛'], ['J', '♛'], ['Q', '♛'], ['Q', '♛'], ['Q', '♛'], ['K', '♛'], ['K', '♛'],
         ...['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'].map(r => [r, '☾'])] } },
+  // r783 (owner): Undersight. Open once undersightEarned (js/qrl.js); the screen says only LOCKED.
+  { id: 'undersight', name: 'Undersight', accent: '#ff6a52', flag: 'undersight', open: true, need: () => undersightEarned(), short: 'No QRLs. Card buffs are twice as strong.',
+    say: { any: () => `Start with ${knackName('undersight')} and ${knackName('yoked')}. Card rewards and card events are ${UNDERSIGHT_PROTO.cards} times as common.` },
+    mode: { startKnacks: ['undersight', 'yoked'] } },
 ];
 // r749 (owner): each protocol opens with a won run of the one before it, in this
 // order. A win in Flow or the Schedule counts for both (protoWon). An `open`
@@ -112,6 +116,7 @@ function protoSavePick(base, id) {
 // ── The protocol screen (the picker overlay, like Stacked's start screen) ──
 let _protoBase = 'flow', _protoSel = 'standard';
 function protoOpen(baseId) {
+  if (typeof runSelectOpen === 'function') { runSelectOpen(baseId); return; }   // r783: one console screen (js/run-select.js)
   _protoBase = PROTOCOL_BASES.includes(baseId) ? baseId : 'flow';
   _protoSel = protoLastPick(_protoBase);
   document.getElementById('mode-select-overlay')?.classList.remove('show');
@@ -370,6 +375,21 @@ function limitlessSkipCardPay(q) {
 // ══════════════════════════════════════════════
 const HYPERFOCUS = { gain: 2, decay: 3 };
 function hyperfocusOn() { return !!ACTIVE_MODE && ACTIVE_MODE.hyperfocus === true; }
+
+// ══════════════════════════════════════════════
+// UNDERSIGHT (r783, owner): no QRLs (the Undersight Knack, held from the start)
+// and Overachiever (card buffs gained are doubled). Card rewards and the events
+// that buff cards are UNDERSIGHT_PROTO.cards times as common: Flow's chain
+// (cards, deck), the Balance Sheet's card-buff tiles, the shop's card shelves,
+// and every event draw (evWeightedPick, js/events-core.js).
+// ══════════════════════════════════════════════
+const UNDERSIGHT_PROTO = { cards: 3 };
+const UNDERSIGHT_EVENTS = new Set(['forge', 'bench', 'the_floor', 'rewire', 'state_change', 'market', 'plinko', 'pairs', 'confluence']);
+function undersightOn() { return !!ACTIVE_MODE && ACTIVE_MODE.undersight === true; }
+function cardOfferMult() { return undersightOn() ? UNDERSIGHT_PROTO.cards : 1; }
+function eventOfferWeight(id) { return (undersightOn() && UNDERSIGHT_EVENTS.has(id)) ? UNDERSIGHT_PROTO.cards : 1; }
+// The Knack is never offered before it is earned, nor inside its own protocol.
+function undersightBanned() { return !undersightEarned() || undersightOn(); }
 
 // ══════════════════════════════════════════════
 // PROTOCOL KNACKS: winning a run of a protocol unlocks its Knack for every run

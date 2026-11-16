@@ -124,7 +124,6 @@ const TRICK_UNLOCKS = {
   tens_mult:         { s: 'discards', n: 100 },
   twos_retrigger:    { s: 'rank:2', n: 50 },
   prime_times:       { s: 'primes', n: 400 },
-  undersight:        { s: 'bosses', n: 12 },   // r781: the goal is mine, the owner gave none
   eights_retrigger:  { s: 'rank:8', n: 100 },
   sands_of_time:     { s: 'max:secsleft', n: 90 },
   wild_side:         { s: 'runs', n: 4 },

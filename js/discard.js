@@ -392,6 +392,7 @@ function handleClockMarks(secs) {
   // at ~360, an ordinary common, and makes it the Trick that rewinding pays best:
   // any rewind of 10s or more buys a guaranteed extra fire.
   if (secs % 10 === 0 && hasTrick('second_hand')) {
+    if (typeof entityPing === 'function') entityPing('trick', 'second_hand');
     if (Math.random() < 0.5) { pendingHandMult += BAL.second_hand.mult; showMessage(`🕐 Second Hand - next hand +${BAL.second_hand.mult} mult`, '#e8c56b'); }
     else { pendingCardPips += BAL.second_hand.pips; showMessage(`🕐 Second Hand - next hand +${BAL.second_hand.pips} pips`, '#e8c56b'); }
   }
@@ -405,6 +406,7 @@ function handleClockMarks(secs) {
   if (secs % 60 === 0 || (hasTrick('hourglass') && secs % TB('hourglass').interval_seconds === 0)) {
     // COUNTABLE under Luck: past 100% it grants the retrigger to several cards.
     const _hgN = hasTrick('hourglass') && secs % TB('hourglass').interval_seconds === 0 ? luckRoll(TB('hourglass').chance) : 0;   // r625: the mark moves with improvements
+    if (_hgN > 0) if (typeof entityPing === 'function') entityPing('trick', 'hourglass');
     for (let _hg = 0; _hg < _hgN; _hg++) {
       // Grant one permanent retrigger to a random real card currently on the grid
       const spots = [];
@@ -481,6 +483,7 @@ function pauseRound(seconds, srcId, srcSource) {
   // BINARY under Luck: a pause cannot become two rewinds, so anything above
   // 100% is wasted here on purpose. Its tooltip caps the printed figure to match.
   if (hasKnack('time_slip') && luckRoll(BAL.time_slip.chance) > 0) {
+    if (typeof entityPing === 'function') entityPing('knack', 'time_slip');
     rewindTime(seconds, '⏮️ Time Slip - rewound instead of paused!', 'time_slip', 'knack');
     return;
   }
@@ -548,6 +551,7 @@ function startStopwatch(card, r, c) {
       || (typeof overtimeClockMisses === 'function' && overtimeClockMisses())) { showMessage('⏸ MISSED', 'var(--red)'); return; }
   // Time Slip: rewind the seconds this Stopwatch holds, and it is spent.
   if (card._usesLeft !== 'infinite' && hasKnack('time_slip') && luckRoll(BAL.time_slip.chance) > 0) {
+    if (typeof entityPing === 'function') entityPing('knack', 'time_slip');
     rewindTime(stopwatchSecsLeft(card), '⏮️ Time Slip - rewound instead of paused!', 'time_slip', 'knack');
     card._usesLeft = 1; card._chargeSecsUsed = sleightDef(card).secsPerCharge;
     sleightTimedDrain(card, 0);

@@ -61,6 +61,7 @@ const KNACK_POOL = [
   { id:'high_and_mighty', emoji:'👑',  name:'High and Mighty',  rarity:'rare',   desc:'The highest-ranked cards in each scored hand replay once.', tags:['replay','card','scores','rank'] },
   { id:'low_and_behold',  emoji:'🐛',  name:'Low and Behold',   rarity:'rare',   desc:'Any played hand containing the grid’s lowest rank replays the whole hand once.', tags:['replay','hand','scores','rank'] },
   { id:'down_and_back_in',emoji:'🔁',  name:'Down and Back In', rarity:'common', desc:'Discarding a card of the grid’s highest rank grants +2 discards or +2 swaps (alternating) and +5 credits.', tags:['stock','credits','other','discard','rank'] },
+  { id:'undersight',      emoji:'🚫',  name:'Undersight',       rarity:'epic',   desc:'Removes all QRLs.', tags:['limit','other'] },   // r783 (owner): a Knack; locked until 20 QRL notices (undersightEarned, js/qrl.js)
   { id:'standing_order',  emoji:'🔁',  name:'Standing Order',   rarity:'legendary', desc:'Primes go off every time their Trick triggers in the hand, not only the first.', tags:['retrigger','other','tricks'] },   // r781 (owner; working name)
   { id:'muscle_memory',   emoji:'🤝',  name:'Buddy System',     rarity:'common', desc:'Whenever a Trick is primed, a different Trick is primed too.', tags:['retrigger','other','tricks'] },
   { id:'curator',         emoji:'✦',   name:'Curator',          rarity:'rare',   desc:`+1 Trick Slot. After each boss you beat, ${KNACK_BOSS_GROW_PCT}% chance it gives 1 more.`, tags:['limit','other','boss','scaling','chance'] },
@@ -140,7 +141,7 @@ const KNACK_POOL = [
 // r748: a protocol Knack is not offered (nor listed in Builds) while locked.
 // r749: a startOnly Knack (Precision's Attention to Detail) is never offered.
 // r753: a retired Knack is never offered; a saved run keeps it.
-function knackOfferable(k) { return !!k && !k.roleOnly && !k.startOnly && !k.retired && !(typeof protoKnackLocked === 'function' && protoKnackLocked(k.id)); }
+function knackOfferable(k) { return !!k && !k.roleOnly && !k.startOnly && !k.retired && !(typeof protoKnackLocked === 'function' && protoKnackLocked(k.id)) && !(k.id === 'undersight' && typeof undersightEarned === 'function' && !undersightEarned()); }
 // ── SLEIGHT POOL ──
 // Sleights live in the deck as special cards (_isSleight:true). They fall onto the grid,
 // can be swapped/discarded/selected/played like normal cards.
