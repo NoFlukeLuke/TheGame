@@ -153,7 +153,7 @@ function openEvent(afterFn, opts) {
   recentEventIds.push(activeEventId);
   if (recentEventIds.length > EVENT_NO_REPEAT) recentEventIds.shift();
   if (typeof evmScheduled === 'function') activeEventId = evmScheduled(activeEventId);
-  if (typeof eventVisitNote === 'function') eventVisitNote(activeEventId);   // r793: event files
+  if (typeof eventVisitNote === 'function') eventVisitNote(activeEventId);   // r795: event files
   if (typeof moneyOnEvent === 'function') moneyOnEvent();   // r722: Excursion Fund
   eventState = {};
   renderEventShell(activeEventId);

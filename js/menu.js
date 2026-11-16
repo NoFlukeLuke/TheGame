@@ -1,4 +1,4 @@
-const BUILD = "2026-11-16 · r793 · event files, Rewards Member, walkthrough rewrite";
+const BUILD = "2026-11-16 · r795 · event files, Rewards Member, walkthrough rewrite";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

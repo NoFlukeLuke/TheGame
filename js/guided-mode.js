@@ -311,7 +311,7 @@ function guidedOpenNamedEvent(id, afterFn) {
   recentEventIds.push(id);
   if (recentEventIds.length > EVENT_NO_REPEAT) recentEventIds.shift();
   if (typeof evmScheduled === 'function') { activeEventId = evmScheduled(id); id = activeEventId; }
-  if (typeof eventVisitNote === 'function') eventVisitNote(id);   // r793: event files
+  if (typeof eventVisitNote === 'function') eventVisitNote(id);   // r795: event files
   if (typeof moneyOnEvent === 'function') moneyOnEvent();   // r722: Excursion Fund
   eventState = {};
   renderEventShell(id);
@@ -555,7 +555,7 @@ function guidedSettleChallenge() {
 // Rolled INDEPENDENTLY three times, so three Tricks is a legitimate and common
 // outcome and a pick with no Knack in it is the usual one. A reroll runs the
 // same draw, so the weighting applies there for free.
-const GUIDED_PICK_WEIGHTS = { trick: 60, sleight: 25, knack: 15, event: 2 };   // r793: event, 2 in 102
+const GUIDED_PICK_WEIGHTS = { trick: 60, sleight: 25, knack: 15, event: 2 };   // r795: event, 2 in 102
 
 // The three pools, filtered exactly as every other offer path filters them -
 // what you already own is out, and survivalEntityBanned is the single chokepoint
@@ -572,7 +572,7 @@ function guidedPickPools() {
     sleight: SLEIGHT_POOL.filter(s => !gotSl.has(s.id) && !banned(s.id)
                && (typeof sleightOfferable !== 'function' || sleightOfferable(s))),
     knack:   KNACK_POOL.filter(k => knackOfferable(k) && !ownedK.has(k.id) && !banned(k.id)),
-    event:   [],   // r793: filled by guidedPickThreeOffers only (other readers of these pools want entities)
+    event:   [],   // r795: filled by guidedPickThreeOffers only (other readers of these pools want entities)
   };
 }
 
@@ -584,7 +584,7 @@ function guidedPickType(pools) {
   if (!types.length) return null;
   // r748: Dexterous (and Ambidextrous) weigh Sleights up here too (js/dexterous.js).
   const _w = t => GUIDED_PICK_WEIGHTS[t] * (t === 'sleight' && typeof dexSleightOfferMult === 'function' ? dexSleightOfferMult() : 1)
-                * (t === 'event' && typeof eventOfferMult === 'function' ? eventOfferMult() : 1);   // r793: Rewards Member
+                * (t === 'event' && typeof eventOfferMult === 'function' ? eventOfferMult() : 1);   // r795: Rewards Member
   const total = types.reduce((s, t) => s + _w(t), 0);
   let r = Math.random() * total;
   for (const t of types) { r -= _w(t); if (r <= 0) return t; }
@@ -600,7 +600,7 @@ function guidedPickOffer(type, d) {
       tier: d.tier || 'common', rarity: d.tier || 'common',
       apply: () => injectTrickAfterReward(d) };
   }
-  // r793: an event. Taking it opens the event; the pick's `done` runs when it closes.
+  // r795: an event. Taking it opens the event; the pick's `done` runs when it closes.
   if (type === 'event') return { entity:'event', event: d.id, icon: '🎲', emoji: '🎲', label: eventPickName(d.id),
     desc: eventPickDesc(d.id), tier: 'rare', rarity: 'rare' };
   if (type === 'sleight') return { entity:'sleight', icon: d.emoji || '🃏', emoji: d.emoji || '🃏',
@@ -620,7 +620,7 @@ function guidedPickOffer(type, d) {
 // entity even when it rolls the same type three times.
 function guidedPickThreeOffers() {
   const pools = guidedPickPools();
-  const _ev = (typeof eventPickEntry === 'function') ? eventPickEntry(null) : null;   // r793: one event a screen at most
+  const _ev = (typeof eventPickEntry === 'function') ? eventPickEntry(null) : null;   // r795: one event a screen at most
   if (_ev) pools.event = [_ev];
   const out = [];
   // Overtime skipped (r562, js/overtime.js): one of the three is a time entity.
@@ -708,7 +708,7 @@ function guidedOpenPickThree(done) {
     title: 'TAKE ONE', tone: 'reward', offers: mk, actions: guidedPickActions(redraw),
     onChoose: (i, p) => {
       closePanel();
-      if (p.event) { guidedOpenNamedEvent(p.event, done); return; }   // r793
+      if (p.event) { guidedOpenNamedEvent(p.event, done); return; }   // r795
       try { p.apply?.(); } catch (e) {} done();
     },
     onSkip: () => { closePanel(); done(); },

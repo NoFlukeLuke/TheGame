@@ -414,7 +414,7 @@ function _generateRewardContent() {
     { icon: '🏪', label: 'Next: Shop',  tier: 'dest', apply: () => { pendingEventOverride = 'shop'; } },
     { icon: '🎲', label: 'Next: Event', tier: 'dest', apply: () => { pendingEventOverride = 'event'; } },
   ];
-  // r793: Rewards Member makes the Event destination 3 times as likely.
+  // r795: Rewards Member makes the Event destination 3 times as likely.
   const _evDest = destOptions[2];
   for (let i = 1; i < ((typeof eventOfferMult === 'function') ? eventOfferMult() : 1); i++) destOptions.push(_evDest);
 
@@ -834,7 +834,7 @@ function _generateRewardContent() {
     // pendingEventOverride, so a destination tile would cost a pick and do
     // nothing - the exact bug the map clause above documents.
     || (typeof survivalActive === 'function' && survivalActive());
-  // r793: on the Schedule and in Flow a destination did nothing, so there was none. With
+  // r795: on the Schedule and in Flow a destination did nothing, so there was none. With
   // Rewards Member some ordinary grids carry Next: Event there, and the close opens it.
   const _evOnly = NO_DEST && !PRIZE && !MINI && !CALLIT && !penaltyGridActive()
     && !(typeof guidedActive === 'function' && guidedActive())
@@ -2108,7 +2108,7 @@ function closeRewardGrid() {
     // the map - or the post-boss prize grid, which is the run won. One act, so
     // there is no quarter to roll over; mapBossArmed is what tells them apart.
     if (typeof mapActive === 'function' && mapActive()) {
-      const _mapEv = pendingEventOverride === 'event';   // r793: Rewards Member's Next: Event tile
+      const _mapEv = pendingEventOverride === 'event';   // r795: Rewards Member's Next: Event tile
       pendingEventOverride = null;
       // A grid here is one the player LANDED ON - back to the map - or the
       // post-boss PRIZE grid, which closes the quarter (r249). rolloverQuarter
@@ -2166,7 +2166,7 @@ function closeRewardGrid() {
   // continuation is that pick's own tail (survivalChoose) - no goal was cleared, so
   // the level-up must not carry score over or pay the leftover-time credits.
   const finishSurvival = () => {
-    // r793: Rewards Member's Next: Event tile; the event closes back into this tail.
+    // r795: Rewards Member's Next: Event tile; the event closes back into this tail.
     if (pendingEventOverride === 'event') {
       pendingEventOverride = null;
       openEvent(() => finishSurvival(), { exclude: (typeof FLOWR_EVENT_OUT !== 'undefined') ? FLOWR_EVENT_OUT : null });

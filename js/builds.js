@@ -452,7 +452,7 @@ function bvUnlocksHTML() {
       <button class="bv-key bv-drive" id="bv-token" ${left > 0 ? '' : 'disabled'}>SPEND A TOKEN</button>
     </div>`;
 }
-// r793 (owner): EVENT FILES, apart from the catalogue. An event is listed by name with what it
+// r795 (owner): EVENT FILES, apart from the catalogue. An event is listed by name with what it
 // does once it has been opened EVENT_KNOW_NEED times (js/event-files.js); before that it is a
 // count. The Rewards Member line is the Knack the filed count unlocks.
 function bvEventsOpen() {

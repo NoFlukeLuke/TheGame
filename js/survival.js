@@ -74,7 +74,7 @@ function modeHasFrequentRewardGrid() {
 // ratio (GUIDED_PICK_WEIGHTS, r287 - owner's numbers); limits keep roughly the
 // share they had, since the guided table has no limit type at all. Guarantee
 // below overrides droughts.
-const SURVIVAL_PICK_WEIGHTS  = { trick: 53, sleight: 22, knack: 13, limit: 12, event: 2 };   // r793: event, 2 in 102
+const SURVIVAL_PICK_WEIGHTS  = { trick: 53, sleight: 22, knack: 13, limit: 12, event: 2 };   // r795: event, 2 in 102
 // ── The STANDARD REWARD GRID as a pick offer (owner spec) ────────────────────
 // Weighted like a single rare Trick, literally: it is injected into the TRICK
 // pool at tier 'rare', so its chance of showing is exactly one rare Trick's -
@@ -253,7 +253,7 @@ function survivalEntityBanned(id) {
   // never offered inside its own protocol (it would change nothing; js/protocols.js).
   if (typeof protoKnackBanned === 'function' && protoKnackBanned(id)) return true;
   if (id === 'undersight' && typeof undersightBanned === 'function' && undersightBanned()) return true;   // r783
-  if (id === 'rewards_member' && typeof rewardsMemberBanned === 'function' && rewardsMemberBanned()) return true;   // r793
+  if (id === 'rewards_member' && typeof rewardsMemberBanned === 'function' && rewardsMemberBanned()) return true;   // r795
   // r727: Free Swaps / Free Discards do nothing at a difficulty where they cost no time.
   if (typeof difficultyOfferBanned === 'function' && difficultyOfferBanned(id)) return true;
   // r741: Stacked has no Focus, no draw pile and no fall; untimed, no clock (js/stack-mode.js).
@@ -303,7 +303,7 @@ function survivalBuildPools() {
   const grantedSl = _grantedSleightSet();
   const sleights = SLEIGHT_POOL.filter(j => !survivalEntityBanned(j.id) && !grantedSl.has(j.id) && sleightOfferable(j));
   const lims = LIMITS_DEF.filter(d => limits[d.id].current < limits[d.id].max);
-  // r793: one event a screen at most (js/event-files.js).
+  // r795: one event a screen at most (js/event-files.js).
   const _ev = (typeof eventPickEntry === 'function') ? eventPickEntry(typeof FLOWR_EVENT_OUT !== 'undefined' ? FLOWR_EVENT_OUT : null) : null;
   return { trick: tricks, knack: knacks, sleight: sleights, limit: lims, event: _ev ? [_ev] : [] };
 }
@@ -348,7 +348,7 @@ function survivalWeightedType(pools, used) {
   // r741: Dexterous weighs Sleights 4x (dexSleightOfferMult, js/dexterous.js).
   const _w = t => SURVIVAL_PICK_WEIGHTS[t] * (t === 'sleight' && typeof dexSleightOfferMult === 'function' ? dexSleightOfferMult() : 1)
                 * (t === 'limit' && typeof limitOfferMult === 'function' ? limitOfferMult() : 1)   // r750: Growth Mindset
-                * (t === 'event' && typeof eventOfferMult === 'function' ? eventOfferMult() : 1);   // r793: Rewards Member
+                * (t === 'event' && typeof eventOfferMult === 'function' ? eventOfferMult() : 1);   // r795: Rewards Member
   const total = types.reduce((s, t) => s + _w(t), 0);
   let rng = Math.random() * total;
   for (const t of types) { rng -= _w(t); if (rng <= 0) return t; }
@@ -657,7 +657,7 @@ function survivalChoose(i) {
     openRewardGrid();
     return;
   }
-  // r793: the event offer opens its event; the pick's own tail runs when it closes.
+  // r795: the event offer opens its event; the pick's own tail runs when it closes.
   if (opt.type === 'event') {
     const _bonus = survivalBonusPick;
     survivalBonusPick = false;
