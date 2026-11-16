@@ -1,4 +1,4 @@
-const BUILD = "2026-11-16 · r797 · one set of pick keys, event files in two steps, tips and handbook pass";
+const BUILD = "2026-11-16 · r798 · drag to play works in the Schedule and under a tip bubble";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

@@ -697,8 +697,11 @@ const gridEl2 = document.getElementById('grid');
 // selected nothing and the hand never played (measured on a phone: 2 drags in 11).
 // While a fall runs, a miss is read from the board's cell layout instead (a drag
 // reads the layout first, below).
-function cellAtPoint(x, y) {
-  if (!falling || !(typeof ctlLiveBoard === 'function' && ctlLiveBoard())) return null;
+// r798: `always` reads the layout with no fall running. A drag passes it when the
+// element under the finger is not a card: a tip bubble over the board used to stop
+// the drag there, and the hand never played.
+function cellAtPoint(x, y, always) {
+  if (!(falling || always) || !(typeof ctlLiveBoard === 'function' && ctlLiveBoard())) return null;
   const g = gridEl2; if (!g || !g.offsetWidth) return null;
   const rc = g.getBoundingClientRect(), k = rc.width / g.offsetWidth;
   const lx = (x - rc.left) / k - g.clientLeft, ly = (y - rc.top) / k - g.clientTop;
@@ -746,7 +749,8 @@ gridEl2.addEventListener('pointermove', e => {
   if (typeof dealerActive === 'function' && dealerActive()) return;
   // A drag reads the cell layout first while cards fall: a card passing under the
   // finger on its way down belongs to a cell further down, and stopped the swipe there.
-  const cell = cellAtPoint(e.clientX, e.clientY) || cardAt(document.elementFromPoint(e.clientX, e.clientY));
+  const cell = cellAtPoint(e.clientX, e.clientY) || cardAt(document.elementFromPoint(e.clientX, e.clientY))
+            || cellAtPoint(e.clientX, e.clientY, true);
   if (!cell) return;
   const [r, c] = cell;
   const ps = gridEl2._pointerStart;
@@ -875,7 +879,7 @@ document.getElementById('swap-indicator')?.addEventListener('click', () => {
   const takeover = (typeof rewardOnGrid !== 'undefined' && rewardOnGrid)
     || (typeof shopGridActive !== 'undefined' && shopGridActive)
     || (typeof squaresActive === 'function' && squaresActive())
-    || (typeof mapActive === 'function' && mapActive());
+    || (typeof mapScreenOpen !== 'undefined' && mapScreenOpen);   // r798: was mapActive(), true for a whole Schedule run
   if (takeover || animating || roundEnded || falling) return;
   swapSelected();   // r780: 2 cards, or Jeitinho's 3 / 4
 });
