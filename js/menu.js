@@ -1,4 +1,4 @@
-const BUILD = "2026-11-16 · r787 · scoring rebuild: hand-level adds and multipliers are behaviours (79 Tricks moved)";
+const BUILD = "2026-11-16 · r788 · Curio: the Knack pulses and its card flies onto the board or into Records";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

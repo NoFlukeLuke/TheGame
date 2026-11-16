@@ -5221,3 +5221,16 @@ SCORING_REWORK.md's Progress section has the table. 79 of 198 live Tricks now sc
   reports "ORDER ONLY" apart from real differences.
 Measured: golden 834 match; real hands through PLAY with Kindling, Twinners, Combo Score, Double
 Bloom and Landfill in the tray at 1440x820 and 420x900, dev mode on: no timeline drift, no page errors.
+
+## r788 - Curio's card flies out of the Knack (owner)
+At the round's start the Curio chip pulses and its new card flies out of it (`curioFly`,
+js/protocols.js): onto the board, or into the RECORDS button (`#btn-records`) when it went to the
+deck. The board is already dealt when `curioRoundStart` runs, so where the card goes is rolled as if
+it had been dealt: the board's share of the deck (`curioBoardSpots`: ordinary cards, not selected,
+none in Stacked) against the draw pile. On the board it takes a random such cell and the card there
+goes into the draw pile, so the deck still grows by one; its board element is hidden until the copy
+lands. The card is in the draw pile first, and the board swap waits for a still board
+(`curioWhenStill`: the deal, a fall, at most 4s). The copy is drawn at the board's zoom (r503) and
+the drawn card's size (`CARD_VIS_W` / `CARD_VIS_H`). Reduced motion skips the flight. Measured at
+1440x820 and 420x900 in Classic: both paths flew from the chip to their target, the cell stayed
+hidden until the landing, deck count and audit matched, no page errors.

@@ -426,6 +426,86 @@ function curioRoundStart() {
   expectedDeckTotal++;
   if (typeof updateDeckHud === 'function') updateDeckHud();
   knackNotice('curio', `${knackName('curio')}: ${card.rank}${card.suit}${b ? ' ' + b.label : ''} joins your deck`);
+  // r786 (owner): where it would have been dealt. The board is already dealt here,
+  // so it lands on the board with the board's share of the deck (a random ordinary
+  // card there goes into the draw pile in its place), else it stays in the pile.
+  const spots = curioBoardSpots();
+  const onBoard = spots.length && Math.random() < spots.length / (spots.length + drawPile.length);
+  curioWhenStill(() => curioPlace(card, onBoard));
+}
+// The cells a Curio card may take: an ordinary card, not selected, not Stacked.
+function curioBoardSpots() {
+  if (typeof stackedActive === 'function' && stackedActive()) return [];
+  const out = [];
+  for (let r = 0; r < (gridData || []).length; r++) for (let c = 0; c < (gridData[r] || []).length; c++) {
+    const cd = gridData[r][c];
+    if (!cd || cd._isSleight || cd._isStone || cd._isChallenge || cd._temp || cd.cr) continue;
+    if ((selected || []).some(([sr, sc]) => sr === r && sc === c)) continue;
+    out.push([r, c]);
+  }
+  return out;
+}
+// Waits for a still board (the deal, a fall), at most 4s.
+function curioWhenStill(fn, t0) {
+  t0 = t0 || performance.now();
+  const busy = (typeof dealPhase !== 'undefined' && dealPhase) || (typeof falling !== 'undefined' && falling)
+    || (typeof animating !== 'undefined' && animating) || !!document.querySelector('#grid .temp-anim');
+  if (busy && performance.now() - t0 < 4000) { setTimeout(() => curioWhenStill(fn, t0), 120); return; }
+  setTimeout(fn, 120);
+}
+function curioPlace(card, onBoard) {
+  if (typeof hasKnack !== 'function' || !hasKnack('curio')) return;
+  let target = null;
+  if (onBoard && drawPile.includes(card)) {
+    const spots = curioBoardSpots();
+    if (spots.length) {
+      const [r, c] = spots[Math.floor(Math.random() * spots.length)];
+      drawPile.splice(drawPile.indexOf(card), 1);
+      const old = gridData[r][c];
+      drawPile.splice(Math.floor(Math.random() * (drawPile.length + 1)), 0, old);
+      gridData[r][c] = card;
+      if (typeof render === 'function') render();
+      target = document.querySelector(`#grid [data-card-id="${cardId(card)}"]`);
+      if (target) target.style.visibility = 'hidden';
+    }
+  }
+  curioFly(card, target);
+}
+// The Knack pulses, then the card flies out of it: onto its cell, or into RECORDS.
+function curioFly(card, cell) {
+  const reveal = () => { if (cell) cell.style.visibility = ''; };
+  const chip = document.querySelector('.knack-chip[data-knack-id="curio"]');
+  const grid = document.getElementById('grid');
+  const rec = document.getElementById('btn-records');
+  const vis = el => { if (!el) return null; const r = el.getBoundingClientRect(); return r.width && r.height ? r : null; };
+  const src = vis(chip) || vis(grid), gr = vis(grid);
+  const dst = cell ? vis(cell) : vis(rec);
+  if (!src || !gr || !dst || !grid.offsetWidth || document.body.classList.contains('reduced-motion')) { reveal(); return; }
+  if (chip && chip.animate) chip.animate([{ scale: '1' }, { scale: '1.3', filter: 'brightness(2.2)', offset: .35 }, { scale: '1' }], { duration: 420, easing: 'cubic-bezier(.2,.8,.3,1)' });
+  const z = gr.width / grid.offsetWidth || 1;   // the board's zoom: the copy's px are design px (r503)
+  const w = (typeof CARD_VIS_W === 'number' && CARD_VIS_W) || CARD_W, h = (typeof CARD_VIS_H === 'number' && CARD_VIS_H) || CARD_H;
+  const { className, innerHTML } = renderCardAppearance(card, -1, -1);
+  const f = document.createElement('div');
+  f.className = className + ' curio-fly'; f.innerHTML = innerHTML;
+  const cx = (dst.left + dst.width / 2) / z, cy = (dst.top + dst.height / 2) / z;
+  f.style.cssText = `position:fixed;left:${cx - w / 2}px;top:${cy - h / 2}px;width:${w}px;height:${h}px;zoom:${z};margin:0;z-index:400;pointer-events:none;opacity:0;`;
+  document.body.appendChild(f);
+  const dx = (src.left + src.width / 2) / z - cx, dy = (src.top + src.height / 2) / z - cy;
+  const end = cell ? 1 : Math.max(.2, Math.min(1, dst.height / z / h * 1.1));   // into the button, at its height
+  const ms = 820 * (typeof animSlow === 'function' ? animSlow() : 1);
+  const a = f.animate([
+    { translate: `${dx}px ${dy}px`, scale: .25, rotate: '-8deg', opacity: 0, filter: 'brightness(2)' },
+    { translate: `${dx}px ${dy}px`, scale: .45, rotate: '-8deg', opacity: 1, filter: 'brightness(1.8)', offset: .12 },
+    { translate: `${dx * .45}px ${dy * .45 - 40}px`, scale: cell ? 1.12 : (end + 1) / 2, rotate: '4deg', opacity: 1, filter: 'brightness(1.3)', offset: .55 },
+    { translate: '0 0', scale: end, rotate: '0deg', opacity: cell ? 1 : .2, filter: 'brightness(1)' }],
+    { duration: ms, delay: 260, easing: 'cubic-bezier(.35,.1,.3,1)', fill: 'both' });
+  let done = false;
+  const land = () => {
+    if (done) return; done = true; f.remove(); reveal();
+    const el = cell ? document.querySelector(`#grid [data-card-id="${cardId(card)}"]`) : rec;
+    try { if (el) el.animate([{ scale: '1.12', filter: 'brightness(1.6)' }, { scale: '1', filter: 'none' }], { duration: 260, easing: 'ease-out' }); } catch (e) {}
+  };
+  a.onfinish = land; setTimeout(land, ms + 400);
 }
 // Growth Mindset (r750, working name): limit rewards twice as common in every
 // reward roll (Flow's chain, the pick of three, the Balance Sheet, the shop's shelf).
