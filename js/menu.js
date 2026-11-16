@@ -1,4 +1,4 @@
-const BUILD = "2026-11-16 · r785 · scoring rebuild begun: Trick behaviours (30 moved); forced triggers pay Focus, seconds, credits, stock";
+const BUILD = "2026-11-16 · r786 · golden test: an order-free timeline fingerprint";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

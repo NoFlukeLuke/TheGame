@@ -171,7 +171,9 @@ cases.forEach(([key, ids, tier, st], i) => {
   for (const [hk, r] of Object.entries(res)) {
     if (!r) { results[key][hk] = null; continue; }
     if (r.err) { results[key][hk] = { err: r.err }; continue; }
-    results[key][hk] = [r.hand, r.score, r.pips, r.mult, hash(r.tl), hash(r.cb)];
+    // The 7th field is the timeline as a SET (order dropped): a family moved to tray order re-orders
+    // adds that commute, which changes the 5th field and not this one (r786).
+    results[key][hk] = [r.hand, r.score, r.pips, r.mult, hash(r.tl), hash(r.cb), hash(r.tl.map(e => JSON.stringify(e)).sort())];
     full[key + '/' + hk] = r;
   }
 });
@@ -198,11 +200,13 @@ for (const [key, hands] of Object.entries(results)) {
     if (JSON.stringify(a) === JSON.stringify(r)) continue;
     const what = !a || !r ? 'present / absent' : (a.err || r.err) ? `error ${r.err || ''}`
       : a[1] !== r[1] ? `score ${a[1]} -> ${r[1]}` : a[2] !== r[2] || a[3] !== r[3] ? `pips/mult ${a[2]}/${a[3]} -> ${r[2]}/${r[3]}`
-      : a[4] !== r[4] ? 'animation timeline differs' : 'contributions differ';
+      : a[5] !== r[5] ? 'contributions differ' : (a[6] && a[6] === r[6]) ? 'ORDER ONLY: same events, another order' : 'animation timeline differs';
     diffs.push(`${key}/${hk}: ${what}`);
   }
 }
 if (!ONLY) Object.keys(base).forEach(k => { if (!results[k]) diffs.push(`${k}: in the baseline, not run now`); });
-console.log(`${Object.keys(results).length} cases in ${ms}ms: ${diffs.length ? diffs.length + ' differ' : 'all match'}`);
+const orderOnly = diffs.filter(d => d.includes('ORDER ONLY')).length;
+console.log(`${Object.keys(results).length} cases in ${ms}ms: ${diffs.length ? diffs.length + ' differ' + (orderOnly ? ` (${orderOnly} in order only, ${diffs.length - orderOnly} for real)` : '') : 'all match'}`);
+diffs.sort((x, y) => x.includes('ORDER ONLY') - y.includes('ORDER ONLY'));
 diffs.slice(0, 60).forEach(d => console.log('  ' + d));
 process.exit(diffs.length ? 1 : 0);
