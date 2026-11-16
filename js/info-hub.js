@@ -384,7 +384,7 @@ const INFO_TOPICS = [
     body: [
       'Flow and the Schedule are played under a protocol, chosen after the mode: Standard, Dexterous or Precision. A protocol changes a few rules; the mode stays the same.',
       'Difficulty belongs to the protocol. A win in Flow or the Schedule unlocks the next tier of that protocol for both.',
-      'Winning a run of Dexterous, Precision, Limitless or Hyperfocus unlocks its Knack (Ambidextrous, Measure Twice, Growth Mindset, ADHD), which can then be offered in any other run.',
+      'Winning a run of Dexterous, Precision, Limitless or Hyperfocus unlocks its Knack (Ambidextrous, Measure Twice, Growth Mindset, ADHD), which can then be offered in any other run (ADHD in Hyperfocus too).',
       'Standard is open from the start. Each protocol after it opens with a won run of the one before it, in Flow or the Schedule: Dexterous, Precision, Limitless, Hyperfocus.',
     ] },
   { id: 'mode_dexterous', group: 'modes', title: 'Dexterous',

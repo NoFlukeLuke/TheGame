@@ -1,4 +1,4 @@
-const BUILD = "2026-11-16 · r790 · Well Adjusted is rare";
+const BUILD = "2026-11-16 · r791 · ADHD can be offered inside Hyperfocus";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

@@ -399,7 +399,7 @@ const PROTO_KNACKS = [
   { id: 'ambidextrous',  protocol: 'dexterous' },
   { id: 'measure_twice', protocol: 'precision' },
   { id: 'growth_mindset', protocol: 'limitless' },   // r750
-  { id: 'adhd', protocol: 'hyperfocus' },   // r789
+  { id: 'adhd', protocol: 'hyperfocus', ownRun: true },   // r789; r790: also offered inside Hyperfocus
   { id: 'curio',          protocol: 'capacity' },    // r777
 ];
 // ── CURIO (r777, owner): Past Capacity's Knack. At the start of each round a card
@@ -525,7 +525,7 @@ function protoKnackLocked(id) { return PROTO_KNACKS.some(k => k.id === id) && !p
 function protoKnackBanned(id) {
   const k = PROTO_KNACKS.find(x => x.id === id);
   if (!k) return false;
-  return !protoKnackUnlocked(id) || activeProtocol() === k.protocol;
+  return !protoKnackUnlocked(id) || (!k.ownRun && activeProtocol() === k.protocol);
 }
 // onGameWin: a won run of a protocol unlocks its Knack (tours and test drives never count).
 function protocolOnWin() {

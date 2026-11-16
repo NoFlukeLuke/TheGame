@@ -5243,3 +5243,8 @@ hidden until the landing, deck count and audit matched, no page errors.
 - **No speed bonus on a round's first hand** (`generateHandFocus`, js/play-hand.js): with no hand
   before it (`firstHandThisRound`, or `lastHandTime` 0) the hand used to read as played at 0 seconds
   and took the full bonus (+12 at the run's start). Now 0. The handbook's speed bonus entry says so.
+
+## r791 - ADHD can be offered inside Hyperfocus (owner)
+A `PROTO_KNACKS` row with `ownRun: true` is offered inside its own protocol too (`protoKnackBanned`,
+js/protocols.js). Only ADHD has it: the other three would do nothing in their own protocol, while
+ADHD's longer hold matters most under Hyperfocus's fast decay. Still locked until a Hyperfocus win.
