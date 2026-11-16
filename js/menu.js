@@ -1,4 +1,4 @@
-const BUILD = "2026-11-16 · r791 · ADHD can be offered inside Hyperfocus";
+const BUILD = "2026-11-16 · r792 · Turbo protocol";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

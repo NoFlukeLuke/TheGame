@@ -5248,3 +5248,22 @@ hidden until the landing, deck count and audit matched, no page errors.
 A `PROTO_KNACKS` row with `ownRun: true` is offered inside its own protocol too (`protoKnackBanned`,
 js/protocols.js). Only ADHD has it: the other three would do nothing in their own protocol, while
 ADHD's longer hold matters most under Hyperfocus's fast decay. Still locked until a Hyperfocus win.
+
+## r792 - the Turbo protocol (owner)
+Open from the start (`open: true`), in Flow and the Schedule; its own difficulty key (`proto:turbo`), no
+protocol Knack. `turboOn()` / `TURBO` in js/protocols.js.
+- **Flow:** the quarter's clock starts at half the base (`flowSessionSeconds`: 300 -> 150; Starting Time
+  raises still add in full). Reviews already had their own 2:00 (`FLOW_BOSS_WINDOW`), unchanged.
+  **Every reward comes twice** (owner's pick of three ways): `turboDoubleQueue` puts a copy of each step's
+  kind right after it, fresh offers, rarity floor kept; level-up chains (challenge card steps included)
+  and boss chains; a forced penalty step is not doubled. A chain is always 2+ steps, so the plain single
+  pick never shows.
+- **Schedule:** one booking a slot on the wide 4 x 4 (`mapSlotCap()` is 1 when `mapTall()` or Turbo), so
+  a booking is a level (`mapLevelStep` 1, quarter 6 levels, reviews at 6 / 12 / 18 / 24) and there is no
+  R&R (nothing left behind). Reviews keep the lanes rule; each unlocks at `TURBO.reviewNeed` (3) bookings
+  in its two lanes (`mapBossNeedN`). Shape decisions that used to ask the slot cap ask `mapTall()` now
+  (`mapLevelSets`, `mapBossRule`). Rewards are unchanged there.
+Measured in headless Chromium at 1440x820 and 420x900: Flow opened at 2:30, a level-up chain read
+tricks, tricks / pick3, pick3, tricks, tricks and every step was taken by click to level 2; 1,000 random
+Turbo Schedule walks: 0 strands, never two bookings in a slot, 3.9 bookings a quarter, review A 37% /
+B 41% / hidden 22%. No page errors.

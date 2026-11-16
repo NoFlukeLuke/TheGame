@@ -78,12 +78,14 @@ function mapApplyLayout(lanes, sets) {
   MAP_BOSS_SET = MAP_SETS;
 }
 // Bookings a slot holds: two on the wide shape, one on the tall one.
-function mapSlotCap() { return MAP_LANES <= 3 ? 1 : 2; }
+// r792: Turbo books one a slot on the wide shape too (js/protocols.js).
+function mapTall() { return MAP_LANES <= 3; }
+function mapSlotCap() { return (mapTall() || (typeof turboOn === 'function' && turboOn())) ? 1 : 2; }
 // The slots that must hold a round: every slot but the funnel on the wide shape;
 // slots 1, 3 and 5 on the tall one (owner).
 function mapLevelSets() {
   const out = [];
-  for (let s = 0; s <= MAP_SETS - 2; s++) if (mapSlotCap() === 2 || s % 2 === 0) out.push(s);
+  for (let s = 0; s <= MAP_SETS - 2; s++) if (!mapTall() || s % 2 === 0) out.push(s);
   return out;
 }
 // r679 (owner): a slot holds at most two of one kind.
@@ -94,7 +96,7 @@ const MAP_KIND_CAP = 2;
 // `kinds` other obligations. Neither unlocked, and neither still reachable: a
 // random manager (`hidden`, drawn at build, unnamed until taken).
 const MAP_BOSS_NEED = { lanes: 5, kinds: 4 };
-function mapBossRule() { return mapSlotCap() === 1 ? 'kinds' : 'lanes'; }
+function mapBossRule() { return mapTall() ? 'kinds' : 'lanes'; }
 function mapBossTiles() { return mapTiles.filter(t => t.kind === 'boss'); }
 function mapTileIsRound(t) { return t.kind === 'level' || t.kind === 'challenge'; }
 // Review A is the quarter's held boss (actBossId: Advance Notice and Reschedule
@@ -120,7 +122,9 @@ function mapBossCounts(b, t, guess) {
   }
   return b.slot === 'a' ? mapTileIsRound(t) : !mapTileIsRound(t);
 }
-function mapBossNeed(b) { return b.hidden ? 0 : MAP_BOSS_NEED[mapBossRule()]; }
+// r792: Turbo's reviews unlock at TURBO.reviewNeed bookings in their lanes.
+function mapBossNeedN() { const r = mapBossRule(); return (r === 'lanes' && typeof turboOn === 'function' && turboOn()) ? TURBO.reviewNeed : MAP_BOSS_NEED[r]; }
+function mapBossNeed(b) { return b.hidden ? 0 : mapBossNeedN(); }
 function mapBossProgress(b) { return mapTiles.filter(t => t.visited && mapBossCounts(b, t)).length; }
 function mapBossUnlocked(b) { return !b.hidden && (!b.slot || mapBossProgress(b) >= mapBossNeed(b)); }
 // Could this review still be unlocked with the bookings left?
@@ -1260,7 +1264,7 @@ function mapHelpRows() {
   const rows = (mapSlotCap() < 2 ? MAP_HELP_ONE : mapPickRule() ? MAP_HELP_PICK : MAP_HELP).slice();
   // r702: the two reviews.
   rows.push(['Two reviews', mapBossRule() === 'lanes'
-    ? `Each review unlocks at ${MAP_BOSS_NEED.lanes} bookings in its two lanes. Neither unlocked: a random manager.`
+    ? `Each review unlocks at ${mapBossNeedN()} bookings in its two lanes. Neither unlocked: a random manager.`
     : `One review unlocks at ${MAP_BOSS_NEED.kinds} rounds booked, the other at ${MAP_BOSS_NEED.kinds} other obligations. A mystery counts as another obligation, and as a round too if it is one. Neither: a random manager.`]);
   const d = (typeof deptHelpRow === 'function') ? deptHelpRow() : null;   // r673: this quarter's department
   if (d) rows.unshift(d);

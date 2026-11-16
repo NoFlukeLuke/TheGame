@@ -46,6 +46,9 @@ const PROTOCOLS = [
   { id: 'undersight', name: 'Undersight', accent: '#ff6a52', flag: 'undersight', open: true, need: () => undersightEarned(), short: 'No QRLs. Card buffs are twice as strong.',
     say: { any: () => `Start with ${knackName('undersight')} and ${knackName('yoked')}. Card rewards and card events are ${UNDERSIGHT_PROTO.cards} times as common.` },
     mode: { startKnacks: ['undersight', 'yoked'] } },
+  // r792 (owner): Turbo, a shorter run. Open from the start.
+  { id: 'turbo', name: 'Turbo', accent: '#7cf0a0', flag: 'turbo', open: true, short: 'A shorter run. More rewards in Flow.',
+    say: { flow: () => turboSay('flow'), map: () => turboSay('map') } },
 ];
 // r749 (owner): each protocol opens with a won run of the one before it, in this
 // order. A win in Flow or the Schedule counts for both (protoWon). An `open`
@@ -375,6 +378,37 @@ function limitlessSkipCardPay(q) {
 // ══════════════════════════════════════════════
 const HYPERFOCUS = { gain: 2, decay: 3 };
 function hyperfocusOn() { return !!ACTIVE_MODE && ACTIVE_MODE.hyperfocus === true; }
+
+// ══════════════════════════════════════════════
+// TURBO (r792, owner): a shorter run.
+//   Flow       the quarter's clock starts half as long (flowSessionSeconds); a
+//              review keeps its own 2:00 (FLOW_BOSS_WINDOW); every reward step,
+//              boss chains included, is followed by a copy of its kind with fresh
+//              offers (turboDoubleQueue, js/flow-rewards.js)
+//   Schedule   one booking a slot (mapSlotCap), so a booking is one level; a
+//              review unlocks at TURBO.reviewNeed bookings in its two lanes
+// ══════════════════════════════════════════════
+const TURBO = { clock: 0.5, reviewNeed: 3 };
+function turboOn() { return !!ACTIVE_MODE && ACTIVE_MODE.turbo === true; }
+function turboSay(base) {
+  if (base === 'flow') {
+    const t = Math.round(FLOW_SESSION_SECONDS * TURBO.clock), b = FLOW_BOSS_WINDOW;
+    return `Each quarter's clock starts at ${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}. Reviews keep their ${Math.floor(b / 60)}:${String(b % 60).padStart(2, '0')}. Every reward comes twice: each reward screen is followed by another of the same kind.`;
+  }
+  return `Book one obligation in each time slot, not two. A review unlocks at ${TURBO.reviewNeed} bookings in its two lanes.`;
+}
+// Every step of a chain twice in a row, its rarity floor with it. A forced
+// penalty step is not a reward and is never doubled.
+function turboDoubleQueue(queue, floors) {
+  if (!turboOn()) return { queue, floors };
+  const q = [], f = [];
+  queue.forEach((k, i) => {
+    const fl = floors ? floors[i] : null;
+    q.push(k); f.push(fl);
+    if (k !== 'penalty') { q.push(k); f.push(fl); }
+  });
+  return { queue: q, floors: floors ? f : null };
+}
 
 // ══════════════════════════════════════════════
 // UNDERSIGHT (r783, owner): no QRLs (the Undersight Knack, held from the start)

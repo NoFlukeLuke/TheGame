@@ -650,6 +650,8 @@ function flowrMaybeStart() {
   flowrFirstTrickSlot(queue, odds, taken);
   flowrQueueFloors = queue.map(() => null);
   _crs.forEach(st => { queue.push(st.kind); flowrQueueFloors.push(st.floor || null); });
+  // r792: Turbo pays every reward twice (js/protocols.js).
+  if (typeof turboDoubleQueue === 'function') { const _d = turboDoubleQueue(queue, flowrQueueFloors); queue.length = 0; queue.push(..._d.queue); flowrQueueFloors = _d.floors; }
   // r728: at difficulty tier 4+ a level-up's chain ends on a forced penalty DIFF_PENALTY_FLOW % of the time.
   if (typeof difficultyPenaltyStepRolled === 'function' && difficultyPenaltyStepRolled()) { queue.push('penalty'); flowrQueueFloors.push(null); }
   queue.forEach(flowrNoteSeen);
@@ -740,6 +742,7 @@ function flowrStartBossChain(bossName) {
   queue.forEach(flowrNoteSeen);
   flowRrSnapshot();
   flowrBossChain = true;
+  if (typeof turboDoubleQueue === 'function' && turboOn()) { const _d = turboDoubleQueue(queue, null); flowrArm(_d.queue, { boss: { name: bossName || '' } }); return true; }
   flowrArm(queue, { boss: { name: bossName || '' } });
   return true;
 }
