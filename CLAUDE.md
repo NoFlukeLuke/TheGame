@@ -5447,3 +5447,6 @@ second Perk Package took a K K K from mult 24 to 42 with no timeline drift; "thr
 "two" improved the Sleight; a Knack's copy line was dimmed; an owned Trick bought in the real shop
 by click and tap (L¢11) opened the screen over the shop, PLAY and Space did nothing, the copy
 landed in the tray. All 54 handbook entries build. No page errors.
+
+## r800 - golden baseline rewritten for r799
+A suited 5-card run scores as Straight + Flush, so each of the 834 cases' suited straight hand moved (x4 with no Trick: 300 to 1,200). No other hand in any case changed.

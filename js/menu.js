@@ -1,4 +1,4 @@
-const BUILD = "2026-11-16 · r799 · suited runs layer, Crunch protocol, seeds, owned offers, payout";
+const BUILD = "2026-11-16 · r800 · golden baseline for layered suited runs";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
