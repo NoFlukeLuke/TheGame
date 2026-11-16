@@ -283,6 +283,19 @@ function tutCostLine(where = '') {
 }
 // The DISCARD key's own word: console mode's panel prints DEFER (MC_WORDS, js/machine-skin.js).
 function tutDiscardWord() { try { return (typeof trayMachineOn === 'function' && trayMachineOn()) ? 'DEFER' : 'DISCARD'; } catch (e) { return 'DISCARD'; } }
+// Stock shown as squares on the keys and trays (Settings, Stock display), not as numbers.
+function tutStockSquares() { try { return typeof sbOn === 'function' && !!sbOn(); } catch (e) { return false; } }
+// How hands grow (double scaling, js/natural-scaling.js). Numbers are read, never typed.
+function tutGrowthLine() {
+  try {
+    if (typeof nsModel !== 'undefined' && nsModel !== 'double') return '';
+    const n = ns2.multEvery, m = ns2.multStep, pe = ns2.pipsEvery, pp = ns2.pipsPer;
+    const head = `Sets, runs and flushes each grow as you play them.`;
+    return (n === pe)
+      ? `${head} Every <b>${n}</b> plays of one, its cards score +${m} {MULT} and +${pp} {PIPS} each.`
+      : `${head} Every <b>${n}</b> plays of one, its cards score +${m} {MULT} each; every <b>${pe}</b>, +${pp} {PIPS} each.`;
+  } catch (e) { return ''; }
+}
 function tutSwapCost()    { return Math.round(swapSecondsBase() * _tutCostMult()); }     // rounded as the charge is
 function tutDiscardCost() { return Math.round(discardSecondsBase() * _tutCostMult()); }
 // Flow has no round clock and no failed round, so the opening lines that say
@@ -381,7 +394,7 @@ const TUTORIAL_STEPS = [
     gate: true, hold: true, next: true, noAutoPlay: true,
     eyebrow: 'Basics',
     title: 'What you can play',
-    body: `<b>Set</b>: cards of one rank. A pair counts.<br><b>Run</b>: three or more ranks in a row.<br><b>Flush</b>: five cards of one suit.<br><br>A set or run all in one suit is a flush as well, and its cards score twice.`,
+    body: `<b>Set</b>: cards of one rank. A pair counts.<br><b>Run</b>: three or more ranks in a row.<br><b>Flush</b>: five cards of one suit.<br><br>A run of 3 or 4 all in one suit is a flush as well, and its cards score twice.`,
   },
   {
     id: 'valuation', anchor: () => tutEl('#score-subboxes'), side: 'bottom',
@@ -389,7 +402,7 @@ const TUTORIAL_STEPS = [
     eyebrow: 'Scoring',
     title: 'How a hand scores',
     // r553: the card ladder. Pick order is the mult.
-    body: `<b>{PIPS}</b>: your cards' values added up. Ace is 11, face cards are 10.<br><br><b>{MULT}</b>: the first card you pick adds 1, the second adds 2, the third adds 3.<br><br>{PIPS} x {MULT} x {FOCUS} is the hand's score.`,
+    body: () => `<b>{PIPS}</b>: your cards' values added up. Ace is 11, face cards are 10.<br><br><b>{MULT}</b>: the first card you pick adds 1, the second adds 2, the third adds 3.<br><br>{PIPS} x {MULT} x {FOCUS} is the hand's score.<br><br>${tutGrowthLine()}`,
   },
   {
     id: 'play', anchor: () => tutEl('#btn-play'), side: 'left', gate: true, hold: true, noAutoPlay: true,
@@ -413,14 +426,16 @@ const TUTORIAL_STEPS = [
   },
   {
     // r284 taught a cap AND a floor; r385 removed the floor.
-    id: 'selection', anchor: () => tutEls('#sel-count', '#sel-display', '#hand-name'), side: 'bottom',
+    // r796: the size shows as squares on the PLAY key (stock squares on); else the count beside the board.
+    id: 'selection', anchor: () => tutStockSquares() ? tutEl('#btn-play') : tutEls('#sel-count', '#sel-display', '#hand-name'), side: 'left',
     hold: true, next: true,
     when: () => tutRoundLive(),
     eyebrow: 'Basics',
     title: 'Selection Size',
     body: () => {
       const cap = tutSelCap();
-      return `Your Selection Size is <b>${cap}</b>: the most cards in one hand.`;
+      return `Your Selection Size is <b>${cap}</b>: the most cards in one hand.<br><br>`
+           + (tutStockSquares() ? `The squares on <b>PLAY</b> count it.` : `The count beside the board shows it.`);
     },
   },
   {
@@ -523,7 +538,9 @@ const TUTORIAL_STEPS = [
     hold: true, next: true,
     eyebrow: 'What you own',
     title: '{Trick} slots',
-    body: `{Tricks} are scoring bonuses. They sit in this tray.<br><br>When the tray is full, a new {trick} is refused. Tap one to sell it.`,
+    body: () => `{Tricks} are scoring bonuses. They sit in this tray.<br><br>`
+      + (tutStockSquares() ? `The squares on its edge are your slots. ` : '')
+      + `When the tray is full, a new {trick} is refused. Tap one to sell it.`,
   },
   {
     id: 'records-open', anchor: () => tutEl('#btn-records'), side: 'top', gate: true, hold: true,
@@ -605,10 +622,8 @@ const TUTORIAL_STEPS = [
     eyebrow: 'Rewards',
     title: 'Take your pick',
     // r441: Flow's rerolls are the two keys, free up to the stock the round ended with.
-    body: () => `Tap an offer, then press <b>CONFIRM</b>.<br><br>`
-      + ((tutIsFlow() && typeof flowSplitRerolls === 'function' && flowSplitRerolls())
-        ? `The other two keys reroll. Swaps and discards you had left make rerolls free.`
-        : `REROLL draws three new offers.`),
+    // r796: the same keys in Flow and on the Schedule.
+    body: `Tap an offer, then press <b>CONFIRM</b>.<br><br>The other two keys reroll. Swaps and discards left from the round make rerolls free.`,
     until: () => !tutPickOpen(),
   },
   {

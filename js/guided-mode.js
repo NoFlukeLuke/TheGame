@@ -668,7 +668,48 @@ function guidedPickActions(redraw) {
   ];
 }
 
-function guidedOpenPickThree(done) {
+// r796: REROLL REWARD TYPE on the Schedule's pick. The screen becomes one kind (Tricks,
+// Sleights, Knacks, an improvement) or the pick of three again; no Limits (the Raise
+// obligation sells those). Weights follow the pick's own type table.
+const GUIDED_TYPE_W = { pick3: 40, tricks: 60, sleights: 25, knacks: 15, improve: 10 };
+function guidedRerollType(cur, done, closePanel) {
+  const kinds = Object.keys(GUIDED_TYPE_W).filter(k => k !== cur && (k === 'pick3' || flowrKindViable(k)));
+  if (!kinds.length) { refuse('Nothing else to roll'); return; }
+  if (!flowRrSpend('type')) return;
+  let r = Math.random() * kinds.reduce((s, k) => s + GUIDED_TYPE_W[k], 0), pick = kinds[kinds.length - 1];
+  for (const k of kinds) { r -= GUIDED_TYPE_W[k]; if (r <= 0) { pick = k; break; } }
+  if (closePanel) closePanel();
+  closeGridPick();
+  try { sfxShopOpen?.(); } catch (e) {}
+  if (pick === 'pick3') guidedOpenPickThree(done, true); else guidedOpenKindPick(pick, done);
+}
+// One kind's screen, with the pick's keys.
+function guidedOpenKindPick(kind, done) {
+  let offers = flowrBuildOffers(kind);
+  if (!offers.length) { guidedOpenPickThree(done, true); return; }
+  const shape = list => list.map(o => ({ entity: o.type === 'improve' ? o.etype : o.type, _improve: o.type === 'improve',
+    id: o.id, emoji: o.icon, icon: o.icon, label: o.name, desc: o.desc, rarity: o.rar, tag: o.tag }));
+  const acts = () => [{ reroll: true, _roll: redraw }];
+  function redraw() {
+    const fresh = flowrBuildOffers(kind);
+    if (!fresh.length) return;
+    offers = fresh;
+    try { sfxShopOpen?.(); } catch (e) {}
+    gridPickRefresh(shape(offers), acts());
+  }
+  openGridPick({
+    title: FLOWR_KINDS[kind] ? FLOWR_KINDS[kind].label() : 'TAKE ONE', tone: 'reward', offers: shape(offers), actions: acts(),
+    split: { onType: () => guidedRerollType(kind, done) },
+    onChoose: i => {
+      const o = offers[i];
+      if (o && o.type === 'trick' && typeof trickTrayFullFor === 'function' && trickTrayFullFor(o.id)) { refuseTrickCapacity(); guidedOpenKindPick(kind, done); return; }
+      flowrGrantOffer(o); done();
+    },
+    onSkip: () => done(),
+  });
+}
+
+function guidedOpenPickThree(done, _rerolled) {
   // The reward grid's OWN payload factories (makeTrickPayload and friends) are
   // NOT globals - they are nested inside _generateRewardContent, the same scoping
   // trap `shuffled()` set for the r194 events. Calling them here produced three
@@ -678,6 +719,9 @@ function guidedOpenPickThree(done) {
   if (!mk.length) { done(); return; }
 
   pickRerollsNewScreen();   // the PRICE ladder restarts on a new pick; the POOL carries
+  // r796: the free rerolls are the swaps and discards the round ended with, as in Flow.
+  // Not for a pick an event opens: that one spends what the round's pick left.
+  if (!_rerolled && typeof flowRrSnapshot === 'function' && !activeEventId && !(typeof flowActive === 'function' && flowActive())) flowRrSnapshot();
 
   // The breakdown READER is a text panel and lives in Survival's overlay, which
   // is inert markup (pointer-events:none) holding exactly that one list. Sharing
@@ -706,6 +750,7 @@ function guidedOpenPickThree(done) {
   // overlay covers nothing the player still needs.
   openGridPick({
     title: 'TAKE ONE', tone: 'reward', offers: mk, actions: guidedPickActions(redraw),
+    split: { onType: () => guidedRerollType('pick3', done, closePanel) },
     onChoose: (i, p) => {
       closePanel();
       if (p.event) { guidedOpenNamedEvent(p.event, done); return; }   // r795

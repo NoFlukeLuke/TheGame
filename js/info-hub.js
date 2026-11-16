@@ -83,13 +83,13 @@ const INFO_TOPICS = [
   // ── The basics ────────────────────────────────────────────────────────────
   { id: 'select', group: 'basics', title: 'What a selection is',
     body: [
-      'You pick cards off the board to make a poker hand. The only rule about WHERE they are is that the cards you pick must touch each other edge to edge, in one connected group. Diagonals do not count.',
-      'Inside that group, nothing else about position matters, and the order you tapped them in never matters. 4, 6, 7, 5 is a Run of 4 whichever cells they sit in and whichever one you tapped first.',
+      'Pick cards that touch edge to edge, in one connected group. Diagonals do not count.',
+      'Where a card sits in the group does not change what the hand is. The order you pick them in changes the score: the first card picked adds 1 mult, the second 2, and so on.',
     ] },
 
   { id: 'penalty_cards', group: 'basics', title: 'Kickers',
     body: [
-      'Every card in a hand should be part of it, but a hand may carry ONE card it does not use. That card is a KICKER. It scores nothing, and it costs its pips off the hand and its pip value in seconds off the clock.',
+      'A hand may carry ONE card it does not use: a KICKER. It scores nothing, and it costs its pips off the hand and its pip value in seconds off the clock.',
       'A hand with two or more spare cards will not play. The hand label reads KICKERS and the count.',
       'A kicker turns red on the board before you play, and the hand label prices it (KICK).',
       ['A run needs consecutive ranks. 4-6-7-5-9 is not a Straight, it is a Run of 4 carrying the 9 as a kicker.',
@@ -102,23 +102,26 @@ const INFO_TOPICS = [
 
   { id: 'hand_layers', group: 'basics', title: 'A hand can be several hands',
     body: [
-      'A played hand is broken into COMPONENTS, and every component pays its own base pips and base mult. Seven cards can be a Run of 4 and a Three of a Kind at once, and both get paid.',
-      'A flush LAYERS on top rather than replacing anything. Three cards of one suit that are also a run pay the run and the flush, and those cards score twice.',
-      'The hand label beside the preview names every layer, so what it says is exactly what the score counted.',
+      'A played hand is broken into COMPONENTS. Seven cards can be a Run of 4 and a Three of a Kind at once. A card in two components scores twice.',
+      'A run of 3 or 4 all in one suit is a run and a flush, and each card scores twice. A flush only layers when every card in the hand shares the suit.',
+      'The hand label names every layer.',
     ] },
 
   // ── The board ─────────────────────────────────────────────────────────────
   { id: 'swap_discard', group: 'board', title: 'Swapping and discarding',
     body: [
-      'A SWAP trades two cards that touch. A DISCARD throws selected cards away and pulls new ones down. Both are capped per round, and in most modes both cost time off the round clock.',
-      'Each swap and discard you did not use pays credits at the end of the round.',
+      'A SWAP trades two cards that touch. A DISCARD throws selected cards away and pulls new ones down. Both are capped per round.',
+      () => (swapSecondsBase() > 0 || discardSecondsBase() > 0)
+        ? `At this difficulty a swap costs ${swapSecondsBase()}s and a discard ${discardSecondsBase()}s, whatever its size.`
+        : 'At this difficulty neither costs time. From ENTRY LEVEL up, each costs seconds.',
+      'The ones you did not use are your free rerolls on the reward screens. On the Schedule they also pay credits at the payout.',
     ] },
 
   { id: 'sleight_grid', group: 'board', title: '{Sleights} sit on the board',
     body: [
       'A {sleight} is a real card in your deck, drawn like any other. It falls, swaps, gets discarded, and can be played inside a hand.',
       'Most have limited charges, shown on the card. Some work just by SITTING there, some fire when you play them, some when you double-tap them.',
-      'Press and hold one on the board to read what it does. A single tap is reserved for selecting it into a hand.',
+      'Press and hold one on the board to read what it does. A tap selects it.',
     ] },
 
   { id: 'blocked_cells', group: 'board', title: 'Cards you cannot use',
@@ -134,14 +137,15 @@ const INFO_TOPICS = [
     body: [
       'A wild takes any rank to complete a SET. Two 7s and a wild is a Three of a Kind; one 7 and two wilds is a Three of a Kind too.',
       'It is only ever a set. A wild can never be part of a run and never part of a flush.',
-      'It scores no pips of its own and fires no {Tricks}. The set it completes pays its own base pips and mult as normal, and the real cards in it score as normal.',
+      'It scores no pips, adds no mult and fires no {Tricks}. The real cards in the set score as normal.',
       'A set needs at least one real card to name its rank, so wilds on their own are not a hand.',
-      'Four are shuffled into the deck at the start of a run.',
+      () => { const w = (typeof wildCardCount === 'function') ? wildCardCount() : 4; return w > 0 ? `${w} are shuffled into the deck at the start of a run.` : 'This run has none.'; },
     ] },
 
-  { id: 'curses', group: 'board', title: 'Cursed cards',
+  { id: 'curses', group: 'board', title: 'Curses',
     body: [
-      'A curse rides one specific card, not a rank or a suit, and lifts by itself after that card has scored a few times.',
+      'A CURSE CARD is a card of its own in your deck: Death, Famine or Pestilence. Press and hold it to read it. On the lower difficulty tiers it leaves after a set number of draws, shown on the card.',
+      'A CURSED card is an ordinary card carrying a curse. The curse lifts after that card has scored a few times.',
       ['Leaden - scores no pips.',
        'Taxing - costs seconds every time it scores.',
        'Snared - cannot be swapped or discarded.'],
@@ -150,57 +154,58 @@ const INFO_TOPICS = [
 
   { id: 'card_buffs', group: 'board', title: 'FLAT and SCALING card buffs',
     body: [
-      'A buffed card says which kind it is, and the difference matters:',
-      ['FLAT - "scores +5 mult when played". That is the number, every time, forever.',
+      'A card buff is one of two kinds:',
+      ['FLAT - "scores +5 mult when played". The number never changes.',
        'SCALING - "scales +1 mult each time it\'s played". The bonus itself grows with use, and the card carries a small green arrow.'],
     ] },
 
   { id: 'line_markers', group: 'board', title: 'Coloured lines down the board',
     body: [
       'Some {tricks} mark a whole row or column. The line is drawn behind the cards in that {trick}\'s colour, with its symbol on both ends, and every card on the line wears a ring in the same colour.',
-      'A card sitting where two lines cross splits its ring between both colours. The lines stay for the whole run and stay visible between rounds.',
+      'A card where two lines cross splits its ring between both colours.',
     ] },
 
   // ── Scoring ───────────────────────────────────────────────────────────────
   { id: 'pips_mult', group: 'scoring', title: 'Pips, mult and the tally',
     body: [
-      'A hand is worth its PIPS multiplied by its MULT, then multiplied by {FOCUS}. The hand type sets a base for the first two; every card adds its own pips; everything you own adds to one or the other.',
+      'A hand scores its PIPS times its MULT, times {FOCUS}. Each card adds its pips. The first card picked adds 1 mult, the second 2, and so on. {Tricks}, {Knacks} and card buffs add to one or the other.',
       'The tally plays out one card at a time. Each {trick} pops and throws its own number at the moment it actually pays.',
-      'A blue diamond is pips, a red one is mult, violet is {FOCUS}, gold is credits, white is time.',
+      'Blue is pips, red is mult, violet is {FOCUS}, white is time. Credits are a gold circle.',
     ] },
 
   { id: 'focus', group: 'scoring', title: '{FOCUS}',
     body: [
       '{FOCUS} is a multiplier on the whole hand. You earn it by playing complicated hands and by playing them fast, and it DECAYS while you sit still.',
       'The {FOCUS} a hand earns is applied to that same hand.',
-      'The meter has a ceiling you can raise. Some things trade the ceiling for something else, and a few pay out every time you reach the top.',
+      'The {FOCUS} Cap limit sets the ceiling.',
     ] },
 
   { id: 'speed_bonus', group: 'scoring', title: 'The speed bonus',
     body: [
       'A hand\'s {FOCUS} comes from two things: what the hand IS, and how fast you played it after the previous one.',
-      'The speed part is largest the instant a hand lands and fades over the next few seconds. Playing slowly earns only the hand\'s own {FOCUS}. A round\'s first hand earns no speed bonus.',
-      'Pair, Flush of 3 and Flush of 4 earn half the speed bonus. Some things scale it: Overclock multiplies it, and Long Fuse and Governor give you longer to earn the same amount.',
+      'The speed part is largest the instant a hand lands and fades over the next few seconds. A round\'s first hand earns no speed bonus.',
+      'Pair, Flush of 3 and Flush of 4 earn half the speed bonus. Overclock multiplies it. Long Fuse gives you longer to earn it.',
     ] },
 
   { id: 'natural_scaling', group: 'scoring', title: 'Hands get better as you play them',
     body: [
-      'Every hand TYPE has its own permanent bonus that grows each time you play it. Play Runs of 3 all run and Runs of 3 get worth more; it does nothing for your Four of a Kind.',
-      'The RECORDS -> Hands tab shows the live value of every hand with the earned part in green. The Old Tricks {knack} makes every hand read the best bonus anywhere in its family.',
+      () => `Hands come in three families: sets, runs and flushes. Every ${ns2.multEvery} plays of a family, each card in that family's hands adds ${ns2.multStep} more mult. Every ${ns2.pipsEvery} plays, each adds ${ns2.pipsPer} more pip.`,
+      'A same-suit run counts for both families and takes the better one.',
+      'RECORDS -> Hands shows each family.',
     ] },
 
   { id: 'replays', group: 'scoring', title: 'A card that scores twice',
     body: [
       'A REPLAY re-scores one card, exactly as if it were in the hand again. In the tally you see that card\'s whole beat repeat, numbers and all.',
       'The commonest source is layering: a card that is in two components of the same hand scores once for each. Several {tricks} and card buffs add replays of their own.',
-      'A replay re-scores what the CARDS earned. It does not double the hand\'s base pips or any bonus paid to the hand as a whole.',
+      'A replay re-scores the card: its pips, its mult and every per-card {trick}. Bonuses paid to the whole hand are not repeated.',
     ] },
 
   // ── What you own ──────────────────────────────────────────────────────────
   { id: 'tricks', group: 'owned', title: '{Tricks} and the slot cap',
     body: [
       'A {trick} is a scoring buff that sits in your tray, never on the board. It works by itself whenever its condition is met.',
-      'Your tray has a HARD CAP. When it is full, a new {trick} is refused outright: the count flashes red and nothing is taken. Make room first by SELLING one, which you do by tapping it in the tray and choosing Sell.',
+      'When the tray is full a new {trick} is refused. Sell one first: tap it in the tray and choose Sell.',
       'Some {tricks} depend on their position in the tray. The Tray Order event changes the order.',
     ] },
 
@@ -212,14 +217,14 @@ const INFO_TOPICS = [
 
   { id: 'knacks', group: 'owned', title: '{Knacks}',
     body: [
-      'A {knack} is not a card and not a tray item. It is a permanent rule change for the rest of the run, shown as a small chip in the HUD.',
+      'A {knack} is a rule change for the rest of the run, shown as a chip in the HUD.',
       '{Knacks} are never duplicated and never expire. Tap one to read it, or to sell it.',
     ] },
 
   { id: 'improve', group: 'owned', title: 'Improvement tiers - the v2.0 stamp',
     body: [
-      'Anything you own can be IMPROVED, which makes its own numbers bigger. A +5 bonus climbs 5, 10, 15, 20, 25, 40 across five improvements.',
-      'The tier is stamped on the object as a version number, and the object itself changes: gold bands count up across its corner, and a {trick}\'s shutter climbs from grey through bronze, silver, gold and black to iridescent.',
+      '{Tricks}, {Knacks} and {Sleights} can be IMPROVED, which makes their numbers bigger. A +5 bonus climbs 5, 10, 15, 20, 25, 40 across five improvements.',
+      'The tier is stamped on the object as a version number, and a gold band is added across its corner for each improvement.',
       'The printed description follows the number.',
     ] },
 
@@ -233,31 +238,32 @@ const INFO_TOPICS = [
   // ── Between rounds ────────────────────────────────────────────────────────
   { id: 'payout', group: 'between', title: 'The payout',
     body: [
-      'Clearing the {GOAL} pays credits. Three lines:',
+      'On the Schedule, clearing the {GOAL} pays credits. Three lines:',
       () => ['Interest on the credits you are holding.',
-       `Time left on the clock, at 1 credit per ${(typeof efficiencySecondsPerCoin === 'function') ? efficiencySecondsPerCoin() : 10} seconds.`,
+       `Early Finish Bonus: 1 credit per ${(typeof efficiencySecondsPerCoin === 'function') ? efficiencySecondsPerCoin() : 10} seconds left on the clock.`,
        'Swaps and discards you did not spend.'],
+      () => `Flow pays at each level-up instead: ${creditsTxt(SURVIVAL_LEVEL_COINS)} for the clear, more for score over the {GOAL}, and interest.`,
       'The Contributions view on the same screen breaks the round down by what earned it.',
     ] },
 
   { id: 'reward_grid', group: 'between', title: `The ${gridName('reward')}`,
     body: [
-      'A board of rewards and liabilities. You pick a CONNECTED PATH through it and take EVERYTHING on that path.',
+      'A board of rewards and penalties. Pick a connected path and take everything on it.',
       'Tapping a tile you cannot reach shows its description. Tapping one you can reach picks it and shows its description.',
-      'There is a minimum number of picks, the same as on the board. SKIP takes nothing.',
+      'The path can be as long as your Selection Size. SKIP takes nothing.',
     ] },
 
   { id: 'pick_three', group: 'between', title: 'Take your pick',
     body: [
-      'Three offers, and you take one. The Schedule offers one after every round you clear; Flow and Survival after every {GOAL}. Guided sells one as a slot.',
+      'Three offers, and you take one. The Schedule pays one after an ordinary round. In Flow it is one of the reward screens a level-up can pay.',
       'Each offer rolls its own type. The chances depend on the mode; see that mode\'s entry under Modes.',
       'A tap selects an option and shows its description. CONFIRM takes it.',
-      () => `Rerolls come from one pool for the whole run: ${typeof PICK_REROLLS_START !== 'undefined' ? PICK_REROLLS_START : 3} at the start. When the pool is empty a reroll costs credits, rising each time on the same screen.`,
+      'The other two keys reroll: one the three options, one the kind of reward. Each is free once for every discard or swap the round ended with, then costs credits, more each time.',
     ] },
 
   { id: 'shop', group: 'between', title: 'The company store',
     body: [
-      'The shop is drawn on your own board, at your own board size, so raising the board raises the shop. Each row is a category with a plate naming it.',
+      'The shop is drawn on your board, at your board\'s size. Each row is a category with a plate naming it.',
       'Buying several things at once that touch each other is cheaper.',
       'The shop uses the swaps and discards you had left. A swap moves a tile: double-tap it, then tap a neighbour. A discard rerolls a row: select its label and press REROLL.',
       'SELL shows what you own. Going back does not reroll the stock.',
@@ -265,10 +271,9 @@ const INFO_TOPICS = [
 
   { id: 'events', group: 'between', title: 'Events',
     body: [
-      'An event is a one-screen decision: a trade, a gamble, an upgrade, a clean-up. SKIP is always available.',
-      'An event you could not use is never offered. If you own nothing to improve, the improve events do not come up at all.',
-      'The same event never lands twice in a row.',
-      () => `An event is named before you open it only once it is filed. Opening an event ${EVENT_KNOW_NEED} times files it. Builds, EVENTS lists the filed ones.`,
+      'An event is a decision: a trade, a gamble, an upgrade, a clean-up. Most can be skipped free. A few price the skip, and the key says so.',
+      'An event you could not use is never offered. An event does not repeat straight away.',
+      () => `Visiting an event opens its file in Builds, EVENTS. After ${EVENT_KNOW_NEED} visits the Schedule names it before you open it.`,
     ] },
 
   { id: 'limits', group: 'between', title: 'Limits',
@@ -281,18 +286,18 @@ const INFO_TOPICS = [
   { id: 'limit_break', group: 'between', title: 'Limit Break',
     body: [
       'Two stages. First a FREE pick of three limits: lock one in and it applies immediately. A blind offer is revealed once it is locked in.',
-      'Then an optional SECOND pick, which costs you something off a short list drawn at that moment. JUST THE ONE always walks away with the free pick and no price.',
+      'Then an optional SECOND pick, which costs you something off a short list drawn at that moment. JUST THE ONE keeps the free pick and takes no second.',
     ] },
 
   { id: 'prize_grid', group: 'between', title: `The ${gridName('prize')}`,
     body: [
-      `Beating a review opens ${gridName('prize', { a: true })} INSTEAD of ${gridName('reward', { a: true })}. It is smaller, every single cell is a reward with no liabilities at all, and nothing common is on it.`,
+      `Beating a review opens ${gridName('prize', { a: true })} INSTEAD of ${gridName('reward', { a: true })}. It is smaller, every cell is a reward, and nothing common is on it.`,
     ] },
 
   { id: 'quarter', group: 'between', title: 'Quarters',
     body: [
       () => `A run is ${typeof QUARTERS_PER_RUN !== 'undefined' ? QUARTERS_PER_RUN : 4} QUARTERS. Each quarter is a handful of stops and then a manager review; beating the review closes the quarter and opens the next.`,
-      'The card that comes up between them is a summary, and a tap skips it. At the end of the run the report breaks the whole thing down quarter by quarter.',
+      'A tap continues past the quarter screen. The end-of-run report has a table by quarter under DETAILS.',
     ] },
 
   // ── The schedule ──────────────────────────────────────────────────────────
@@ -316,13 +321,13 @@ const INFO_TOPICS = [
         : 'You may take at most TWO obligations in a slot, and only if they are next to each other. Moving forward always enters the next slot on your current lane.',
       () => _mapPickOn()
         ? 'A two-slot obligation counts as one of your picks in its second slot.'
-        : 'A move that would strand you is refused rather than allowed: the bar tells you a path dead-ends instead of letting you walk into it.',
+        : 'A move that would strand you is refused.',
     ] },
 
   { id: 'skip_cost', group: 'schedule', title: 'R&R',
     body: [
-      'Leave a slot after taking only one obligation and you earn R&R: one perk, the department\'s own more often than the rest. Tap R&R on the bar to see which.',
-      'The perks: Sleight charges, a chance at a permaprime (a Trick fires twice every time, for good), a swap and a discard for good, a longer path on the next grid, card buffs, an improvement, or credits.',
+      'Leave a slot after taking only one obligation and you earn R&R: one perk, the department\'s own more often than the rest. Tap R&R on the bar to see the likely one.',
+      'The perks: Sleight charges, a chance at a permaprime (a Trick fires once more every time, for good), a swap and a discard for good, a longer path on the next grid, card buffs, an improvement, or credits.',
     ] },
 
   { id: 'departments', group: 'schedule', title: 'Departments',
@@ -331,62 +336,54 @@ const INFO_TOPICS = [
       'It also decides what challenge cards pay: one reward for ordinary cards, another for hard ones. A card shows its reward and what raising it pays.',
     ] },
 
-  { id: 'curve', group: 'schedule', title: 'Everything advances the goal',
+  { id: 'curve', group: 'schedule', title: 'Round goals',
     body: [
-      'Every obligation raises the difficulty, whether you PLAYED it or BOUGHT it. Visiting the store moves the {GOAL} exactly as finishing a round does.',
+      'A round\'s {GOAL} is set by its time slot. Later slots ask more. In a slot with two or more rounds, one or two of them ask a level more. Each line prints its {GOAL} before you clock in.',
     ] },
 
   // ── Pressure ──────────────────────────────────────────────────────────────
   { id: 'clock', group: 'pressure', title: 'The round clock',
     body: [
-      'The clock is the round. Reach the {GOAL} before it runs out and the round is cleared; run out first and the run ends.',
-      'Two different things give time back and the words are not interchangeable: a PAUSE freezes the clock for a few seconds, a REWIND puts seconds back on it. Some things scale off one and not the other.',
-      'Swaps and discards bill the clock. Playing a hand is free.',
+      'Reach the {GOAL} before the clock runs out. On the Schedule, running out ends the run. In Flow it starts the review.',
+      'A PAUSE stops the clock for a few seconds. A REWIND puts seconds back on it. Playing a hand ends a pause.',
+      'From ENTRY LEVEL difficulty up, swaps and discards cost seconds. Playing a hand costs none, unless it carries a kicker.',
     ] },
 
   { id: 'boss', group: 'pressure', title: 'Manager reviews',
     body: [
-      'A review is an ordinary round with one modifier on it and a much larger {GOAL}. The briefing says exactly what the modifier does before the clock starts, and PROCEED is what starts it.',
-      'A review can make a style of play COST more or PAY less. It can never make one impossible, and there is always something still paying full.',
+      'A review is an ordinary round with a modifier on it and a much larger {GOAL}. The briefing says what the modifier does before the clock starts. PROCEED starts it.',
       'You can read the briefing again mid-round by tapping the {GOAL} chip or the progress block.',
     ] },
 
   { id: 'difficulty', group: 'pressure', title: 'Difficulty',
     body: [
-      'Each mode has its own tier, set on its card with the sideways keys: a $ per tier. Winning a run opens the next tier for that mode. A run keeps the tier it started on. Each tier keeps the changes below it.',
-      '1 INTERN: no modifiers. 2 ENTRY LEVEL: you start with a curse card; it goes away after 4 draws. Swaps cost 3s, discards cost 5s. 3 SPECIALIST: forced penalties can appear in rewards. 4 MIDDLE MANAGER: every round starts with 30 fewer seconds (Flow: every quarter).',
-      '5 SENIOR MANAGER: the starting curse card lasts 6 draws. Swaps cost 5s, discards cost 7s. 6 EXECUTIVE: penalties are more punishing (all permanent, the serious ones more often; in Flow, more than one reward is rarer). 7 C-SUITE: the curse card lasts until removed. Score requirements are higher. 8 THE BOARD: score requirements are higher still. Face the final boss.',
+      'Each protocol has its own tier, set on the run screen: a $ per tier. Winning a run opens the next tier of that protocol, in Flow and the Schedule alike. A run keeps the tier it started on. Each tier keeps the changes below it.',
+      () => DIFF_TIERS.map(t => `${t.tier} ${t.name}: ${t.say}`),
     ] },
   { id: 'mini_boss', group: 'pressure', title: 'Priority accounts',
     body: [
       `A priority account is an ordinary round with a RAISED {GOAL} and one extra requirement. Clearing it pays ${gridName('reward', { a: true })}; meeting the requirement pays credits too.`,
-      'A one-on-one is a priority account whose requirement is a review\u2019s modifier at half strength. Clearing it is meeting it.',
-      'Missing the requirement is not failing the round. Clear the raised {GOAL} and the round passes as normal; meet the requirement too and you also take the bonus.',
-    ] },
-
-  { id: 'seed', group: 'pressure', title: 'Seeds',
-    body: [
-      'Every run is built from a SEED, a short code shown on the menu. The same seed deals the same opening board and stocks the same shops.',
-      'It is a seed, not a replay: what you choose still changes what comes next.',
+      'A one-on-one is a review\u2019s modifier at half strength. It pays credits and an improvement you pick, not ' + gridName('reward', { a: true }) + '.',
+      'Missing the requirement loses its credits, not the round.',
     ] },
 
   // ── Modes (r310) - how each mode works, one entry per carousel card ──────
   // Plain description only: what happens, in what order, and the numbers.
   { id: 'mode_map', group: 'modes', title: 'The Schedule',
     body: [
-      () => `A run is ${typeof QUARTERS_PER_RUN !== 'undefined' ? QUARTERS_PER_RUN : 4} quarters. Each quarter is a new schedule: ${typeof MAP_SETS !== 'undefined' ? MAP_SETS : 4} time slots of ${typeof MAP_LANES !== 'undefined' ? MAP_LANES : 4} obligations, then the manager review. Two managers wait at the end: each unlocks on what you booked (five obligations in its two lanes; on the tall schedule, four rounds for one and four other obligations for the other, a mystery counting as both if it turns out to be a round). Unlock one and face it; unlock both and choose; unlock neither and a random manager holds the review.`,
-      'Every step activates the obligation you land on. You can take any two obligations in a slot. Leaving a slot after one earns R&R: a perk.',
+      () => `A run is ${typeof QUARTERS_PER_RUN !== 'undefined' ? QUARTERS_PER_RUN : 4} quarters. Each quarter is a new schedule: ${typeof MAP_SETS !== 'undefined' ? MAP_SETS : 4} time slots of ${typeof MAP_LANES !== 'undefined' ? MAP_LANES : 4} obligations, then the manager review. Two managers wait at the end. Each unlocks at ${typeof mapBossNeedN === 'function' ? mapBossNeedN() : 5} bookings in its two lanes. Unlock one and face it. Unlock both and choose. Unlock neither and a random manager holds the review.`,
+      'Take any two obligations in a slot. Leaving a slot after one earns R&R: a perk.',
       `Obligations: client accounts (rounds), priority accounts (hard rounds), one-on-ones (a review\u2019s modifier at half strength), audits (challenge cards), the shop, events and raise requests (Limit Break). IT\u2019s quarter adds incentive programs (${gridName('reward', { plural: true })}).`,
       `An unconfirmed obligation (???) is a round, an audit, a priority account, an event, a one-on-one or ${gridName('reward', { a: true })}. You find out when you commit to it.`,
-      'Every obligation raises the goal. The review\'s goal is fixed when the schedule is drawn.',
-      () => `Clearing a round offers a pick of three: ${typeof GUIDED_PICK_WEIGHTS !== 'undefined' ? `${GUIDED_PICK_WEIGHTS.trick}% {trick}, ${GUIDED_PICK_WEIGHTS.sleight}% {sleight}, ${GUIDED_PICK_WEIGHTS.knack}% {knack}` : ''} per offer. A priority account pays ${gridName('reward', { a: true })} instead; a one-on-one pays an improvement you pick. An audit pays its challenge cards\u2019 rewards and nothing more.`,
+      'A round\'s goal is set by its slot. The review\'s goal is fixed when the schedule is drawn.',
+      () => `Clearing a round offers a pick of three. Weights per offer: ${typeof GUIDED_PICK_WEIGHTS !== 'undefined' ? `{trick} ${GUIDED_PICK_WEIGHTS.trick}, {sleight} ${GUIDED_PICK_WEIGHTS.sleight}, {knack} ${GUIDED_PICK_WEIGHTS.knack}, event ${GUIDED_PICK_WEIGHTS.event}` : ''}. A priority account pays ${gridName('reward', { a: true })} instead; a one-on-one pays an improvement you pick. An audit pays its challenge cards\u2019 rewards and nothing more.`,
     ] },
   { id: 'mode_protocols', group: 'modes', title: 'Protocols',
     body: [
-      'Flow and the Schedule are played under a protocol, chosen after the mode: Standard, Dexterous or Precision. A protocol changes a few rules; the mode stays the same.',
+      () => `Flow and the Schedule are played under a protocol, chosen on the run screen: ${PROTOCOLS.map(p => p.name).join(', ')}. A protocol changes a few rules. The mode stays the same.`,
       'Difficulty belongs to the protocol. A win in Flow or the Schedule unlocks the next tier of that protocol for both.',
-      'Winning a run of Dexterous, Precision, Limitless or Hyperfocus unlocks its Knack (Ambidextrous, Measure Twice, Growth Mindset, ADHD), which can then be offered in any other run (ADHD in Hyperfocus too).',
-      'Standard is open from the start. Each protocol after it opens with a won run of the one before it, in Flow or the Schedule: Dexterous, Precision, Limitless, Hyperfocus.',
+      'Winning a run of Dexterous, Precision, Limitless, Hyperfocus or Past Capacity unlocks its Knack (Ambidextrous, Measure Twice, Growth Mindset, ADHD, Curio), which can then be offered in any other run (ADHD in Hyperfocus too).',
+      'Standard and Turbo are open from the start. Dexterous, Precision, Limitless and Hyperfocus each open with a won run of the one before, in Flow or the Schedule.',
     ] },
   { id: 'mode_dexterous', group: 'modes', title: 'Dexterous',
     body: [
@@ -411,40 +408,46 @@ const INFO_TOPICS = [
     body: [
       () => `A protocol of Flow and the Schedule. Every {FOCUS} you make is doubled, and {FOCUS} fades ${HYPERFOCUS.decay} times as fast. The {FOCUS} limits are the usual ones.`,
     ] },
+  { id: 'mode_turbo', group: 'modes', title: 'Turbo',
+    body: [
+      'A protocol of Flow and the Schedule, open from the start.',
+      'Flow: the quarter\'s clock starts at half, and every reward comes twice.',
+      () => `The Schedule: one obligation a slot. Each review unlocks at ${TURBO.reviewNeed} bookings in its two lanes.`,
+    ] },
   { id: 'mode_flow', group: 'modes', title: 'Flow',
     body: [
       () => `A ${Math.round((typeof FLOW_SESSION_SECONDS !== 'undefined' ? FLOW_SESSION_SECONDS : 300) / 60)}-minute clock counts down to the review. It does not reset when you level up.`,
-      'Clear a {GOAL} to level up. Each level up offers a pick of three, then the next, larger {GOAL} starts. Missing a {GOAL} does not end the run.',
-      () => `When the clock reaches zero the review starts. It has its own ${typeof FLOW_BOSS_WINDOW !== 'undefined' ? FLOW_BOSS_WINDOW : 120}-second clock and its own {GOAL}. Pass it and the clock refills. Fail it and the run ends. After ${typeof SURVIVAL_BOSS_COUNT !== 'undefined' ? SURVIVAL_BOSS_COUNT : 4} reviews you can stop or continue with faster-rising goals.`,
+      'Clear a {GOAL} to level up. A level-up pays one or more reward screens, then the next {GOAL} starts. Missing a {GOAL} does not end the run.',
+      () => `When the clock reaches zero the review starts. It has its own ${typeof FLOW_BOSS_WINDOW !== 'undefined' ? FLOW_BOSS_WINDOW : 120}-second clock and its own {GOAL}. Pass it and the clock refills. Fail it and the run ends. Pass ${typeof SURVIVAL_BOSS_COUNT !== 'undefined' ? SURVIVAL_BOSS_COUNT : 4} to win. ENDLESS on the win screen carries the run on with faster-rising goals.`,
       () => `A review asks the {GOAL} of level ${typeof FLOW_BOSS_GOAL_LEVELS !== 'undefined' ? FLOW_BOSS_GOAL_LEVELS.join(' / ') : '8 / 14 / 20 / 24'}, or of your own level when you are past it. Every level you are past pays ${typeof FLOW_AHEAD_PAY !== 'undefined' ? FLOW_AHEAD_PAY : 10} credits.`,
-      () => `Pick of three odds per offer: ${typeof SURVIVAL_PICK_WEIGHTS !== 'undefined' ? `${SURVIVAL_PICK_WEIGHTS.trick}% {trick}, ${SURVIVAL_PICK_WEIGHTS.sleight}% {sleight}, ${SURVIVAL_PICK_WEIGHTS.knack}% {knack}, ${SURVIVAL_PICK_WEIGHTS.limit}% limit` : ''}. At least one limit and one {knack} are offered every four levels.`,
-      () => `The shop can be opened at any time for ${typeof SURVIVAL_SHOP_COST !== 'undefined' ? SURVIVAL_SHOP_COST : 5} credits. Swaps and discards cost no time. The {FOCUS} ceiling starts at ${typeof FLOW_FOCUS_CAP !== 'undefined' ? FLOW_FOCUS_CAP : 20}.`,
+      () => `Pick of three weights per offer: ${typeof SURVIVAL_PICK_WEIGHTS !== 'undefined' ? `{trick} ${SURVIVAL_PICK_WEIGHTS.trick}, {sleight} ${SURVIVAL_PICK_WEIGHTS.sleight}, {knack} ${SURVIVAL_PICK_WEIGHTS.knack}, limit ${SURVIVAL_PICK_WEIGHTS.limit}, event ${SURVIVAL_PICK_WEIGHTS.event}` : ''}. With adaptive odds on, a limit and a {knack} are each offered at least every four levels.`,
+      () => `The Shop tile on a reward screen opens the store for ${creditsTxt(typeof SURVIVAL_SHOP_COST !== 'undefined' ? SURVIVAL_SHOP_COST : 5)}. The {FOCUS} ceiling starts at ${typeof FLOW_FOCUS_CAP !== 'undefined' ? FLOW_FOCUS_CAP : 20}.`,
     ] },
-  { id: 'mode_guided', group: 'modes', title: 'Guided',
+  { id: 'mode_guided', dev: true, group: 'modes', title: 'Guided',
     body: [
       () => `Each quarter is ${typeof GUIDED_SLOTS_PER_ACT !== 'undefined' ? GUIDED_SLOTS_PER_ACT : 8} slots, then the manager review.`,
       'Before each slot you choose one of four offers: a round, a hard round, ' + gridName('reward', { a: true }) + ', the shop, a pick of three or an event. Rounds are free. Most other offers cost credits, and buying the same kind again in a quarter costs more.',
       'At least one offer in every three choices is a round. Every slot raises the goal, whether it is played or bought.',
-      () => `Pick of three odds per offer: ${typeof GUIDED_PICK_WEIGHTS !== 'undefined' ? `${GUIDED_PICK_WEIGHTS.trick}% {trick}, ${GUIDED_PICK_WEIGHTS.sleight}% {sleight}, ${GUIDED_PICK_WEIGHTS.knack}% {knack}` : ''}.`,
+      () => `Pick of three weights per offer: ${typeof GUIDED_PICK_WEIGHTS !== 'undefined' ? `{trick} ${GUIDED_PICK_WEIGHTS.trick}, {sleight} ${GUIDED_PICK_WEIGHTS.sleight}, {knack} ${GUIDED_PICK_WEIGHTS.knack}, event ${GUIDED_PICK_WEIGHTS.event}` : ''}.`,
     ] },
-  { id: 'mode_normal', group: 'modes', title: 'Classic',
+  { id: 'mode_normal', dev: true, group: 'modes', title: 'Classic',
     body: [
       () => `Four suits, 52 cards. A run is ${typeof QUARTERS_PER_RUN !== 'undefined' ? QUARTERS_PER_RUN : 4} quarters of five rounds, each followed by a manager review.`,
       `Reach each round's {GOAL} before the clock runs out, or the run ends. After each round: the payout, then the ${gridName('reward')}. The ${gridName('reward')} can lead to the shop or an event.`,
       `Passing a review opens the ${gridName('prize')}.`,
     ] },
-  { id: 'mode_spectrum', group: 'modes', title: 'Spectrum',
+  { id: 'mode_spectrum', dev: true, group: 'modes', title: 'Spectrum',
     body: [
       'No suits and no face cards. Seven colours, each with the values 0 to 11 plus a 15 and a 20. A card scores pips equal to its value.',
       '9s, 10s and 11s are white and never count toward a flush. 15 and 20 cannot be part of a run. Flush of 3 scores nothing.',
       'Four payout cards are shuffled in. Score two hands next to one and it pays: +2 swaps, +2 discards, +10 seconds or +5 credits. It then leaves the board and returns to the deck.',
     ] },
-  { id: 'mode_picker', group: 'modes', title: 'Custom',
+  { id: 'mode_picker', dev: true, group: 'modes', title: 'Custom',
     body: [
       'Seven questions build the run: the deck, what happens between rounds, round length, whether swaps and discards cost time, bosses on or off, who submits hands, and what hand types are worth.',
       'Some answers set others. Those are shown in amber.',
     ] },
-  { id: 'mode_squares', group: 'modes', title: 'Poker Squares',
+  { id: 'mode_squares', dev: true, group: 'modes', title: 'Poker Squares',
     body: [
       'The 5x5: cards arrive three at a time and you drag each onto the board. A card lasts one extra deal, then leaves your hand at the next deal. 30 seconds a deal, 5 minutes a grid.',
       'You pick a {trick} from five before the first deal and after every other deal. The tray caps at 5; a full tray refuses a pick until you drop one.',
@@ -566,7 +569,7 @@ function renderInfoHub() {
   const nav  = document.getElementById('info-nav');
   if (!body) return;
   const q = infoHubQuery;
-  const shown = INFO_TOPICS.filter(t => infoHubMatch(t, q));
+  const shown = INFO_TOPICS.filter(t => !t.dev && infoHubMatch(t, q));   // r796: dev-only modes are not listed
 
   if (nav) {
     // Only groups that still have something in them, so a search never leaves a

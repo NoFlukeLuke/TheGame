@@ -124,7 +124,7 @@ function pickRerollSpend() {
 function pickRerollAction(onReroll) {
   const free = pickRerollsLeft > 0, cost = pickRerollCost();
   return { icon: '🎲', label: 'Reroll', reroll: true, _roll: onReroll,
-           sub: free ? `FREE (${pickRerollsLeft})` : `${cost} \u25c6`,
+           sub: free ? `FREE (${pickRerollsLeft})` : creditsTxt(cost),
            disabled: !free && coins < cost,
            onClick: () => { if (pickRerollSpend()) onReroll(); } };
 }
@@ -337,7 +337,18 @@ function gridPickPaintSelection() {
 // up, PLAY is CONFIRM and DISCARD is SKIP - the shop's BUY/LEAVE takeover shape:
 // markup saved, restored on close, render() kept off them (its _takeover guard).
 let _gpBtnSaved = null;
-function gpSplit() { return typeof flowSplitRerolls === 'function' && flowSplitRerolls() && !!gridPickState; }
+// r796: the Schedule's pick of three wears the same keys (a pick opened with `split`), so
+// both modes read CONFIRM / REROLL OPTIONS / REROLL REWARD TYPE and Skip is a tile.
+function gpSplit() { return !!gridPickState && (!!gridPickState.split || (typeof flowSplitRerolls === 'function' && flowSplitRerolls())); }
+function gpSplitTiles() {
+  if (!gridPickState || !gridPickState.split) return flowrSplitTiles();
+  return gridPickState.onSkip ? [{ icon: '\u23ed', label: 'Skip', sub: 'take none', onClick: () => gridPickSkipNow() }] : [];
+}
+function gpRerollType() {
+  const sp = gridPickState && gridPickState.split;
+  if (sp) { if (sp.onType) sp.onType(); else refuse('Nothing else to roll'); return; }
+  flowRerollType();
+}
 function gridPickSkipNow() { if (gridPickState && gridPickState.onSkip) gridPickState.onSkip(); }
 function gridPickTakeButtons() {
   const play = document.getElementById('btn-play'), disc = document.getElementById('btn-discard');
@@ -371,7 +382,7 @@ function gridPickTakeButtons() {
     }, true);
     swap?.addEventListener('click', e => {
       if (!gridPickState || !_gpBtnSaved || (typeof shopGridActive !== 'undefined' && shopGridActive) || !gpSplit()) return;
-      e.stopImmediatePropagation(); e.preventDefault(); flowRerollType();
+      e.stopImmediatePropagation(); e.preventDefault(); gpRerollType();
     }, true);
   }
   gridPickSyncButtons();
@@ -386,7 +397,7 @@ function gridPickSyncButtons() {
     const hasOpts = (gridPickState.actions || []).some(a => a && a.reroll);
     disc.disabled = !hasOpts;
     disc.innerHTML = `<span class="rr-word">REROLL<br>OPTIONS</span><span class="rr-n">${flowRrLabel('opt')}</span>`;
-    const typeOk = !(typeof flowrQueue !== 'undefined' && flowrQueue && flowrQueue[flowrIdx] === 'prize');
+    const typeOk = gridPickState.split ? !!gridPickState.split.onType : !(typeof flowrQueue !== 'undefined' && flowrQueue && flowrQueue[flowrIdx] === 'prize');
     if (swap) {
       swap.classList.toggle('gp-rr-off', !typeOk);
       swap.innerHTML = `<span class="rr-word">REROLL<br>REWARD<br>TYPE</span><span class="rr-n">${flowRrLabel('type')}</span>`;
@@ -815,7 +826,7 @@ function gridPickRenderActions(animateIn) {
   // SWAP are the two rerolls and PLAY confirms - so the row takes all six cells.
   const split = gpSplit();
   const cols = split ? GP_COLS : GP_ACT_COLS;
-  const acts = (split ? (actions || []).filter(a => a && !a.reroll).concat(flowrSplitTiles()) : (actions || [])).slice(0, cols);
+  const acts = (split ? (actions || []).filter(a => a && !a.reroll).concat(gpSplitTiles()) : (actions || [])).slice(0, cols);
   for (let c = 0; c < cols; c++) {
     const a = acts[c];
     if (!a) { put('<div class="gp-amb gp-amb-act"></div>', gpPickBox(GP_ROWS - 1, c, 1, 1)); continue; }
@@ -869,7 +880,7 @@ function openGridPick(opts) {
   const offers = (typeof protoTrimOffers === 'function') ? protoTrimOffers(opts.offers || []) : (opts.offers || []);
   if (typeof offerRecentNote === 'function') offerRecentNote(offers);
   gridPickState = {
-    offers, actions: opts.actions || [], selected: -1,
+    offers, actions: opts.actions || [], selected: -1, split: opts.split || null,
     // r380: the board LEAVES before the next screen arrives - a beat on the
     // choice, then the tiles explode out (js/reward-transition.js). The commit
     // is locked the moment it is pressed, so a second tap during the beat does

@@ -213,7 +213,7 @@ function flowRrCost(k) {
   if (flowRr[k] > 0) return 0;
   return PICK_REROLL_STEP * ((k === 'type' ? flowRr.paidType : flowRr.paidOpt) + 1);
 }
-function flowRrLabel(k) { return flowRr[k] > 0 ? `FREE ${flowRr[k]}` : `${flowRrCost(k)} \u25c6`; }
+function flowRrLabel(k) { return flowRr[k] > 0 ? `FREE ${flowRr[k]}` : creditsTxt(flowRrCost(k)); }
 function flowRrSpend(k) {
   if (flowRr[k] > 0) { flowRr[k]--; return true; }
   const c = flowRrCost(k);
@@ -1915,7 +1915,7 @@ function flowrOpenShop() {
 function flowrCommonActions() {
   return [
     { icon: '\ud83d\udcca', label: 'Round', sub: 'breakdown', onClick: () => flowrToggleRound() },
-    { icon: '\ud83d\uded2', label: 'Shop', sub: `${SURVIVAL_SHOP_COST} \u25c6`, cls: 'gp-act-buy',
+    { icon: '\ud83d\uded2', label: 'Shop', sub: creditsTxt(SURVIVAL_SHOP_COST), cls: 'gp-act-buy',
       disabled: coins < SURVIVAL_SHOP_COST, onClick: () => flowrOpenShop() },
   ];
 }

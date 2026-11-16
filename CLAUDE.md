@@ -5326,3 +5326,48 @@ dealt level 2 (Flow) or returned to the schedule; with the Knack 198 of 400 Sche
 Next: Event (0 without) and taking it by tap opened the event and returned to the schedule; the
 Flow and Schedule walkthroughs ran end to end with no page errors. Golden: 834 cases match.
 Not shipped in the walkthrough yet: the shop and Balance Sheet steps still run only in Classic.
+
+## r796 - one set of pick keys; event files in two steps; the tips and handbook pass (owner)
+- **The pick's keys are the same in Flow and on the Schedule** (js/grid-pick.js, js/guided-mode.js):
+  PLAY is CONFIRM, DISCARD is REROLL OPTIONS, SWAP is REROLL REWARD TYPE, Skip is a tile. A pick
+  opened with `split: { onType }` wears Flow's split keys outside Flow (`gpSplit()`, `gpSplitTiles`,
+  `gpRerollType`). `guidedOpenPickThree` passes it and takes `flowRrSnapshot()` (the free rerolls are
+  the swaps and discards the round ended with; not for a pick an event opens, and not in Flow, which
+  snapshots itself). The Schedule's type reroll (`guidedRerollType`, `GUIDED_TYPE_W`) turns the screen
+  into Tricks, Sleights, Knacks, an improvement or the pick of three again (`guidedOpenKindPick`, on
+  `flowrBuildOffers`); never Limits (the Raise obligation sells those). The r282 run-long reroll
+  pool (`pickRerollsLeft`) no longer drives the Schedule's pick; the Reroll tile is hidden under the
+  split keys and the DISCARD key calls its `_roll`. **The Schedule still pays Unspent for the same
+  stock at the payout**, so leftover stock is worth more there than in Flow (owner to confirm).
+  Paid prices print L¢ (`flowRrLabel`, `pickRerollAction`, Flow's Shop tile).
+- **Event files, two steps** (js/event-files.js): one visit opens the file (`eventSeen`): Builds ->
+  EVENTS shows its name, what it does and "visit n more times to reveal it on the Schedule". Five
+  visits reveal it (`eventKnown`): the Schedule and the pick's event tile name it. Until then the
+  Schedule line reads plain EVENT ("Something happens."), no count. Notices: EVENT FILE OPENED at the
+  first visit, EVENT REVEALED at the fifth. Rewards Member still needs 15 REVEALED events.
+- **Walkthrough:** Selection Size points at PLAY ("The squares on PLAY count it") and Trick slots at
+  the tray's squares while stock squares are on (`tutStockSquares`); the scoring step says how hands
+  grow (`tutGrowthLine`, read from `ns2`); the flush line reads "A run of 3 or 4 all in one suit is a
+  flush as well"; the pick step describes the shared keys.
+- **Tips and handbook** (js/insights.js, js/info-hub.js; an audit of every entry against the code): 55
+  handbook edits and 19 tip edits. Corrected: pick order and the card ladder (select, pips_mult,
+  hand_layers, replays, wild cards), hand families (natural_scaling, read from `ns2`), swap and
+  discard seconds by difficulty (read from `swapSecondsBase` / `discardSecondsBase`), Flow's clock and
+  level-up pay, round goals on the Schedule (set by the slot), reviews (`mapBossNeedN`), difficulty
+  (per protocol, the list built from `DIFF_TIERS`), protocols (names read from `PROTOCOLS`; a Turbo
+  entry), the pick's rerolls, events (priced skips), curse cards (a new `curse_card` tip), the
+  improvement art, the one-on-one. Removed: the Seeds entry (no seed is shown to a player). The
+  five dev-only mode entries carry `dev: true` and are not listed. Wording trimmed throughout
+  ("liabilities" reads penalties).
+- **Measured, no change:** a flush layers only when EVERY card in the hand shares the suit. A 5-card
+  Straight with three hearts replays nothing; a Run of 3 or 4 all in one suit scores every card
+  twice. A 5-card Straight Flush is one hand and scores each card ONCE (525 against a suited Run of
+  4's 1,040 on the test board): owner to decide.
+- **Open, found by the audit:** Old Tricks (Knack) does nothing under double scaling
+  (`naturalScaleBonus` is 0 there) and its sentence is stale.
+Measured in headless Chromium at 1440x820 and 420x900: the Schedule's pick by real clicks and taps
+(free option rerolls 3 > 2, a type reroll to a Tricks screen, a paid reroll charging L¢5, CONFIRM
+back to the schedule with the Trick owned); all 52 handbook entries and 28 tips build on the menu and
+in a run with no error; Builds -> EVENTS showed revealed / "visit 2 more times" / ???? ; an unvisited
+Schedule event read EVENT, a revealed one its name; the Flow and Schedule walkthroughs ran end to
+end, no page errors. Golden: 834 cases match.

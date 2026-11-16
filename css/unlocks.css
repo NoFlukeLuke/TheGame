@@ -49,3 +49,5 @@
 #bv-events .bv-ev-pips { display: flex; gap: 4px; }
 #bv-events .bv-ev-pips i { width: 9px; height: 9px; border: 1px solid #ffb64877; }
 #bv-events .bv-ev-pips i.on { background: #ffb648; }
+#bv-events .bv-ev.shown { border-color: #7fe0a066; }
+#bv-events .bv-ev-n { text-transform: none; letter-spacing: .02em; font-size: 12px; }

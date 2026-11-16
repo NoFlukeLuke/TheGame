@@ -1,10 +1,11 @@
 // ══════════════════════════════════════════════
 // EVENT FILES (r795, owner)
 // ══════════════════════════════════════════════
-// An event is FILED once it has been opened EVENT_KNOW_NEED (5) times, ever. Until
-// then nothing names it ahead of time: the Schedule's line reads EVENT, the pick of
-// three's event tile reads EVENT. Builds -> EVENTS lists the filed ones with what
-// they do. REWARDS_MEMBER_NEED (15) filed events unlock the Rewards Member Knack.
+// Two steps (r796). One visit opens an event's FILE: Builds -> EVENTS shows its name
+// and what it does (eventSeen). EVENT_KNOW_NEED (5) visits REVEAL it (eventKnown):
+// from then on the Schedule's line and the pick of three's event tile name it. Until
+// then both read plain EVENT, with no count. REWARDS_MEMBER_NEED (15) revealed events
+// unlock the Rewards Member Knack.
 //
 // One store, `lethe.eventVisits.v1` { id: opens }. `eventVisitNote(id)` is the one
 // writer (openEvent, guidedOpenNamedEvent); tours and test drives do not count.
@@ -24,6 +25,7 @@ function eventVisits() {
 }
 function eventVisitCount(id) { return Math.max(0, eventVisits()[id] | 0); }
 function eventKnown(id) { return eventVisitCount(id) >= EVENT_KNOW_NEED; }
+function eventSeen(id) { return eventVisitCount(id) >= 1; }
 function eventFileIds() { return (typeof liveEventIds === 'function') ? liveEventIds() : []; }
 function eventsKnownCount() { return eventFileIds().filter(eventKnown).length; }
 function rewardsMemberEarned() { return eventsKnownCount() >= REWARDS_MEMBER_NEED; }
@@ -32,12 +34,14 @@ function eventVisitNote(id) {
   if (!id || typeof EVENT_META === 'undefined' || !EVENT_META[id]) return;
   if (typeof EVENT_SCHEDULED !== 'undefined' && EVENT_SCHEDULED.has(id)) return;
   if (typeof unlockPaused === 'function' && unlockPaused()) return;
-  const v = eventVisits(), wasKnown = eventKnown(id), wasMember = rewardsMemberEarned();
+  const v = eventVisits(), wasSeen = eventSeen(id), wasKnown = eventKnown(id), wasMember = rewardsMemberEarned();
   v[id] = (v[id] | 0) + 1;
   try { localStorage.setItem(EVENT_VISIT_KEY, JSON.stringify(v)); } catch (e) {}
   if (typeof showMessage !== 'function') return;
+  if (!wasSeen)
+    setTimeout(() => showMessage(`EVENT FILE OPENED: ${EVENT_META[id].name} · Builds › Events`, 'var(--gold)', { svgIcon: 'unlock', icon: '\u{1F513}' }), 600);
   if (!wasKnown && eventKnown(id))
-    setTimeout(() => showMessage(`EVENT FILED: ${EVENT_META[id].name} · Builds › Events`, 'var(--gold)', { svgIcon: 'unlock', icon: '\u{1F513}' }), 600);
+    setTimeout(() => showMessage(`EVENT REVEALED: ${EVENT_META[id].name}`, 'var(--gold)', { svgIcon: 'unlock', icon: '\u{1F513}' }), 600);
   if (!wasMember && rewardsMemberEarned())
     setTimeout(() => showMessage(`UNLOCKED: ${knackName('rewards_member')} · Knack`, 'var(--gold)', { svgIcon: 'unlock', icon: '\u{1F513}' }), 1400);
 }
@@ -68,7 +72,7 @@ function eventDoes(id) {
 // What a screen may print about an event before it is opened.
 function eventShownName(id) { return eventKnown(id) ? EVENT_META[id].name : 'Event'; }
 function eventShownDoes(id) {
-  return eventKnown(id) ? eventDoes(id) : `Opened ${eventVisitCount(id)} of ${EVENT_KNOW_NEED} times.`;
+  return eventKnown(id) ? eventDoes(id) : 'Something happens.';
 }
 
 // ── Rewards Member (rare Knack `rewards_member`) ─────────────────────────────

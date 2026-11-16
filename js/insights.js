@@ -90,15 +90,15 @@ function insightsOn() {
 const INSIGHTS = [
   // ── the board ─────────────────────────────────────────────────────────────
   // The single most common surprise in the game: measured at r254, a random
-  // 5-card selection carries a dropped card 80% of the time.
+  // 5-card selection carries a spare card 80% of the time.
   { id: 'penalty_cards', title: 'That card is not in the hand',
     anchor: ['#hand-name'],
-    body: 'A red card is not part of the hand. One spare card is a kicker: it costs its pips and its pip value in seconds. With two spare cards the hand will not play.',
+    body: 'One spare card is a kicker. It costs its pips, and its pip value in seconds. With two spare cards the hand will not play.',
     when: () => !!document.querySelector('#hand-name .hn-drop') },
 
   { id: 'hand_layers', title: 'Your hand was also a flush',
     anchor: ['#hand-name'],
-    body: 'A hand that is also a flush pays for both shapes, and every card in the flush scores twice.',
+    body: 'Cards that are in a flush and another hand at once score twice.',
     // FLUSH-specific, because the copy is. The overlay is by far the common
     // layering (r199: it fires on roughly half of all five-card hands) and it is
     // the one a player cannot guess at - a suited run pays the flush too.
@@ -114,8 +114,18 @@ const INSIGHTS = [
 
   { id: 'curses', title: 'A card is cursed',
     anchor: ['#grid'],
-    body: 'The curse is on that one card, not on its rank or its suit. It wears off after the card has scored a few times.',
+    body: 'The curse is on that one card. It lifts after the card has scored a few times.',
     when: () => typeof cardCurses !== 'undefined' && Object.keys(cardCurses).length > 0 },
+
+  { id: 'curse_card', title: 'That is a curse card',
+    anchor: ['#grid .curse-card', '#grid'],
+    body: 'It is a card in your deck, not a card you play. Press and hold it to read what it does.',
+    when: () => {
+      if (typeof isCurseCard !== 'function' || typeof gridData === 'undefined') return false;
+      for (let r = 0; r < gridRows; r++)
+        for (let c = 0; c < gridCols; c++) if (isCurseCard(gridData?.[r]?.[c])) return true;
+      return false;
+    } },
 
   { id: 'card_buffs', title: 'A card has a permanent bonus',
     anchor: ['#grid'],
@@ -125,7 +135,7 @@ const INSIGHTS = [
 
   { id: 'line_markers', title: 'A line is marked on the board',
     anchor: ['#grid'],
-    body: 'One of your {tricks} has claimed that row or column for the rest of the run. Every card on it wears a ring in the same colour.',
+    body: 'One of your {tricks} has marked that row or column. Every card on it wears a ring in its colour.',
     when: () => typeof rowColBonuses !== 'undefined' && rowColBonuses.length > 0 },
 
   { id: 'blocked_cells', title: 'Some cells are out of use',
@@ -138,13 +148,13 @@ const INSIGHTS = [
   // ── scoring ───────────────────────────────────────────────────────────────
   { id: 'focus', title: '{FOCUS} is multiplying your hands',
     anchor: ['#focus-box', '#focus-meter-wrap'],
-    body: 'You earn it by playing bigger shapes quickly, and it drains while you sit still. It multiplies the hand you are playing now.',
+    body: 'Bigger hands played quickly make {FOCUS}. It fades while you wait.',
     when: () => typeof focusNodes !== 'undefined' && typeof FOCUS_THRESHOLD !== 'undefined'
              && focusNodes > FOCUS_THRESHOLD },
 
   { id: 'replays', title: 'A card scored twice',
     anchor: ['#selected-cards'],
-    body: 'A replay scores one card again. It pays what the card earned, not the hand\'s base.',
+    body: 'A replay scores one card again: its pips, its mult and its per-card {Tricks}.',
     when: () => typeof replaysThisRound !== 'undefined' && replaysThisRound > 0 },
 
   { id: 'natural_scaling', title: 'That hand family is getting better',
@@ -155,11 +165,11 @@ const INSIGHTS = [
   // ── what you own ──────────────────────────────────────────────────────────
   { id: 'knacks', screen: 'any', title: 'You own a {knack}',
     anchor: ['#knack-list'],
-    body: 'A {knack} is a permanent rule change for the rest of the run. It is not a card and it never expires.',
+    body: 'A {knack} changes a rule for the rest of the run. Tap it to read or sell it.',
     when: () => typeof acquiredKnacks !== 'undefined' && acquiredKnacks.length > 0 },
 
   { id: 'tricks', screen: 'any', title: 'Your {trick} slots are full',
-    anchor: ['#trick-tray-count'],
+    anchor: ['#trick-tray-list', '#trick-tray-area'],
     body: 'A new {trick} will be refused until you make room. Tap one in the tray and sell it.',
     when: () => typeof trickTrayFull === 'function' && trickTrayFull() },
 
@@ -178,11 +188,11 @@ const INSIGHTS = [
   // ── between rounds ────────────────────────────────────────────────────────
   { id: 'reward_grid', screen: 'any', title: 'You take the whole path',
     anchor: ['#grid'],
-    body: 'Pick a connected run of tiles and you get every tile on it, liabilities included.',
+    body: 'Pick a connected path of tiles. You get every tile on it, penalties included.',
     when: () => typeof rewardOnGrid !== 'undefined' && rewardOnGrid
              && (typeof rewardGridMode === 'undefined' || rewardGridMode !== 'prize') },
 
-  { id: 'prize_grid', screen: 'any', title: 'Nothing here is a liability',
+  { id: 'prize_grid', screen: 'any', title: 'Nothing here is a penalty',
     anchor: ['#grid'],
     body: `${gridName('prize', { a: 'A' })} is smaller than ${gridName('reward', { a: true })}. Every cell on it is a reward, and nothing common is on the board.`,
     when: () => typeof rewardOnGrid !== 'undefined' && rewardOnGrid
@@ -190,12 +200,12 @@ const INSIGHTS = [
 
   { id: 'shop', screen: 'any', title: 'Buying together is cheaper',
     anchor: ['#grid'],
-    body: 'Tiles that touch each other are discounted as a batch. Swaps rearrange the shelves and a discard rerolls a row, so what you carried out of the round is what you shop with.',
+    body: 'Tiles that touch are cheaper bought together. A swap moves a tile. A discard rerolls a row.',
     when: () => typeof shopGridActive !== 'undefined' && shopGridActive },
 
   { id: 'payout', screen: 'any', title: 'What the round paid',
     anchor: ['#po-valued'],
-    body: 'Interest on the credits you hold, time left on the clock, and every swap and discard you did not spend.',
+    body: 'Interest on your credits, the Early Finish Bonus, and unused swaps and discards.',
     when: () => !!document.querySelector('#po-valued.show') },
 
   { id: 'limit_break', screen: 'any', title: 'The first pick is free',
@@ -205,22 +215,23 @@ const INSIGHTS = [
 
   { id: 'events', screen: 'any', title: 'Skipping is an option',
     anchor: ['#event-panel', '#event-overlay'],
-    body: 'An event is one decision and then it is over. Nothing on it is compulsory.',
+    body: 'Most events can be skipped. If the skip has a price, the key says so.',
     // Not on a screen with no Skip (Overtime's cost step, r562).
     when: () => !!document.querySelector('#event-overlay.show')
       && getComputedStyle(document.getElementById('event-skip') || document.body).display !== 'none' },
 
   // ── the schedule ──────────────────────────────────────────────────────────
-  { id: 'schedule', screen: 'any', title: 'Read the whole schedule first',
+  { id: 'schedule', screen: 'any', title: 'The schedule',
     anchor: ['#map-bar'],
-    body: 'Every step you take happens, and you get at most two stops in a time slot. Use the legend to see what is where.',
+    body: 'Take any two obligations in a slot. Everything you clock in on happens. LEGEND shows what each symbol is.',
     when: () => document.body.classList.contains('map-active') },
 
   { id: 'skip_cost', screen: 'any', title: 'R&R',
     anchor: ['#map-bar'],
     body: 'Take only one stop in a time slot and moving on earns R&R: a perk. Tap R&R on the bar to see the likely one.',
     when: () => document.body.classList.contains('map-active')
-             && typeof mapVisits !== 'undefined' && mapVisits === 1 },
+             && typeof mapVisits !== 'undefined' && mapVisits === 1
+             && (typeof mapSlotCap !== 'function' || mapSlotCap() > 1) },   // no R&R with one booking a slot
 
   // ── pressure ──────────────────────────────────────────────────────────────
   { id: 'boss', screen: 'any', title: 'You can read the brief again',
@@ -247,17 +258,17 @@ const INSIGHTS = [
   // the first reward screens most players meet) ─────────────────────────────
   { id: 'flow_chain', screen: 'any', title: 'More than one reward',
     anchor: ['#flowr-stack', '#grid'],
-    body: 'A clear can pay up to five reward screens. The tabs above the board are the ones still to come.',
+    body: 'A level-up can pay several reward screens, one after another.',
     when: () => typeof flowrQueue !== 'undefined' && Array.isArray(flowrQueue) && flowrQueue.length > 1 },
 
   { id: 'deck_edit', screen: 'any', title: 'Editing your deck',
     anchor: ['#flowr-banner', '#grid'],
-    body: 'These are your real cards, and the change is permanent. Select, then press APPLY to see what lands.',
+    body: 'The change is permanent. Select, then press APPLY.',
     when: () => typeof flowrDeckActive === 'function' && flowrDeckActive() },
 
-  { id: 'mini_boss', screen: 'any', title: 'The extra task is a bonus',
+  { id: 'mini_boss', screen: 'any', title: 'A one-on-one',
     anchor: ['#goal-display'],
-    body: 'The {GOAL} is raised and that is the round. Missing the extra requirement costs you the bonus, not the round.',
+    body: 'A review\'s modifier at half strength, on a raised {GOAL}. Clearing it pays credits and an improvement you pick.',
     when: () => typeof miniBossActive !== 'undefined' && miniBossActive },
 ];
 

@@ -1,4 +1,4 @@
-const BUILD = "2026-11-16 · r795 · event files, Rewards Member, walkthrough rewrite";
+const BUILD = "2026-11-16 · r796 · one set of pick keys, event files in two steps, tips and handbook pass";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
