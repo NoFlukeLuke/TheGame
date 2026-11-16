@@ -17,7 +17,7 @@ function ctlLiveBoard() {
   return !(typeof rewardOnGrid !== 'undefined' && rewardOnGrid)
     && !(typeof shopGridActive !== 'undefined' && shopGridActive)
     && !(typeof squaresActive === 'function' && squaresActive())
-    && !(typeof mapActive === 'function' && mapActive())
+    && !(typeof mapScreenOpen !== 'undefined' && mapScreenOpen)   // r798: the Schedule's own screen, not a Schedule round
     && !(typeof gridPickState !== 'undefined' && gridPickState)
     && !(typeof flowrDeckActive === 'function' && flowrDeckActive())
     && !(typeof dealerActive === 'function' && dealerActive())

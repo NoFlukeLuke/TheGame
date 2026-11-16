@@ -5387,6 +5387,17 @@ in a run with no error; Builds -> EVENTS showed revealed / "visit 2 more times" 
 Schedule event read EVENT, a revealed one its name; the Flow and Schedule walkthroughs ran end to
 end, no page errors. Golden: 834 cases match.
 
+## r798 - Drag to play: the Schedule, and under a tip bubble (`js/controls.js`, `js/input.js`)
+- `ctlLiveBoard()` asked `mapActive()`, which is true for a whole Schedule run, so in a Schedule
+  round a released drag never played (and the drag-armed discard, the SWAP key on two selected
+  cards, the wheel swap and the confirm-discard gate stood down too). It reads `mapScreenOpen`
+  now: only the Schedule's own screen is a takeover. The SWAP key's guard in js/input.js likewise.
+  Measured at 420x900 with touch drags in a Schedule round: 0 of 6 played before, 8 of 8 after.
+- `pointermove` found the card with `elementFromPoint`, so a tip bubble (or anything else drawn
+  over the board) stopped a drag where it passed underneath. On the live board a drag that finds
+  no card under the finger now reads the board's cell layout (`cellAtPoint(x, y, true)`, r738's
+  reader with the fall test lifted). A press that STARTS on the bubble is still the bubble's.
+  Measured with a tip moved over the board: 0 of 4 played before, 6 of 6 after.
 ## r799 - suited runs layer; Crunch is a Schedule protocol; seeds; Old Tricks reworked; payout (owner)
 - **A Straight Flush is not a hand type.** `rankHandForGroup` (js/hand-detect.js) no longer names it:
   a suited 5-card run is a Straight with the flush overlay on it, like a suited Run of 3 or 4, so
