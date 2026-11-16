@@ -1,4 +1,4 @@
-const BUILD = "2026-11-16 · r786 · golden test: an order-free timeline fingerprint";
+const BUILD = "2026-11-16 · r787 · scoring rebuild: hand-level adds and multipliers are behaviours (79 Tricks moved)";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

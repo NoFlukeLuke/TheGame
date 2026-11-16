@@ -5202,3 +5202,22 @@ Measured through `?lab` at 1440x820: Deluge forced on a Pair rewound 15s (0 unfo
 primes and the primes spent; Lucky Sevens on 7 7 made 10 Focus plain and 20 forced, and 5 forced on
 4 4; Release Valve forced +1 swap. Real hands with Rich Soil, Ornery, Get Even, What are The Odds and
 Chorus and a replaying card at 1440x820 and 420x900: no timeline drift, no page errors. Golden: 834 match.
+
+## r786 / r787 - the scoring rebuild: hand-level adds and multipliers are behaviours (owner)
+SCORING_REWORK.md's Progress section has the table. 79 of 198 live Tricks now score from `js/trick-fx/`;
+`hasTrick(` calls in js/scoring.js 130 -> 65. Golden test: all 834 cases match after each family.
+- **`hand-add.js`** (39 Tricks): `handAdd(x)` returns `{ pip, mult }` for the whole hand. calcScore asks
+  them through `_fxHandAdd(late)` at two places: above its "mult is at least 1" floor, and below it for
+  rows marked `late` (the Tricks that sat there). `x` (`_hx` in calcScore): `hand, cells, cards, nat, n,
+  streak, isRun, layers, h`. Tray order.
+- **`hand-x.js`** (17 Tricks): `handX(x)` returns `{ pipX, multX }`. `_fxHandX(late)` asks them sorted by
+  **`xOrder`** (calcScore's old order: a multiply rounds as it lands, so order can move a score by a
+  rounding step; the owner has not decided on tray order). `xLate` rows come after the Sleights' pip
+  multipliers (Legacy). `x.maxAll` is the largest same-rank group among all scored cards.
+- **A new hand-level Trick is an `fxDefine` row in one of those files**, never a branch in calcScore. A
+  Trick whose total is counted up inside the card loop still lives in calcScore (the list is in
+  SCORING_REWORK.md).
+- **The golden test** (r786) keeps a 7th field per case, the timeline hashed as a set, and `--check`
+  reports "ORDER ONLY" apart from real differences.
+Measured: golden 834 match; real hands through PLAY with Kindling, Twinners, Combo Score, Double
+Bloom and Landfill in the tray at 1440x820 and 420x900, dev mode on: no timeline drift, no page errors.

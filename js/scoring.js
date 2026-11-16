@@ -201,8 +201,6 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   _extraLayers.forEach(h => { totalPips += Math.round(handBasePips(h) * levelScale); });
 
   // Rising Tide (r539): the mult it has built, 1-3 per level passed while held (level-up.js)
-  const risingTideBonus = hasTrick('rising_tide') ? risingTideMult : 0;
-  const middleManBonus = hasTrick('middle_man') ? middleManMult : 0;
 
   // ── contrib tracking: accumulate per-Trick pip/mult deltas ──
   const _cp = {}, _cm = {};  // per-Trick pip/mult deltas (always tracked so Mirror can duplicate them)
@@ -933,17 +931,12 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // Sands of Time: remaining round seconds / 2 as trick pips
   if (hasTrick('sands_of_time')) { const _a = Math.floor(roundSeconds / sandsDivisor()); totalPips += _a; bPip('sands_of_time', _a); }
 
-
   // Penny Saved: accumulated trick pips from discarded 5s
   if (hasTrick('fives_discard')) { totalPips += bonusMult_fives; bPip('fives_discard', bonusMult_fives); }
 
   // Clock-mark Tricks: pending pip bonuses accrued as the clock passed timestamps (consumed in playHand)
   if (pendingHandPips > 0) { totalPips += pendingHandPips; bPip('quarter_chime', pendingHandPips); }
   if (pendingCardPips > 0) { totalPips += pendingCardPips; bPip('second_hand', pendingCardPips); }
-
-  // Trinity Run: +9 mult for runs with 3/6/9 (added to mult section below)
-  const hasTrinityRank = (['Run of 3','Run of 4','Straight','Straight Flush'].includes(handName)) &&
-    _natCards.some(c => ['3','6','9'].includes(c.rank));
 
   // 2. Base mult + bonuses
   // handBaseMult is the hand's ladder mult, or the hand's CARD COUNT under the
@@ -989,71 +982,25 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   if (_asmOn) _lastHandAssemblyEnd = _asmCards;
   // Coin and the Sword (r646): every hit adds credit_pct of your credits as mult
   if (_csHits > 0) { const _a = _csHits * coinSwordMult(); if (_a) { mult += _a; bMult('coin_sword', _a); } }
-  // Lie Up (r646, INSEPARABLE: Lie Down + Stand-Up): a hand from one row or one column; the 5th improvement takes no more than 2 of either
-  if (hasTrick('lie_up') && lieUpShape(cells)) { mult += BAL.lie_up.mult; bMult('lie_up', BAL.lie_up.mult); }
-  // r651 fused Tricks with their own rule (the rest stand in for their parts through `acts`)
-  if (hasTrick('well_adjusted')) { totalPips += BAL.well_adjusted.pips; bPip('well_adjusted', BAL.well_adjusted.pips); mult += BAL.well_adjusted.mult; bMult('well_adjusted', BAL.well_adjusted.mult); }
-  if (hasTrick('serenity') && !handIsLine(cells)) { mult += BAL.serenity.mult; bMult('serenity', BAL.serenity.mult); }
-  if (hasTrick('penny_perfect')) { const _pp = pennyPerfectBonus(); if (_pp.pips) { totalPips += _pp.pips; bPip('penny_perfect', _pp.pips); } if (_pp.mult) { mult += _pp.mult; bMult('penny_perfect', _pp.mult); } }
+  // r786: the hand-level adds are behaviours (TRICK_FX[id].handAdd, js/trick-fx/hand-add.js), asked in tray order.
+  const _hx = { hand: handName, cells, cards, nat: _natCards, n: _handN, streak: _effStreak, isRun: _pcIsRun, layers: _extraLayers, h: _pcCtx };
+  const _fxHandAdd = late => fxLive('handAdd', _pcCtx).forEach(w => {
+    if (!!w.fx.late !== late) return;
+    const v = w.fx.handAdd(_hx); if (!v) return;
+    if (v.pip) { totalPips += v.pip; bPip(w.id, v.pip); }
+    if (v.mult) { mult += v.mult; bMult(w.id, v.mult); }
+  });
+  _fxHandAdd(false);
 
-  if (risingTideBonus > 0) { mult += risingTideBonus; bMult('rising_tide', risingTideBonus); }
-  if (middleManBonus > 0) { mult += middleManBonus; bMult('middle_man', middleManBonus); }
-  // r722 (js/money.js): Expense Account (credits moved this level and last), Firesale (credits spent, for the run).
-  if (hasTrick('expense_account')) { const _a = expenseAccountMult(); if (_a) { mult += _a; bMult('expense_account', _a); } }
-  if (hasTrick('fire_sale') && fireSaleMult > 0) { const _a = Math.round(fireSaleMult * 100) / 100; mult += _a; bMult('fire_sale', _a); }
   // Second Hand's mult outcome, accrued as the clock passed 10s marks.
   if (pendingHandMult > 0) { mult += pendingHandMult; bMult('second_hand', pendingHandMult); }
   // Night owl: last third of the round, +mult per card
   if (_pcMult.night_owl) { bMultQ('night_owl', _pcMult.night_owl, 1); }
-  // Kindling: a same-hand streak scores +mult x the streak count
-  if (hasTrick('kindling') && _effStreak > 1) { const _a = TB('kindling').mult_per_streak * _effStreak; mult += _a; bMult('kindling', _a); }
-  // Hummingbird: +mult per clock pause or rewind triggered this game (uncapped)
-  if (hasTrick('hummingbird') && pauseInstanceGame + rewindInstanceGame > 0) { const _a = (pauseInstanceGame + rewindInstanceGame) * BAL.hummingbird.mult_per_pause; mult += _a; bMult('hummingbird', _a); }
-  // The Kingfisher: +1 mult per 5 seconds paused OR rewound this round (the rewind-aware amplifier)
-  if (hasTrick('kingfisher')) {
-    const _manip = pausedSecondsRound + rewoundSecondsRound;
-    const _a = Math.floor(_manip / TB('kingfisher').interval_seconds) * TB('kingfisher').mult_per_interval;
-    if (_a) { mult += _a; bMult('kingfisher', _a); }
-  }
-  // The Swift: +mult for every N seconds of round time elapsed
-  if (hasTrick('swift')) { const _e = Math.max(0, roundStartSeconds - roundSeconds); const _a = Math.floor(_e / TB('swift').interval_seconds) * TB('swift').mult_per_interval; if (_a) { mult += _a; bMult('swift', _a); } }
-  // Eagle Eye: +mult per 10 round-seconds elapsed since the last swap (or round start if none yet)
-  if (hasTrick('still_water')) {
-    const elapsedSinceSwap = lastSwapRoundSeconds !== null
-      ? Math.max(0, lastSwapRoundSeconds - roundSeconds)
-      : Math.max(0, roundStartSeconds - roundSeconds);
-    const _a = BAL.still_water.mult_per_interval * Math.floor(elapsedSinceSwap / BAL.still_water.interval_seconds);
-    if (_a) { mult += _a; bMult('still_water', _a); }
-  }
-
-  // Ready, Set, Go: a 3-card hand (or a Pair via Three's a Crowd) containing a 3, 6 or 9 scores +mult
-  if (hasTrick('ready_set_go') && counts3CardHand(handName, cells) && _natCards.some(cd => cd && rkHas('ready_set_go', cd.rank))) {
-    mult += BAL.ready_set_go.mult; bMult('ready_set_go', BAL.ready_set_go.mult);
-  }
-  // Four Eyes: 4-card hands score +mult
-  if (hasTrick('four_eyes') && _handN === 4) { mult += BAL.four_eyes.mult; bMult('four_eyes', BAL.four_eyes.mult); }
-  // Four Horse-man: 4-card hands grant a random bonus (pips/mult here; Focus/pause in playHand)
-  if (hasTrick('four_horseman') && _handN === 4) {
-    const _fhp = fourHorsemanPicks(cells);   // r625: two picks at the 5th improvement
-    if (_fhp.includes(0)) { totalPips += BAL.four_horseman.pips; bPip('four_horseman', BAL.four_horseman.pips); }
-    if (_fhp.includes(1)) { mult += BAL.four_horseman.mult; bMult('four_horseman', BAL.four_horseman.mult); }
-  }
-  // Hands of Blue (r625): the 2x2 pays mult as well as Focus (the Focus is paid in generateHandFocus).
-  if (hasTrick('shape_square') && isSquare(cells)) { mult += BAL.shape_square.mult; bMult('shape_square', BAL.shape_square.mult); }
 
   // Hand-specific mult
   const isRun = ['Run of 3','Run of 4','Straight','Straight Flush'].includes(handName);
   if (_pcPips.overgrowth) { bPipQ('overgrowth', _pcPips.overgrowth, 1); }
   if (_pcMult.long_road) { bMultQ('long_road', _pcMult.long_road, 1); }
-  // Wave Amplification: consecutive Runs score +pips × their streak position (runStreak is the streak
-  // ending at the PREVIOUS hand, so this run's position = runStreak + 1). playHand advances runStreak after.
-  if (hasTrick('wave_amp') && isRun) { const _a = BAL.wave_amp.pips_per_streak * (runStreak + 1); totalPips += _a; bPip('wave_amp', _a); }
-  // Rogue Wave: one of pips / mult / Focus (the Focus outcome is paid in generateHandFocus)
-  if (hasTrick('correct_run') && isRun && canBeOrderedRun(cells)) {
-    const _crp = trickPickOne(0, cells);
-    if (_crp === 0)      { totalPips += BAL.correct_run.pips; bPip('correct_run', BAL.correct_run.pips); }
-    else if (_crp === 1) { mult += BAL.correct_run.mult; bMult('correct_run', BAL.correct_run.mult); }
-  }
   if (_pcMult.tidal_force) { bMultQ('tidal_force', _pcMult.tidal_force, 1); }
   // Power Line: +mult per affected card (TB('rowcol_mult').mult, r623)
   cells.forEach(([r, c]) => {
@@ -1073,27 +1020,12 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
 
   // Batch C - positional conditions
   if (_pcPips.edge_pips) { bPipQ('edge_pips', _pcPips.edge_pips, 1); }
-  const { rowSpan, colSpan } = spanStats(cells);
-  // Inclusive: a hand spanning the full width or full height of the grid scores +mult
-  if (hasTrick('wide_span_mult') && (colSpan === gridCols || rowSpan === gridRows)) {
-    mult += BAL.wide_span_mult.mult; bMult('wide_span_mult', BAL.wide_span_mult.mult);
-  }
 
   // Perm mult (per-card buff → fires once per replay). Summed in the card loop so
   // it animates on the card carrying the buff; identical sum to the old sweep.
   if (_pmMult) { bMultQ('perm_mult', _pmMult); }
   // Old Growth: each scored card also adds its pip value to mult (per replay)
   if (_ogMult) { bMultQ('old_growth', _ogMult); }
-  // Magician (r623, r635): with no Sleight owned it pays flat pips instead of the Sleight mult.
-  if (hasTrick('magician')) {
-    if (magicianNoSleights()) { totalPips += BAL.magician.solo_pips; bPip('magician', BAL.magician.solo_pips); }
-    else { const _a = ownedSleightCount() * BAL.magician.mult_per_sleight; if (_a) { mult += _a; bMult('magician', _a); } }
-  }
-  // Landfill: +mult per card for every discard or swap used this round
-  // Landfill (r651, owner): +mult_per for every swapped or discarded card this game (a fused Working Class carries half of Landfill's bonus, r651 carry rule).
-  if (hasTrick('landfill')) { const _a = landfillCount() * TB('landfill').mult_per + fusedCarry('landfill', 'mult'); if (_a) { mult += _a; bMult('landfill', _a); } }
-  // Compost: +mult per card discarded this round
-  if (hasTrick('discard_pips')) { const _a = cardsDiscardedRound * ((typeof flowActive === 'function' && flowActive()) ? BAL.discard_pips.mult_per_flow : BAL.discard_pips.mult_per); if (_a) { mult += _a; bMult('discard_pips', _a); } }   // r651: Flow pays the smaller one
 
   // Sleight-sourced mult (r120) - these come from Sleights sitting on the grid, not Tricks,
   // so they're tracked separately and attributed with source:'sleight' in the contributions.
@@ -1121,40 +1053,12 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   let _legacyM = 0, _legacyP = 0;                // Legacy: x pips (r739), and x mult at its 5th improvement
   let _spotM   = 0;                              // Spot Check: multiplicative ×mult penalty (r194)
 
-
   if (mult < 1) mult = 1; // nothing may drop mult below 1
-
-  // Trinity Run: +9 mult for runs with 3/6/9
-  if (hasTrick('threes_run') && hasTrinityRank) { mult += BAL.threes_run.mult; bMult('threes_run', BAL.threes_run.mult); }
-
-  // Cloud Nine: accumulated mult from forgotten 9s
-  if (hasTrick('nines_mult')) { mult += bonusMult_nines; bMult('nines_mult', bonusMult_nines); }
-
-  // Perfect Ten: accumulated mult from discard milestones
-  if (hasTrick('tens_mult')) { mult += bonusMult_tens; bMult('tens_mult', bonusMult_tens); }
+  // r786: the hand-level adds that sat below the floor (TRICK_FX[id].handAdd with `late`, js/trick-fx/hand-add.js).
+  _fxHandAdd(true);
 
   // ── New Trick mult bonuses ──
-  // Per-rank mult
-  const _aceCount   = _natCards.filter(c => c.rank === 'A').length;
-  const _threeCount = _natCards.filter(c => c.rank === '3').length;
-  if (hasTrick('lucky_three') && _threeCount){ mult += BAL.lucky_three.mult; bMult('lucky_three', BAL.lucky_three.mult); }
-  // Hand-size
-  if (hasTrick('light_touch') && realHandOfSize(cells, 2)) { mult += BAL.light_touch.mult; bMult('light_touch', BAL.light_touch.mult); }
-  // Timing mult - Near Extinction's retrigger is handled in the per-card loop above.
-  // The Heron (r624): mult = mult_per_second x the round-seconds since the last hand
-  // (since the round's start for its first hand).
-  if (hasTrick('patience_reward')) { const _a = heronMult(); if (_a) { mult += _a; bMult('patience_reward', _a); } }
-  // Crossroads (r624): the + shape pays mult as well as Focus (the Focus is paid in generateHandFocus).
-  if (hasTrick('shape_cross') && isCross(cells) && realHandOfSize(cells, 5)) { mult += BAL.shape_cross.mult; bMult('shape_cross', BAL.shape_cross.mult); }
-  // Suit conditions
-  const _allRed   = cards.every(c => c.suit === '♥' || c.suit === '♦');
-  const _allBlack = cards.every(c => c.suit === '♣' || c.suit === '♠');
-  // Rainbow / Balance count COLOURS as seen, so a white card counts as white
-  // rather than as the colour of the slot it came from.
-  const _suitSet = new Set(cards.map(c => cardColorSuit(c)));
   if (_pcMult.balanced_diet) { bMultQ('balanced_diet', _pcMult.balanced_diet, 1); }
-  // Rank diversity
-  const _rankSet = new Set(cards.map(c => c.rank));
   if (_pcMult.number_crunch) { bMultQ('number_crunch', _pcMult.number_crunch, 1); }
   // Same-kind trick
   const _rankCounts2 = {};
@@ -1164,10 +1068,6 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   if (_maxCount >= 2) {
     if (_pcMult.kindred) { bMultQ('kindred', _pcMult.kindred, 1); }
   }
-  // Shaky Foundation: every other Set scores +mult (this Set is the (setsPlayedRound+1)-th; even → fires).
-  if (hasTrick('shaky_foundation') && isSetHand(handName) && ((setsPlayedRound + 1) % 2 === 0)) { mult += BAL.shaky_foundation.mult; bMult('shaky_foundation', BAL.shaky_foundation.mult); }
-  // Even/odd rank
-  const _rankIsEven = _rankIsEvenRank, _rankIsOdd = _rankIsOddRank;
   // Get Even / Odd One In are deliberately the same effect mirrored (r205): the
   // bonus counts the EVEN (or ODD) cards, not every card in the hand. They used to
   // pay cells.length x rate, so a Pair with 3 evens in a 5-card hand paid for the
@@ -1183,81 +1083,31 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // King's Guard's mult is accumulated per card in the loop now, so it animates on
   // the K or J that earned it; same replay-weighted sum the _wc sweep produced.
   if (_kgMult) { bMultQ('king_guard', _kgMult, 1); }
-  // Threepeat: one of rewind / mult / Focus; only the mult outcome lands here
-  if (hasTrick('ninesong')) { const _ps = cards.reduce((s,c) => s + cardPips(c.rank), 0); if (_ps % 3 === 0 && ninesongPays(1, cells)) { mult += BAL.ninesong.mult; bMult('ninesong', BAL.ninesong.mult); } }
-  // Position: column/row
-  const _allSameCol = cells.every(([, cc]) => cc === cells[0][1]);
-  const _allSameRow = cells.every(([rr]) => rr === cells[0][0]);
   if (_pcMult.column_rush) { bMultQ('column_rush', _pcMult.column_rush, 1); }
   if (_pcMult.row_power) { bMultQ('row_power', _pcMult.row_power, 1); }
   if (_pcMult.stand_up) { bMultQ('stand_up', _pcMult.stand_up, 1); }
   if (_pcMult.rich_soil) { bMultQ('rich_soil', _pcMult.rich_soil, 1); }
-  // Level scaling
-  // Accumulating scalers
-  if (hasTrick('compound_mult') && bonusMult_compound > 0) { mult += bonusMult_compound; bMult('compound_mult', bonusMult_compound); }
-  if (hasTrick('more_better') && bonusMult_morebetter > 0) { mult += bonusMult_morebetter; bMult('more_better', bonusMult_morebetter); }
-  if (hasTrick('wild_side') && negativeTilesTakenRun > 0) { const _a = negativeTilesTakenRun * BAL.wild_side.mult_per; mult += _a; bMult('wild_side', _a); }
-  if (hasTrick('feng_shui') && bonusPips_fengshui > 0) { totalPips += bonusPips_fengshui; bPip('feng_shui', bonusPips_fengshui); }
-  // Wellspring: +mult per 10 Focus generated this game.
-  if (hasTrick('wellspring')) { const _w = Math.floor(focusGenGame / BAL.wellspring.per_focus) * BAL.wellspring.mult_per; if (_w > 0) { mult += _w; bMult('wellspring', _w); } }
-  // Hand type: pair-based pip bonuses
-  // Hand type: specific pip bonuses
-  if (hasTrick('triple_threat') && handName === 'Full House') { totalPips += BAL.triple_threat.pips; bPip('triple_threat', BAL.triple_threat.pips); }
   if (_pcPips.heavy_hand) { bPipQ('heavy_hand', _pcPips.heavy_hand, 1); }
   if (_pcPips.prime_time) { bPipQ('prime_time', _pcPips.prime_time, 1); }
   // Flow State: the LAST additive pip site before the x pips block below, which is
   // the whole point of moving it here - see its PER_CARD_PAYERS row.
   if (_pcPips.flow_state) { bPipQ('flow_state', _pcPips.flow_state, 1); }
-  // Combo score: +2 mult per distinct hand type played this round
-  if (hasTrick('combo_score') && handTypesRound.size > 0) { const _a = handTypesRound.size * BAL.combo_score.mult_per_type; mult += _a; bMult('combo_score', _a); }
 
   // The per-card x MULT enhancement (The Forge / Bargain / Wager events) USED TO
   // BE APPLIED HERE, at the very end of the additive ladder, as x(enhancement ^
   // replays). It fires on its own card now - see the rep loop in the card block
   // above. That is a real score change and a deliberate one: an effect the player
   // cannot see happen is not a mechanic, it is a number.
-  // Run multipliers (epic) - applied after additive pip/mult bonuses
-  // Twinners (r359): a hand with a set in it (primary or layered) x3 pips.
-  if (hasTrick('twinners') && handHasFamily([handName, ..._extraLayers], 'set')) {
-    const _f = BAL.twinners.pip_mult, _pre = totalPips; totalPips = Math.round(totalPips * _f); bPipX('twinners', _f, totalPips - _pre);
-  }
-  if (isRun && hasTrick('undertow')) {
-    const _um = TB('undertow').pip_mult_base + TB('undertow').pip_mult_step * Math.max(0, _handN - 3);
-    const _pre = totalPips; totalPips = Math.round(totalPips * _um); bPipX('undertow', _um, totalPips - _pre);
-  }
-  if (isRun && hasTrick('tide_table')) {
-    const _tm = TB('tide_table').mult_base + TB('tide_table').mult_step * runsPlayedRound;   // r625: x1.25, +x0.5 per Run already scored this round
-    const _pre = mult; mult = Math.round(mult * _tm * 10) / 10; bMultX('tide_table', _tm, mult - _pre);
-  }
-  // Set multipliers (epic) - applied after additive bonuses
-  if (handName === 'Two Pair' && hasTrick('pair_pips')) { const _pre = totalPips; totalPips = Math.round(totalPips * BAL.pair_pips.pip_mult); bPipX('pair_pips', BAL.pair_pips.pip_mult, totalPips - _pre); }
-  if (_maxCount >= 2 && hasTrick('double_bloom')) { const _pre = mult; mult = Math.round(mult * BAL.double_bloom.mult_mult * 10) / 10; bMultX('double_bloom', BAL.double_bloom.mult_mult, mult - _pre); }
-  if (handName === 'Four of a Kind' && hasTrick('richter')) { const _pre = mult; mult = Math.round(mult * BAL.richter.mult_mult * 10) / 10; bMultX('richter', BAL.richter.mult_mult, mult - _pre); }
-  // Rank multipliers
-  if (hasTrick('royal_trio') && rkRoyalTrioMet(cards)) { const _pre = mult; mult = Math.round(mult * BAL.royal_trio.mult_mult * 10) / 10; bMultX('royal_trio', BAL.royal_trio.mult_mult, mult - _pre); }
-  if (hasTrick('knave_power')) { let _jg = 0; for (let _gr=0; _gr<gridRows; _gr++) for (let _gc=0; _gc<gridCols; _gc++) { const _cc = gridData[_gr]?.[_gc]; if (_cc && !_cc._isSleight && !_cc._isTrick && rkHas('knave_power', _cc.rank)) _jg++; } if (_jg > 0) { const _km = Math.pow(BAL.knave_power.per_jack, _jg); const _pre = totalPips; totalPips = Math.round(totalPips * _km); bPipX('knave_power', _km, totalPips - _pre); } }
-  // Scalper: ×(1 + 0.25 per missing Sleight charge) mult - figured once, now
-  if (hasTrick('scalper')) { const _miss = sleightChargeInfo().missing; if (_miss > 0) { const _m = 1 + BAL.scalper.mult_mult_per_missing * _miss; const _pre = mult; mult = Math.round(mult * _m * 10) / 10; bMultX('scalper', _m, mult - _pre); } }
-  // Minute Hand: charged by every 30s mark, spent by the next hand. Read-only here -
-  // playHand spends the charge after the score commits, so findBestHand stays consistent.
-  if (hasTrick('minute_hand') && minuteHandCharges > 0) { const _pre = mult; mult = Math.round(mult * BAL.minute_hand.mult_mult * 10) / 10; bMultX('minute_hand', BAL.minute_hand.mult_mult, mult - _pre); }
-  // ── Converted from ×score (r179) - see the note at the ×score step below ──
-  // Twenty-One: raw face values total exactly 21 → ×pips
-  if (hasTrick('blackjack_bonus')) {
-    const _bjTotal = cards.reduce((sum, c) => {
-      const v = c.rank === 'A' ? 11 : ['J','Q','K'].includes(c.rank) ? 10 : parseInt(c.rank);
-      return sum + (isNaN(v) ? 0 : v);
-    }, 0);
-    if (_bjTotal === 21) { const _pre = totalPips; totalPips = Math.round(totalPips * BAL.blackjack_bonus.pip_mult); bPipX('blackjack_bonus', BAL.blackjack_bonus.pip_mult, totalPips - _pre); }
-  }
-  if (handName === 'Straight Flush' && hasTrick('perfect_storm')) { const _pre = totalPips; totalPips = Math.round(totalPips * BAL.perfect_storm.pip_mult); bPipX('perfect_storm', BAL.perfect_storm.pip_mult, totalPips - _pre); }
-  if (handName === 'Four of a Kind' && hasTrick('extinction')) { const _pre = mult; mult = Math.round(mult * BAL.extinction.mult_mult * 10) / 10; bMultX('extinction', BAL.extinction.mult_mult, mult - _pre); }
+  // r786: the hand-level multipliers are behaviours (TRICK_FX[id].handX, js/trick-fx/hand-x.js). The chain keeps
+  // calcScore's old order (`xOrder`): each multiply rounds as it lands, so the order can move a score.
+  _hx.maxAll = _maxCount;
+  const _fxHandX = late => fxLive('handX', _pcCtx).filter(w => !!w.fx.xLate === late).sort((a, b) => a.fx.xOrder - b.fx.xOrder).forEach(w => {
+    const v = w.fx.handX(_hx); if (!v) return;
+    if (v.pipX != null)  { const _pre = totalPips; totalPips = Math.round(totalPips * v.pipX); bPipX(w.id, v.pipX, totalPips - _pre); }
+    if (v.multX != null) { const _pre = mult; mult = Math.round(mult * v.multX * 10) / 10; bMultX(w.id, v.multX, mult - _pre); }
+  });
+  _fxHandX(false);
 
-  // ── r179 multiplier batch - triggers the ×pips/×mult pools had never covered ──
-  // Rerun (r649) and Chorus (r637) were lumps here, x(factor ^ replays). Both fire
-  // on the card's replay beat now: see the card loop and `_bankCell`.
-  // Deep Breath: ×pips while the clock is held. Pairs with every pause entity.
-  if (hasTrick('deep_breath') && clockPausedForHand()) { const _pre = totalPips; totalPips = Math.round(totalPips * BAL.deep_breath.pip_mult); bPipX('deep_breath', BAL.deep_breath.pip_mult, totalPips - _pre); }
   // r739 (owner): Legacy is x PIPS now (its 5th improvement adds the same x mult, below).
   if (typeof sleightLegacyMult !== 'undefined' && sleightLegacyMult && BAL.the_legacy.pips_x > 1) {
     const _pre = totalPips; totalPips = Math.round(totalPips * BAL.the_legacy.pips_x); _legacyP = totalPips - _pre;
@@ -1267,32 +1117,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   if (typeof dexHandPipsX === 'function') dexHandPipsX(cells).forEach(({ id, x }) => {
     const _pre = totalPips; totalPips = Math.round(totalPips * x); _ev(id, 'pip*', x, 'sleight'); if (id === 'the_legacy') _legacyP += totalPips - _pre;
   });
-  // Interest: ×pips scaling with credits held, capped so a rich run can't run away.
-  if (hasTrick('interest') && coins > 0) {
-    const _m = Math.min(TB('interest').max_pip_mult, 1 + Math.floor(coins / 10) * TB('interest').pip_mult_per_10_credits);
-    if (_m > 1) { const _pre = totalPips; totalPips = Math.round(totalPips * _m); bPipX('interest', _m, totalPips - _pre); }
-  }
-  // 401 (r722, js/money.js): the x mult and x pips its sales built.
-  if (hasTrick('four_oh_one')) {
-    const _f = fourOhOneFactors();
-    if (_f.p > 1) { const _pre = totalPips; totalPips = Math.round(totalPips * _f.p); bPipX('four_oh_one', _f.p, totalPips - _pre); }
-    if (_f.m > 1) { const _pre = mult; mult = Math.round(mult * _f.m * 10) / 10; bMultX('four_oh_one', _f.m, mult - _pre); }
-  }
-  // Portfolio: ×mult per card ON THE GRID carrying a permanent pip/mult buff - it
-  // grows as the run invests in its deck, and shrinks as those cards cycle away.
-  if (hasTrick('portfolio')) {
-    let _buffed = 0;
-    for (let _gr = 0; _gr < gridRows; _gr++) for (let _gc = 0; _gc < gridCols; _gc++) {
-      const _cc = gridData[_gr]?.[_gc];
-      if (!_cc || _cc._isSleight || _cc._isTrick || _cc._isStone) continue;
-      const _k = cardId(_cc);
-      if ((permPips[_k] || 0) > 0 || (permMult[_k] || 0) > 0) _buffed++;
-    }
-    if (_buffed > 0) {
-      const _m = 1 + BAL.portfolio.mult_mult_per_card * _buffed;
-      const _pre = mult; mult = Math.round(mult * _m * 10) / 10; bMultX('portfolio', _m, mult - _pre);
-    }
-  }
+  _fxHandX(true);
   // Phoenix: while paused, the Focus multiplier applies twice - handled at the Focus step below.
   // Mirror (Blueprint): duplicate each borrowed Trick's pip/mult contribution (incl. the multipliers above)
   mirroredTrickIds().forEach(mid => {

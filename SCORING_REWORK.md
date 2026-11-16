@@ -22,29 +22,41 @@ golden test below: the same hands, scored the old way and the new way, must matc
 down to the animation's beats. Balance changes happen in their own passes, never inside a
 migration pass.
 
-## Progress (r785)
+## Progress (r787)
 
-- **Stage 2, the runner: built.** `js/trick-fx/core.js`: `TRICK_FX`, `fxDefine`, `fxTrayWalk`
+- **Stage 2, the runner: built** (r785). `js/trick-fx/core.js`: `TRICK_FX`, `fxDefine`, `fxTrayWalk`
   (the tray, left to right, a fused Trick and Temp running their parts), `fxLive(moment, h)`,
   `trickCount(id)`. Copies are still paid once (`FX_COPIES` false) until stage 5.
-- **Stage 3, families moved: 2 of about 9, 30 Tricks of about 190.**
-  - per-card flat adds (21): `handWhen(h)` + `card(card, h, at)`, `js/trick-fx/per-card.js`.
-    The old `PER_CARD_PAYERS` table is gone.
-  - per-card x mult (9): `cardXMult(x)`, `js/trick-fx/card-x.js`. The inline `_xl` branches are gone.
-  Both are asked in tray order. Golden: all 834 cases match, fingerprints included. `hasTrick(`
-  calls in js/scoring.js: 130 -> 121.
-- **Forced triggers pay what is not pips or mult** (owner's ask, ahead of stage 4):
-  `fxForcedSettle` pays a forced Trick that did not go off its listed Focus, seconds, pause,
-  credits, swaps or discards (`forced(x)` on its behaviour, else the default that reads its BAL
-  row through `FX_RES`), with its primes, after the hand's own sites have run. A forced Trick
-  whose own condition IS met counts the trigger at its own site, Focus Tricks included
-  (playHand reads the hand's forced list before Focus is made). `forceableTrickIds` lists such
-  Tricks now. Not covered by the default: payouts that are not a plain listed number
-  (Hyperphagia, Overtime, The Cuckoo, Buried Treasure, Undue Influence, card buffs). Each needs
-  a `forced(x)` of its own, which is what stage 4 writes.
-- **Next, in order:** per-card x pips and replay sources (`replays(x)`), hand-level adds, hand x
-  multipliers, line Tricks, then stage 1b (the golden test through `playHand`) before any of the
-  45 payout sites in js/play-hand.js move.
+- **Stage 3, families moved: 4 of about 9, 79 of 198 live Tricks.**
+
+  | family | moment | file | Tricks | asked in |
+  |---|---|---|---|---|
+  | per-card flat adds | `handWhen(h)`, `card(card, h, at)` | `per-card.js` | 21 | tray order |
+  | per-card x mult | `cardXMult(x)` | `card-x.js` | 9 | tray order |
+  | hand-level adds | `handAdd(x)`, `late` | `hand-add.js` | 39 | tray order |
+  | hand-level multipliers | `handX(x)`, `xOrder`, `xLate` | `hand-x.js` | 17 | calcScore's old order |
+
+  Golden: all 834 cases match after each family, ordered timeline fingerprints included.
+  `hasTrick(` calls in js/scoring.js: 130 -> 65. The file is 2,322 lines (was 2,560).
+- **Why the multipliers keep the old order:** a hand-level multiply rounds as it lands (pips to a
+  whole number, mult to one decimal), so two of them in another order can differ by a rounding
+  step. Each carries `xOrder`; asking them in tray order instead is one line in calcScore
+  (drop the sort) and the owner's call below.
+- **Forced triggers pay what is not pips or mult** (r785): `fxForcedSettle`, see CLAUDE.md r785.
+- **The golden test** stores an order-free timeline fingerprint too (r786), so a move that only
+  re-orders commuting adds reads as ORDER ONLY, not as a change.
+- **Still in calcScore**, with why:
+  - replay sources (about 20 Tricks): one `if / else if` chain bills only the FIRST source on a
+    card, and the quarter limit cuts ties by list order, so each needs a fixed place before it can move;
+  - per-card pips and x pips written inline in the card loop (Face Value, Cornered, Live Wire,
+    Hard Labour, Rerun, Even Better...): they read and write the loop's running card total;
+  - Tricks counted up in the card loop and paid after it (Assembly Line, Five Stack, Coin and the
+    Sword, Straight Shot, Old Growth, King's Guard);
+  - the hand-level pip adds above the mult section, the Focus-apply Tricks, the force sources
+    (Double Take, Temporal Rift, Obligatory), Mirror, Move as One, the line Tricks' marks.
+- **Next, in order:** the pip adds above the mult section, then the card loop (inline pips, x
+  pips, the counted-up Tricks), then replay sources, then stage 1b (the golden test through
+  `playHand`) before any of the 45 payout sites in js/play-hand.js move.
 
 ## Where it stands today (measured, r719)
 
