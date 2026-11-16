@@ -189,6 +189,10 @@ const SETTINGS_DEF = [
     hint: 'On a phone held upright, moves SWAP, DISCARD and PLAY to the left side of the board.',
     type: 'toggle', default: false,
     apply: v => { if (typeof ctlSetLeftHanded === 'function') ctlSetLeftHanded(v); } },
+  // r801 (owner): a subsection of Controls. `sub` prints a small title above the first row that carries it.
+  { group: 'Controls', sub: 'Protocol: Agentic', id: 'agenticWait', label: 'Wait before a short hand',
+    hint: 'A hand it finds that is smaller than your Selection Size waits 1.5 seconds before it plays. Click or tap anywhere in that time to cancel it. Off: every hand it finds plays at once.',
+    type: 'toggle', default: true },
   { group: 'Keys', id: 'keysInfo', type: 'action', label: 'Rebinding',
     hint: 'Click a key, then press the new one. Backspace removes the key. If the new key was already used, the other action loses it.',
     buttons: () => [{ label: 'Restore keys', fn: 'keyBindsReset()' }] },
@@ -492,7 +496,7 @@ function renderSettings() {
     ).join('') + `</div>`;
   body.innerHTML = tabs + groups.filter(g => g.name === settingsTab).map(g => `
     <div class="set-group-title">${g.name}</div>
-    ${g.items.map(d => settingsRowHTML(d)).join('')}
+    ${g.items.map((d, i) => ((d.sub && (!i || g.items[i - 1].sub !== d.sub)) ? `<div class="set-sub-title">${d.sub}</div>` : '') + settingsRowHTML(d)).join('')}
   `).join('') + `<div id="settings-run-msg"></div>`;
 }
 

@@ -25,7 +25,7 @@ function generateHandFocus(hand, handCells, vultureSec) {
     // r789 (owner): the round's first hand has no hand before it to be fast after, so it
     // earns no speed bonus (it used to read as played at 0 seconds: the full bonus).
     const _firstOfRound = firstHandThisRound || lastHandTime <= 0;
-    const speedBonus = (_firstOfRound || _auto || _sweepF < 1 || (typeof sweepRunning === 'function' && sweepRunning())) ? 0 : Math.floor(speedBonusFromTime(secondsSinceLast / _fr.window) * _fr.speed * _halfSpeed);
+    const speedBonus = (_firstOfRound || _auto || _sweepF < 1 || (typeof sweepRunning === 'function' && sweepRunning()) || (typeof agenticPlaying === 'function' && agenticPlaying())) ? 0 : Math.floor(speedBonusFromTime(secondsSinceLast / _fr.window) * _fr.speed * _halfSpeed);
     let totalFocus = Math.round(handFocus * Math.min(1, _sweepF)) + speedBonus;
     // Rhythm: +Focus per hand (BAL.rhythm.focus)
     totalFocus += BAL.rhythm.focus * trickFires('rhythm');

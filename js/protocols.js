@@ -53,6 +53,9 @@ const PROTOCOLS = [
   // `bases` limits a protocol to the modes listed: the Schedule only.
   { id: 'crunch', name: 'Crunch', accent: '#e8734a', flag: 'crunch', open: true, bases: ['map'], short: 'One clock for the whole quarter.',
     say: { map: () => crunchSay() } },
+  // r801 (owner): AGENTIC, js/agentic.js. Hands in a straight line play themselves.
+  { id: 'agentic', name: 'Agentic', accent: '#5ad1c6', flag: 'agentic', open: true, short: 'Hands in a straight line play themselves.',
+    say: { any: () => agenticSay() } },
 ];
 // The protocols a mode offers (a row with `bases` is offered only there).
 function protocolsFor(base) { return PROTOCOLS.filter(p => !p.bases || p.bases.includes(base)); }
@@ -412,7 +415,9 @@ function turboSay(base) {
 // Every step of a chain twice in a row, its rarity floor with it. A forced
 // penalty step is not a reward and is never doubled.
 function turboDoubleQueue(queue, floors) {
-  if (!turboOn()) return { queue, floors };
+  // r801: a COPY. flowrMaybeStart empties its own list before refilling it from this one, so handing the
+  // same list back left every Flow level-up outside Turbo with no reward at all (r792 to r800).
+  if (!turboOn()) return { queue: queue.slice(), floors };
   const q = [], f = [];
   queue.forEach((k, i) => {
     const fl = floors ? floors[i] : null;

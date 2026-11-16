@@ -84,3 +84,24 @@ body.reduced-motion #grid .cas-pop { animation: none; }
   box-shadow: 0 0 10px 2px hsl(var(--sw-h, 40) 90% 60% / .75), inset 0 0 0 1px hsl(var(--sw-h, 40) 90% 75% / .8) !important;
   z-index: 6;
 }
+
+/* ── r801: Agentic's waiting line (js/agentic.js). A child of #grid over the line's box. ── */
+#ag-wait {
+  position: absolute; z-index: 30; pointer-events: none; box-sizing: border-box;
+  border: 2px dashed var(--ag-c, #5ad1c6); border-radius: 6px;
+  background: color-mix(in srgb, var(--ag-c, #5ad1c6) 10%, transparent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--ag-c, #5ad1c6) 45%, transparent);
+  animation: ag-wait-in .16s ease-out;
+}
+@keyframes ag-wait-in { from { opacity: 0; scale: 1.06; } to { opacity: 1; scale: 1; } }
+#ag-wait .ag-word {
+  position: absolute; left: 50%; top: 0; translate: -50% -55%; white-space: nowrap;
+  font: 9px/1 'VT323 Local', 'VT323', 'Share Tech Mono', monospace; letter-spacing: 1px;
+  padding: 2px 5px; border-radius: 3px; color: #06110f; background: var(--ag-c, #5ad1c6);
+}
+#ag-wait .ag-bar {
+  position: absolute; left: 6px; right: 6px; bottom: 3px; height: 3px; border-radius: 2px;
+  background: rgba(0, 0, 0, .55); overflow: hidden;
+}
+#ag-wait .ag-bar > i { display: block; height: 100%; width: calc(var(--ag-p, 1) * 100%); background: var(--ag-c, #5ad1c6); }
+#grid .card.ag-pending { filter: brightness(1.12); }

@@ -44,6 +44,12 @@
   margin: 15px 0 6px; padding-bottom: 4px; border-bottom: 1px solid rgba(183,172,147,0.2);
 }
 #settings-body > .set-group-title:first-child { margin-top: 0; }
+/* r801: a subsection inside a tab (Controls -> Protocol: Agentic). */
+.set-sub-title {
+  font-family: 'Share Tech Mono', monospace; font-size: 9px; letter-spacing: 2px;
+  color: var(--c-cream, #e8dfc8); opacity: .75; text-transform: uppercase;
+  margin: 16px 0 2px; padding: 0 0 4px 8px; border-left: 2px solid var(--c-mint, #35d59b);
+}
 
 .set-row {
   display: flex; align-items: center; justify-content: space-between; gap: 14px;

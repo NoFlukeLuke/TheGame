@@ -5450,3 +5450,40 @@ landed in the tray. All 54 handbook entries build. No page errors.
 
 ## r800 - golden baseline rewritten for r799
 A suited 5-card run scores as Straight + Flush, so each of the 834 cases' suited straight hand moved (x4 with no Trick: 300 to 1,200). No other hand in any case changed.
+
+## r801 - the Agentic protocol; Flow level-ups pay rewards again (`js/agentic.js`, owner)
+- **Agentic** (`PROTOCOLS` row `agentic`, `open: true`, Flow and the Schedule, its own difficulty key, no
+  protocol Knack; `agenticOn()`, `AGENTIC`). A LINE is `AGENTIC.minLen` (3) or more cards side by side in
+  one row or column, up to the Selection Size, that `handComponentsFor` calls a playable hand with every
+  card in it (no kickers). Sleights, stones and curse cards break a line. `agenticFind()` takes the most
+  valuable one (`handWorth` summed, then length). A watcher (`agenticTick`, every 100ms) plays it once the
+  board has been free for `settleMs` (220) with nothing selected (`_agFree`: no fall, tally lock, pause,
+  held clock, held stack, cascade, full scoring queue, between-rounds screen). It plays through a QUIET
+  cascade (`cascadeStart({ quiet: true })`, js/cascade.js: no banner, no start sound), so lines the fall
+  makes go on in the same cascade. Everything else is the ordinary game; other hands are played by hand.
+- **Focus applies once more** to a line's hand (`agenticFocusExtra()` in `focusExtraApplies`). The hand
+  makes its own Focus but no speed bonus (`agenticPlaying()` in `generateHandFocus`).
+- **The wait** (`agenticWaits(cells)`: the Selection Size is more than the line's length): the line is
+  ringed (`#ag-wait`, a child of #grid, css/cascade.css; `.ag-pending` re-applied by `agenticPaint` from
+  render's tail) with a bar that drains over `waitMs` (1500), counted only while the board is free. A
+  pointerdown or a key anywhere cancels it (capture listeners, the tap still acts) and the line is
+  DECLINED (`_agDeclined`, keyed by cells and card ids) for as long as those cards sit there. The wait is
+  not part of the cascade: the board stays the player's. A short line found mid-cascade ends the cascade
+  and gets its wait from the watcher. A line the game refuses to play is declined too.
+- **Settings subsections**: a `SETTINGS_DEF` row may carry `sub`; `renderSettings` prints `.set-sub-title`
+  above the first row of each. Controls -> **Protocol: Agentic** -> "Wait before a short hand"
+  (`agenticWait`, default on; off = every line plays at once).
+- The finder's cache signature reads each card's id AND its face: a rank can change in place.
+- Run screen: on the short glass the protocols are 5 to a row (ten protocols on the Schedule, nine in Flow).
+- **Bug fixed, live since r792:** `turboDoubleQueue` handed `flowrMaybeStart` its own list back outside
+  Turbo, and the caller emptied that list before refilling from it, so every Flow level-up outside Turbo
+  armed an EMPTY chain and paid no reward. It returns a copy now. Found because a goal hand went straight
+  to the next level. (The walkthrough's plain pick and Turbo were not affected, which is how it hid.)
+Measured in headless Chromium at 1440x820 (click) and 420x900 (tap), Flow and the Schedule: a line of 3
+with Selection Size 5 showed the wait and played 2.3 to 2.4s later (1.5s + the pick and hit) with
+`focusExtraApplies` 1; a tap on another card cancelled it and selected that card, and the line did not
+come back; a key cancelled it; the same line played by hand read 0 extra; with the setting off it played
+1.1s after appearing; a real SWAP that made a column line chained 2 and 3 hands in one cascade; a line
+that cleared the goal opened Flow's reward pick (3 offers) with the watcher idle; Standard Flow's
+level-up armed `["tricks","tricks","event"]` (was `[]`); deck 56 / 56; no page errors, no timeline
+drift. Golden: 834 cases match.

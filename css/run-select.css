@@ -74,7 +74,8 @@
   .rs-mode > b { font-size: 18px; }
   .rs-mode > span { font-size: 14px; line-height: 1.05; }
   .rs-proto { padding: 4px 6px; }
-  .rs-proto > b { font-size: 16px; }
+  .rs-proto > b { font-size: 15px; letter-spacing: 0; }
+  .rs-protos { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 5px; }   /* r801: up to ten protocols in two rows */
   .rs-proto > span { display: none; }
   .rs-rules { font-size: 15px; padding: 4px 8px; }
   .rs-note { display: none; }

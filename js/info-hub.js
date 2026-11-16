@@ -387,7 +387,7 @@ const INFO_TOPICS = [
       () => `Flow and the Schedule are played under a protocol, chosen on the run screen: ${PROTOCOLS.map(p => p.name).join(', ')}. A protocol changes a few rules. The mode stays the same.`,
       'Difficulty belongs to the protocol. A win in Flow or the Schedule unlocks the next tier of that protocol for both.',
       'Winning a run of Dexterous, Precision, Limitless, Hyperfocus or Past Capacity unlocks its Knack (Ambidextrous, Measure Twice, Growth Mindset, ADHD, Curio), which can then be offered in any other run (ADHD in Hyperfocus too).',
-      'Standard, Turbo and Crunch are open from the start. Crunch is the Schedule\'s only. Dexterous, Precision, Limitless and Hyperfocus each open with a won run of the one before, in Flow or the Schedule.',
+      'Standard, Turbo, Agentic and Crunch are open from the start. Crunch is the Schedule\'s only. Dexterous, Precision, Limitless and Hyperfocus each open with a won run of the one before, in Flow or the Schedule.',
     ] },
   { id: 'mode_dexterous', group: 'modes', title: 'Dexterous',
     body: [
@@ -422,6 +422,14 @@ const INFO_TOPICS = [
     body: [
       'A protocol of the Schedule.',
       () => crunchSay(),
+    ] },
+  { id: 'mode_agentic', group: 'modes', title: 'Agentic',
+    body: [
+      'A protocol of Flow and the Schedule, open from the start.',
+      () => `A hand of ${AGENTIC.minLen} or more cards side by side in one row or one column plays itself. Every card in the line must be part of the hand.`,
+      () => `{FOCUS} applies to that hand ${1 + AGENTIC.focusApplies} times. It earns no speed bonus.`,
+      () => `A found hand smaller than your Selection Size waits ${AGENTIC.waitMs / 1000}s first. A click or tap anywhere cancels it. Settings, Controls, Protocol: Agentic turns the wait off.`,
+      'Every other hand is played as usual.',
     ] },
   { id: 'mode_flow', group: 'modes', title: 'Flow',
     body: [

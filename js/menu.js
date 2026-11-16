@@ -1,4 +1,4 @@
-const BUILD = "2026-11-16 · r800 · golden baseline for layered suited runs";
+const BUILD = "2026-11-16 · r801 · the Agentic protocol; Flow level-up rewards restored";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

@@ -387,6 +387,7 @@ function render() {
   if (typeof anvilPaint === 'function') anvilPaint();   // r722: the card under an anvil shakes
   if (typeof horsemenPaint === 'function') horsemenPaint();   // r723: the horsemen's clock bars   // fall-type challenge cards' locked lines
   if (typeof sweepPaint === 'function') sweepPaint();       // r572: All Hands's picked hands
+  if (typeof agenticPaint === 'function') agenticPaint();   // r801: Agentic's waiting line
   // A card dealt in while the clock is frozen arrives untilted - put it back in
   // line with the rest of the held board (js/clock-fx.js). No-ops when running.
   if (typeof reapplyClockFreeze === 'function') reapplyClockFreeze();

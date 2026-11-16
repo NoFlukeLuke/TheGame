@@ -99,10 +99,13 @@ function cascadeStart(spec) {
 async function _casLoop(run) {
   const spec = run.spec;
   const live = () => _casRun === run && !roundEnded;
-  casBanner(run, spec.title, spec.sub ? spec.sub() : '');
-  sfxCascadeStart();
-  await _casWait(CAS_CFG.bannerMs * _casK());
-  if (!live()) return;
+  // r801: a quiet cascade (Agentic's line hands) has no banner and starts at once.
+  if (!spec.quiet) {
+    casBanner(run, spec.title, spec.sub ? spec.sub() : '');
+    sfxCascadeStart();
+    await _casWait(CAS_CFG.bannerMs * _casK());
+    if (!live()) return;
+  }
   if (spec.intro) { await spec.intro(run); if (!live()) return; }
   let stallAt = 0;
   while (live()) {
