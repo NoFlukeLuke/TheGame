@@ -66,6 +66,7 @@ function bsType(el, ctl) {
     const step = () => {
       if (k >= units.length || per === 0) return done();
       const u = units[k++]; u.classList.remove('bs-tu'); u.after(cur);
+      if (ctl.typeSound && u.textContent.trim() && typeof sfxTypeTick === 'function') { try { sfxTypeTick(k); } catch (e) {} }   // r795
       t = setTimeout(step, u.textContent === ' ' ? 0 : per);
     };
     step();

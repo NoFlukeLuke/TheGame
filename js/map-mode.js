@@ -1554,11 +1554,10 @@ function mapRevealPlay(rv) {
   line.className = 'map-reveal';
   line.innerHTML = `<span class="mrv-text">&gt; ${rv.label}:<br><b class="${rv.cls}">${rv.name}</b></span>`;
   term.appendChild(line);
-  const ctl = {};
+  const ctl = { typeSound: true };   // r795: the text blips
   let holdEnd = null;
   const tap = (e) => { e.stopPropagation(); if (ctl.finishTyping) ctl.finishTyping(); else if (holdEnd) holdEnd(); };
   line.addEventListener('pointerdown', tap);
-  try { sfxPrintLine?.(); } catch (e) {}
   return bsType(line.querySelector('.mrv-text'), ctl).then(() => {
     try { sfxRewardTaken?.(); } catch (e) {}
     line.classList.add('mrv-done');

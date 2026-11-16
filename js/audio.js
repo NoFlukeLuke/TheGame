@@ -92,6 +92,25 @@ function sfxKeyClick(phase) {
   o.connect(g).connect(sfxOut(ctx)); o.start(t); o.stop(t + 0.04);
 }
 
+// r795 (owner): the text blip. One per character a reveal types: a short square
+// blip (the game-text beep) over a dry bandpassed click (a key, not a real one).
+// The pitch wanders a little per character; `k` is the character's place.
+function sfxTypeTick(k) {
+  const v = sfxVolume(); if (v <= 0) return;
+  const ctx = getAudioCtx(), t = ctx.currentTime;
+  const n = Math.max(1, Math.floor(ctx.sampleRate * 0.006)), b = ctx.createBuffer(1, n, ctx.sampleRate), d = b.getChannelData(0);
+  for (let i = 0; i < n; i++) d[i] = (fxRandom() * 2 - 1) * Math.pow(1 - i / n, 2);
+  const s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), e = ctx.createGain();
+  s.buffer = b; f.type = 'bandpass'; f.frequency.value = 3400 + fxRandom() * 900; f.Q.value = 2.5; e.gain.value = 0.22 * v;
+  s.connect(f).connect(e).connect(sfxOut(ctx)); s.start(t);
+  const o = ctx.createOscillator(), g = ctx.createGain();
+  const steps = [0, 2, 4, 7, 9], semi = steps[((k || 0) * 3 + Math.floor(fxRandom() * 2)) % steps.length];
+  o.type = 'square'; o.frequency.setValueAtTime(660 * Math.pow(2, semi / 12), t);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.045 * v, t + 0.002);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.032);
+  o.connect(g).connect(sfxOut(ctx)); o.start(t); o.stop(t + 0.04);
+}
+
 function sfxFlipShuffle() {
   // Rapid card flip/shuffle - quick staggered noise bursts at varying pitches
   const ctx = getAudioCtx();

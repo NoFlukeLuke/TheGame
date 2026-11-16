@@ -1,4 +1,4 @@
-const BUILD = "2026-11-16 · r794 · Schedule: a mystery is revealed on the glass";
+const BUILD = "2026-11-16 · r795 · Flow: the event step is revealed on the board";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

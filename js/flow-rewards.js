@@ -818,7 +818,7 @@ function flowrShowStep() {
   if (kind === 'deck')  { flowrShowDeckPick(); return; }
   if (kind === 'cards') { flowrShowCardsPick(); return; }
   if (kind === 'shop')  { flowrShopStep = true; triggerShop(); return; }
-  if (kind === 'event') { openEvent(() => flowrAfterStep(), { exclude: FLOWR_EVENT_OUT }); return; }
+  if (kind === 'event') { openEvent(() => flowrAfterStep(), { exclude: FLOWR_EVENT_OUT, reveal: id => revealEventOnBoard(id) }); return; }   // r795: the reveal
   if (kind === 'cardpick') { crrCardPick(() => flowrAfterStep()); return; }
   if (kind === 'penalty') { openPenaltyPick(() => flowrAfterStep()); return; }   // r728
   flowrShowEntityStep(kind);

@@ -240,3 +240,13 @@ html.skin-machine #cabinet #cab-screen #stage #event-overlay.ev-console #event-p
 /* A screen that borrows the keys over the Schedule (its keys are the schedule's tools,
    css/map-mode.css): the schedule's labels stand down under the borrower's. */
 body.kb-keys.map-keys .mapk { visibility: hidden; }
+
+/* r795: the event reveal (js/reveal-line.js). One line in the middle of the glass. */
+.bs-screen.rv-screen .bs-body { justify-content: center; align-items: center; overflow: hidden; }
+.bs-screen.rv-screen .bs-keys { display: none; }
+.rv-line { text-align: center; font-size: 26px; line-height: 1.15; color: var(--am-hi); padding: 0 8%; }
+.rv-line b { font-weight: normal; font-size: 1.25em; color: #d6a8ff; text-shadow: 0 0 8px #d6a8ff; }
+.rv-line .bs-cur.rv-wait::after { animation: rvBlink calc(var(--rv-beat, 520ms)) steps(1) infinite; }
+@keyframes rvBlink { 50% { opacity: 0; } }
+.rv-line.rv-done b { animation: rvFlash .5s steps(2) 2; }
+@keyframes rvFlash { 50% { opacity: .35; } }
