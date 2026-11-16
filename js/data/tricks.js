@@ -125,7 +125,7 @@ const TRICK_POOL = [
   // ── r646 INSEPARABLE (js/inseparable.js): two owned Tricks fuse into one. Never offered; fused: true. ──
   { id:'lie_up',         name:'Lie Up',              tier:'epic',      fused:true, tags:['mult','hand','position','scores'], desc:'Hands with cards from only one row or only one column score +24 mult' },
   // r651 (owner): 21 more. `acts` = the fused Trick stands in for both parts (hasTrick, their BAL row through TB(), their line); the rest have their own scoring.
-  { id:'well_adjusted',  name:'Well Adjusted',       tier:'epic',      fused:true, tags:['pips','mult','hand','scores'], desc:'Every hand scores +20 pips and +20 mult' },
+  { id:'well_adjusted',  name:'Well Adjusted',       tier:'rare',      fused:true, tags:['pips','mult','hand','scores'], desc:'Every hand scores +20 pips and +20 mult' },
   { id:'right_place_time', name:'Right Place & Time', tier:'epic',     fused:true, acts:['rowcol_triple_pips','right_time'], tags:['pips','time','card','position','scores','line'], desc:'Cards scored in a marked row or column score +25 pips and pause the clock for 2s' },
   { id:'short_circuit',  name:'Short Circuit',       tier:'epic',      fused:true, acts:['rowcol_mult','line_xpips'], tags:['mult','xpips','card','position','scores','line'], desc:'Cards scored in a marked row or column score +15 mult and ×1.2 pips' },
   { id:'advanced_interrogation', name:'Advanced Interrogation', tier:'epic', fused:true, acts:['line_xmult','obligatory'], tags:['xmult','retrigger','card','position','tricks','chance','scores','line'], desc:"Cards scored in a marked row or column score ×1.2 mult and have a 25% chance to force-trigger the Trick in the tray slot of that line's number" },

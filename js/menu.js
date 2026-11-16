@@ -1,4 +1,4 @@
-const BUILD = "2026-11-16 · r789 · ADHD, Hyperfocus's Knack; no speed bonus on a round's first hand";
+const BUILD = "2026-11-16 · r790 · Well Adjusted is rare";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
