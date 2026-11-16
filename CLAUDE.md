@@ -5267,3 +5267,12 @@ Measured in headless Chromium at 1440x820 and 420x900: Flow opened at 2:30, a le
 tricks, tricks / pick3, pick3, tricks, tricks and every step was taken by click to level 2; 1,000 random
 Turbo Schedule walks: 0 strands, never two bookings in a slot, 3.9 bookings a quarter, review A 37% /
 B 41% / hidden 22%. No page errors.
+
+## r793 - Schedule tiles on a phone: a tap is not a hover (owner's bug)
+In portrait the left review could not be tapped. A tap fires a hover first; the tile's `onmouseenter`
+wrote its description into the toolbar (`mapBarInfo`), the toolbar grew, the list shrank and the review
+row moved out from under the finger, so the tap never became a click. Tiles and reviews now use
+`onpointerenter` / `onpointerleave` and act only for `pointerType === 'mouse'`; a tap shows the
+description through `mapTileTap`. Measured by touch at 420x900, 375x667 and 390x844 over whole
+quarters: every review tap landed (before: the left one failed from the first booking on); mouse hover
+at 1440x820 unchanged.

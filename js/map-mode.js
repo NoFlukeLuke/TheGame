@@ -1137,8 +1137,11 @@ function mapRender(animateIn) {
     if (face.full) div.title = (isEv ? t.eventName : face.full) + (desc ? ' - ' + desc : '');
     if (t.kind !== 'blank') {
       div.onclick = () => mapTileTap(t);
-      div.onmouseenter = () => { if (!mapSelected) mapBarInfo(t, mapMoveFor(t.id)); };
-      div.onmouseleave = () => { if (!mapSelected) mapBarInfo(null); };
+      // r793: a MOUSE hover only. A tap fires a hover first, and the description it
+      // wrote grew the toolbar, which moved the tile out from under the finger before
+      // the tap landed (a review in portrait could not be tapped). The tap shows it.
+      div.onpointerenter = (e) => { if (e.pointerType === 'mouse' && !mapSelected) mapBarInfo(t, mapMoveFor(t.id)); };
+      div.onpointerleave = (e) => { if (e.pointerType === 'mouse' && !mapSelected) mapBarInfo(null); };
     }
     list.appendChild(div);
     // The list PRINTS IN, a row at a time, the way a terminal draws a file. The
@@ -1174,8 +1177,11 @@ function mapRender(animateIn) {
       + mapBossPips(t);
     div.title = 'Manager Review - ' + mapTileDesc(t, legalIds);
     div.onclick = () => mapTileTap(t);
-    div.onmouseenter = () => { if (!mapSelected) mapBarInfo(t, mapMoveFor(t.id)); };
-    div.onmouseleave = () => { if (!mapSelected) mapBarInfo(null); };
+    // r793: a MOUSE hover only. A tap fires a hover first, and the description it
+    // wrote grew the toolbar, which moved the tile out from under the finger before
+    // the tap landed (a review in portrait could not be tapped). The tap shows it.
+    div.onpointerenter = (e) => { if (e.pointerType === 'mouse' && !mapSelected) mapBarInfo(t, mapMoveFor(t.id)); };
+    div.onpointerleave = (e) => { if (e.pointerType === 'mouse' && !mapSelected) mapBarInfo(null); };
     revs.appendChild(div);
     if (animateIn) div.animate([{ opacity: 0 }, { opacity: 1 }],
       { duration: 140, delay: MAP_SETS * 90, easing: 'steps(3, end)', fill: 'backwards' });

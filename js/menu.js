@@ -1,4 +1,4 @@
-const BUILD = "2026-11-16 · r792 · Turbo protocol";
+const BUILD = "2026-11-16 · r793 · Schedule: tapping a review on a phone";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
