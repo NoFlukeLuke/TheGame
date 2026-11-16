@@ -1,4 +1,4 @@
-const BUILD = "2026-11-16 · r795 · Flow: the event step is revealed on the board";
+const BUILD = "2026-11-16 · r796 · Flow: the event step is revealed on the board (merge of main r795)";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

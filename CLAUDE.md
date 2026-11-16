@@ -25,7 +25,7 @@ superseded is history, not current code. The other reference docs:
 |---|---|
 | `TERMINOLOGY.md` | what things are called. Code ids are frozen; only display strings change, and every tier/category word is spelled out in `js/labels.js` and nowhere else |
 | `CARD_EFFECTS.md` | everything that can be true of one card: buffs, curses, boss states, card states |
-| `EVENTS.md` | the event roster; its last section is what ships (31 live, r581) |
+| `EVENTS.md` | the event roster; its last section is what ships (31 live, r581). Event files and Rewards Member are r795, below |
 | `OPEN_DECISIONS.md` | the balance-audit backlog, left for the owner |
 | `BALANCE_PASS_9.24.md` | the 9.24 balance pass index |
 | `TODO.md` | parked work |
@@ -5286,8 +5286,48 @@ game's text speed, with `sfxPrintLine` and `sfxRewardTaken`, holds `MAP_REVEAL_H
 closes as before. A tap ends the typing, a second the hold. The notice drawer still keeps the line (`noteMessage`).
 Measured at 1440x820 (click) and 420x900 (tap): an event mystery read LUCKY DICE and opened the event, a priority
 mystery read PRIORITY ACCOUNT and dealt the round; no page errors.
+## r795 - event files; the Rewards Member Knack; the walkthrough reworded (`js/event-files.js`, owner)
+- **Event files.** An event is FILED once it has been opened `EVENT_KNOW_NEED` (5) times, ever
+  (`lethe.eventVisits.v1`, written only by `eventVisitNote(id)` from `openEvent` and
+  `guidedOpenNamedEvent`; tours and test drives do not count; lore is not counted). Until then
+  nothing names it ahead of time: the Schedule's line reads EVENT with "Opened n of 5 times."
+  (`mapEventNamed(t)`, `eventShownDoes`), Guided's crossroads and the pick's event tile likewise.
+  Filing prints "EVENT FILED: Name". `EVENT_DOES` holds a one-line "what it does" for the events
+  whose shell has no flavor line; `eventDoes(id)` is the reader. **A new event gets a flavor line
+  or an `EVENT_DOES` row.**
+- **Builds -> EVENTS** (`bvEventsOpen`, js/builds.js; css/unlocks.css): its own screen, apart from
+  the catalogue. A filed event shows its name, what it does and its count; an unfiled one is ????
+  with five boxes.
+- **Rewards Member** (rare Knack `rewards_member`): locked until `REWARDS_MEMBER_NEED` (15) events
+  are filed (`rewardsMemberBanned`, asked by `knackOfferable` and `survivalEntityBanned`).
+  `eventOfferMult()` is 3 while owned: Flow's chain `event` odds, the pick's event offer, and
+  Classic's Next: Event destination tile (1 in 3 becomes 3 in 5). On the Schedule and in Flow, where
+  a Balance Sheet had no destination tile, `REWARDS_MEMBER.grid` (50)% of ordinary sheets carry
+  Next: Event and the close opens it (`finishInterludeRoute`'s map branch, `finishSurvival`); the
+  Trick-minimum pass leaves that tile alone. Never on a prize, mini, penalty or Call It grid.
+- **An event can be a pick-of-three offer**: `event: 2` in `SURVIVAL_PICK_WEIGHTS` and
+  `GUIDED_PICK_WEIGHTS` (2 in 102). `eventPickEntry(out)` rolls the one event a screen may show (not
+  in the walkthrough; Flow leaves out `FLOWR_EVENT_OUT`). Taking it opens that event through
+  `guidedOpenNamedEvent`, and the pick's own tail (chain step, level-up, or the Schedule's `done`)
+  runs when the event closes. The tile names the event only if it is filed.
+- **Walkthrough** (js/tutorial.js): every step reworded shorter, and the stale ones corrected: pick
+  order is the mult (r553), a second spare card refuses the hand (r652), a discard is one flat
+  charge (r727) and the key's word is read (`tutDiscardWord`: DEFER in console mode), Flow's
+  rerolls are the two keys (r441), leaving a slot early earns R&R (r707), no Flow shop button.
+  The Trick slots step anchors the tray (the count is hidden under stock squares). `board` waits
+  with no timeout and `entities` / `pick-three` wait 120s (`whenTimeoutMs`): at the default 20s a
+  player still choosing a stop on the Schedule, or reading the payout, got the next bubble over it.
+  The kicker tip and handbook entry no longer describe dropped cards.
+Measured in headless Chromium at 1440x820 and 420x900: five opens through the real door filed Lucky
+Dice on the fifth; unfiled Schedule lines read EVENT and filed ones their names; the event offer
+was 1.9% of pick offers in Flow and on the Schedule and 5.8% / 5.4% with the Knack, never two on one
+screen; Flow's chain event share 2.1% -> 5.6%; taken from a real pick it opened its event and then
+dealt level 2 (Flow) or returned to the schedule; with the Knack 198 of 400 Schedule sheets carried
+Next: Event (0 without) and taking it by tap opened the event and returned to the schedule; the
+Flow and Schedule walkthroughs ran end to end with no page errors. Golden: 834 cases match.
+Not shipped in the walkthrough yet: the shop and Balance Sheet steps still run only in Classic.
 
-## r795 - Flow's event step is revealed on the board; the text blip (owner)
+## r796 - Flow's event step is revealed on the board; the text blip (owner)
 - **The reveal** (`revealEventOnBoard(id)`, js/reveal-line.js, loads after js/board-screen.js): Flow's
   `event` chain step passes `reveal` to `openEvent` (`opts.reveal(id)` runs after the event is picked
   and resolves to a cleanup run once the event is shown). What #grid holds falls out of its box

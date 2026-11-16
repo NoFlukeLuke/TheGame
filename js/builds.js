@@ -242,6 +242,7 @@ function ensureBuildsOverlay() {
       <label class="bv-search"><span>&#9906;</span><input id="bv-q" type="search" placeholder="search by name or words" autocomplete="off" spellcheck="false"></label>
       <button class="bv-key bv-rail-btn" id="bv-rail-btn">DRAFT</button>
       <button class="bv-key bv-compare-btn" id="bv-compare-btn" title="Score one hand with several builds">COMPARE</button>
+      <button class="bv-key bv-events-btn" id="bv-events-btn" title="Event files">EVENTS</button>
       <button class="bv-key" id="bv-zoom-out" title="smaller">&minus;</button>
       <button class="bv-key" id="bv-zoom-in" title="bigger">+</button>
     </div>
@@ -260,6 +261,7 @@ function ensureBuildsOverlay() {
   el.querySelector('#bv-zoom-out').onclick = () => bvZoom(1 / 1.15);
   el.querySelector('#bv-rail-btn').onclick = () => el.classList.toggle('rail-open');
   el.querySelector('#bv-compare-btn').onclick = () => { if (typeof bcOpen === 'function') bcOpen(); };
+  el.querySelector('#bv-events-btn').onclick = () => bvEventsOpen();
   // The jump strip follows the scroll: the section in view is lit.
   el.querySelector('#bv-scroll').addEventListener('scroll', bvJumpSync, { passive: true });
   // A click anywhere but a dropdown closes the open one.
@@ -449,6 +451,28 @@ function bvUnlocksHTML() {
       <div class="bv-ul-sub">A won run pays a token, ${TOKENS_PER_MODE} a mode. A token unlocks one of ${TOKEN_PICK} locked Tricks.</div>
       <button class="bv-key bv-drive" id="bv-token" ${left > 0 ? '' : 'disabled'}>SPEND A TOKEN</button>
     </div>`;
+}
+// r795 (owner): EVENT FILES, apart from the catalogue. An event is listed by name with what it
+// does once it has been opened EVENT_KNOW_NEED times (js/event-files.js); before that it is a
+// count. The Rewards Member line is the Knack the filed count unlocks.
+function bvEventsOpen() {
+  if (typeof eventFileIds !== 'function') return;
+  document.getElementById('bv-events')?.remove();
+  const ids = eventFileIds().slice().sort((a, b) => (eventKnown(b) - eventKnown(a)) || eventVisitCount(b) - eventVisitCount(a) || EVENT_META[a].name.localeCompare(EVENT_META[b].name));
+  const known = eventsKnownCount(), earned = rewardsMemberEarned();
+  const rec = id => eventKnown(id)
+    ? `<div class="bv-ev on"><div class="bv-name">${EVENT_META[id].name}</div><div class="bv-desc">${highlightKeywords(eventDoes(id))}</div><div class="bv-ev-n">opened ${eventVisitCount(id)}</div></div>`
+    : `<div class="bv-ev"><div class="bv-name">????</div><div class="bv-ev-pips">${Array.from({ length: EVENT_KNOW_NEED }, (_, i) => `<i class="${i < eventVisitCount(id) ? 'on' : ''}"></i>`).join('')}</div><div class="bv-ev-n">opened ${eventVisitCount(id)} / ${EVENT_KNOW_NEED}</div></div>`;
+  const el = document.createElement('div');
+  el.id = 'bv-events';
+  el.innerHTML = `<div class="bv-ev-panel">
+      <div class="bv-ev-head"><div class="bv-pt">EVENT FILES &nbsp;<span>${known} / ${ids.length}</span></div><button class="bv-key" id="bv-ev-close">CLOSE</button></div>
+      <div class="bv-ul-sub">An event is filed after you open it ${EVENT_KNOW_NEED} times. A filed event is named before you open it.</div>
+      <div class="bv-ul-line ${earned ? 'bv-ev-earned' : ''}">${earned ? `&#10003; ${knackName('rewards_member')} unlocked` : `${Math.min(known, REWARDS_MEMBER_NEED)} / ${REWARDS_MEMBER_NEED} filed unlocks a Knack`}</div>
+      <div class="bv-ev-list">${ids.map(rec).join('')}</div></div>`;
+  document.getElementById('builds-overlay').appendChild(el);
+  el.querySelector('#bv-ev-close').onclick = () => el.remove();
+  el.addEventListener('click', e => { if (e.target === el) el.remove(); });
 }
 // The pick: three locked Tricks, take one.
 function bvTokenPick() {

@@ -93,7 +93,7 @@ const INSIGHTS = [
   // 5-card selection carries a dropped card 80% of the time.
   { id: 'penalty_cards', title: 'That card is not in the hand',
     anchor: ['#hand-name'],
-    body: 'A red card is not part of the hand. One spare card is a kicker: it costs its pips and its pip value in seconds. Any more are dropped: you lose their pips and the cards.',
+    body: 'A red card is not part of the hand. One spare card is a kicker: it costs its pips and its pip value in seconds. With two spare cards the hand will not play.',
     when: () => !!document.querySelector('#hand-name .hn-drop') },
 
   { id: 'hand_layers', title: 'Your hand was also a flush',

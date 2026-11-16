@@ -87,14 +87,14 @@ const INFO_TOPICS = [
       'Inside that group, nothing else about position matters, and the order you tapped them in never matters. 4, 6, 7, 5 is a Run of 4 whichever cells they sit in and whichever one you tapped first.',
     ] },
 
-  { id: 'penalty_cards', group: 'basics', title: 'Kickers and dropped cards',
+  { id: 'penalty_cards', group: 'basics', title: 'Kickers',
     body: [
       'Every card in a hand should be part of it, but a hand may carry ONE card it does not use. That card is a KICKER. It scores nothing, and it costs its pips off the hand and its pip value in seconds off the clock.',
-      'Any further card the hand cannot use is DROPPED: you lose its pips, and the card is used up anyway.',
-      'Both turn red on the board before you play, and the hand label prices them (KICK and DROP), so you can always see it coming.',
+      'A hand with two or more spare cards will not play. The hand label reads KICKERS and the count.',
+      'A kicker turns red on the board before you play, and the hand label prices it (KICK).',
       ['A run needs consecutive ranks. 4-6-7-5-9 is not a Straight, it is a Run of 4 carrying the 9 as a kicker.',
        'A hand can be several shapes at once, so a spare card is often not spare. 2, 2, J, Q, K is a Pair and a Run of 3, and every card is used.',
-       () => `The hard cap is ${typeof HAND_MAX_CARDS !== 'undefined' ? HAND_MAX_CARDS : 7} cards in a hand, so at the largest selection sizes some cards are always dropped.`],
+       () => `The hard cap is ${typeof HAND_MAX_CARDS !== 'undefined' ? HAND_MAX_CARDS : 7} cards in a hand.`],
       'There is no minimum. Any hand of two cards or more is legal at any Selection Size.',
       'The Tagalong {knack} lets a hand carry any number of kickers, and makes them free.',
       'The Pip In {knack} makes kickers free, and they score their pips and fire their {Tricks} as though they were in the hand. They still do not change what the hand is: a Run of 4 with a kicker is a four-card hand.',
@@ -268,6 +268,7 @@ const INFO_TOPICS = [
       'An event is a one-screen decision: a trade, a gamble, an upgrade, a clean-up. SKIP is always available.',
       'An event you could not use is never offered. If you own nothing to improve, the improve events do not come up at all.',
       'The same event never lands twice in a row.',
+      () => `An event is named before you open it only once it is filed. Opening an event ${EVENT_KNOW_NEED} times files it. Builds, EVENTS lists the filed ones.`,
     ] },
 
   { id: 'limits', group: 'between', title: 'Limits',

@@ -414,6 +414,9 @@ function _generateRewardContent() {
     { icon: '🏪', label: 'Next: Shop',  tier: 'dest', apply: () => { pendingEventOverride = 'shop'; } },
     { icon: '🎲', label: 'Next: Event', tier: 'dest', apply: () => { pendingEventOverride = 'event'; } },
   ];
+  // r795: Rewards Member makes the Event destination 3 times as likely.
+  const _evDest = destOptions[2];
+  for (let i = 1; i < ((typeof eventOfferMult === 'function') ? eventOfferMult() : 1); i++) destOptions.push(_evDest);
 
   function weightedPick(arr) {
     const total = arr.reduce((s, x) => s + (x.weight || 1), 0);
@@ -831,14 +834,20 @@ function _generateRewardContent() {
     // pendingEventOverride, so a destination tile would cost a pick and do
     // nothing - the exact bug the map clause above documents.
     || (typeof survivalActive === 'function' && survivalActive());
+  // r795: on the Schedule and in Flow a destination did nothing, so there was none. With
+  // Rewards Member some ordinary grids carry Next: Event there, and the close opens it.
+  const _evOnly = NO_DEST && !PRIZE && !MINI && !CALLIT && !penaltyGridActive()
+    && !(typeof guidedActive === 'function' && guidedActive())
+    && typeof rewardsMemberGridEvent === 'function' && rewardsMemberGridEvent();
   if (!NO_DEST) grid[shuffledBuff[0][0]][shuffledBuff[0][1]] = { kind: 'dest', payload: pickRand(destOptions) };
+  else if (_evOnly) grid[shuffledBuff[0][0]][shuffledBuff[0][1]] = { kind: 'dest', payload: _evDest };
 
   // Guaranteed tiles first (protected from the Trick-minimum conversion below)
   const guaranteed = buildGuaranteedRewardTiles();
   // The Limit Break is a limit tile too - seed the ceiling with it so the prize
   // grid can add at most PRIZE_MAX_LIMIT_TILES - 1 more.
   if (PRIZE) _limitTilesThisGrid = guaranteed.filter(p => p.icon === '💥' || p.icon === '⬆️').length;
-  let placeIdx = NO_DEST ? 0 : 1;
+  let placeIdx = (NO_DEST && !_evOnly) ? 0 : 1;
   for (const payload of guaranteed) {
     if (placeIdx >= shuffledBuff.length) break;
     const [r, c] = shuffledBuff[placeIdx++];
@@ -861,7 +870,7 @@ function _generateRewardContent() {
     const isTrickTile = cell => cell?.kind === 'buff' && cell.payload && String(cell.payload.icon) === '★';
     let trickCount = 0;
     const convertible = [];
-    for (let i = (NO_DEST ? 0 : 1); i < shuffledBuff.length; i++) {
+    for (let i = ((NO_DEST && !_evOnly) ? 0 : 1); i < shuffledBuff.length; i++) {
       const [r, c] = shuffledBuff[i];
       if (grid[r][c]?.payload?._guaranteed) continue;   // never overwrite a guaranteed tile
       // An improve tile is not a Trick offer and must not be converted into one.
@@ -2099,12 +2108,14 @@ function closeRewardGrid() {
     // the map - or the post-boss prize grid, which is the run won. One act, so
     // there is no quarter to roll over; mapBossArmed is what tells them apart.
     if (typeof mapActive === 'function' && mapActive()) {
+      const _mapEv = pendingEventOverride === 'event';   // r795: Rewards Member's Next: Event tile
       pendingEventOverride = null;
       // A grid here is one the player LANDED ON - back to the map - or the
       // post-boss PRIZE grid, which closes the quarter (r249). rolloverQuarter
       // does the advance, shows the card, and goes to onGameWin itself past Q3,
       // so the map never has to know how many quarters a run is.
       if (mapBossArmed) rolloverQuarter(() => mapBeginQuarter());
+      else if (_mapEv) openEvent(() => mapAfterTile());
       else mapAfterTile();
       return;
     }
@@ -2155,6 +2166,13 @@ function closeRewardGrid() {
   // continuation is that pick's own tail (survivalChoose) - no goal was cleared, so
   // the level-up must not carry score over or pay the leftover-time credits.
   const finishSurvival = () => {
+    // r795: Rewards Member's Next: Event tile; the event closes back into this tail.
+    if (pendingEventOverride === 'event') {
+      pendingEventOverride = null;
+      openEvent(() => finishSurvival(), { exclude: (typeof FLOWR_EVENT_OUT !== 'undefined') ? FLOWR_EVENT_OUT : null });
+      return;
+    }
+    pendingEventOverride = null;
     // A grid opened off the pick-of-three's reward-grid offer (survivalChoose)
     // stands in for a goal-cleared pick, so THAT one keeps the score carry-over
     // and time credits; the post-boss prize grid still skips them (no goal was
