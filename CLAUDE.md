@@ -5487,3 +5487,42 @@ come back; a key cancelled it; the same line played by hand read 0 extra; with t
 that cleared the goal opened Flow's reward pick (3 offers) with the watcher idle; Standard Flow's
 level-up armed `["tricks","tricks","event"]` (was `[]`); deck 56 / 56; no page errors, no timeline
 drift. Golden: 834 cases match.
+
+## r802 - Agentic: the chain raises Focus; Employee of the Month (`js/agentic.js`, owner)
+- **The chain** (supersedes r801's "Focus applies once more to every line hand"). A chain is the line
+  hands played one after another with nothing done by the player in between (`_agChain`). Hand n of a
+  chain applies Focus `agenticChainExtra(n)` = floor(n / `AGENTIC.chainEvery` (2)) more times: 1, 2, 2,
+  3, 3, 4 applications. It starts over after a hand played by hand, a swap, a discard
+  (`agenticNote(kind)`, called beside `rsNote` in doSwap, doSwapMulti and doDiscard), a cancelled wait, a
+  round's end, or a still board with no line left (the watcher, after `settleMs`). A line that waits its
+  1.5s is still part of the chain. The board frame reads AGENTIC · CHAIN n (`spec.tag(k)`, a new optional
+  cascade spec field) and the hit reads FOCUS xN.
+- **Employee of the Month** (epic Trick `employee_month`; the Trick a won Agentic run unlocks, offered in
+  every run after that, Agentic included). Hands played in a row this round with no swap or discard
+  (`eotm.n`, SAVE_VARS; `eotmSync` starts it over each level): the 2nd applies Focus 2 times, the 4th 3,
+  the 6th 4 (`eotmExtraAt(n)`, read by `focusExtraApplies` for the hand about to be played, so the
+  preview quotes it). The count moves in `agenticAfterHand` (top of `scalingCount`): calcScore is
+  read-only. Ladder (`IMPROVE_PLAN`, BAL switches): v2 one discard between two hands is allowed
+  (`discards`), v3 the 3rd, 5th... take the bonus of the hand before them (`carry`), v4 one swap between
+  hands is allowed (`swaps`), v5 every other hand has `prime_chance` (30%, `luckRoll`) to prime a random
+  other Trick, v6 every hand adds one (`every`: 2, 3, 4...; the prime roll on every hand from the 2nd).
+  Icon: the trophy (a `TRICK_CATEGORIES` row of its own, no sheet rebuild). Tray live line: the hand's
+  place in the row and its Focus count.
+- **A protocol can unlock a Trick**: a `TRICK_UNLOCKS` row on the stat `pwin:<protocol>`
+  (`unlockRunEnded` bumps it for a won Flow / Schedule run), so the ordinary lock, goal text, notice and
+  Builds record apply. `protoTrickFor(id)` finds it; the run screen's line (`protoKnackLine`) reads
+  "Win a run to unlock its Trick." / "Its Trick is unlocked." (the name once it has been taken).
+- **Golden test**: `--hold id,id` leaves Tricks out of the list. A NEW Trick moves every later case's
+  seed (the random line placement), so check the old cases with it held out, then rewrite the baseline.
+  Here: 834 cases match with `--hold employee_month`; the baseline is rewritten in r803.
+- **Open (owner):** Focus applied n times is the multiplier to the nth power, so a long streak at v6 is
+  very large (the 6th hand at Focus x2 is x64). The streak starts over each round, Flow's levels
+  included; no cap.
+Measured in headless Chromium at 1440x820 and 420x900: a chain of four line hands read 0 / 1 / 1 / 2
+extra applications and CHAIN 1 to 4; a new chain 0; a swap mid-chain 0, 0; three lines that each waited
+1.5s 0 / 1 / 1; a cancelled wait set the chain to 0. The Trick in Classic: v1 0 1 0 2 0 3, a discard or a
+swap started it over; v2 one discard kept it, two broke it; v3 0 1 1 2 2 3; v4 one swap and one discard
+kept it, two swaps broke it; v5 (roll forced) primed another Trick on hands 2 and 4 only; v6 0 1 2 3 4;
+a new level read 0; all six sentences; locked and out of the pool before `pwin:agentic`, offerable
+after; a real hand through PLAY with the Trick: no timeline drift. The chain and the Trick together
+0 / 2 / 1 / 4. Deck 56 / 56, no page errors.

@@ -230,6 +230,7 @@ function doSwap(r1, c1, r2, c2) {
   if (typeof ulBump === 'function') ulBump('swaps');   // r706
   swapsUsedGame++;    // r651: Landfill counts swaps this game
   if (typeof rsNote === 'function') rsNote('swap');   // r755: run stats
+  if (typeof agenticNote === 'function') agenticNote('swap');   // r802: the Agentic chain, Employee of the Month's streak
   if (sleightFreeSwapPending) sleightFreeSwapPending = false;
   // Swap time cost: the difficulty tier's figure (r727; it was a flat 8s), 0s with Free Swaps
   // or a free swap, Steady Hand's own figure otherwise. There used to be an extra
@@ -363,6 +364,7 @@ function doSwapMulti(cells) {
   if (typeof ulBump === 'function') ulBump('swaps');
   swapsUsedGame++;
   if (typeof rsNote === 'function') rsNote('swap');
+  if (typeof agenticNote === 'function') agenticNote('swap');
   if (sleightFreeSwapPending) sleightFreeSwapPending = false;
   let t = swapSecondsBase();
   if (_free || _fodder || _recFree || hasKnack('free_swaps')) t = 0;

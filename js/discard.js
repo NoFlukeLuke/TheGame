@@ -160,6 +160,7 @@ function doDiscard() {
   cardsDiscardedRound += count;
   discardsUsedRound += _procrastinated ? 2 : 1;   // r647: Procrastinate counts as 2 discards
   if (typeof rsNote === 'function') rsNote('discard');   // r755: run stats
+  if (typeof agenticNote === 'function') agenticNote('discard');   // r802: the Agentic chain, Employee of the Month's streak
   // r739: an improved Procrastinate gives every other Sleight on the grid charges back.
   if (_procrastinated && BAL.procrastinate.recharge && typeof sleightRechargeGrid === 'function') sleightRechargeGrid(BAL.procrastinate.recharge, 'Procrastinate', discardedCards);
   // For Fodder (a Knack since r708): discarding a valid hand grants its size in credits

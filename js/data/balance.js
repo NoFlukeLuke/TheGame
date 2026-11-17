@@ -185,6 +185,7 @@ const BAL = {
   perfect_timing: { chance2: 0, extra_line: 0 },   // r625: a second replay chance; a second marked line at the 5th
   kaleidoscope: { extra: 0 },                 // r625: applications past the suit count
   marathon: { extra: 1, flush: 0, sets: 0 },  // r625: extra applications on runs; flush / sets extend them
+  employee_month: { discards: 0, swaps: 0, carry: 0, prime_chance: 0, every: 0 },   // r802: all five are switched on by its ladder (IMPROVE_PLAN)
   undue_influence: { faces: 0 },              // r625: 1 = also pays the face cards in the hand
   shape_cross: { focus: 25, mult: 25 },   // r624: the + shape pays mult as well
   two_corners: { mult_mult: 2 },
@@ -673,6 +674,7 @@ const DESC_TEMPLATES = {
   critical: 'Flush type hands[[extra_family: and one rolled family]] score x{mult_mult} mult',
   twinners: 'Set type hands score x{pip_mult} pips[[replay: and every card replays once]]',
   feelin_lucky: 'Five randomly rolled ranks score x{mult_mult} mult. Trying to sell this costs 30% of your credits and rerolls the ranks instead - 3 times, then it really sells',
+  employee_month: 'Hands played in a row with no swap or discard: [[carry<1:the 2nd applies the Focus multiplier 2 times, the 4th 3 times, the 6th 4 times]][[carry:[[every<1:the 2nd and 3rd apply the Focus multiplier 2 times, the 4th and 5th 3 times]]]][[every:the 2nd applies the Focus multiplier 2 times, the 3rd 3 times, the 4th 4 times]], and so on. Starts over each round.[[discards:[[swaps<1: One discard between hands is allowed.]]]][[swaps: One discard and one swap between hands are allowed.]][[prime_chance:[[every<1: Every other hand has]][[every: Each hand from the 2nd has]] a {prime_chance_pct}% chance to prime a random Trick.]]',
   marathon: 'Run type hands[[flush: and flushes]][[sets: and sets]] apply the Focus multiplier [[extra<2:one extra time]][[extra>1:{extra} extra times]]',
   shape_line: '5-card hands [[span6>0:that include 6 total rows and/or columns (e.g. 3 rows + 3 columns, 4 rows + 2 columns)]][[span6<1:played in a straight line]] add every card\'s pip value[[buffs: (including buffs)]] to mult',
   // ── r739: the owner's Sleight triage ──

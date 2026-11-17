@@ -386,7 +386,7 @@ const INFO_TOPICS = [
     body: [
       () => `Flow and the Schedule are played under a protocol, chosen on the run screen: ${PROTOCOLS.map(p => p.name).join(', ')}. A protocol changes a few rules. The mode stays the same.`,
       'Difficulty belongs to the protocol. A win in Flow or the Schedule unlocks the next tier of that protocol for both.',
-      'Winning a run of Dexterous, Precision, Limitless, Hyperfocus or Past Capacity unlocks its Knack (Ambidextrous, Measure Twice, Growth Mindset, ADHD, Curio), which can then be offered in any other run (ADHD in Hyperfocus too).',
+      'Winning a run of Dexterous, Precision, Limitless, Hyperfocus or Past Capacity unlocks its Knack (Ambidextrous, Measure Twice, Growth Mindset, ADHD, Curio), which can then be offered in any other run (ADHD in Hyperfocus too). Winning a run of Agentic unlocks a {trick}.',
       'Standard, Turbo, Agentic and Crunch are open from the start. Crunch is the Schedule\'s only. Dexterous, Precision, Limitless and Hyperfocus each open with a won run of the one before, in Flow or the Schedule.',
     ] },
   { id: 'mode_dexterous', group: 'modes', title: 'Dexterous',
@@ -427,7 +427,9 @@ const INFO_TOPICS = [
     body: [
       'A protocol of Flow and the Schedule, open from the start.',
       () => `A hand of ${AGENTIC.minLen} or more cards side by side in one row or one column plays itself. Every card in the line must be part of the hand.`,
-      () => `{FOCUS} applies to that hand ${1 + AGENTIC.focusApplies} times. It earns no speed bonus.`,
+      () => `Line hands played one after another with nothing done in between are a chain. The 2nd and 3rd of a chain apply {FOCUS} ${1 + agenticChainExtra(2)} times, the 4th and 5th ${1 + agenticChainExtra(4)} times, and so on. A hand you play, a swap, a discard or a cancelled wait starts the chain over.`,
+      'A hand that plays itself earns no speed bonus.',
+      'Winning a run of Agentic unlocks a {trick}.',
       () => `A found hand smaller than your Selection Size waits ${AGENTIC.waitMs / 1000}s first. A click or tap anywhere cancels it. Settings, Controls, Protocol: Agentic turns the wait off.`,
       'Every other hand is played as usual.',
     ] },

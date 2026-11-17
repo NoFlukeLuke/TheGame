@@ -1,4 +1,4 @@
-const BUILD = "2026-11-16 · r801 · the Agentic protocol; Flow level-up rewards restored";
+const BUILD = "2026-11-17 · r802 · Agentic chains raise Focus; Employee of the Month";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

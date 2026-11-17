@@ -24,6 +24,9 @@ const args = process.argv.slice(2);
 const CHECK = args.includes('--check');
 const ONLY = args.includes('--only') ? args[args.indexOf('--only') + 1] : null;
 const SHOW = args.includes('--show') ? args[args.indexOf('--show') + 1] : null;
+// --hold id,id leaves those Tricks out of the list: a NEW Trick moves every later case's seed, so check the
+// old cases with it held out (all must match), then rewrite the baseline without --hold.
+const HOLD = args.includes('--hold') ? args[args.indexOf('--hold') + 1].split(',') : [];
 const OUT = path.join(__dirname, 'baseline.json');
 
 if (args.includes('--coverage')) {
@@ -144,7 +147,7 @@ function __gsScore() {
 }
 `);
 
-const live = JSON.parse(E(`JSON.stringify((TRICK_POOL_ALL || TRICK_POOL).filter(t => !t.retired).map(t => t.id))`));
+const live = JSON.parse(E(`JSON.stringify((TRICK_POOL_ALL || TRICK_POOL).filter(t => !t.retired).map(t => t.id))`)).filter(id => !HOLD.includes(id));
 const cases = [];
 for (const st of ['a', 'b']) {
   cases.push(['none' + st, [], 0, st]);

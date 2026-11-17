@@ -31,6 +31,7 @@
 
 // How a counter reads in a goal ({n} is the number).
 const UL_STAT_TEXT = {
+  'pwin:agentic': 'Win {n} run of the Agentic protocol',
   'hands': 'Play {n} hands', 'cards': 'Score {n} cards', 'rounds': 'Clear {n} rounds', 'runs': 'Finish {n} runs', 'wins': 'Win {n} run',
   'fam:set': 'Play {n} Set hands', 'fam:run': 'Play {n} Run hands', 'fam:flush': 'Play {n} Flush hands',
   'h:Pair': 'Play {n} Pairs', 'h:Two Pair': 'Play {n} Two Pairs', 'h:Full House': 'Play {n} Full Houses', 'h:Four of a Kind': 'Play Four of a Kind {n} times',
@@ -207,4 +208,6 @@ const TRICK_UNLOCKS = {
   blackjack_bonus: { s: 'wins', n: 1 }, richter: { s: 'wins', n: 1 }, relentless: { s: 'wins', n: 1 }, obsessed: { s: 'wins', n: 1 },
   buried_treasure: { s: 'wins', n: 1 }, phoenix: { s: 'wins', n: 1 }, aces_absorb: { s: 'wins', n: 1 }, monopoly: { s: 'wins', n: 1 },
   severance_package: { s: 'wins', n: 1 },
+  // r802: a protocol's Trick. `pwin:<protocol>` counts won runs of that protocol (unlockRunEnded).
+  employee_month: { s: 'pwin:agentic', n: 1, text: 'Win a run of the Agentic protocol' },
 };

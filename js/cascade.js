@@ -205,7 +205,7 @@ function casFrameOff() {
 }
 function casTag(run, k) {
   const t = document.querySelector('#cas-frame .cas-tag'); if (!t) return;
-  t.textContent = `${run.spec.title} · HAND ${k}`;
+  t.textContent = run.spec.tag ? run.spec.tag(k) : `${run.spec.title} · HAND ${k}`;   // r802: a spec may word its own tag
   if (!_casStill()) { try { t.animate([{ scale: '1.25', filter: 'brightness(1.8)' }, { scale: '1', filter: 'none' }], { duration: 220, easing: 'ease-out' }); } catch (e) {} }
 }
 function casBanner(run, title, sub) {

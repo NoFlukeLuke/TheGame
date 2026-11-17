@@ -179,11 +179,15 @@ function protoPaint() {
   };
 }
 function protoKnackLine(id) {
+  // r802: a protocol may unlock a Trick instead (a TRICK_UNLOCKS row on `pwin:<protocol>`).
+  const tid = protoTrickFor(id);
+  if (tid) return trickLocked(tid) ? ' Win a run to unlock its Trick.' : ((typeof isDiscovered === 'function' && isDiscovered(tid)) ? ` Its Trick, ${trickNameOf(tid)}, is unlocked.` : ' Its Trick is unlocked.');
   const k = PROTO_KNACKS.find(x => x.protocol === id);
   if (!k) return '';
   const row = KNACK_POOL.find(x => x.id === k.id);
   return protoKnackUnlocked(k.id) ? ` Its Knack, ${row ? row.name : k.id}, is unlocked.` : ' Win a run to unlock its Knack.';
 }
+function protoTrickFor(id) { return (typeof TRICK_UNLOCKS !== 'undefined' && Object.keys(TRICK_UNLOCKS).find(t => TRICK_UNLOCKS[t] && TRICK_UNLOCKS[t].s === 'pwin:' + id)) || null; }
 function protoClose() {
   const ov = document.getElementById('picker-overlay');
   if (ov) { ov.classList.remove('show'); ov.classList.remove('pk-proto'); }

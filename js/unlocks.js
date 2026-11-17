@@ -283,7 +283,11 @@ function unlockRunEnded(won) {
   if (unlockRun.ended || unlockPaused()) return;
   unlockRun.ended = 1;
   ulBump('runs');
-  if (won) { ulBump('wins'); tokenEarn(); }
+  if (won) {
+    ulBump('wins'); tokenEarn();
+    // r802: a won run of a protocol counts for that protocol's Trick (`pwin:<id>` rows in TRICK_UNLOCKS).
+    if (typeof activeProtocol === 'function' && typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE && PROTOCOL_BASES.includes(ACTIVE_MODE.id)) ulBump('pwin:' + activeProtocol());
+  }
 }
 
 // ── win tokens (r709, owner) ────────────────────────────────────────────────

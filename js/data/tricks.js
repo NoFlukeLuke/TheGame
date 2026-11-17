@@ -246,6 +246,8 @@ const TRICK_POOL = [
   { id:'twinners',        name:'Twinners',           tier:'epic',      tags:['xpips','hand','set','scores'],            desc:'Set type hands score x3 pips' },
   { id:'feelin_lucky',    name:'Feelin Lucky',       tier:'epic',      tags:['xmult','card','rank','scores','chance','cost'],   desc:'Five randomly rolled ranks score x1.25 mult. Trying to sell this costs 30% of your credits and rerolls the ranks instead - 3 times, then it really sells' },
   { id:'marathon',        name:'Marathon',           tier:'epic',      tags:['focus','hand','run','scores'],           desc:'Run type hands apply the Focus multiplier 1 extra time(s)' },
+  // r802 (owner): unlocked by a won run of the Agentic protocol (js/agentic.js; TRICK_UNLOCKS `pwin:agentic`).
+  { id:'employee_month',  name:'Employee of the Month', tier:'epic',   tags:['focus','hand','streak','scores'],        desc:'Hands played in a row with no swap or discard: the 2nd applies the Focus multiplier 2 times, the 4th 3 times, the 6th 4 times, and so on. Starts over each round.' },
   // ── Run add-ons (r124) ──
   { id:'dam_holding',    name:'Please Hold',        tier:'rare',      tags:['time','hand','run'],            desc:'Runs pause the clock for 3s' },
   { id:'wave_amp',       name:'Upswing',  tier:'common',    tags:['pips','hand','run','streak','scores'],   desc:'Consecutively played Runs score +15 pips × the streak count' },
@@ -286,6 +288,7 @@ const TRICK_CATEGORIES = [
   { emoji:'🔀', ids:['combo_score','move_as_one'] }, // Diverse conditions
   { emoji:'🎯', ids:['study_hall','meditation','tunnel_vision','first_wind','rhythm','cull','expanse','kaleidoscope','flow_state','hyper_focus','overclock','release_valve','life_lessons','wellspring'] }, // Focus
   { emoji:'⭐', ids:['heartwood'] }, // Legendary misc
+  { emoji:'🏆', ids:['employee_month'] }, // r802: the name's theme (an award); the Trophy Case knack's trophy
   { emoji:'💎', ids:['obsessed','buried_treasure','relentless','patient_rulers','even_better','what_odds','critical','twinners','marathon','feelin_lucky'] }, // r359 multipliers
   { emoji:'🐦', ids:['swift','cuckoo','woodpecker','hummingbird','albatross','vulture','phoenix','early_bird','night_owl','patience_reward','still_water','kingfisher'] }, // Birds (by name)
   { emoji:'3️⃣', ids:['third_down','ready_set_go'] }, // 3-card hands

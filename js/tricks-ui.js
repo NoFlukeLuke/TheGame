@@ -48,6 +48,7 @@ function trickLiveDesc(trick) {
       case 'sapling':        return now(`${level - 1} levels applied`);
       case 'summit':         return now(`level ${level}`);
       case 'rising_tide':    return now(`+${risingTideMult || 0} mult`);
+      case 'employee_month': return roundNow(`hand ${eotmSync().n + 1} of the row: Focus ${1 + eotmFocusExtra()}x`);   // r802
       case 'middle_man':     return now(`+${middleManMult || 0} mult`);
       case 'hummingbird':    return now(`+${((pauseInstanceGame || 0) + (rewindInstanceGame || 0)) * (B.hummingbird?.mult_per_pause ?? 2)} mult`);
       case 'magician':       return now(magicianNoSleights() ? `+${B.magician?.solo_pips ?? 50} pips, no Sleights` : `+${ownedSleightCount() * (B.magician?.mult_per_sleight ?? 3)} mult`);

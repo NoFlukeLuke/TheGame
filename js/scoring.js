@@ -1997,7 +1997,8 @@ function focusExtraApplies(handName, cells) {
     }
     // Autopilot (r474): hand k of a run applies Focus k times.
     if (typeof autopilotFocusExtra === 'function') n += autopilotFocusExtra();
-    if (typeof agenticFocusExtra === 'function') n += agenticFocusExtra();   // r801: a line hand under Agentic
+    if (typeof agenticFocusExtra === 'function') n += agenticFocusExtra();   // r801: a line hand under Agentic; r802: by its place in the chain
+    if (typeof eotmFocusExtra === 'function') n += eotmFocusExtra();         // r802: Employee of the Month
     if (typeof focusDoubleHands !== 'undefined' && focusDoubleHands > 0) n++;   // Double Down (r571)
     if (typeof sweepRunning === 'function' && sweepRunning() && BAL.all_hands && BAL.all_hands.applies > 1) n += BAL.all_hands.applies - 1;   // r739: All Hands v5
   } catch (e) {}

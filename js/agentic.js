@@ -2,8 +2,8 @@
 // AGENTIC (r801, owner) - a protocol of Flow and the Schedule
 // ═══════════════════════════════════════════════════════════════════════════
 // "Basically everything works the same in terms of progression, but hands auto
-// play when in straight lines when found, and those hands score focus a second
-// time. You can still play other hands manually."
+// play when in straight lines when found... You can still play other hands
+// manually."
 //
 // - A LINE is 3 or more cards side by side in one row or one column, up to the
 //   Selection Size, that make a real hand with every card in it (handComponentsFor:
@@ -12,8 +12,16 @@
 // - When the board is free and nothing is selected, the best line on it is
 //   played by a quiet cascade (js/cascade.js: picked, hit, flown to the preview,
 //   the board falls). Lines the fall makes go on in the same cascade.
-// - Focus applies to such a hand one more time (focusExtraApplies reads
-//   agenticFocusExtra). The hand makes its own Focus, but no speed bonus.
+// - THE CHAIN (r802, owner): "when plays cascade, that's what increases the focus
+//   application, but every other hand. So first one is normal, second hand gets
+//   focus twice, third twice, fourth three" and so on. A chain is the line hands
+//   played one after another with nothing done by the player in between: it
+//   starts over after a hand played by hand, a swap, a discard, a cancelled
+//   wait, or a still board with no line left. Hand n of a chain applies Focus
+//   floor(n / 2) more times (focusExtraApplies reads agenticFocusExtra). A line
+//   that waits its 1.5s is still part of the chain. A line's hand makes its own
+//   Focus, but no speed bonus.
+// - Winning a run of Agentic unlocks the Trick Employee of the Month (below).
 // - THE WAIT (owner): "when your hand size is more than the size of a found valid
 //   hand, it waits for 1.5 seconds before playing, clicking or tapping anywhere
 //   during that cancels the autoplay." The line is ringed with a draining bar;
@@ -29,13 +37,14 @@ const AGENTIC = {
   waitMs: 1500,       // a line shorter than the Selection Size waits this long
   settleMs: 220,      // the board is free this long before a line goes
   watchMs: 100,       // how often the board is looked at
-  focusApplies: 1,    // Focus applies this many EXTRA times to a line's hand
+  chainEvery: 2,      // every this many hands of a chain, Focus applies one more time
   color: '#5ad1c6',
 };
 
 function agenticOn() { return !!ACTIVE_MODE && ACTIVE_MODE.agentic === true; }
 function agenticSay() {
-  return `${AGENTIC.minLen} or more cards side by side in a row or column that make a hand play themselves, and Focus applies twice. No speed bonus. A hand smaller than your ${agenticSizeWord()} waits ${AGENTIC.waitMs / 1000}s first: click or tap anywhere to cancel.`;
+  const a = n => 1 + agenticChainExtra(n);
+  return `${AGENTIC.minLen} or more cards side by side in a row or column that make a hand play themselves. In a chain the 2nd and 3rd apply Focus ${a(2)} times, the 4th and 5th ${a(4)} times. A hand smaller than your ${agenticSizeWord()} waits ${AGENTIC.waitMs / 1000}s: tap to cancel.`;
 }
 function agenticSizeWord() { const d = (typeof LIMITS_DEF !== 'undefined') && LIMITS_DEF.find(x => x.id === 'selection'); return (d && d.label) || 'Selection Size'; }
 
@@ -43,9 +52,13 @@ let _agPlaying = false;         // inside playHand for a line's hand
 let _agWait = null;             // { cells, ids, key, left, el } while a line waits
 let _agDeclined = new Set();    // lines the player cancelled, by cells and card ids
 let _agSince = 0, _agLast = 0, _agSig = '', _agFound = null;
+let _agChain = 0;               // line hands played so far in the chain
 
 function agenticPlaying() { return _agPlaying; }
-function agenticFocusExtra() { return _agPlaying ? AGENTIC.focusApplies : 0; }
+// Hand n of a chain applies Focus this many EXTRA times: 0, 1, 1, 2, 2, 3...
+function agenticChainExtra(n) { return Math.max(0, Math.floor(n / AGENTIC.chainEvery)); }
+function agenticChainNext() { return _agChain + 1; }
+function agenticFocusExtra() { return _agPlaying ? agenticChainExtra(agenticChainNext()) : 0; }
 function agenticWaitOn() { return !(typeof SETTINGS !== 'undefined' && SETTINGS && SETTINGS.agenticWait === false); }
 function agenticWaits(cells) { return agenticWaitOn() && ((limits.selection && limits.selection.current) || 3) > cells.length; }
 
@@ -116,7 +129,8 @@ function _agFree() {
 function agenticTick() {
   const now = performance.now(), dt = Math.min(400, now - (_agLast || now));
   _agLast = now;
-  if (!agenticOn()) { if (_agWait) _agWaitDrop(); return; }
+  if (!agenticOn()) { if (_agWait) _agWaitDrop(); _agChain = 0; return; }
+  if (typeof roundEnded !== 'undefined' && roundEnded) _agChain = 0;
   if (_agWait) {
     const w = _agWait;
     if (w.cells.some(([r, c], i) => gridData[r]?.[c]?._id !== w.ids[i]) || roundEnded) { _agWaitDrop(); return; }   // the line is gone
@@ -128,10 +142,10 @@ function agenticTick() {
     return;
   }
   if (!_agFree()) { _agSince = 0; return; }
-  const cells = _agFindCached();
-  if (!cells) { _agSince = 0; return; }
   if (!_agSince) { _agSince = now; return; }
   if (now - _agSince < AGENTIC.settleMs) return;
+  const cells = _agFindCached();
+  if (!cells) { _agChain = 0; return; }   // a still board with no line: the chain is over
   _agSince = 0;
   if (agenticWaits(cells)) _agWaitStart(cells); else _agGo(cells);
 }
@@ -173,6 +187,7 @@ function agenticCancel() {
   _agDeclined.add(w.key);
   if (_agDeclined.size > 200) _agDeclined = new Set([w.key]);
   _agWaitDrop();
+  _agChain = 0;
   try { if (typeof sfxKeyClick === 'function') sfxKeyClick('up'); } catch (e) {}
   if (typeof noteMessage === 'function') noteMessage('Auto-play cancelled');
   dbgEvent('info', 'agentic: wait cancelled');
@@ -199,13 +214,69 @@ function _agGo(first) {
     },
     // A line the game refused to play is left alone, or the watcher would find it again for ever.
     after: (k, played) => { if (!played && cur) { _agDeclined.add(_agKey(cur)); return false; } },
-    label: () => `FOCUS x${1 + AGENTIC.focusApplies}`,
+    tag: () => `AGENTIC · CHAIN ${agenticChainNext()}`,
+    label: () => { const x = agenticChainExtra(agenticChainNext()); return x ? `FOCUS x${1 + x}` : `CHAIN ${agenticChainNext()}`; },
     play: () => { _agPlaying = true; try { playHand(); } finally { _agPlaying = false; } },
     end: () => { _agSince = 0; _agSig = ''; },
   });
 }
 
 // A new run (startGame).
-function agenticReset() { _agWaitDrop(); _agDeclined = new Set(); _agSince = 0; _agSig = ''; _agFound = null; _agPlaying = false; }
+function agenticReset() { _agWaitDrop(); _agDeclined = new Set(); _agSince = 0; _agSig = ''; _agFound = null; _agPlaying = false; _agChain = 0; eotm = { n: 0, disc: 0, swap: 0, lv: 0 }; }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// EMPLOYEE OF THE MONTH (r802, owner) - the Trick a won Agentic run unlocks
+// ═══════════════════════════════════════════════════════════════════════════
+// "Every other subsequent hand played without using a swap or discard applies the
+// focus multiplier an additional time. So 2nd hand gets it twice, third hand gets
+// it once, 4th hand gets it 3 times, etc." Any run, any protocol, by hand or not.
+// The count is hands played in a row this round with no swap and no discard
+// (`eotm.n`, SAVE_VARS; it starts over each level, eotmSync). Ladder (IMPROVE_PLAN):
+//   v2 one discard between two hands does not break it (`discards`)
+//   v3 the 3rd, 5th... take the bonus of the hand before them (`carry`)
+//   v4 one swap between two hands does not break it (`swaps`)
+//   v5 a hand that takes the every-other bonus has `prime_chance` to prime a random Trick
+//   v6 every hand adds one: the 2nd twice, the 3rd 3 times (`every`)
+// calcScore is read-only, so the count moves in eotmAfterHand (end of scalingCount).
+let eotm = { n: 0, disc: 0, swap: 0, lv: 0 };
+function eotmSync() { if (eotm.lv !== level) eotm = { n: 0, disc: 0, swap: 0, lv: level }; return eotm; }
+// EXTRA Focus applications for the n-th hand of the streak.
+function eotmExtraAt(n) {
+  const B = TB('employee_month');
+  if (n < 2) return 0;
+  if (B.every) return n - 1;
+  if (B.carry) return Math.floor(n / 2);
+  return n % 2 ? 0 : n / 2;
+}
+function eotmFocusExtra() { return hasTrick('employee_month') ? eotmExtraAt(eotmSync().n + 1) : 0; }
+// A swap or a discard (doSwap, doSwapMulti, doDiscard): the Agentic chain starts over, and so does
+// the streak unless the Trick allows this one.
+function agenticNote(kind) {
+  _agChain = 0;
+  const e = eotmSync(), B = (typeof BAL !== 'undefined' && BAL.employee_month) || {};
+  const key = kind === 'swap' ? 'swap' : 'disc', allow = (kind === 'swap' ? B.swaps : B.discards) || 0;
+  if (hasTrick('employee_month') && e[key] < allow) { e[key]++; return; }
+  e.n = 0; e.disc = 0; e.swap = 0;
+}
+// A hand was played (the end of scalingCount, after its score is banked).
+function agenticAfterHand() {
+  if (_agPlaying) _agChain++; else _agChain = 0;
+  const e = eotmSync(), n = e.n + 1;
+  e.n = n; e.disc = 0; e.swap = 0;
+  if (!hasTrick('employee_month')) return;
+  const B = TB('employee_month');
+  // v5: the hands the every-other rule pays (every hand from the 2nd at v6) may prime a random Trick.
+  if (B.prime_chance > 0 && n >= 2 && (B.every || n % 2 === 0) && luckRoll(B.prime_chance)) {
+    const pool = trickTray.filter(t => t.id !== 'employee_month' && !t.acts?.includes('employee_month') && !(typeof isTrickDisabledByBoss === 'function' && isTrickDisabledByBoss(t.id)));
+    if (pool.length) {
+      const t = pool[Math.floor(Math.random() * pool.length)];
+      if (primeTrick(t, 1, { src: 'employee_month' })) {
+        if (typeof entityPing === 'function') entityPing('trick', 'employee_month');
+        noteMessage(`+ ${trickNameOf('employee_month')} primed ${t.name}`, '#cf8cff');
+        if (typeof renderTrickTray === 'function') renderTrickTray();
+      }
+    }
+  }
+}
 
 setInterval(() => { try { agenticTick(); } catch (e) { if (typeof devMode !== 'undefined' && devMode) console.warn('[AGENTIC]', e); } }, AGENTIC.watchMs);

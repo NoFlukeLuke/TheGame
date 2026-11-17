@@ -191,6 +191,8 @@ const IMPROVE_PLAN = {
   twinners:         t => ({ pip_mult: 3 + t, replay: t >= 5 ? 1 : 0 }),
   // one more application, then flushes, then more applications; sets at the 5th
   marathon:         t => ({ extra: [1, 2, 2, 3, 4, 4][t], flush: t >= 2 ? 1 : 0, sets: t >= 5 ? 1 : 0 }),
+  // r802 (owner): a discard allowed, odd hands carry the bonus, a swap allowed, a prime chance, then every hand.
+  employee_month:   t => ({ discards: t >= 1 ? 1 : 0, carry: t >= 2 ? 1 : 0, swaps: t >= 3 ? 1 : 0, prime_chance: t >= 4 ? 0.3 : 0, every: t >= 5 ? 1 : 0 }),
   // ── r647, the owner's new Sleights and Green Station ──
   // +2 charges a tier; the 5th gives 2 discards a use and half the time spends 2 charges
   // +1 charge, then a temp copy of a played card, alternating; the 5th refills and makes two copies permanent
