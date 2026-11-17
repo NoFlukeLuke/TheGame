@@ -1,4 +1,4 @@
-const BUILD = "2026-11-17 · r802 · Agentic chains raise Focus; Employee of the Month";
+const BUILD = "2026-11-17 · r803 · golden baseline for Employee of the Month";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

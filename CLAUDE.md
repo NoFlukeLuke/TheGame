@@ -5526,3 +5526,8 @@ kept it, two swaps broke it; v5 (roll forced) primed another Trick on hands 2 an
 a new level read 0; all six sentences; locked and out of the pool before `pwin:agentic`, offerable
 after; a real hand through PLAY with the Trick: no timeline drift. The chain and the Trick together
 0 / 2 / 1 / 4. Deck 56 / 56, no page errors.
+
+## r803 - golden baseline rewritten for r802
+Employee of the Month joins the list (838 cases). Its place in the Trick list moves the random line
+placement of the cases after it, so line Tricks' cases change with no scoring change (the 834 old
+cases matched with it held out, r802).
