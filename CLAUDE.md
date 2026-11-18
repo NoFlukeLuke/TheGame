@@ -42,6 +42,7 @@ superseded is history, not current code. The other reference docs:
 | `CLEANUP.md` | the dead-code audit and removal log |
 | `CURSE_CARDS.md` | the four horsemen as built (r723), Pestilence's open call, the parked card conditions, the r722 survey |
 | `DIFFICULTY.md` | the eight difficulty tiers (r728), what follows from them, and whether the ladder is spaced well |
+| `TRICK_AUDIT.md` | r804: every Trick against its rarity's average by bonus type, the +25 base buff, recommended numbers for the Tricks and Knacks that buff cards (not applied) |
 | `docs/archive/` | finished design docs, kept for reference |
 | `tools/sim/README.md` | the Monte Carlo bot that plays whole runs headlessly; rerun after any deck or hand-value change |
 
@@ -5531,3 +5532,13 @@ after; a real hand through PLAY with the Trick: no timeline drift. The chain and
 Employee of the Month joins the list (838 cases). Its place in the Trick list moves the random line
 placement of the cases after it, so line Tricks' cases change with no scoring change (the 834 old
 cases matched with it held out, r802).
+
+## r804 - the base card buff is +25; the Trick audit (owner)
+A flat card buff offered anywhere is +25 pips or +25 mult (was +10 to +15 pips, +8 to +12 mult):
+the deck editor rows (`FLOWR_DECK_OPS`, read by the Balance Sheet's buff tiles, card packs, the
+Reserve, the Lockbox, `rollBuffs` / `rollEditorBuff` and so every event, challenge reward and Knack
+that rolls one), the shop's buffed cards, the Balance Sheet's fallback Blessed Card, the Bench's mult
+boon, Bargain's two pips trades, Dealer's Choice (`DEALER_BUFFS`) and the payout pick's Boost
+(`BAL.payout_pick`). x buffs, replays, time, credits and Card Upgrade's growing buffs are unchanged.
+TRICK_AUDIT.md lists the Tricks outside their rarity's average and the recommended new numbers for
+the Tricks and Knacks that buff cards (not applied). Golden: 838 cases match.

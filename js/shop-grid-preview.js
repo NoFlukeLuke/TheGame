@@ -292,8 +292,8 @@ function shopgCardPayloads(n) {
   return deck.map(card => {
     const face = `${card.rank}${(typeof cardColorSuit === 'function' ? cardColorSuit(card) : card.suit) || ''}`;
     const roll = Math.random();
-    const buff = roll < 0.60 ? { e:{ pips: 12 },    price: 6  }
-               : roll < 0.85 ? { e:{ mult: 5 },     price: 10 }
+    const buff = roll < 0.60 ? { e:{ pips: 25 },    price: 6  }
+               : roll < 0.85 ? { e:{ mult: 25 },    price: 10 }
                              : { e:{ growMult: 1 }, price: 15 };
     return {
       _cardBuff: true, icon: face, label: face,

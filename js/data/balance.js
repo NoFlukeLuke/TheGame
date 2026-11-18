@@ -269,7 +269,7 @@ const BAL = {
   // Card states (r278, js/card-states.js). Not an entity, so improve.js never
   // touches these - they are the states' own numbers, in one place.
   card_states: { review_up: 0.2, review_down: 0.5, roll_call_penalty: 15, fuse_seconds: 60 },
-  payout_pick: { pips: 12 },
+  payout_pick: { pips: 25 },
   second_hand: { pips: 30, mult: 20 },
   hourglass: { chance: 0.5, interval_seconds: 60 },
   sediment: { interval_seconds: 10, pips_per_interval: 10 },

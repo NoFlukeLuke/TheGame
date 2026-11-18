@@ -1,4 +1,4 @@
-const BUILD = "2026-11-17 · r803 · golden baseline for Employee of the Month";
+const BUILD = "2026-11-18 · r804 · base card buff +25; Trick audit";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

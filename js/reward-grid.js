@@ -641,7 +641,7 @@ function _generateRewardContent() {
           picks.forEach(cd => enhanceCardKey(cardId(cd), { [op.buff.key]: v }));
           noteMessage(`${op.icon} ${lbl} on ${picks.length} card${picks.length === 1 ? '' : 's'}`, 'var(--gold)'); } };
     }
-    return bless('✨', 'Blessed Card', 'rare', { pips: 12 });
+    return bless('✨', 'Blessed Card', 'rare', { pips: 25 });
   }
   function makeLimitUpPayload() {
     // EVERY LIMIT HAS ITS OWN STEP, and this tile used to ignore all of them: it

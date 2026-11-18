@@ -614,8 +614,8 @@ function buildBargainTrades() {
   }
 
   trades.push({ icon:'\ud83d\udd6f\ufe0f', rarity:'rare', name:'Eight seconds for a copy',
-    desc:'Lose 8s of round time, permanently. A random card is copied into your deck, and that card scores 20 more pips from now on.',
-    apply:()=>{ limits.round_time.current=Math.max(30, limits.round_time.current-8); const t=randomDeckCard(); if(t){ copyCardToDeck(t); enhanceCardKey(cardId(t), {pips:20}); noteMessage(`Copied ${cardLabel(t)} \u00b7 +20 pips`, 'var(--gold)'); } } });
+    desc:'Lose 8s of round time, permanently. A random card is copied into your deck, and that card scores 25 more pips from now on.',
+    apply:()=>{ limits.round_time.current=Math.max(30, limits.round_time.current-8); const t=randomDeckCard(); if(t){ copyCardToDeck(t); enhanceCardKey(cardId(t), {pips:25}); noteMessage(`Copied ${cardLabel(t)} \u00b7 +25 pips`, 'var(--gold)'); } } });
 
   // The credit trade was 10, which a mid-run wallet pays without noticing. It is
   // the one cost here that is plainly legible, so it is the one worth pricing
@@ -641,8 +641,8 @@ function buildBargainTrades() {
 
   // Always-available fallback
   if (trades.length === 0) {
-    trades.push({ icon:'\ud83d\udd6f\ufe0f', rarity:'common', name:'Five seconds for +15 pips', desc:'Lose 5s of round time, permanently. A random card scores 15 more pips from now on.',
-      apply:()=>{ limits.round_time.current=Math.max(30, limits.round_time.current-5); const t=randomDeckCard(); if(t){ enhanceCardKey(cardId(t), {pips:15}); noteMessage(`${cardLabel(t)} +15 pips`, 'var(--gold)'); } } });
+    trades.push({ icon:'\ud83d\udd6f\ufe0f', rarity:'common', name:'Five seconds for +25 pips', desc:'Lose 5s of round time, permanently. A random card scores 25 more pips from now on.',
+      apply:()=>{ limits.round_time.current=Math.max(30, limits.round_time.current-5); const t=randomDeckCard(); if(t){ enhanceCardKey(cardId(t), {pips:25}); noteMessage(`${cardLabel(t)} +25 pips`, 'var(--gold)'); } } });
   }
 
   const a=[...trades]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
@@ -1253,7 +1253,7 @@ function renderBench() {
   // The card is picked on the NEXT step, so the subject is "this card" here.
   const boons = [
     { icon:'🔨', rarity:'common', e:{ pips:40 }  },
-    { icon:'✨', rarity:'rare',   e:{ mult:6 }   },
+    { icon:'✨', rarity:'rare',   e:{ mult:25 }  },
     { icon:'💥', rarity:'epic',   e:{ xmult:2 }  },
     { icon:'🔁', rarity:'rare',   e:{ retrig:1 } },
     { icon:'📈', rarity:'epic',   e:{ growMult:1 } },
