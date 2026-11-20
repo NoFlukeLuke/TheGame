@@ -543,6 +543,7 @@ function startGame() {
   // ladder (r175). Pins hold payload objects with live buy() functions, which is
   // why they are NOT in SAVE_VARS - the Mart is shut at every save point anyway.
   altarEffects    = [];
+  if (typeof investmentReset === 'function') investmentReset();   // r805
   sleightNextHandDouble = false;
   sleightLegacyMult    = false;
   sleightAmplifierMult = 0;

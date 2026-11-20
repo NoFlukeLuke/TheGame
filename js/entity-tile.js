@@ -178,7 +178,9 @@ function entityTileHTML(p, rarity, { mystery = false, extraClass = '', tip = tru
     const tp = entityTipPayloadFor(p, rarity);
     if (tp) tipAttr = ` data-et="${encodeURIComponent(JSON.stringify(tp))}"`;
   }
-  return `<div class="${entityTileClass(p, rarity, extraClass)}"${tipAttr}>${entityTileInner(p, { mystery })}</div>`;
+  // r805: the id rides on the frame, so a screen can tell which tiles are owned (js/entity-flyin.js).
+  const idAttr = (!mystery && p.id) ? ` data-ent-id="${String(p.id).replace(/"/g, '')}"` : '';
+  return `<div class="${entityTileClass(p, rarity, extraClass)}"${tipAttr}${idAttr}>${entityTileInner(p, { mystery })}</div>`;
 }
 
 // Owned in the live run, any type (r634). Read by the requisition star.

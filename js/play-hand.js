@@ -280,6 +280,9 @@ function playHand() {
   const _sweeping = typeof sweepPlaying === 'function' && sweepPlaying();   // one of All Hands's planned hands
   const _rollCall = (!_sweeping && typeof rollCallAugment === 'function') ? rollCallAugment(result, selected) : null;
   if (_rollCall) { result = _rollCall.result; selected = [...selected, ..._rollCall.cells]; }
+  // r805 (owner): Whiteout. One more card touching the selection that makes a BETTER hand
+  // (or a hand where there was none) is played with it. After Roll Call, like the Ringer not before the bail.
+  if (!_sweeping && typeof whiteoutAugment === 'function') { const _wo = whiteoutAugment(result, selected); if (_wo) { result = _wo.result; selected = [...selected, _wo.cell]; } }
   if (!result) { if (_pestSel.length) selected = [...selected, ..._pestSel]; dbgEvent('warn', 'play: no valid hand', { selected: selected.length, animating, falling, roundEnded, dance: !!danceAbortController, swapPending: !!swapPending, swiping: isSwiping }); console.log('[PLAY] no result, exiting'); return; }
   // Abort any prior in-flight score dance ONLY now that we have a real hand to play.
   // (A spurious double-fire of Play on a now-empty selection must NOT cancel the
@@ -1320,4 +1323,37 @@ function absorbAdjacentInto(cell, scoredSet, anywhere) {
   if (!isTempCard(target)) expectedDeckTotal--;
   // Replace on grid with new drawn card
   gridData[tr][tc] = drawCard() || null;
+}
+
+// ── WHITEOUT (r805, owner; Knack `whiteout`) ─────────────────────────────────
+// The hand the selection makes, or would make with ONE more card touching it. Every
+// ordinary, selectable, unblocked neighbour of the selection is tried (through the
+// real findBestHand, so the kicker rules and the Selection Size hold); the one whose
+// hand scores most beats the selection's own, or makes a hand where there was none.
+// Returns { result, cell } or null. Nothing is spent here: playHand goes on with the
+// larger selection as if it had been picked.
+function whiteoutAugment(result, cells) {
+  if (typeof hasKnack !== 'function' || !hasKnack('whiteout')) return null;
+  if (!cells || cells.length < 1) return null;
+  const cap = (typeof limits !== 'undefined' && limits.selection) ? limits.selection.current : Infinity;
+  const live = cells.filter(([r, c]) => gridData[r]?.[c] && gridData[r][c]._curseCard !== 'pest');
+  if (live.length >= cap) return null;
+  const have = new Set(cells.map(([r, c]) => `${r}-${c}`));
+  const base = result ? result.finalScore : -1;
+  let best = null;
+  const royals = (typeof royalReachCells === 'function') ? royalReachCells() : [];
+  live.forEach(([r, c]) => (typeof reachNeighbors === 'function' ? reachNeighbors(r, c, royals) : getNeighbors(r, c)).forEach(([nr, nc]) => {
+    const k = `${nr}-${nc}`; if (have.has(k)) return; have.add(k);
+    const cd = gridData[nr]?.[nc];
+    if (!cd || cd._isStone || cd._isSleight || cd._curseCard) return;
+    if (typeof isCellBlocked === 'function' && isCellBlocked(nr, nc)) return;
+    if (typeof cardCan === 'function' && !cardCan(cd, 'select')) return;
+    let res = null;
+    try { res = findBestHand([...cells, [nr, nc]]); } catch (e) { res = null; }
+    if (!res || !(res.finalScore > base)) return;
+    if (!best || res.finalScore > best.result.finalScore) best = { result: res, cell: [nr, nc] };
+  }));
+  if (!best) return null;
+  if (typeof knackNotice === 'function') knackNotice('whiteout', `Whiteout: ${cellCard ? ((cellCard(best.cell) || {}).rank || '') : ''}${(gridData[best.cell[0]][best.cell[1]] || {}).suit || ''} played too`);
+  return best;
 }

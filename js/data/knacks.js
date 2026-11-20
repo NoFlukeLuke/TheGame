@@ -127,6 +127,8 @@ const KNACK_POOL = [
   // ── r748: the PROTOCOL Knacks (js/protocols.js). Locked until a run of the protocol is won. ──
   { id:'ambidextrous',  emoji:'🃏',  name:'Ambidextrous',     rarity:'rare',   desc:'Every Sleight is dealt a rank and a suit. Sleights count as cards in a hand and do their thing when played. Sleights are twice as common in rewards', tags:['board','other','sleights'] },
   { id:'attention_to_detail', emoji:'🔍', name:'Attention to Detail', rarity:'rare', startOnly:true, desc:'Tricks that pay for a card\'s rank, suit, buffs or position pay 50% more', tags:['pips','mult','other','rank','suit','position'] },
+  // r805 (owner): Whiteout. The hook is whiteoutAugment (js/play-hand.js), after Roll Call.
+  { id:'whiteout',       emoji:'🧹',  name:'Whiteout',         rarity:'rare',   desc:'When you play a hand, if one more card touching it would make a better hand, that card is played too.', tags:['board','hand','size'] },
   { id:'curio',          emoji:'🏺',  name:'Curio',            rarity:'rare',   desc:'At the start of each round, a card of the last rank you scored joins your deck, in a random suit with a random buff.', tags:['deck','other','start','rank'] },
   { id:'rewards_member', emoji:'🎲',  name:'Rewards Member',   rarity:'rare',   desc:'Events are 3 times as common in rewards.', tags:['other','reward'] },   // r795 (owner): locked until 15 events are filed (js/event-files.js)
   { id:'growth_mindset', emoji:'📈',  name:'Growth Mindset',   rarity:'rare',   desc:'Limit rewards are twice as common', tags:['limit','other','reward'] },

@@ -91,7 +91,8 @@ function renderFloor() {
     : 'Any row, column or diagonal holding a Set of 3 or a Run of 3 buffs those cards.'));
   const deal = evShuffle(floorCards().slice()), n = Math.ceil(deal.length / 3);
   s.floorStrips = [0, 1, 2].map(k => deal.slice(k * n, (k + 1) * n).map(c => ({ key: cardId(c), card: c, html: floorFaceHTML(c) })));
-  s.floorMachine = evSlotMachine(body, { reels: s.floorStrips, payRow: null, itemW: 56, itemH: 44 });
+  s.floorMachine = evSlotMachine(body, { reels: s.floorStrips, payRow: null, itemW: 56, itemH: 44,
+    fillFrom: () => [document.getElementById('btn-records')] });   // r805: the cards fly in from RECORDS on the first pull
   s.floorOut = document.createElement('div'); body.appendChild(s.floorOut);
   floorSync();
 }
@@ -170,7 +171,8 @@ function renderPayline() {
   s.plStrips = [0, 1, 2].map(() => paylineStrip(syms));
   s.plChance = paylineWinChance(ents.length);
   body.appendChild(evNote('Three alike in a row, a column or a diagonal improves that entity.'));
-  s.plMachine = evSlotMachine(body, { reels: s.plStrips, payRow: null, itemW: 54, itemH: 60 });
+  s.plMachine = evSlotMachine(body, { reels: s.plStrips, payRow: null, itemW: 54, itemH: 60,
+    fillFrom: () => ents.map(e => (typeof efiSourceEl === 'function') ? efiSourceEl(e.kind, e.id) : null).filter(Boolean) });   // r805: your entities fly in from their trays on the first pull
   if (typeof fitRewardName === 'function') requestAnimationFrame(() => s.plMachine.el.querySelectorAll('.rwd-name').forEach(fitRewardName));
   s.plOut = document.createElement('div'); body.appendChild(s.plOut);
   paylineSync();

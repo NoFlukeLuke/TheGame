@@ -5542,3 +5542,62 @@ boon, Bargain's two pips trades, Dealer's Choice (`DEALER_BUFFS`) and the payout
 (`BAL.payout_pick`). x buffs, replays, time, credits and Card Upgrade's growing buffs are unchanged.
 TRICK_AUDIT.md lists the Tricks outside their rarity's average and the recommended new numbers for
 the Tricks and Knacks that buff cards (not applied). Golden: 838 cases match.
+
+## r805 - the owner's pass: the Investment, the phone trays, the chips, the fly-in, Whiteout
+- **CONFIRM is never see-through**: `#btn-play.reward-buy:disabled` keeps its grey and drops the
+  r381 opacity (css/grid-pick.css).
+- **Phone trays are two stacked bars, the only layout** (`css/phone-trays.css`; the Settings rows
+  Trick tray on a phone / Phone tray layout, `js/tray-zigzag.js`, its CSS and dev knobs, the r399 tilt
+  and the r408 turn-taking are gone). `fanTrickTray` has one rule in both orientations: a row that
+  fits is a row; one that does not tucks to at most half a tile hidden and then scrolls sideways. A
+  covered Trick still comes forward under the pointer or a thumb (js/tray-lift.js).
+- **The Investment** (`js/investment.js`; event id `altar` frozen; `investment` in SAVE_VARS): two
+  choices. CREDITS: everything you hold until the next quarter opens, then one roll of
+  `INVEST.outcomes` (60% +5% a level, 10% +10%, 10% +20%, all compounding over the levels passed;
+  20% half back). A TRICK: a Trick (switched off through `altarTrickLocked`) and an amount from a
+  slider; every round that starts before the quarter turns has credits x 2% to improve it
+  (`investmentRoundStart`, from startRoundTimer once a level); the credits are spent. Unprinted
+  (owner): all your credits, 10 or more, improve it at least once. `investmentSettle` pays as the
+  quarter turns (`rolloverQuarter`; Flow's `survivalBossBookkeeping`) and `investmentReportMaybe`
+  types the result on a board screen ("> INVESTMENT") after the quarter card, or before Flow's
+  post-review rewards. The r590 timed boosts are no longer offered; their tick and readers stay
+  for saved runs.
+- **The fly-in** (`js/entity-flyin.js`, `css/entity-flyin.css`): a screen that shows something you
+  own flies it in from where it lives (its tray chip, the Sleight on the board; RECORDS for a card)
+  and leaves a dotted outline in its rarity colour (`.efi-gone`) until the screen is gone (a 400ms
+  watch restores it, re-rendered chips included). `entityTileHTML` stamps `data-ent-id`;
+  `efiScan(root)` runs from `evShow` (every event: Spin to Improve, Restructuring, Line Shift, the
+  Editor, Trade a Trick, the Investment's Trick row...), `gridPickRender` (Flow's Improve step),
+  `renderRewardTiles` (improve tiles, tagged there) and `renderShopGrid` (Old Tricks' owned shelf
+  items). `efiCardsIn` flies the deck picker's first 14 cards from RECORDS. Slot reels built with
+  `fillFrom` start BLANK and fill as the first spin runs (`efiBurst`): Card Slots from RECORDS,
+  Entity Slots from the chips. The riffle is `sfxFlipShuffle`, once a batch.
+- **The deck picker** (`evDeckPicker`): cards 46 x 62 (were 36 x 48); a row tucks until 60% of
+  each card shows, then it SCROLLS sideways (finger, mouse drag, wheel; `.edp-wide`). Seven
+  screens show the whole deck through it: Clean Up, Deck Trim, Card Upgrade, State Change, Rewire,
+  the Plinko edit and the challenge card pick (Card Slots and the Forge show a subset).
+- **Small fixes**: Starting Time's text loses "(rewinds can carry you above it)"; the slot cabinet
+  zooms to 88% of its room (`SLOT.fitShare`); the Focus readout is the number alone, 13px, brighter
+  and outlined in black (css/skin-machine.css); the +15s Round tile is +10s in Flow; Records opens
+  from the pause menu (a button) and over an event (`recordsClockHeld`: it takes the clock only when
+  nothing else holds it; z 440); the event bar's pause and records chips are hidden in console mode,
+  where the real keys are in reach.
+- **DISCARD double tap counts once**: a press within 500ms of a discard that ran is dropped
+  (`_lastDiscardRun`, js/tricks-ui.js); it used to arm the next drag and take the next hand too.
+- **Line Quotas**: a 3-line round asks 20 / 30 / 40% of the goal, smallest first (`QUOTA_LINE_SHARE`);
+  the Relay's three bars are the same shares and `QUOTA_RELAY_CARRY` is 0 (nothing rolls over). The HUD
+  meters are equal, faint until filled, each printing its goal short (`qShort`: 37.5k) in its colour;
+  the Relay's bar sections print theirs; the grid bands carry no number pills now. In console mode the
+  goal text hides under the meters.
+- **Records**: the limit circles are gone; Still drawable is two columns of rank and count, Ace
+  high (`recRanksShown`, also the deck map, the card view and the deck picker); the hand family and
+  Focus strips are wide notched meters (`.rh-prog`).
+- **Score chips** (`PARTICLE_CFG`): black plate, the chip's colour as outline and ink, VT323, size
+  30 opening at .35; a chip appears near the middle of its source at a spot clear of the chips out
+  (`ptSpawnSpot`, at most half covered unless more than 6 are out) and lands at least 150ms apart
+  from every other landing (`ptStagger`, pushing a start back up to 220ms); `TALLY_CFG.hold` 600.
+- **Live lines** for Wellspring, Expense Account, Firesale, 401, To the Clouds, Heartwood, First
+  Fruits; Overtime's counts the cards scored from its line.
+- **Whiteout** (rare Knack `whiteout`): when a hand is played, one more card touching the selection
+  that makes a better hand (or a hand where there was none) is played with it (`whiteoutAugment`,
+  js/play-hand.js, after Roll Call; the Selection Size holds).

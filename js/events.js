@@ -780,71 +780,13 @@ function confirmMerchant() {
 }
 
 // ══════════════════════════════════════════════
-// EVENT: ALTAR
+// EVENT: ALTAR  (The Investment)
 // ══════════════════════════════════════════════
-// r590 (owner): bigger stakes and more of them; credits-for-time is gone (time
-// is credits in many modes). Three of these are offered, each a cost now or over
-// the next rounds for a gain over the next rounds. Numbers scale with the
-// quarter (Q) where the owner asked: +8 mult x Q.
-// Effects live in altarEffects ({ type, value, roundsLeft }), ticked at each
-// round start (tickAltarEffects, js/level-up.js). READ BY: getAltarMultBoost /
-// altarPipBoost (calcScore's starting mult and pips, and the ledger base),
-// tickAltarEffects (goal, swaps, clock), altarTrickLocked (isTrickDisabledByBoss,
-// the sells), altarFocusMult (focusRateMods).
-// (Before r590 nothing read the mult boost or the half goal: both did nothing.)
+// r805 (owner): the event is js/investment.js (renderAltar / confirmAltar there):
+// credits held until the next quarter, or a Trick and credits with a chance to
+// improve it each round. The r590 timed boosts (altarEffects) are no longer
+// offered; the tick and its readers below stay so a saved run finishes them.
 function altarQ() { return (typeof qrlQuarter === 'function') ? qrlQuarter() : 1; }
-function altarOfferings() {
-  const Q = altarQ();
-  return [
-    { id: 'discards', icon: '🕯️', rarity: 'rare', name: `+${8 * Q} mult for 3 rounds`,
-      desc: `Every hand scores +${8 * Q} mult for the next 3 rounds.`, cost: 'Costs 5 discards next round',
-      canTake: () => true,
-      apply: () => { nextRoundDiscardDelta -= 5; altarEffects.push({ type: 'mult_boost', value: 8 * Q, roundsLeft: 3 }); } },
-    { id: 'tricks', icon: '🌑', rarity: 'legendary', name: 'Half goals for 4 rounds',
-      desc: 'The next 4 rounds need half the score.', cost: '2 random Tricks are switched off and their slots locked for those 4 rounds',
-      canTake: () => (trickTray || []).length >= 2,
-      apply: () => {
-        const ids = evShuffle(trickTray.map(t => t.id)).slice(0, 2);
-        altarEffects.push({ type: 'goal_reduce', value: 0.5, roundsLeft: 4 }, { type: 'trick_lock', ids, roundsLeft: 4 });
-        renderTrickTray?.();
-        const names = ids.map(id => (trickTray.find(t => t.id === id) || {}).name).join(' and ');
-        showMessage(`${names} locked for 4 rounds`, 'var(--red)');
-      } },
-    { id: 'swaps', icon: '🧱', rarity: 'rare', name: `+${18 * Q} pips for 3 rounds`,
-      desc: `Every hand scores +${18 * Q} pips for the next 3 rounds.`, cost: 'No swaps for the next 2 rounds',
-      canTake: () => true,
-      apply: () => { altarEffects.push({ type: 'swap_tax', roundsLeft: 2 }, { type: 'pip_boost', value: 18 * Q, roundsLeft: 3 }); } },
-    { id: 'time', icon: '⏳', rarity: 'epic', name: 'Double Focus for 3 rounds',
-      desc: 'Hands make twice the Focus for the next 3 rounds.', cost: 'The next 3 rounds start 30 seconds shorter',
-      canTake: () => !(typeof modeHasNoRoundClock === 'function' && modeHasNoRoundClock()),
-      apply: () => { altarEffects.push({ type: 'time_tax', value: 30, roundsLeft: 3 }, { type: 'focus_fast', value: 2, roundsLeft: 3 }); } },
-    { id: 'payout', icon: '🧾', rarity: 'rare', name: `+${5 * Q} mult for 4 rounds`,
-      desc: `Every hand scores +${5 * Q} mult for the next 4 rounds.`, cost: 'Your next payout pays nothing',
-      canTake: () => !skipNextPayout,
-      apply: () => { skipNextPayout = true; altarEffects.push({ type: 'mult_boost', value: 5 * Q, roundsLeft: 4 }); } },
-  ];
-}
-function renderAltar() {
-  const offerings = evShuffle(altarOfferings().filter(o => o.canTake())).slice(0, 3);
-  eventState.altarPick = null;
-  const body = document.getElementById('event-body');
-  offerings.forEach(off => {
-    const el = makeChoiceEl({ icon: off.icon, rarity: off.rarity, name: off.name, desc: off.desc, cost: off.cost,
-      onClick: () => {
-        body.querySelectorAll('.event-choice').forEach(e => e.classList.remove('selected'));
-        el.classList.add('selected');
-        eventState.altarPick = off;
-        setEventConfirm(true);
-      } });
-    body.appendChild(el);
-  });
-}
-
-function confirmAltar() {
-  const off = eventState.altarPick;
-  if (off) { off.apply(); noteMessage(off.name, 'var(--gold)'); render?.(); }
-  closeEvent();
-}
 
 // ── Altar tick: called at each round start, after the round's goal and stock are set ──
 // An effect applies to `roundsLeft` rounds counted from the first round start it sees.
@@ -871,6 +813,7 @@ function altarFocusMult() {
   return (altarEffects || []).filter(e => e.started && e.type === 'focus_fast').reduce((s, e) => s * e.value, 1);
 }
 function altarTrickLocked(id) {
+  if (typeof investmentTrickLocked === 'function' && investmentTrickLocked(id)) return true;   // r805: an invested Trick is off
   return (altarEffects || []).some(e => e.type === 'trick_lock' && e.ids && e.ids.includes(id));
 }
 function getAltarGoalMultiplier() {

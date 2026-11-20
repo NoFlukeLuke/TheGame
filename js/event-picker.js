@@ -19,6 +19,7 @@
 //   opts.locked() -> true while the picker should ignore taps
 
 const EDP_ROWS_SHOWN = 4;
+const EDP_MIN_SHOW = 0.6;   // r805: at least this much of every card shows; past that the row scrolls
 
 function evDeckPicker(parent, opts) {
   const o = opts || {};
@@ -27,7 +28,8 @@ function evDeckPicker(parent, opts) {
   const picks = [];
   const shown = (typeof deckSuitsShown === 'function') ? deckSuitsShown(cards)
     : (typeof ACTIVE_SUITS !== 'undefined' && ACTIVE_SUITS.length ? ACTIVE_SUITS : SUITS);
-  const rankIdx = rk => { const i = (typeof ACTIVE_RANKS !== 'undefined' ? ACTIVE_RANKS : []).indexOf(rk); return i < 0 ? 99 : i; };
+  // r805 (owner): Ace high, as Records lists them.
+  const rankIdx = rk => { const r = (typeof recRanksShown === 'function') ? recRanksShown() : (typeof ACTIVE_RANKS !== 'undefined' ? ACTIVE_RANKS : []); const i = r.indexOf(rk); return i < 0 ? 99 : i; };
   const rows = [];
   shown.forEach(st => rows.push({ label: st, cls: suitClass(st), list: cards.filter(c => !isWildCard(c) && c.suit === st) }));
   rows.push({ label: '✶', cls: 'rec-wild', list: cards.filter(c => isWildCard(c)) });
@@ -82,12 +84,39 @@ function evDeckPicker(parent, opts) {
   });
 
   // Tuck each row so it fits its width (Records' rule).
+  // r805 (owner): a row tucks until EDP_MIN_SHOW of each card still shows, then it
+  // SCROLLS sideways instead (a finger drags it, a mouse drags or wheels it), so a
+  // card in the middle of a crowded row can still be reached.
   const tuck = () => host.querySelectorAll('.edp-fan').forEach(fan => {
     const n = fan.children.length; if (!n) return;
     const w = fan.children[0].offsetWidth, avail = fan.clientWidth;
-    const gap = n > 1 ? Math.min(4, (avail - w) / (n - 1) - w) : 4;
+    const fit = n > 1 ? (avail - w) / (n - 1) - w : 4;
+    const gap = Math.max(-w * (1 - EDP_MIN_SHOW), Math.min(4, fit));
     fan.style.setProperty('--rc-gap', Math.floor(gap) + 'px');
+    fan.classList.toggle('edp-wide', fit < gap - .5);
   });
+  // A mouse drags a row sideways (touch scrolls it on its own).
+  host.addEventListener('pointerdown', e => {
+    if (e.pointerType !== 'mouse') return;
+    const fan = e.target.closest('.edp-fan'); if (!fan || !fan.classList.contains('edp-wide')) return;
+    const drag = { x: e.clientX, left: fan.scrollLeft, moved: false };
+    const move = ev => {
+      const z = fan.getBoundingClientRect().width / (fan.offsetWidth || 1) || 1;
+      const dx = (ev.clientX - drag.x) / z;
+      if (Math.abs(dx) > 4) drag.moved = true;
+      if (drag.moved) fan.scrollLeft = drag.left - dx;
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up);
+      if (drag.moved) fan.addEventListener('click', ev => ev.stopPropagation(), { capture: true, once: true });
+    };
+    window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
+  });
+  host.addEventListener('wheel', e => {
+    const fan = e.target.closest('.edp-fan'); if (!fan || !fan.classList.contains('edp-wide')) return;
+    if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;   // a sideways wheel scrolls it already
+    fan.scrollLeft += e.deltaY; e.preventDefault();
+  }, { passive: false });
 
   // Scrolling: the wheel and touch come from overflow; the arrows step one row
   // and repeat while held.
@@ -136,6 +165,8 @@ function evDeckPicker(parent, opts) {
   requestAnimationFrame(fit);
   if (typeof ResizeObserver === 'function') new ResizeObserver(() => tuck()).observe(view);
   sync();
+  // r805 (owner): the cards fly in from RECORDS (js/entity-flyin.js).
+  if (typeof efiCardsIn === 'function') requestAnimationFrame(() => efiCardsIn([...view.querySelectorAll('.edp-slot')]));
   return { picks, sync, el: host };
 }
 

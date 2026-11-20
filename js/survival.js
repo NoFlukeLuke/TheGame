@@ -933,6 +933,7 @@ function survivalTriggerBoss() {
 function survivalBossBookkeeping() {
   if (typeof flowEndBoss === 'function') flowEndBoss(); // Flow: refill the session clock on the next deal
   survivalBossesBeaten++;
+  if (typeof investmentSettle === 'function') investmentSettle();   // r805: a review beaten is Flow's quarter turning
   if (typeof limitlessOnBoss === 'function') limitlessOnBoss();   // r749: Limitless's back half starts at the 2nd boss
   if (typeof asmLineRollover === 'function') asmLineRollover();   // r646: Assembly Line counts the last QUARTER in Flow
   survivalSecondsToBoss = SURVIVAL_BOSS_EVERY_SECONDS; // restart the 5-minute cadence
@@ -951,7 +952,8 @@ function survivalPostBossReward() {
   // hands out several things off one connected path instead of one. The
   // 'survival' context in closeRewardGrid runs survivalChoose's own tail.
   showMessage(`BOSS ${survivalBossesBeaten}/${SURVIVAL_BOSS_COUNT} DEFEATED`, 'var(--gold)');
-  setTimeout(() => { rewardGridContext = 'survival'; openPrizeGrid(); }, 320);
+  const _prize = () => setTimeout(() => { rewardGridContext = 'survival'; openPrizeGrid(); }, 320);
+  if (typeof investmentReportMaybe === 'function') investmentReportMaybe(_prize); else _prize();   // r805
 }
 
 // ══════════════════════════════════════════════

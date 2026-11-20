@@ -10,7 +10,7 @@
 
 #records-overlay {
   display: none;
-  position: fixed; inset: 0; z-index: 400;
+  position: fixed; inset: 0; z-index: 440;   /* r805: above the pause menu (420), so Records opens from it */
   align-items: center; justify-content: center;
   padding: 3vh 2vw;
   background: rgba(3, 5, 2, 0.86);
@@ -131,12 +131,13 @@
 .rec-deck-cell .rec-dup { position: absolute; right: 1px; bottom: -1px; font-size: 11px; font-style: normal; color: var(--r-gold); }
 
 /* bars (remaining by rank, limit progress): pixel squares, not a smooth fill */
-.rec-bars { display: flex; flex-direction: column; gap: 3px; }
-.rec-bar { display: flex; align-items: center; gap: 6px; }
-.rec-bar-l { width: 22px; font-size: 16px; color: var(--am-dim); }
-.rec-bar-track { flex: 1; height: 8px; border: 1px solid var(--am-dim); overflow: hidden; }
-.rec-bar-fill { display: block; height: 100%; background: repeating-linear-gradient(90deg, var(--am) 0 6px, transparent 6px 8px); box-shadow: 0 0 6px rgba(255,176,46,.5); }
-.rec-bar-v { width: 18px; text-align: right; font-size: 16px; color: var(--am-hi); }
+/* r805 (owner): still drawable, two columns of rank and count; no bars. */
+.rec-drawable { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 14px; }
+.rec-dcol { display: flex; flex-direction: column; gap: 2px; }
+.rec-dr { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 1px 4px; border-bottom: 1px dotted var(--am-dim); }
+.rec-dr span { font-size: 17px; color: var(--am); }
+.rec-dr b { font-weight: normal; font-size: 19px; color: var(--am-hi); }
+.rec-dr.none span, .rec-dr.none b { color: var(--am-dim); }
 
 /* sleight rows (deck map) */
 .rec-sl-list { display: flex; flex-direction: column; gap: 4px; }
@@ -200,10 +201,7 @@
 .rec-lim-v { font-size: 19px; color: var(--r-gold); white-space: nowrap; }
 .rec-lim-v b { color: var(--r-mint); font-weight: normal; font-size: 15px; }
 .rec-lim-max { color: var(--am-dim); }
-.rec-dots { display: flex; flex-wrap: wrap; gap: 3px; margin: 2px 0 1px; }
-.rec-dots i { width: 9px; height: 9px; border-radius: 50%; border: 1px solid var(--am-dim); box-sizing: border-box; }
-.rec-dots i.on { background: var(--am); border-color: var(--am); box-shadow: 0 0 5px rgba(255,176,46,.55); }
-.rec-lim.maxed .rec-dots i.on { background: var(--r-mint); border-color: var(--r-mint); box-shadow: 0 0 5px rgba(148,236,176,.5); }
+/* r805: the limit circles are gone (the figure and its max say it). */
 .rec-lim-desc { font-size: 16px; line-height: 1.15; color: var(--am); margin-top: 4px; }
 
 /* ── generic rows (performance tab) ── */
@@ -249,9 +247,11 @@
 .rh-next-row { display: flex; align-items: center; justify-content: space-between; gap: 6px; color: var(--am-dim); white-space: nowrap; }
 .rh-next-row b { font-weight: normal; color: var(--am-hi); }
 .rh-next-row:first-child b { font-size: 22px; line-height: 1; }
-.rh-prog { display: inline-flex; gap: 1px; }
-.rh-prog i { width: 5px; height: 8px; border: 1px solid var(--am-dim); }
-.rh-prog i.on { background: var(--am); border-color: var(--am); box-shadow: 0 0 4px rgba(255,176,46,.6); }
+/* r805 (owner): a meter like a horizontal Focus bar: wide, tall, big notches, filled --f of 1. */
+.rh-prog { position: relative; display: inline-block; width: 96px; height: 12px; border: 1px solid var(--am-dim); background: #0c0a06; overflow: hidden; vertical-align: middle; }
+.rh-prog i { position: absolute; left: 0; top: 0; bottom: 0; width: calc(var(--f, 0) * 100%); background: var(--am); box-shadow: 0 0 6px rgba(255,176,46,.6); }
+.rh-prog::after { content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: repeating-linear-gradient(90deg, transparent 0 calc(100% / var(--n, 15) - 2px), #0c0a06 calc(100% / var(--n, 15) - 2px) calc(100% / var(--n, 15))); }
 
 /* ── HANDS: FOCUS view - every hand type as a small hand, with its Focus ── */
 .rh-focus { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 10px; align-items: start; --card-w: 26px; --card-h: 35px; }
@@ -264,8 +264,8 @@
 .rh-fname small { display: block; font-size: 14px; color: var(--am-dim); margin-top: 1px; }
 .rh-fval { display: flex; align-items: center; gap: 6px; color: var(--r-violet); text-shadow: 0 0 6px rgba(214,168,255,.45); }
 .rh-fval b { font-weight: normal; font-size: 24px; min-width: 2ch; text-align: right; }
-.rh-fbar { display: inline-flex; gap: 1px; }
-.rh-fbar i { width: 5px; height: 10px; background: var(--r-violet); box-shadow: 0 0 4px rgba(214,168,255,.6); }
+.rh-prog.rh-fbar { width: 72px; border-color: #5a4a7a; }
+.rh-prog.rh-fbar i { background: var(--r-violet); box-shadow: 0 0 4px rgba(214,168,255,.6); }
 .rh-frow.off .rh-mhand, .rh-frow.off .rh-fval { opacity: .35; }
 
 /* ── the pre-r721 rate table (dev scoring models only) ── */

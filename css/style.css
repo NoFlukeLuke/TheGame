@@ -985,19 +985,7 @@
     gap: 0; width: 100%;
   }
   #stage:not(.landscape) #trick-tray-list .chip-marquee { gap: 0; }
-  /* r399: the tilt. fanTrickTray publishes --tilt per chip; it rides the
-     STANDALONE rotate property so it composes with every transform other
-     systems write (dance pop, mirror, selection) instead of replacing them. */
-  /* r429: each chip is its OWN perspective box and the tile inside it turns.
-     One shared vanishing point at the row's left (r399) squeezed tiles harder
-     the further right they sat, which is why the newest had to stay flat. */
-  #stage:not(.landscape) #trick-tray-list .trick-tray-chip { perspective: 260px; perspective-origin: 0 50%; }
-  #stage:not(.landscape) #trick-tray-list .trick-tray-chip > .reward-cell { rotate: y var(--tilt, 0deg); transform-origin: 0 50%; transition: rotate .32s ease; }
-  /* r408: the tile whose turn it is (or the one under a finger) turns flat and
-     comes forward. The list takes horizontal finger moves for the scrub. */
-  #stage:not(.landscape) #trick-tray-list .trick-tray-chip { transition: scale .32s ease, translate .32s ease; }
-  #stage:not(.landscape) #trick-tray-list .trick-tray-chip.tilt-focus { scale: 1.06; z-index: 50 !important; }
-  #stage:not(.landscape) #trick-tray-list .trick-tray-chip.tilt-focus > .reward-cell { rotate: y 0deg; }
+  /* r805: the r399 tilt and r408 turn-taking are gone; a tucked row scrolls (css/phone-trays.css). */
   #stage:not(.landscape) #trick-tray-list.fanned { touch-action: pan-y; }
   /* Each tile after the first pulls left by however much the row is short. The
      later tile sits ON TOP, so the fan reads left-to-right like a held hand. */
@@ -1071,17 +1059,7 @@
   }
   #stage:not(.landscape) #knack-list { gap: 7px; max-height: 72px; margin-bottom: 8px; }
   #stage:not(.landscape) .knack-chip { width: 42px; height: 42px; font-size: 23px; }
-  /* r717 (owner): side by side on a phone, the Knacks ZIGZAG (alternate up and down,
-     interlocking), so about twice as many show before the row has to scroll. The
-     row is set by the chip's own class (kc-hi / kc-lo, js/hud.js), so the marquee's
-     copies keep it. */
-  body:not(.pt-stacked) #stage:not(.landscape) #knack-list { max-height: none; overflow: visible; margin-bottom: 4px; }
-  body:not(.pt-stacked) #stage:not(.landscape) #knack-list .chip-marquee { gap: 0; height: 80px; padding-right: 18px; }
-  body:not(.pt-stacked) #stage:not(.landscape) #knack-list .knack-chip { margin-right: -18px; }
-  /* An odd count puts two top-row chips side by side where the marquee loops. */
-  body:not(.pt-stacked) #stage:not(.landscape) #knack-list .knack-chip.kc-end { margin-right: 6px; }
-  body:not(.pt-stacked) #stage:not(.landscape) #knack-list .knack-chip.kc-hi { translate: 0 -18px; }
-  body:not(.pt-stacked) #stage:not(.landscape) #knack-list .knack-chip.kc-lo { translate: 0 18px; }
+  /* r805: the r717 side-by-side Knack zigzag went with the side-by-side layout. */
 
   /* The swap button. Deliberately small and quiet - it is a view toggle, not an
      action, so it must not read as a third button next to PLAY / DISCARD. */

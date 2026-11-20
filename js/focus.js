@@ -219,7 +219,7 @@ function updateFocusMultReadout(pulse = false) {
   if (fvEl && !danceAbortController) fvEl.textContent = (mult === 1) ? '×1' : '×' + mult.toFixed(1);
   const el = document.getElementById('focus-mult-readout');
   if (!el) return;
-  el.textContent = '×' + mult.toFixed(1);
+  el.textContent = mult.toFixed(1);   // r805 (owner): the number alone, no x
   const active = focusNodes > FOCUS_THRESHOLD;
   el.classList.toggle('active', active);
   el.classList.toggle('dim', !active);

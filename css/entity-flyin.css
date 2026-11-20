@@ -1,0 +1,19 @@
+/* ── THE FLY-IN (r805, js/entity-flyin.js) ─────────────────────────────────── */
+/* The place an owned entity left: a dotted outline in its rarity colour, nothing inside. */
+.efi-gone { position: relative; }
+.trick-tray-chip.efi-gone .reward-cell, .reward-cell.efi-gone {
+  background: transparent !important; box-shadow: none !important;
+  outline: 2px dotted var(--rc, #9a8d70); outline-offset: -2px; border-color: transparent !important;
+}
+.trick-tray-chip.efi-gone .reward-cell > *, .reward-cell.efi-gone > *,
+.trick-tray-chip.efi-gone .reward-cell::before, .trick-tray-chip.efi-gone .reward-cell::after,
+.reward-cell.efi-gone::before, .reward-cell.efi-gone::after { opacity: 0 !important; }
+.knack-chip.efi-gone .rwd-diamond { background: transparent !important; box-shadow: none !important; outline: 2px dotted var(--rc, #9a8d70); outline-offset: -1px; border-color: transparent !important; }
+.knack-chip.efi-gone .rwd-diamond > * { opacity: 0 !important; }
+#grid .card.efi-gone { opacity: .22; outline: 2px dotted var(--c-cyan, #4fd1d9); outline-offset: -2px; }
+/* The tile a copy is flying to is hidden until it lands. */
+.efi-wait { visibility: hidden !important; }
+/* The copy in flight keeps its own look; the tray's lifted / dimmed states do not apply. */
+.efi-copy { transition: none !important; }
+/* Slot reels start BLANK and fill as they turn (js/event-slot-machine.js, fillFrom). */
+.evt-slot-window.evt-blank .evt-sym > :not(.evt-sh) { visibility: hidden; }

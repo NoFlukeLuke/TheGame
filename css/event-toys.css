@@ -181,13 +181,17 @@
   background: var(--c-yellow, #f0c040); color: #1a1408; font-size: 8px; line-height: 13px; border: 0; }
 .edp-card.blocked { opacity: .3; filter: grayscale(1); cursor: var(--cur-no, not-allowed); }
 /* r764: Records' card rows (css/records.css .rec-card-*): real faces, a row a suit, tucked to fit */
-.edp-rec { max-width: 480px; --card-w: 36px; --card-h: 48px; }
+.edp-rec { max-width: 520px; --card-w: 46px; --card-h: 62px; }   /* r805 (owner): bigger cards (were 36 x 48) */
 .edp-rec .edp-view { padding: 10px 2px 2px; scroll-snap-type: y proximity; }
 .edp-crow { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 2px 0 4px; scroll-snap-align: start; }
 .edp-suit { flex: 0 0 26px; display: flex; flex-direction: column; align-items: center; font-size: 20px; line-height: 1; color: #e9e2cc; }
 .edp-suit.suit-hearts, .edp-suit.suit-diamonds { color: #ff6a5c; }
 .edp-suit b { font-weight: normal; font-size: 12px; opacity: .7; margin-top: 3px; }
 .edp-fan { flex: 1; min-width: 0; display: flex; padding: 6px 0 2px; }
+/* r805: a row that would hide more than 40% of a card scrolls sideways instead (js/event-picker.js). */
+.edp-fan.edp-wide { overflow-x: auto; overflow-y: visible; scrollbar-width: none; overscroll-behavior-x: contain; touch-action: pan-x pan-y; padding-right: 8px; cursor: var(--cur-default, default); }
+.edp-fan.edp-wide::-webkit-scrollbar { display: none; }
+.edp-fan.edp-wide .edp-slot { flex: 0 0 var(--card-w); }
 .edp-slot { position: relative; flex: 0 0 var(--card-w); height: var(--card-h); cursor: var(--cur-pointer, pointer); transition: transform .12s ease; text-shadow: none; }
 .edp-slot + .edp-slot { margin-left: var(--rc-gap, 4px); }
 .edp-slot .card { position: relative !important; top: 0; left: 0; cursor: var(--cur-pointer, pointer); transition: none; }
@@ -354,3 +358,14 @@
 .evt-sym .sl-draw .sl-ent .reward-cell { width: 40px; height: 52px; }
 .evt-sym .sl-draw-name { font-family: 'Share Tech Mono', monospace; font-weight: normal; font-size: 14px; letter-spacing: .5px; color: #1a1622;
   text-align: left; line-height: 1.1; overflow: hidden; }
+
+/* ── The Investment (r805, js/investment.js) ─────────────────────────────────
+   Two options; the Trick option opens a row of your Tricks and an amount slider. */
+.event-choice.inv-opt.inv-off { opacity: .45; }
+.inv-trick-panel { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+.inv-amount { display: flex; align-items: center; gap: 8px; }
+.inv-range { flex: 1 1 auto; min-width: 0; accent-color: var(--c-yellow, #ffce2b); height: 22px; }
+.inv-amt-read { font-family: 'Share Tech Mono', monospace; font-size: 13px; color: var(--cream, #f0e6c8); white-space: nowrap; }
+.inv-amount .ev-btn { padding: 2px 10px; }
+#event-overlay.ev-console .inv-range { accent-color: var(--am-hi, #ffd36a); }
+#event-overlay.ev-console .inv-amt-read { font-family: inherit; font-size: 15px; color: var(--am, #ffb02e); }

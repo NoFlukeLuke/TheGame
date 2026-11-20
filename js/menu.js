@@ -1,4 +1,4 @@
-const BUILD = "2026-11-18 · r804 · base card buff +25; Trick audit";
+const BUILD = "2026-11-20 · r805 · the owner's pass: Investment, trays, chips, fly-in, Whiteout";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

@@ -1273,11 +1273,14 @@ function endBoss(success, opts) {
       // tally for the counter exactly as on a goal clear; an aborted dance
       // arrives without it and gets the chain after the same beat the old path
       // took. The run-complete 5th boss keeps the old path.
+      // r805: an investment's report shows before the chain (investmentReportMaybe runs `done` at once with none).
+      const _chain = () => { if (typeof flowrStartBossChain === 'function') flowrStartBossChain(_beaten); };
+      const _report = (fn) => (typeof investmentReportMaybe === 'function') ? investmentReportMaybe(fn) : fn();
       if (opts?.flowChain) {
         survivalBossBookkeeping();
-        if (typeof flowrStartBossChain === 'function') flowrStartBossChain(_beaten);
+        _report(_chain);
       } else if (typeof flowrBossChainEligible === 'function' && flowrBossChainEligible()) {
-        setTimeout(() => { survivalBossBookkeeping(); flowrStartBossChain(_beaten); }, 1100);
+        setTimeout(() => { survivalBossBookkeeping(); _report(_chain); }, 1100);
       } else {
         setTimeout(() => survivalPostBossReward(), 1100);
       }

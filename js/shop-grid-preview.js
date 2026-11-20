@@ -916,6 +916,7 @@ function renderShopGrid(animateIn = false) {
           shopSwapPending ? 'shop-drop-target' : '',
         ].filter(Boolean).join(' ');
         const chip = p._sold ? '✓' : `${creditsTxt((shopGridMode === 'sell') ? p.price : shopEffPrice(p))}`;
+        if (p.owned && p.id && p.entity) div.dataset.entId = p.id;   // r805: a 'you own this' shelf item flies in (js/entity-flyin.js)
         div.innerHTML = buildShopTileInner(p) + `<div class="shop-price-chip ${p._sold ? 'sold' : (coins < ((shopGridMode === 'sell') ? p.price : shopEffPrice(p)) ? 'cant-afford' : '')}">${chip}</div>`;
         if (!p._sold) div.onclick = () => {
           if (div._lpJustFired) { div._lpJustFired = false; return; }   // that tap was a long-press read
@@ -933,6 +934,7 @@ function renderShopGrid(animateIn = false) {
   renderShopCostReadout();
   updateShopGridButtons();
   syncShopActionChips();
+  if (typeof efiScan === 'function') requestAnimationFrame(() => efiScan(gridEl));   // r805
 }
 
 // ── Span-aware selection helpers ──

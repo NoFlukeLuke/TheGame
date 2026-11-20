@@ -339,10 +339,11 @@ body.gp-active #grid:has(.gp-sel) { z-index: 9; }
 #grid .gp-act.gp-skip:hover { border-color: #d9cba4; }
 #grid .gp-act.gp-skip:hover .gp-act-label { color: var(--cream, #f0e6c8); }
 
-/* r381: PLAY-as-CONFIRM greys out until an option is picked. */
+/* r381: PLAY-as-CONFIRM greys out until an option is picked. r805 (owner): it
+   stays OPAQUE; at .6 the housing showed through the key. The grey says it. */
 #btn-play.reward-buy:disabled {
   filter: grayscale(1) brightness(.55) !important;
-  opacity: .6 !important; cursor: var(--cur-default, default);
+  opacity: 1 !important; cursor: var(--cur-default, default);
 }
 /* ── Reward transition (r380, js/reward-transition.js) ──
    The beat before a board leaves: the taken tile holds and glows, the rest

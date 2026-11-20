@@ -102,7 +102,7 @@ function dncSetPaused(on) {
 //   order  'ltr' the card first, then Tricks left to right across the tray;
 //          'rtl' right to left; 'emit' the order the score is worked out in
 // Dev -> HUD & Display -> Score tally pacing. Store lethe.tallyPace.v1, overrides only.
-const TALLY_DEFAULT = { accelStep: 1, accelMax: 2, focusMax: 1.5, hold: 300, gap: 140, order: 'ltr' };
+const TALLY_DEFAULT = { accelStep: 1, accelMax: 2, focusMax: 1.5, hold: 600, gap: 140, order: 'ltr' };
 const TALLY_CFG = Object.assign({}, TALLY_DEFAULT);
 (function () { try {
   const o = JSON.parse(localStorage.getItem('lethe.tallyPace.v1') || 'null'); if (!o) return;
