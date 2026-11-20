@@ -150,10 +150,11 @@
     100% { box-shadow: 0 0 0 0 rgba(201,168,76,0); transform: scale(1); }
   }
   .round-end-flash { animation: round-end-pulse 1.4s ease-out; }
+  /* r806 (owner): a changed number FLASHES; it never moves or grows. */
   @keyframes val-tick {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.18); }
-    100% { transform: scale(1); }
+    0% { filter: brightness(1); }
+    40% { filter: brightness(1.7); }
+    100% { filter: brightness(1); }
   }
   @keyframes box-pop {
     0%   { transform: scale(1); }
@@ -752,9 +753,10 @@
   }
   .pmf-ghost .pmf-merged-val { color: #f5c042; font-size: 25px; }
   /* The hold look (console mode): only the VALUES move, and only a little. */
+  /* r806 (owner): the fuse's jitter is a flicker now; the numbers stay put. */
   @keyframes pmfJitVal {
-    0%,100% { transform: translate(0,0); } 20% { transform: translate(-1.5px,1px); } 40% { transform: translate(1.5px,-1px); }
-    60% { transform: translate(-1px,-1px); } 80% { transform: translate(1px,1px); }
+    0%,100% { filter: brightness(1); } 20% { filter: brightness(1.6); } 40% { filter: brightness(.8); }
+    60% { filter: brightness(1.5); } 80% { filter: brightness(.9); }
   }
   .subbox-val.pmf-jit-val { animation: pmfJitVal 0.22s ease-in-out 3; display: inline-block; }
   .subbox-val.pmf-hold-score, #score-subboxes .subbox-val.pmf-hold-score { color: #f5c042 !important; text-shadow: 0 0 10px rgba(245,192,66,0.6); }
@@ -2459,7 +2461,7 @@
   #score-progress-bar-wrap { width: 80%; height: 4px; background: #2a2010; border-radius: 3px; overflow: hidden; }
   #score-progress-bar { height: 100%; background: linear-gradient(90deg, var(--gold-dim), var(--gold)); border-radius: 3px; transition: width 0.4s ease; }
 
-  @keyframes digitScroll { 0% { transform: translateY(6px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+  @keyframes digitScroll { 0% { opacity: .35; } 100% { opacity: 1; } }   /* r806: a fade; the digit no longer slides up */
   .digit-pop { animation: digitScroll 0.12s ease-out forwards; }
   @keyframes subboxPop { 0% { transform: scale(1); } 40% { transform: scale(1.18); } 100% { transform: scale(1); } }
   .subbox-pop { animation: subboxPop 0.15s ease-out forwards; }

@@ -292,9 +292,10 @@ function recordsRenderDeck() {
   const sleightHTML = sleightCards.length ? sleightCards.map(([card, w]) => {
     const def = SLEIGHT_POOL.find(j => j.id === card.sleightId) || {};
     const uses = card._usesLeft === 'infinite' ? '∞' : card._usesLeft;
+    const cap = (typeof sleightCapOf === 'function') ? sleightCapOf(card) : null;
     return `<div class="rec-sl"><span class="rec-sl-ico">${def.emoji || '🎴'}</span>
       <span class="rec-sl-name">${def.name || card.sleightId}</span>
-      <span class="rec-sl-where w-${w}">${w}</span><span class="rec-sl-uses">${uses}</span></div>`;
+      <span class="rec-sl-where w-${w}">${w}</span><span class="rec-sl-uses">${uses === '∞' ? '∞' : `${uses} / ${cap != null ? cap : uses}`}</span></div>`;
   }).join('') : `<div class="rec-empty">No ${entityLabel('sleight', true)} in the deck.</div>`;
 
   return `
@@ -322,7 +323,7 @@ function recordsRenderDeck() {
         <div class="rec-drawable">${rankBars}</div>
       </div>
     </div>
-    <div class="rec-h">${entityLabel('sleight', true)} in deck</div>
+    <div class="rec-h">${entityLabel('sleight', true)} in deck <span class="rec-h-note">charges, left / of</span></div>
     <div class="rec-sl-list">${sleightHTML}</div>`;
 }
 
@@ -363,8 +364,10 @@ function recordsOwnedLists() {
     const def = SLEIGHT_POOL.find(j => j.id === card.sleightId);
     if (!def) return;
     const uses = card._usesLeft === 'infinite' ? '∞' : card._usesLeft;
+    // r806 (owner): CHARGES x / y, the cap read off the card (sleightCapOf).
+    const cap = (typeof sleightCapOf === 'function') ? sleightCapOf(card) : null;
     sleights.push({ kind: 'sleight', id: def.id, emoji: def.emoji || '🎴', name: def.name, rar: _tid(def.rarity),
-      tag: `${tierLabel('sleight', def.rarity).toUpperCase()} · ${uses} LEFT`, desc: def.desc, off: false });
+      tag: tierLabel('sleight', def.rarity).toUpperCase(), charges: uses === '∞' ? '∞' : `${uses} / ${cap != null ? cap : uses}`, desc: def.desc, off: false });
   };
   [...drawPile, ...playedPile].forEach(pushSleight);
   gridData.forEach(row => (row || []).forEach(pushSleight));
@@ -384,13 +387,15 @@ function recordsEntityRow(e) {
     <div class="rec-ent-big">${recordsEntityTile(e)}</div>
     <div class="rec-ent-text">
       <div class="rec-ent-top"><span class="rec-ent-name">${e.name}</span><span class="rec-ent-tag">${e.off ? 'SWITCHED OFF' : e.tag}</span></div>
+      ${e.charges ? `<div class="rec-ent-charges"><span>CHARGES</span><b>${e.charges}</b></div>` : ''}
       <div class="rec-ent-desc">${recordsEntityDesc(e)}</div></div></div>`;
 }
 function recordsEntityTrayItem(e) {
   return `<div class="rec-ent rec-ent-tray rar-${e.rar}${e.off ? ' ent-off' : ''}">
     <div class="rec-ent-head"><div class="rec-ent-mid">${recordsEntityTile(e)}</div>
       <div class="rec-ent-id"><div class="rec-ent-name">${e.name}</div>
-        <div class="rec-ent-tag">${e.off ? 'SWITCHED OFF' : e.tag}</div></div></div>
+        <div class="rec-ent-tag">${e.off ? 'SWITCHED OFF' : e.tag}</div>
+        ${e.charges ? `<div class="rec-ent-charges"><span>CHARGES</span><b>${e.charges}</b></div>` : ''}</div></div>
     <div class="rec-ent-desc">${recordsEntityDesc(e)}</div></div>`;
 }
 

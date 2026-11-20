@@ -326,3 +326,7 @@
   .rec-fold > summary { flex-wrap: wrap; row-gap: 0; }
   .rec-fold > summary span { flex-basis: 100%; padding-left: 34px; }
 }
+
+/* r806 (owner): a Sleight's CHARGES x / y, under its tag. */
+.rec-ent-charges { display: flex; align-items: baseline; gap: 8px; margin: 2px 0 3px; font-size: 14px; letter-spacing: 1px; color: var(--am-dim); }
+.rec-ent-charges b { font-weight: normal; font-size: 18px; letter-spacing: 0; color: var(--am-hi); }

@@ -5601,3 +5601,15 @@ the Tricks and Knacks that buff cards (not applied). Golden: 838 cases match.
 - **Whiteout** (rare Knack `whiteout`): when a hand is played, one more card touching the selection
   that makes a better hand (or a hand where there was none) is played with it (`whiteoutAugment`,
   js/play-hand.js, after Roll Call; the Selection Size holds).
+
+## r806 - still numbers; letters from 100k; a Sleight's charges x / y (owner)
+- **The PIPS / MULT / FOCUS figures never move when they change.** Every value animation is a
+  flash now, not a transform: `val-tick` (the dance's tick on each write), `pmfJitVal` (the fuse's
+  jitter) and `digitScroll` (the HUD's digit change, which slid 6px up). The box pops were already a
+  brightness flash in console mode.
+- **Letters from 100,000 up:** `fmtBig(n, small)` (js/labels.js) reads 100k, 346k, 1.2m, 12m, 3.2b;
+  under that the caller's own style. Read by the dance's PIPS / MULT writes, `fmtM`, `_pmfFmt` (the
+  fused product and the score on MULT / FOCUS) and `animateDigitEl` for the three box ids. SCORE keeps
+  its odometer.
+- **Records:** every Sleight prints CHARGES x / y (`sleightCapOf` for the y; ∞ stays ∞) under its tag
+  in both Owned views, and the Deck tab's Sleights list reads left / of.

@@ -1711,7 +1711,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   // event, because both are part of what the hand is worth before anything fires.
   let rp = (typeof _ledger.basePips === 'number') ? _ledger.basePips : basePips;
   let rm = (typeof _ledger.baseMult === 'number') ? _ledger.baseMult : baseMult;
-  if(pipsEl) pipsEl.textContent=rp; if(multEl) multEl.textContent=(rm%1===0)?rm:rm.toFixed(1);
+  if(pipsEl) pipsEl.textContent=fmtBig(rp); if(multEl) multEl.textContent=fmtBig(rm, v => (v%1===0)?String(v):v.toFixed(1));   // r806: letters from 100k
   if(focusEl) focusEl.textContent=_fmtFocus(preHandFocus);   // FOCUS starts at the hand's pre-scoring multiplier
   // Did this hand's own Focus change the multiplier? Answered here so the beat
   // below and the settle further down agree on it.
@@ -1775,8 +1775,8 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   const primeFlight = () => Math.max(60, ptBaseFlight() * DANCE_CFG.primeFlight / (dncFF ? DANCE_CFG.ff : dncPace()));
 
   const _rnd = (v,how) => how==='int' ? Math.round(v) : how==='dp1' ? Math.round(v*10)/10 : v;
-  const showPips = extra => { if(pipsEl) pipsEl.textContent = Math.round(rp + (extra||0)); dncTick(pipsEl); };
-  const showMult = () => { if(multEl) multEl.textContent = fmtM(rm); dncTick(multEl); };
+  const showPips = extra => { if(pipsEl) pipsEl.textContent = fmtBig(Math.round(rp + (extra||0))); dncTick(pipsEl); };
+  const showMult = () => { if(multEl) multEl.textContent = fmtBig(rm, fmtM); dncTick(multEl); };   // r806: letters from 100k
   // A x lands on the chip it multiplies, so it is read as an operation on that
   // number rather than as one more addend. Pips fly gold, mult violet, a multiply
   // in the hotter shade of its own colour.
