@@ -5613,3 +5613,17 @@ the Tricks and Knacks that buff cards (not applied). Golden: 838 cases match.
   its odometer.
 - **Records:** every Sleight prints CHARGES x / y (`sleightCapOf` for the y; ∞ stays ∞) under its tag
   in both Owned views, and the Deck tab's Sleights list reads left / of.
+
+## r807 - the slots open empty and fill before the first pull; the reels divided (owner)
+`evSlotMachine` with `fillFrom` (Card Slots, Entity Slots; js/event-slot-machine.js) runs the
+fill as the event OPENS, not on the first pull: the reels are blank while the window comes on
+screen (`SLOT.openHold`), the copies fly in from RECORDS or the tray chips (`efiBurst`), then the
+reels light left to right every `SLOT.openStep` with the brake's flash and clunk, and the
+machine's `ready` promise resolves `openTail` later. The events start `floorBusy` / `plBusy`
+true and clear them on `ready`, so PULL is off until then (about 2.5s at the default animation
+speed; instant with Skip transitions). `.evt-blank` is per reel now. The three columns are
+divided (css/event-toys.css): a 10px gap, a lit rim round each reel and a raised bar in each gap,
+both box-shadows because a reel clips its children; the brake's flash is an outline, so it no
+longer wipes the rim. Measured in headless Chromium at 1440x820 and 420x900: both events opened
+with every reel blank, PULL off, seven copies in flight, reels lit F B B / F F B / F F F, PULL on
+at 2.4-2.6s, a pull then ran and finished; no page errors.

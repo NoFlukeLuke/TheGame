@@ -1,4 +1,4 @@
-const BUILD = "2026-11-20 · r806 · still numbers; letters from 100k; Sleight charges x / y";
+const BUILD = "2026-11-21 · r807 · the slots open empty and fill; the reels divided";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

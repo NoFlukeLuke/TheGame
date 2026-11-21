@@ -45,6 +45,7 @@ const SLOT = {
   startGap: 55,       // reels let go this far apart
   kick: 0.22,         // the pull back up before the spin, in faces
   kickMs: 140,
+  openHold: 160, openStep: 110, openTail: 80,   // r807: the opening: empty reels shown, the fly-in, then a reel lights every openStep
   over: 0.3,          // the stop runs this far past, in faces
   settleMs: 380,
   blurMax: 5,         // stage px of blur at full speed
@@ -98,18 +99,39 @@ function evSlotMachine(parent, opts) {
   window.addEventListener('resize', fit);
   const reelEls = [...host.querySelectorAll('.evt-reel')];
   reelEls[reelEls.length - 1].classList.add('evt-reel-last');
-  // r805 (owner): with opts.fillFrom (a function returning the source elements: your tray
-  // chips, RECORDS for cards) the reels start BLANK and fill as the first spin runs: copies
-  // fly from the sources into the window, then the faces show (css/entity-flyin.css).
+  // r807 (owner): with opts.fillFrom (a function returning the source elements: your tray
+  // chips, RECORDS for cards) the reels start BLANK. The OPENING fills them: once the window
+  // is on screen (the body may be hidden when the machine is built) copies fly from the
+  // sources into it (css/entity-flyin.css), then the reels light one after another, left to
+  // right, each with the brake's flash. `ready` resolves then; the events keep PULL off
+  // until it does. r805 filled on the first pull instead.
   const _fillWin = host.querySelector('.evt-slot-window');
-  let _fillPending = !!o.fillFrom;
-  if (_fillPending) _fillWin.classList.add('evt-blank');
-  const fillNow = () => {
-    if (!_fillPending) return; _fillPending = false;
-    const srcs = (typeof o.fillFrom === 'function') ? o.fillFrom() : o.fillFrom;
-    const show = () => _fillWin.classList.remove('evt-blank');
-    if (typeof efiBurst === 'function' && srcs && srcs.length) efiBurst(srcs, _fillWin.getBoundingClientRect(), 7, show); else show();
-  };
+  let _readyRes; const ready = new Promise(r => { _readyRes = r; });
+  if (o.fillFrom) {
+    reelEls.forEach(r => r.classList.add('evt-blank'));
+    let tries = 0;
+    const lightReels = () => {
+      const slow = (typeof animSlow === 'function') ? animSlow() : 1;
+      reelEls.forEach((r, k) => setTimeout(() => {
+        r.classList.remove('evt-blank');
+        r.classList.remove('evt-reel-land'); void r.offsetWidth; r.classList.add('evt-reel-land');
+        _etSfx('sfxSlotStop', 0.45 + k * 0.15);
+        if (k === reelEls.length - 1) setTimeout(_readyRes, SLOT.openTail * slow);
+      }, k * SLOT.openStep * slow));
+    };
+    const open = () => {
+      if (!host.isConnected) { if (++tries < 400) requestAnimationFrame(open); return; }
+      const rect = _fillWin.getBoundingClientRect();
+      if (!rect.width) { if (++tries < 400) requestAnimationFrame(open); return; }
+      if (_etFast()) { reelEls.forEach(r => r.classList.remove('evt-blank')); _readyRes(); return; }
+      const slow = (typeof animSlow === 'function') ? animSlow() : 1;
+      setTimeout(() => {
+        const srcs = (typeof o.fillFrom === 'function') ? o.fillFrom() : o.fillFrom;
+        if (typeof efiBurst === 'function' && srcs && srcs.length) efiBurst(srcs, _fillWin.getBoundingClientRect(), 7, lightReels); else lightReels();
+      }, SLOT.openHold * slow);
+    };
+    requestAnimationFrame(open);
+  } else _readyRes();
   drums.forEach((d, k) => {
     d.el = reelEls[k];
     d.drum = d.el.querySelector('.evt-drum');
@@ -206,7 +228,6 @@ function evSlotMachine(parent, opts) {
   }
   function spin(stops, so) {
     clear();
-    fillNow();
     const last = stops.length - 1, tease = !!(so && so.tease) && last > 0;
     const len = (so && so.len) || 1;
     return Promise.all(stops.map((s, k) => {
@@ -312,7 +333,7 @@ function evSlotMachine(parent, opts) {
     host.querySelectorAll('.evt-winline, .evt-slot-banner, .evt-slot-coin').forEach(el => el.remove());
     host.classList.remove('evt-slot-won', 'evt-big3', 'evt-huge');
   }
-  return { el: host, spin, flash, celebrate, scan, clear };
+  return { el: host, spin, flash, celebrate, scan, clear, ready };
 }
 
 // ── sounds ──

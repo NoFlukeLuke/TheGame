@@ -16,4 +16,4 @@
 /* The copy in flight keeps its own look; the tray's lifted / dimmed states do not apply. */
 .efi-copy { transition: none !important; }
 /* Slot reels start BLANK and fill as they turn (js/event-slot-machine.js, fillFrom). */
-.evt-slot-window.evt-blank .evt-sym > :not(.evt-sh) { visibility: hidden; }
+.evt-reel.evt-blank .evt-sym > :not(.evt-sh) { visibility: hidden; }

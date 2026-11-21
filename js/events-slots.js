@@ -85,16 +85,18 @@ function floorFaceHTML(c) {
 function floorPullPrice() { return slotPullPrice(eventState.floorPulls); }
 function renderFloor() {
   const s = eventState, body = evBodyEl();
-  s.floorPulls = 0; s.floorWins = 0; s.floorBusy = false;
+  s.floorPulls = 0; s.floorWins = 0; s.floorBusy = true;   // r807: PULL waits for the opening
   body.appendChild(evNote(floorFlushOn()
     ? 'Any row, column or diagonal holding a Set of 3, a Run of 3 or a Flush of 3 buffs those cards.'
     : 'Any row, column or diagonal holding a Set of 3 or a Run of 3 buffs those cards.'));
   const deal = evShuffle(floorCards().slice()), n = Math.ceil(deal.length / 3);
   s.floorStrips = [0, 1, 2].map(k => deal.slice(k * n, (k + 1) * n).map(c => ({ key: cardId(c), card: c, html: floorFaceHTML(c) })));
   s.floorMachine = evSlotMachine(body, { reels: s.floorStrips, payRow: null, itemW: 56, itemH: 44,
-    fillFrom: () => [document.getElementById('btn-records')] });   // r805: the cards fly in from RECORDS on the first pull
+    fillFrom: () => [document.getElementById('btn-records')] });   // r807: the cards fly in from RECORDS as the event opens
   s.floorOut = document.createElement('div'); body.appendChild(s.floorOut);
   floorSync();
+  const m = s.floorMachine;
+  m.ready.then(() => { if (eventState !== s || s.floorMachine !== m) return; s.floorBusy = false; floorSync(); });
 }
 function floorSync() {
   const s = eventState, price = floorPullPrice();
@@ -166,16 +168,18 @@ function renderPayline() {
   const s = eventState, body = evBodyEl();
   const ents = evImprovables();
   if (!eventEligible('the_payline')) { body.innerHTML = evEmptyHTML('Not enough to put on the reels.'); s.plNone = true; setEventConfirm(true); return; }
-  s.plPulls = 0; s.plWins = 0; s.plBusy = false;
+  s.plPulls = 0; s.plWins = 0; s.plBusy = true;   // r807: PULL waits for the opening
   const syms = ents.map(e => ({ key: e.id, ent: e, html: `<div class="sl-ent">${entityTileHTML({ entity: e.kind, id: e.id, emoji: e.emoji, label: e.name }, e.rarity || 'common', { tip: false })}</div>` }));
   s.plStrips = [0, 1, 2].map(() => paylineStrip(syms));
   s.plChance = paylineWinChance(ents.length);
   body.appendChild(evNote('Three alike in a row, a column or a diagonal improves that entity.'));
   s.plMachine = evSlotMachine(body, { reels: s.plStrips, payRow: null, itemW: 54, itemH: 60,
-    fillFrom: () => ents.map(e => (typeof efiSourceEl === 'function') ? efiSourceEl(e.kind, e.id) : null).filter(Boolean) });   // r805: your entities fly in from their trays on the first pull
+    fillFrom: () => ents.map(e => (typeof efiSourceEl === 'function') ? efiSourceEl(e.kind, e.id) : null).filter(Boolean) });   // r807: your entities fly in from their trays as the event opens
   if (typeof fitRewardName === 'function') requestAnimationFrame(() => s.plMachine.el.querySelectorAll('.rwd-name').forEach(fitRewardName));
   s.plOut = document.createElement('div'); body.appendChild(s.plOut);
   paylineSync();
+  const m = s.plMachine;
+  m.ready.then(() => { if (eventState !== s || s.plMachine !== m) return; s.plBusy = false; paylineSync(); });
 }
 function paylineSync() {
   const s = eventState, price = slotPullPrice(s.plPulls);
