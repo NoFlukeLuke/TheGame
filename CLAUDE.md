@@ -5627,3 +5627,20 @@ both box-shadows because a reel clips its children; the brake's flash is an outl
 longer wipes the rim. Measured in headless Chromium at 1440x820 and 420x900: both events opened
 with every reel blank, PULL off, seven copies in flight, reels lit F B B / F F B / F F F, PULL on
 at 2.4-2.6s, a pull then ran and finished; no page errors.
+
+## r808 - Old Tricks at ordinary odds; a typed seed counts for nothing (owner)
+- **Old Tricks** (js/owned-offers.js): an owned Trick, Knack or Sleight now joins its store shelf's pool
+  at the ordinary odds (`ownedAllowIds(type)` lets the offerable owned ids past each shelf's "not owned"
+  filter; `ownedMark(type, payloads)` turns a payload of a held id into the copy-or-improve buy, read off
+  the payload's `_def`). r799's 35% a slot (`OWNED_OFFER`, `ownedOfferSwap`, its PROB_TABLES row) is gone.
+  Measured, 9,000 Trick slots with a 61-Trick pool: the owned Trick 1.36%, another Trick 1.78% (a fair
+  share is 1.64%); none without the Knack.
+- **A run on a typed seed counts for nothing** (js/unlocks.js): `unlockPaused()` is `unlockTour()` (the
+  tours, labs and test drives) or `seedRunPaused()` (`runSeedEntered`), so unlock counters, Trick unlocks,
+  win tokens, difficulty tiers, protocol wins and Knacks, event files, discoveries and the lore event all
+  stand down. `trickLocked` asks `unlockTour()` only, so a seeded run still keeps locked Tricks locked.
+  The run screen's rules box says "A run on a typed seed unlocks nothing." while SEED is on; the finale
+  reads "typed, did not count"; the handbook's Seeds entry says so.
+Measured in headless Chromium at 1440x820 and 420x900: a run started on ABC-123 by real click and tap
+counted nothing, kept a locked Trick locked and printed the finale line; the next run rolled its own seed
+and counted. Golden: 838 match. No page errors.

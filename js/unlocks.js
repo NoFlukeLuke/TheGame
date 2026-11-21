@@ -38,13 +38,18 @@ function ulSave() {
 }
 
 // Counting stops in the tours, the labs and a test drive (their hands are not play).
-function unlockPaused() {
+function unlockTour() {
   try {
     if (typeof location !== 'undefined' && /[?&](tricks|events|evgrid|improve|blank|lab)\b/.test(location.search || '')) return true;
     if (typeof testDriveActive === 'function' && testDriveActive()) return true;
   } catch (e) {}
   return false;
 }
+// r808 (owner): a run on a seed the player typed counts for nothing either: no unlock
+// counters, Trick unlocks, win tokens, difficulty tiers, protocol wins, event files or
+// discoveries. The run screen and the finale say so.
+function seedRunPaused() { return typeof runSeedEntered !== 'undefined' && !!runSeedEntered; }
+function unlockPaused() { return unlockTour() || seedRunPaused(); }
 // A new run's counts start at nothing (startGame).
 function unlockRunReset() { unlockRun = {}; }
 
@@ -83,8 +88,9 @@ function trickUnlocked(id) {
   return false;
 }
 // Locked = has a goal and has not met it. Only Tricks are locked (owner: Tricks first).
-// The tours, labs and a Builds test drive lock nothing (unlockPaused).
-function trickLocked(id) { return !!trickUnlockRule(id) && !trickUnlocked(id) && !unlockPaused(); }
+// The tours, labs and a Builds test drive lock nothing (unlockTour). A run on a typed seed
+// keeps the locks (r808): it counts for nothing, but it does not open anything either.
+function trickLocked(id) { return !!trickUnlockRule(id) && !trickUnlocked(id) && !unlockTour(); }
 
 // What a goal says, and how far along it is ("Play 20 runs · 7 / 20").
 function unlockGoalText(id, withProgress) {

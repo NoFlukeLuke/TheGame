@@ -1,4 +1,4 @@
-const BUILD = "2026-11-21 · r807 · the slots open empty and fill; the reels divided";
+const BUILD = "2026-11-21 · r808 · Old Tricks at ordinary odds; a typed seed counts for nothing";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
