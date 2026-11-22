@@ -114,7 +114,8 @@ const BAL = {
   threes_run: { mult: 9 },
   lucky_three: { mult: 2 },
   light_touch: { mult: 30 },
-  patience_reward: { mult_per_second: 2 },   // r624: mult = this x the seconds since the last hand
+  patience_reward: { mult_per_second: 3 },   // r624: mult = this x the seconds since the last hand; r812 (owner): 3 (was 2)
+  echo_hand: { streak: 3 },   // r812 (owner): the streak length (this hand included) that replays every card; was 2
   first_play: { focus: 5 },
   monochrome: { coins: 5, seconds: 10, mult: 25 },   // r625: pays mult too; IMPROVE_PLAN cycles the three
   full_color: { mult_mult: 1.25 },   // r539 owner: x mult per card (was +16 pips +16 mult per card)
@@ -603,6 +604,7 @@ const DESC_TEMPLATES = {
   high_pair: 'Hands containing a pair and a 2 or 4 add +{focus_per_card} Focus per card',
   ripple: 'Cards adjacent in rank to another card in the hand have a {chance_pct}% chance to replay[[chance2:, then a {chance2_pct}% chance to replay again]]',
   patience_reward: 'Adds mult equal to {mult_per_second}x the seconds passed since the last hand was played',
+  echo_hand: 'Same-hand streaks of {streak} or more replay each card',
   first_play: "The round's first hand adds +{focus} Focus; each hand after adds 1 less, down to 0",
   still_water: 'Score +{mult_per_interval} mult for every {interval_seconds} seconds elapsed without using a swap',
   swift: '+{mult_per_interval} mult for every {interval_seconds} seconds elapsed this round',

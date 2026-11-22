@@ -1,4 +1,4 @@
-const BUILD = "2026-11-22 · r811 · golden baseline for r810";
+const BUILD = "2026-11-22 · r812 · Same Old needs a streak of 3; The Heron 3 a second";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

@@ -5671,3 +5671,10 @@ Opportunity +14 per card (was 8), Twynergy +1 Focus per card (was 4; its improve
 Hands of Blue is rare (was epic). Company Time is not changed yet: it rewinds only on a 5-card
 Flush (`hand === 'Flush'` in play-hand.js), though its sentence says "Flushes". The rest of the
 audit is on the Trick Tuning page (the Trick Pool Triage artifact, rebuilt) for the owner to tune.
+
+## r812 - Same Old needs a streak of 3; The Heron pays 3 a second (owner)
+Same Old (`echo_hand`, common) replays every card on the 3rd and later hand of a same-hand streak
+(`BAL.echo_hand.streak` 3, read in calcScore through `TB`; was "the same hand type as the last one",
+a streak of 2). It has a template now, so the number prints from BAL. The Heron (`patience_reward`,
+rare) is +3 mult a second since the last hand (was 2; the improvement step stays +0.5). Golden:
+only those two Tricks' cases move (46, tray02 holds Same Old); baseline in r813.

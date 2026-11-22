@@ -56,7 +56,7 @@ const TRICK_POOL = [
   { id:'night_owl',      name:'Night Owl',           tier:'common',    desc:'Hands played in the last third of the round score +16 mult per card', tags:['mult','card','clock','scores'] },
   { id:'closing_time',   name:'Crunch',     tier:'common',    desc:'In the last third of a round, each scored card replays', tags:['replay','card','clock','scores'] },
   { id:'quick_draw',     name:'Quick Draw',          tier:'common',    desc:"Hands played within 3 seconds of the previous hand remove 25% of your Focus and add +1 to your Focus limit (max +10). When max bonus is reached, +6 to sell value. If sold, keep half the bonus you've reached", tags:['focus','hand','clock','scaling','cost'] },
-  { id:'patience_reward', name:'The Heron',          tier:'rare',      desc:'Adds mult equal to 2x the seconds passed since the last hand was played', tags:['mult','hand','clock','scores'] },
+  { id:'patience_reward', name:'The Heron',          tier:'rare',      desc:'Adds mult equal to 3x the seconds passed since the last hand was played', tags:['mult','hand','clock','scores'] },
   { id:'first_play',     name:'Head Start',          tier:'rare',    desc:"The round's first hand adds +5 Focus; each hand after adds 1 less, down to 0", tags:['focus','hand'] },
   { id:'still_water',    name:'Eagle Eye',           tier:'rare',      desc:'Score +15 mult for every 5 seconds elapsed without using a swap', tags:['mult','hand','clock','scores'] },
   { id:'frozen_moment',  name:'The Falcon',          tier:'epic',      desc:'Hands played while the clock is paused add +10 Focus', tags:['focus','hand','pause'] },
@@ -82,7 +82,7 @@ const TRICK_POOL = [
   // ── Streaks ──
   { id:'kindling',       name:'Tried and True',            tier:'common',    desc:'Same-hand streaks score +8 mult × the streak count', tags:['mult','hand','streak','scores'] },
   { id:'wildfire',       name:'加油',            tier:'rare',      desc:'Reaching a hand-type streak of 3 adds +5 Focus', tags:['focus','hand','streak'] },
-  { id:'echo_hand',      name:'Same Old',              tier:'common',    desc:'Playing the same hand type as the previous hand replays each card', tags:['replay','card','streak','scores'] },
+  { id:'echo_hand',      name:'Same Old',              tier:'common',    desc:'Same-hand streaks of 3 or more replay each card', tags:['replay','card','streak','scores'] },
   // ── Suit conditions ──
   { id:'club_double',    name:'Hard Labour',         tier:'legendary',    tags:['pips','card','suit','scores'], desc:'Each club scored this round adds more and more pips: doubles each time, starting at 1' },
   { id:'monochrome',     name:'Red Water Diamonds',      tier:'epic',      desc:'Hands containing exclusively hearts AND diamonds score +25 mult, grant +5 credits, and cost 10 seconds', tags:['mult','credits','hand','suit','scores','cost'] },

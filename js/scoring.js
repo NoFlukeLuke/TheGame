@@ -578,7 +578,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     let _re = qrlBuffOn(card, 'retrig') ? (permRetrig[_eKey] || 0) : 0;  // permanent per-card retrigger (events); QRL may switch the buff off
     let _rne = hasTrick('closing_time') && roundFractionRemaining() < 1/3; // Near Extinction: last third of the round
     let _hnm = _hnmOn && _rankHigh(baseRank) === _hnmMax; // High and Mighty: top-rank card(s)
-    let _ech = hasTrick('echo_hand') && _effStreak >= 2; // Echoes
+    let _ech = hasTrick('echo_hand') && _effStreak >= ((TB('echo_hand') || {}).streak || 3); // Same Old (r812: a streak of 3)
     let _wp = hasTrick('woodpecker') && woodpeckerCell === `${r}-${c}`; // Woodpecker: the card in the marked cell
     // Wait For Iiiit: each card independently rolls a replay at 2% × negative reward tiles taken this
     // run. Deterministic per (card, hand) so preview == score (see _detReplayRand).
