@@ -1,4 +1,4 @@
-const BUILD = "2026-11-22 · r810 · the owner's Trick audit calls";
+const BUILD = "2026-11-22 · r811 · golden baseline for r810";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
