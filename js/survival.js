@@ -293,14 +293,17 @@ function survivalEntityBanned(id) {
 
 function survivalBuildPools() {
   const ownedTrick = new Set(acquiredTricks.map(b => b.id));
-  const tricks = TRICK_POOL.filter(b => !survivalEntityBanned(b.id) && (!ownedTrick.has(b.id) || SURVIVAL_STACKABLE_TRICKS.includes(b.id)));
+  const okT = (typeof ownedAllowIds === 'function') ? ownedAllowIds('trick') : new Set();   // r809: Old Tricks
+  const tricks = TRICK_POOL.filter(b => !survivalEntityBanned(b.id) && (!ownedTrick.has(b.id) || okT.has(b.id) || SURVIVAL_STACKABLE_TRICKS.includes(b.id)));
   // The reward-grid offer rides the trick pool for its odds (see the const) -
   // APPENDED after the filters, never injected into TRICK_POOL itself, or it
   // would leak into the shop, the reward grid and every other draw.
   tricks.push(SURVIVAL_GRID_OFFER);
   const ownedKnack = new Set(acquiredKnacks.map(k => k.id));
-  const knacks = KNACK_POOL.filter(k => knackOfferable(k) && !survivalEntityBanned(k.id) && !ownedKnack.has(k.id));
+  const okK = (typeof ownedAllowIds === 'function') ? ownedAllowIds('knack') : new Set();
+  const knacks = KNACK_POOL.filter(k => knackOfferable(k) && !survivalEntityBanned(k.id) && (!ownedKnack.has(k.id) || okK.has(k.id)));
   const grantedSl = _grantedSleightSet();
+  if (typeof ownedAllowIds === 'function') ownedAllowIds('sleight').forEach(id => grantedSl.delete(id));
   const sleights = SLEIGHT_POOL.filter(j => !survivalEntityBanned(j.id) && !grantedSl.has(j.id) && sleightOfferable(j));
   const lims = LIMITS_DEF.filter(d => limits[d.id].current < limits[d.id].max);
   // r795: one event a screen at most (js/event-files.js).
@@ -310,6 +313,13 @@ function survivalBuildPools() {
 
 // Wrap a raw pool entry into a uniform option object the UI + granter understand.
 function survivalMakeOption(type, data) {
+  const o = _survivalMakeOption(type, data);
+  if (o && data && (type === 'trick' || type === 'knack' || type === 'sleight') && typeof ownedHeld === 'function' && ownedHeld(type, data.id)) {
+    o.owned = true; o.desc = 'You own this. ' + (o.desc || '');   // r809: Old Tricks
+  }
+  return o;
+}
+function _survivalMakeOption(type, data) {
   // The reward-grid offer wears the trick pool's odds but is not a Trick: its
   // own type keeps trickEmoji/injectTrickAfterReward from ever seeing it, and
   // the tile draws a plain icon (gridPickTileHTML's non-entity fallback, the
@@ -636,7 +646,7 @@ function survivalChoose(i) {
   if (!opt) return;
   // A Trick with a full tray is REFUSED HERE, before the pick closes, so the
   // offer stays on the board and the player can sell one and come back (r408).
-  if (opt.type === 'trick' && typeof trickTrayFullFor === 'function' && trickTrayFullFor(opt.id || (opt.data && opt.data.id))) {
+  if (opt.type === 'trick' && !opt.owned && typeof trickTrayFullFor === 'function' && trickTrayFullFor(opt.id || (opt.data && opt.data.id))) {
     refuseTrickCapacity(); return;
   }
   if (typeof cancelDance === 'function') cancelDance(); // stop the score count-up if still running
@@ -669,15 +679,20 @@ function survivalChoose(i) {
     });
     return;
   }
+  const tail = () => {
+    // Mid-chain (Flow multi-reward, r325): the next screen opens instead of the
+    // level-up, which runs ONCE at the chain's end (flowrFinish).
+    if (typeof flowrAfterStep === 'function' && flowrAfterStep()) return;
+    // Post-boss BONUS pick doesn't carry score or pay the time-coins (no goal was cleared).
+    survivalSkipCarryover = survivalBonusPick;
+    survivalBonusPick = false;
+    triggerLevelUp(); // → showLevelUpScreen (survival) → survivalDealNext
+    survivalSkipCarryover = false;
+  };
+  // r809: an owned offer asks copy or improve first (js/owned-offers.js).
+  if (opt.owned && typeof ownedTake === 'function') { ownedTake(opt.type, opt.data, tail); return; }
   survivalGrant(opt);
-  // Mid-chain (Flow multi-reward, r325): the next screen opens instead of the
-  // level-up, which runs ONCE at the chain's end (flowrFinish).
-  if (typeof flowrAfterStep === 'function' && flowrAfterStep()) return;
-  // Post-boss BONUS pick doesn't carry score or pay the time-coins (no goal was cleared).
-  survivalSkipCarryover = survivalBonusPick;
-  survivalBonusPick = false;
-  triggerLevelUp(); // → showLevelUpScreen (survival) → survivalDealNext
-  survivalSkipCarryover = false;
+  tail();
 }
 
 // Route each option type to the existing grant primitive.

@@ -1,4 +1,4 @@
-const BUILD = "2026-11-21 · r808 · Old Tricks at ordinary odds; a typed seed counts for nothing";
+const BUILD = "2026-11-22 · r809 · Old Tricks in reward picks; seeded run wording";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

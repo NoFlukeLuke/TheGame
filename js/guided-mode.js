@@ -565,13 +565,15 @@ function guidedPickPools() {
   const ownedT = new Set((acquiredTricks || []).map(t => t.id));
   const ownedK = new Set((acquiredKnacks || []).map(k => k.id));
   const gotSl  = (typeof grantedSleightIds !== 'undefined' && grantedSleightIds) ? grantedSleightIds : new Set();
+  const ok = t => (typeof ownedAllowIds === 'function') ? ownedAllowIds(t) : new Set();   // r809: Old Tricks
+  const okT = ok('trick'), okK = ok('knack'), okS = ok('sleight');
   return {
-    trick:   TRICK_POOL.filter(t => !ownedT.has(t.id) && !banned(t.id)),
+    trick:   TRICK_POOL.filter(t => (!ownedT.has(t.id) || okT.has(t.id)) && !banned(t.id)),
     // sleightOfferable keeps the four Spectrum deck FIXTURES out - they are in
     // SLEIGHT_POOL so they can render, and the only way to have one is to draw it.
-    sleight: SLEIGHT_POOL.filter(s => !gotSl.has(s.id) && !banned(s.id)
+    sleight: SLEIGHT_POOL.filter(s => (!gotSl.has(s.id) || okS.has(s.id)) && !banned(s.id)
                && (typeof sleightOfferable !== 'function' || sleightOfferable(s))),
-    knack:   KNACK_POOL.filter(k => knackOfferable(k) && !ownedK.has(k.id) && !banned(k.id)),
+    knack:   KNACK_POOL.filter(k => knackOfferable(k) && (!ownedK.has(k.id) || okK.has(k.id)) && !banned(k.id)),
     event:   [],   // r795: filled by guidedPickThreeOffers only (other readers of these pools want entities)
   };
 }
@@ -593,6 +595,13 @@ function guidedPickType(pools) {
 
 // Wrap a pool entry in the payload the shared pick screen draws and grants from.
 function guidedPickOffer(type, d) {
+  const o = _guidedPickOffer(type, d);
+  if (o && d && type !== 'event' && typeof ownedHeld === 'function' && ownedHeld(type, d.id)) {
+    o.owned = { type, def: d }; o.desc = 'You own this. ' + (o.desc || '');   // r809: Old Tricks
+  }
+  return o;
+}
+function _guidedPickOffer(type, d) {
   if (type === 'trick') {
     const em = (typeof trickEmoji === 'function') ? trickEmoji(d) : '★';
     return { entity:'trick', icon: em, emoji: em, label: shownEntityName(d, 'trick'),
@@ -754,6 +763,7 @@ function guidedOpenPickThree(done, _rerolled) {
     onChoose: (i, p) => {
       closePanel();
       if (p.event) { guidedOpenNamedEvent(p.event, done); return; }   // r795
+      if (p.owned && typeof ownedTake === 'function') { ownedTake(p.owned.type, p.owned.def, done); return; }   // r809
       try { p.apply?.(); } catch (e) {} done();
     },
     onSkip: () => { closePanel(); done(); },

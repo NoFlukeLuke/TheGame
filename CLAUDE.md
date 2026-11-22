@@ -5644,3 +5644,23 @@ at 2.4-2.6s, a pull then ran and finished; no page errors.
 Measured in headless Chromium at 1440x820 and 420x900: a run started on ABC-123 by real click and tap
 counted nothing, kept a locked Trick locked and printed the finale line; the next run rolled its own seed
 and counted. Golden: 838 match. No page errors.
+
+## r809 - Old Tricks reaches the reward picks; "a seeded run" (owner)
+- **Old Tricks** now also lets owned Tricks, Knacks and Sleights into the pick of three (Flow's
+  `survivalBuildPools`, the Schedule's `guidedPickPools`) and Flow's Tricks / Knacks / Sleights chain
+  steps (`flowrBuildOffers`), at the ordinary odds (`ownedAllowIds`). An offer you hold is marked
+  (`survivalMakeOption` / `guidedPickOffer` wrap the old bodies, now `_survivalMakeOption` /
+  `_guidedPickOffer`; "You own this." leads its text) and taking it runs `ownedTake(type, def, then)`:
+  the copy-or-improve screen, then the pick's own tail (Flow's next step or level-up, the Schedule's
+  `done`). An owned Trick is not refused for a full tray (improving needs no slot). The Balance Sheet
+  and Classic's pick are not included. `ownedShelfPool` leaves out `SURVIVAL_STACKABLE_TRICKS` (a second
+  one is an ordinary take there). `ownedApply` repaints only the shop. The Knack reads "can be offered
+  in the company store and in reward picks".
+- **Wording** (owner): "a seeded run" everywhere: the run screen ("A seeded run unlocks nothing."), the
+  finale ("seeded run, did not count") and the handbook.
+- Owner: Classic keeps its Unspent line at 2 credits each.
+Measured in headless Chromium at 1440x820 (click) and 420x900 (tap), Flow and the Schedule: before the
+Knack the owned Trick was in neither pool, after it in both; over 6,000 Flow Tricks-step offers the owned
+Trick showed 3.6% against another common's 3.4% (38 in the pool); a real pick with it first read "You own
+this.", CONFIRM opened the screen with the copy line dimmed (a Trick that is not a behaviour yet), Improve
+took it to v2, then Flow levelled up and the Schedule's pick ran its `done`. Golden: 838 match. No page errors.

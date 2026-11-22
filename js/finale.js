@@ -129,7 +129,7 @@ function finaleBodyHTML(F) {
   const n = F.owned.tricks.length + F.owned.knacks.length + F.owned.sleights.length;
   return `
     <div class="bs-note fn-close">${closeLine}${F.records.length ? `<div class="fn-records">${F.records.map(x => `<span>★ ${x}</span>`).join('')}</div>` : ''}${(F.oneAway || []).map(n => `<div class="fn-away">ONE TRICK AWAY · <b>${n}</b> + ????</div>`).join('')}${F.token ? `<div class="fn-token">${F.token.full ? `${TOKEN_MODES[F.token.id]} TOKENS ${TOKENS_PER_MODE}/${TOKENS_PER_MODE}` : `+1 TOKEN · ${TOKEN_MODES[F.token.id]} ${F.token.n}/${TOKENS_PER_MODE} · spend it in Builds`}</div>` : ''}</div>
-    ${F.seed ? `<div class="fn-seed">SEED <b>${F.seed}</b>${F.seedEntered ? ' · typed, did not count' : ''} <button class="bs-key fn-seed-copy" onclick="seedCopy('${F.seed}', this)">COPY</button></div>` : ''}
+    ${F.seed ? `<div class="fn-seed">SEED <b>${F.seed}</b>${F.seedEntered ? ' · seeded run, did not count' : ''} <button class="bs-key fn-seed-copy" onclick="seedCopy('${F.seed}', this)">COPY</button></div>` : ''}
     <div class="bs-lines fn-stats">
       ${box('SCORE', F.total.toLocaleString(), '', r.includes('BEST SCORE'))}
       ${box('BEST HAND', F.bestHand || '·', F.bestHandScore ? F.bestHandScore.toLocaleString() : '', r.includes('BEST HAND'))}

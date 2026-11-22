@@ -88,7 +88,7 @@ function trickUnlocked(id) {
   return false;
 }
 // Locked = has a goal and has not met it. Only Tricks are locked (owner: Tricks first).
-// The tours, labs and a Builds test drive lock nothing (unlockTour). A run on a typed seed
+// The tours, labs and a Builds test drive lock nothing (unlockTour). A seeded run (a typed seed)
 // keeps the locks (r808): it counts for nothing, but it does not open anything either.
 function trickLocked(id) { return !!trickUnlockRule(id) && !trickUnlocked(id) && !unlockTour(); }
 

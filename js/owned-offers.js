@@ -42,7 +42,7 @@ function ownedOfferable(type, id) { return !ownedCopyBlock(type, id) || !ownedIm
 // The owned entities a shelf of `type` may show: [{ def, id }].
 function ownedShelfPool(type) {
   let list = [];
-  if (type === 'trick') list = (typeof trickTray !== 'undefined' ? trickTray : []).filter(t => t && !t.fused && t.id !== 'changeling').map(t => TRICK_POOL_ALL.find(r => r.id === t.id)).filter(Boolean);
+  if (type === 'trick') list = (typeof trickTray !== 'undefined' ? trickTray : []).filter(t => t && !t.fused && t.id !== 'changeling' && !(typeof SURVIVAL_STACKABLE_TRICKS !== 'undefined' && SURVIVAL_STACKABLE_TRICKS.includes(t.id))).map(t => TRICK_POOL_ALL.find(r => r.id === t.id)).filter(Boolean);
   else if (type === 'knack') list = (typeof acquiredKnacks !== 'undefined' ? acquiredKnacks : []).filter(k => k && k.id !== 'old_tricks').map(k => KNACK_POOL.find(r => r.id === k.id)).filter(Boolean);
   else if (type === 'sleight') {
     const ids = new Set((typeof allOwnedSleightCards === 'function' ? allOwnedSleightCards() : []).filter(c => c && !c._floater).map(c => c.sleightId));
@@ -88,7 +88,15 @@ function ownedApply(type, def, n) {
   } else {
     improveEntity(def.id);
   }
-  if (typeof shopOrBoardRepaint === 'function') { try { shopOrBoardRepaint(); } catch (e) {} }
+  if (typeof shopGridActive !== 'undefined' && shopGridActive && typeof renderShopGrid === 'function') { try { renderShopGrid(); } catch (e) {} }
+}
+// r809 (owner): the pick-of-three screens and Flow's Tricks / Knacks / Sleights steps
+// offer owned entities too, at the ordinary odds (ownedAllowIds in their pools).
+// `ownedHeld(type, id)` says an offer is one you hold (the take asks copy or improve);
+// `ownedTake(type, def, then)` asks, applies, then runs the screen's own tail.
+function ownedHeld(type, id) { return ownedOffersOn() && ownedAllowIds(type).has(id) && ownedIsHeld(type, id); }
+function ownedTake(type, def, then) {
+  ownedAsk(type, def, n => { if (n) ownedApply(type, def, n); if (then) setTimeout(then, 250); });
 }
 // What a typed answer means: 1 / one, 2 / two.
 function ownedParse(v) {

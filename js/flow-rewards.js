@@ -1836,6 +1836,7 @@ function flowrBuildOffers(kind) {
       shuffle(pool.slice()).slice(0, 3).forEach(d => out.push(survivalMakeOption('limit', d)));
     } else if (kind === 'sleights') {
       const granted = _grantedSleightSet();
+      if (typeof ownedAllowIds === 'function') ownedAllowIds('sleight').forEach(id => granted.delete(id));   // r809: Old Tricks
       const pool = flowrFloorPool(SLEIGHT_POOL.filter(j => !survivalEntityBanned(j.id) && !granted.has(j.id) && sleightOfferable(j)), j => j.rarity || 'common');
       const used = new Set();
       for (let i = 0; i < 3 && used.size < pool.length; i++) {
