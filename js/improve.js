@@ -95,7 +95,7 @@ const IMPROVE_STEP = {
   hyper_focus:    { focus_mult: 1 },     // 2x Focus -> 3x -> 4x
   // r624, the owner's rare sheet
   heavy_hand:     { pips_per_card: 10 },
-  high_pair:      { focus_per_card: 2 },
+  high_pair:      { focus_per_card: 1 },   // r810: base is 1 now (was +2 on a base of 4)
   patience_reward:{ mult_per_second: 0.5 },
   first_play:     { focus: 1 },
   quarter_chime:  { pips: 30 },

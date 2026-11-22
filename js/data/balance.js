@@ -1,5 +1,5 @@
 const BAL = {
-  rich_soil: { mult: 6 },   // r767 (owner): was 3
+  rich_soil: { mult: 12 },   // r810 (owner): the common mult-per-card average; r767 6, was 3
   court_of_leaves: { pips: 3 },
   low_tide: { pips: 6 },
   first_light: { worth: 42 },
@@ -72,7 +72,7 @@ const BAL = {
   short_change: { coins: 1 },
   scavenger: { coins: 10 },
   edge_pips: { pips_per_card: 15 },
-  high_pair: { focus_per_card: 4 },   // r624: any hand with a pair in it and a 2 or 4
+  high_pair: { focus_per_card: 1 },   // r810 (owner): was 4, the rare per-card Focus rate is 1   // r624: any hand with a pair in it and a 2 or 4
   pair_pips: { pip_mult: 2 },
   heavy_hand: { pips_per_card: 20 },
   quick_draw: { window_ms: 3000, cap_gain: 1, cap: 10, focus_cut: 0.25, sell_bonus: 6 },   // r708 owner: costs 25% of your Focus; sells for more at max
@@ -119,10 +119,10 @@ const BAL = {
   monochrome: { coins: 5, seconds: 10, mult: 25 },   // r625: pays mult too; IMPROVE_PLAN cycles the three
   full_color: { mult_mult: 1.25 },   // r539 owner: x mult per card (was +16 pips +16 mult per card)
   balanced_diet: { mult_per_card: 10 },
-  number_crunch: { mult_per_card: 8 },
+  number_crunch: { mult_per_card: 14 },   // r810 (owner): was 8
   cull: { focus_per_stock: 2, per: 2 },
   even_score: { pips_per_card: 16 },
-  odd_squad: { mult_per_card: 7 },
+  odd_squad: { mult_per_card: 13 },   // r810 (owner): was 7
   long_road: { mult_per_card: 10 },
   still_water: { mult_per_interval: 15, interval_seconds: 5 },   // r767 (owner): was 10
   wild_heart: { primes: 1, extra_ranks: 0 },   // r625: primes per Ace; extra ranks are rolled on the Trick when improved

@@ -1,4 +1,4 @@
-const BUILD = "2026-11-22 · r809 · Old Tricks in reward picks; seeded run wording";
+const BUILD = "2026-11-22 · r810 · the owner's Trick audit calls";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

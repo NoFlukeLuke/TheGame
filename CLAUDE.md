@@ -5664,3 +5664,10 @@ Knack the owned Trick was in neither pool, after it in both; over 6,000 Flow Tri
 Trick showed 3.6% against another common's 3.4% (38 in the pool); a real pick with it first read "You own
 this.", CONFIRM opened the screen with the copy line dimmed (a Trick that is not a behaviour yet), Improve
 took it to v2, then Flow levelled up and the Schedule's pick ran its `done`. Golden: 838 match. No page errors.
+
+## r810 - the owner's calls from the Trick audit (TRICK_AUDIT.md)
+Perk Package +12 mult (the common mult-per-card average; was 6), Odd One In +13 (was 7), Equal
+Opportunity +14 per card (was 8), Twynergy +1 Focus per card (was 4; its improvement step 2 -> 1),
+Hands of Blue is rare (was epic). Company Time is not changed yet: it rewinds only on a 5-card
+Flush (`hand === 'Flush'` in play-hand.js), though its sentence says "Flushes". The rest of the
+audit is on the Trick Tuning page (the Trick Pool Triage artifact, rebuilt) for the owner to tune.
