@@ -5789,7 +5789,27 @@ ENDLESS opened the prize grid. Golden: 838 cases match. No page errors.
 
 ## r817 numbering
 Two sessions shipped r817 in parallel: the averages pass (with its r818 baseline) and the finished-run stop (on main). The merge that joined them is r819.
-## r820 - the score merge is LEDs: lit squares fly in a random order; the total rests 500ms (owner)
+
+## r820 - every corner: pixel notches in console mode, slightly rounded outside it (owner)
+`js/corners.js` (loads just before bootstrap). At load it reads every style rule in the game's
+stylesheets that rounds a corner and writes an override for it into `#corners-style`, inside the
+same @media / @supports, `!important`, the selector wrapped as `html.<look>.<look> :is(...)` so it
+beats the rule it copies. **Console mode** (`html.skin-machine`): each rounded corner becomes a
+square notch `CORNERS.notch` (3) design px deep, `corner-shape: notch` (border, background and
+shadows follow the cut; a layer with `border-radius: inherit`, the glass domes, takes
+`corner-shape: inherit`). A browser without corner-shape (Safari and Firefox today) gets square
+corners. **Outside it** (`html.tray-flat`): each rounded corner is `CORNERS.round` (4) px, a smaller
+radius kept. Left alone: circles and pills (a corner at 25% or more, or 50px or more), anything
+through `var()` / `calc()`, cards (`:not(.card)`: their stock has its own steps), the dev panel.
+A new rounded corner in a stylesheet is picked up by itself; one set from JS (inline) is not.
+**Chrome will not let a page read its own stylesheets over `file://`**, so opening index.html from
+disk shows the old corners; the live site (https) and any served copy get the pass. To test it
+headless, serve the files (a Playwright `page.route` that fulfils from disk works). Measured at
+1440x820 and 420x900: 1,055 override rules; console screens, keys, buttons and the housing
+notched, flat trays and keys at 4px; board, Balance Sheet, shop, event, Records and Settings
+drawn with no page errors; frame rate during a hand the same with the pass on and off (33-46 fps
+either way, run to run).
+## r821 - the score merge is LEDs: lit squares fly in a random order; the total rests 500ms (owner)
 - **LEDs** (`leds`, the default carry look; `auto` is LEDs; js/pmf-merge.js `_pmfLedCarry`). A number
   leaving its tray, and the number the tray it lands in held, are both drawn as lit squares (the keys'
   5x7 grid `kdGlyph`, sized and placed the way `ledDraw` draws a readout) on ONE canvas over

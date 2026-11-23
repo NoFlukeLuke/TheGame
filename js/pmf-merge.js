@@ -49,11 +49,11 @@ const PMF_CFG = {
   settle: 90,    // beat after a fuse, before the next step or the climb
   split:  300,   // fused chip back out to three
   hold:   260,   // console: a value fades and the next screen takes the number
-  rest:   500,   // r820 (owner): the hand's total sits in its tray this long before it flies to SCORE
+  rest:   500,   // r821 (owner): the hand's total sits in its tray this long before it flies to SCORE
 };
-// r820: v2, so the LEDs look (the new default) replaces a look chosen under v1.
+// r821: v2, so the LEDs look (the new default) replaces a look chosen under v1.
 const PMF_KEY = 'lethe.pmfLook.v2';
-// r820 (owner): LEDs is the default carry look (see _pmfLedCarry). r721: five more CARRY looks (a number leaves its tray and is carried into the next one) beside
+// r821 (owner): LEDs is the default carry look (see _pmfLedCarry). r721: five more CARRY looks (a number leaves its tray and is carried into the next one) beside
 // the r592 fuses. 'auto' is Rise in every skin.
 const PMF_CARRY = ['leds', 'rise', 'stamp', 'stream', 'zap', 'roll'];
 const PMF_LOOKS = ['auto', ...PMF_CARRY, 'hold', 'slide', 'one'];
@@ -375,13 +375,13 @@ function _pmfSound(k) {
   else if (typeof sfxFocusBeat === 'function') sfxFocusBeat();
 }
 
-// r820 (owner): PIPS going into MULT has its own sound; Focus going in keeps sfxFocusAgain.
+// r821 (owner): PIPS going into MULT has its own sound; Focus going in keeps sfxFocusAgain.
 function _pmfSoundPips() {
   if (typeof sfxPipsCombine === 'function') sfxPipsCombine();
   else if (typeof sfxFocusBeat === 'function') sfxFocusBeat();
 }
 
-// ── LEDs (r820, owner): the numbers change the way the keys' words do ────────────
+// ── LEDs (r821, owner): the numbers change the way the keys' words do ────────────
 // A number that leaves its tray is drawn as lit squares (the keys' 5x7 grid, js/key-dots.js,
 // sized and placed as the LED matrix draws a readout) on one canvas over #score-subboxes.
 // The squares of the number leaving AND of the number the tray held set off in a random
@@ -729,7 +729,7 @@ async function pmfMergeIn(handScore, opts) {
     : _pmfMode === 'slide' ? await _pmfSlide(handScore, o.pips, o.mult, speed, sig, p, o)
     : await _pmfOne(handScore, speed, sig, p);
   if (!ok) return false;
-  // r820 (owner): the total sits where it landed before it flies to SCORE, so it can be read.
+  // r821 (owner): the total sits where it landed before it flies to SCORE, so it can be read.
   await _pmfWait(Math.max(120, PMF_CFG.rest / speed));
   if (gen !== _pmfGen) return false;
   if (sig && sig.aborted) { pmfResetNow(); return false; }
