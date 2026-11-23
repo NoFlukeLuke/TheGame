@@ -1,4 +1,4 @@
-const BUILD = "2026-11-23 · r814 · round is level; Flow clock cards read the quarter";
+const BUILD = "2026-11-23 · r815 · golden baseline for r814";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

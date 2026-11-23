@@ -5719,3 +5719,6 @@ Eagle Eye's swap mark and Understudy's mark survived the level-up, the six clock
 Net were banned, a pause left the level's start alone. Golden: only Swift, Eagle Eye and Hyper Focus
 cases move (and tray34, which holds one); baseline in r815. tools/scoring-golden prints
 `GOLDEN_SHOW` differences (default 60).
+
+## r815 - golden baseline rewritten for r814
+The Swift, Eagle Eye and Hyper Focus cases (and tray34) move with the new numbers; nothing else changed.
