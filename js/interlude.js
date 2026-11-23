@@ -6,6 +6,7 @@
 // finishInterlude continuation - which is what advances the act at nodeInAct 5 -
 // is reached identically either way.
 async function startInterlude(opts) {
+  if (typeof runIsOver === 'function' && runIsOver()) return;   // r817: the run is over
   opts = opts || {};
   // r634: a test drive (BUILDS) is one round; its goal cleared opens the finale.
   if (typeof testDriveActive === 'function' && testDriveActive()) { showFinale('drive'); return; }

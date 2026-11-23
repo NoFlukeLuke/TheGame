@@ -550,6 +550,7 @@ function shopAttachLabelHold(el, cat) {
 // ── Open / close ──
 let _shopPrevPV = null;   // portrait panel view to restore on close
 function openShopGrid() {
+  if (typeof runIsOver === 'function' && runIsOver()) return;   // r817: the run is over
   if (typeof rsScreen === 'function') rsScreen('shop');   // r755: run stats
   shopGridActive = true;
   shopGridMode   = 'buy';

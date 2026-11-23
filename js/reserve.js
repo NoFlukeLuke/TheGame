@@ -100,6 +100,7 @@ function reserveSourceRect() {
 // ── The Focus bar's double-tap ──────────────────────────────────────────────
 // A Focus knack that names a handler takes the gesture; otherwise the Reserve.
 function focusTapHandler() {
+  if (typeof runIsOver === 'function' && runIsOver()) return;   // r817: the run is over
   // r590: bought cards (js/lockbox.js) come first while there are any.
   if (typeof lockboxStash !== 'undefined' && (lockboxStash.length || (typeof lockboxActive === 'function' && lockboxActive()))) return () => lockboxToggle(null);
   if (typeof FOCUS_TAP_KNACKS !== 'undefined' && Array.isArray(acquiredKnacks)) {

@@ -42,6 +42,7 @@ function showSuitEffect(text, color) {
 // TIMERS
 // ══════════════════════════════════════════════
 function startRoundTimer(opts) {
+  if (typeof runIsOver === 'function' && runIsOver()) return;   // r817: the run is over
   const _resume = !!(opts && opts.resume);   // r814: closing the pause menu keeps the level's start
   if (roundInterval) clearInterval(roundInterval);
   if (typeof flowrMaybeRunPendingDual === 'function' && flowrMaybeRunPendingDual()) return;
@@ -379,6 +380,7 @@ function onRoundEnd() {
       return;
     }
     resolveChallenge(false);
+    if (typeof runOverSet === 'function') runOverSet(true);   // r817
     setTimeout(() => onGameEnd(true), 2300);
     return;
   }

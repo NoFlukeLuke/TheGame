@@ -1,4 +1,4 @@
-const BUILD = "2026-11-23 · r816 · merge the end-screen PAUSE fix";
+const BUILD = "2026-11-23 · r817 · a finished run stops: nothing plays under the end screen";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

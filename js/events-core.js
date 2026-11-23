@@ -143,6 +143,7 @@ function evWeightedOrder(ids) {
 
 // opts.exclude: ids this caller cannot host (Flow's chain, r706: events that take the board).
 function openEvent(afterFn, opts) {
+  if (typeof runIsOver === 'function' && runIsOver()) return;   // r817: the run is over
   if (typeof rsScreen === 'function') rsScreen('event');   // r755: run stats
   afterEventFn = afterFn || (() => drainLevelUpQueue());
   const ex = (opts && opts.exclude) || null;

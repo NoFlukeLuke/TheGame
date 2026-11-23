@@ -489,6 +489,7 @@ function survivalUpdateRerollBtn() {
 // cards fly into the preview) and from the post-boss reward. Does NOT advance the
 // level - the deal happens when the player chooses (survivalChoose).
 function survivalShowPick(bonus = false, kicker) {
+  if (typeof runIsOver === 'function' && runIsOver()) return;   // r817: the run is over
   // Flow's multi-reward chain (js/flow-rewards.js, r325): a goal clear can pay
   // several screens. When it takes over it plays the counter card and shows
   // step 1 itself; the chain's own pick3 step calls back in with a bypass flag.

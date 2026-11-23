@@ -134,6 +134,7 @@ function cardAt(el) {
 }
 
 function doSwap(r1, c1, r2, c2) {
+  if (typeof runIsOver === 'function' && runIsOver()) return;   // r817: the run is over
   if (typeof bossJumpRunning === 'function' && bossJumpRunning()) return;   // r606
   if (typeof cascadeRunning === 'function' && cascadeRunning()) return;   // r773: a cascade has the board
   // A boss may refuse the action outright (The Turnstile with no fare). Checked
@@ -321,12 +322,14 @@ function swapCountsSay() {
 }
 // The SWAP key, the S key and the wheel all come here with the selection.
 function swapSelected() {
+  if (typeof runIsOver === 'function' && runIsOver()) return;   // r817: the run is over
   if (selected.length === 2) { const [[r1, c1], [r2, c2]] = selected; cancelAutoSubmit(); doSwap(r1, c1, r2, c2); return true; }
   if (swapCountOk(selected.length)) { const cells = selected.map(([r, c]) => [r, c]); cancelAutoSubmit(); doSwapMulti(cells); return true; }
   if (selected.length > 0) refuse(`Select ${swapCountsSay()} cards to swap them`, { color: 'var(--cream-dim)' });
   return false;
 }
 function doSwapMulti(cells) {
+  if (typeof runIsOver === 'function' && runIsOver()) return;   // r817: the run is over
   if (typeof bossJumpRunning === 'function' && bossJumpRunning()) return;
   if (typeof cascadeRunning === 'function' && cascadeRunning()) return;
   if (typeof bossInteractBlocked === 'function' && bossInteractBlocked('swap')) return;
@@ -482,6 +485,7 @@ function tryAddToSelection(r, c) {
 let _dtBefore = null;   // the selection before the first tap of a possible double-tap
 // ── Tap handler (called on pointerup when pointer didn't move) ──
 function onCardTap(r, c) {
+  if (typeof runIsOver === 'function' && runIsOver()) return;   // r817: the run is over
   if (_longPressActive) { _longPressActive = false; return; }
   // r773: a cascade (Overdrive, Autopilot, All Hands) has the board while it runs.
   if (typeof cascadeRunning === 'function' && cascadeRunning()) return;
