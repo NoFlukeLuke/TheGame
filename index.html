@@ -543,8 +543,10 @@
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:4px;">
       How a card's score chips leave it, and how far a long hand may speed itself up.
     </div>
-    <div class="dev-slider-row"><span>Chip sits at its source <b id="dev-tally-hold-val">600</b>ms</span>
-      <input id="dev-tally-hold" type="range" min="0" max="1200" value="600" step="10" oninput="devSetTally('hold', this.value)"></div>
+    <div class="dev-slider-row"><span>Chip sits at its source <b id="dev-tally-hold-val">1200</b>ms</span>
+      <input id="dev-tally-hold" type="range" min="0" max="2400" value="1200" step="20" oninput="devSetTally('hold', this.value)"></div>
+    <div class="dev-slider-row"><span>Chip path curve <b id="dev-tally-curve-val">6</b>% (0 = straight)</span>
+      <input id="dev-tally-curve" type="range" min="0" max="25" value="6" step="1" oninput="devSetTally('curve', this.value)"></div>
     <div class="dev-slider-row"><span>Gap between chips <b id="dev-tally-gap-val">140</b>ms</span>
       <input id="dev-tally-gap" type="range" min="0" max="400" value="140" step="10" oninput="devSetTally('gap', this.value)"></div>
     <div class="dev-row"><span style="font-size:11px;color:var(--cream-dim)">Chip order</span>
@@ -829,11 +831,11 @@
     <div class="dev-subtitle">Score merge (how PIPS x MULT x FOCUS become the score)</div>
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
       The chips fuse by
-      <select id="dev-pmf-look" onchange="setPmfLook(this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor: var(--cur-pointer, pointer);"><option value="auto">auto (Rise)</option><option value="rise">Rise (each number rises and flies into the next tray, gone as it lands)</option><option value="stamp">Stamp (lifts, slams down into the next tray)</option><option value="stream">Stream (its digits pour across; the tray counts up)</option><option value="zap">Zap (a bolt jumps across; the tray scrambles, then locks)</option><option value="roll">Roll (slides along the foot; the tray rolls like an odometer)</option><option value="hold">hold (nothing moves: the next screen takes the number)</option><option value="slide">melt (two steps, the chips melt together)</option><option value="one">one step (all three at once)</option></select>
+      <select id="dev-pmf-look" onchange="setPmfLook(this.value)" style="background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;font-family:'Crimson Pro',serif;font-size:12px;cursor: var(--cur-pointer, pointer);"><option value="auto">auto (LEDs)</option><option value="leds">LEDs (each number breaks into lit squares that fly in a random order into the next tray)</option><option value="rise">Rise (each number rises and flies into the next tray, gone as it lands)</option><option value="stamp">Stamp (lifts, slams down into the next tray)</option><option value="stream">Stream (its digits pour across; the tray counts up)</option><option value="zap">Zap (a bolt jumps across; the tray scrambles, then locks)</option><option value="roll">Roll (slides along the foot; the tray rolls like an odometer)</option><option value="hold">hold (nothing moves: the next screen takes the number)</option><option value="slide">melt (two steps, the chips melt together)</option><option value="one">one step (all three at once)</option></select>
       <button class="dev-btn" onclick="pmfPreview()">Preview</button>
     </label>
     <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);">
-      Rise, Stamp, Stream, Zap and Roll end in
+      LEDs, Rise, Stamp, Stream, Zap and Roll end in
       <button class="dev-btn" data-pmf-resolve="mid" onclick="setPmfResolve('mid')">MIDDLE (MULT)</button>
       <button class="dev-btn" data-pmf-resolve="focus" onclick="setPmfResolve('focus')">FOCUS</button>
       <button class="dev-btn" onclick="location.href='index.html?merge'">Open the lab</button>
@@ -1962,6 +1964,7 @@
 <script src="js/cr-fx-lab.js"></script>
 <script src="js/record-mode.js"></script>
 <script src="js/score-lab.js"></script>
+<script src="js/corners.js"></script>
 <script src="js/bootstrap.js"></script>
 </div><!-- /#stage -->
 

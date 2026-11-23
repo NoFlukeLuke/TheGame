@@ -4540,7 +4540,7 @@ Amplifier. Golden: 838 cases match. No page errors.
   Schedule's goals from Q3's first level, Flow's level goals after the 2nd boss and Flow's bosses 3 and 4
   are exactly twice the curve. Measured: Schedule level 19 29,500 -> 59,000, level 36 492,000 -> 984,000;
   Flow level 25 190,600 -> 381,150, boss 3 62,450 -> 124,900.
-- **Growth Mindset** (rare Knack `growth_mindset`, named **Insatiable** in r820; Limitless's unlock in `PROTO_KNACKS`):
+- **Growth Mindset** (rare Knack `growth_mindset`, named **Insatiable** in r823; Limitless's unlock in `PROTO_KNACKS`):
   limit rewards twice as common (`limitOfferMult()`): Flow's chain `limits` odds, the pick of three's
   `limit` type, the Balance Sheet's `limit_up` tiles, the shop's Upgrades shelf. The owner's other idea (a
   second random limit on every raise) is the Knock-On Knack already (r523). Measured: pick types with it
@@ -5790,6 +5790,78 @@ ENDLESS opened the prize grid. Golden: 838 cases match. No page errors.
 ## r817 numbering
 Two sessions shipped r817 in parallel: the averages pass (with its r818 baseline) and the finished-run stop (on main). The merge that joined them is r819.
 
-## r820 - Growth Mindset is Insatiable (owner)
+## r820 - every corner: pixel notches in console mode, slightly rounded outside it (owner)
+`js/corners.js` (loads just before bootstrap). At load it reads every style rule in the game's
+stylesheets that rounds a corner and writes an override for it into `#corners-style`, inside the
+same @media / @supports, `!important`, the selector wrapped as `html.<look>.<look> :is(...)` so it
+beats the rule it copies. **Console mode** (`html.skin-machine`): each rounded corner becomes a
+square notch `CORNERS.notch` (3) design px deep, `corner-shape: notch` (border, background and
+shadows follow the cut; a layer with `border-radius: inherit`, the glass domes, takes
+`corner-shape: inherit`). A browser without corner-shape (Safari and Firefox today) gets square
+corners. **Outside it** (`html.tray-flat`): each rounded corner is `CORNERS.round` (4) px, a smaller
+radius kept. Left alone: circles and pills (a corner at 25% or more, or 50px or more), anything
+through `var()` / `calc()`, cards (`:not(.card)`: their stock has its own steps), the dev panel.
+A new rounded corner in a stylesheet is picked up by itself; one set from JS (inline) is not.
+**Chrome will not let a page read its own stylesheets over `file://`**, so opening index.html from
+disk shows the old corners; the live site (https) and any served copy get the pass. To test it
+headless, serve the files (a Playwright `page.route` that fulfils from disk works). Measured at
+1440x820 and 420x900: 1,055 override rules; console screens, keys, buttons and the housing
+notched, flat trays and keys at 4px; board, Balance Sheet, shop, event, Records and Settings
+drawn with no page errors; frame rate during a hand the same with the pass on and off (33-46 fps
+either way, run to run).
+## r821 - the score merge is LEDs: lit squares fly in a random order; the total rests 500ms (owner)
+- **LEDs** (`leds`, the default carry look; `auto` is LEDs; js/pmf-merge.js `_pmfLedCarry`). A number
+  leaving its tray, and the number the tray it lands in held, are both drawn as lit squares (the keys'
+  5x7 grid `kdGlyph`, sized and placed the way `ledDraw` draws a readout) on ONE canvas over
+  `#score-subboxes` (`.pmf-dots`, `_pmfDots`). The squares set off in a random order over 45% of the
+  carry and fly, stepped a whole square at a time, to the squares of the new number, taking its colour.
+  Both values are hidden from the first frame (`.pmf-dots-hide`; the LED matrix's canvas beside a
+  hidden value too), so no old number is left where it was; the tray shows its own figure again when
+  the last square lands. Too few old squares: the extra ones start from a random old square. Too
+  many: the spare ones fly to a random new square and go out. **Nothing shakes, lifts or pops** in
+  this look (no `pmf-jit-val`, no `_pmfPopVal`). The carry ends on a timer, not on frames (rAF stops
+  in a background tab); `_pmfDotsClear` runs from `pmfResetNow` and the split.
+- **Sounds:** PIPS landing in MULT plays `sfxPipsCombine` (catalog `pips_combine`, a row in every
+  pack: two dry clacks and a short note); Focus landing keeps `sfxFocusAgain(k)`. Every carry look
+  uses the pair (`pipsIn` in `_pmfCarry`); before, both played the Focus sound.
+- **The rest:** `pmfMergeIn` waits `PMF_CFG.rest` (500ms over the tally's pace, 120 at least) after
+  every look's fuse, so the total sits in its tray before `pmfFlyToScore`.
+- The look store is `lethe.pmfLook.v2` (a look chosen under v1 is dropped, so LEDs shows). Rise,
+  Stamp, Stream, Zap, Roll, Hold, Melt and One step stay in dev -> Aesthetics -> Score merge and `?merge`.
+Measured in headless Chromium at 1440x820 (console, LED matrix on and off) and 420x900 through
+`?merge` and real hands: 48 x 12 x 1.5 twice landed 576, 864, 1,296 with the pips sound once and the
+Focus sound twice; the fly to SCORE began 590ms after the last landing; a 3-hand burst and a cut
+dance left no canvas, hidden value or gold class; no page errors, no timeline drift.
+
+## r822 - what fires shows it; chips fly one gentle curve; the chip sits twice as long (owner)
+- **Fire animations were never switched off.** Since r197 a card swelled 12% for 0.42s and a Trick
+  21% for 0.26s. Since r772 / r805 the chip pops up ON what fired at the same instant and then sits
+  there, so the swell was over under the chip before the eye left it. Now `dncFire(el, hold, color,
+  isCard)` (js/score-dance.js, `DNC_FIRE`): what fires jumps (card x1.17 and lifted 9% of its height,
+  Trick / Knack / Sleight x1.3, brighter, a glow in the chip's colour), STAYS raised and lit for as
+  long as its chip sits on it (`dncLastHold`, written by `dncFly`), and drops back with a small recoil
+  as the chip leaves. WAAPI on the standalone `scale` / `translate` plus `filter` and `box-shadow`,
+  through `dncAnimate` (pausable), nothing left on the element. A re-fire starts from the drawn pose;
+  a card's second chip only extends it. `dncReleaseReal(el, hold, color)` is the entity door (the
+  payout's plates pass no hold and get the quick jump); the card fires as its beat opens and from
+  every chip that leaves the card. Reduced motion keeps the light and drops the movement. The
+  `dnc-pop` / `dnc-pulse` / `dnc-flash` classes are no longer applied by the dance.
+- **Chips fly one gentle curve** (`ptHoldFrames`): r805's sideways `bow` (every other chip the other
+  way, through one middle keyframe) made a chip going straight up swing 54px right and back
+  (measured) and a stream of chips weave. The flight is now a quadratic curve in 12 steps with one
+  ease over the trip, bulging `TALLY_CFG.curve` (6)% of its length, always to the same side; 0 is a
+  straight line. Dev -> HUD & Display -> Score tally pacing -> Chip path curve.
+- **The chip sits 1200ms** (`TALLY_CFG.hold`, was 600). The first `TALLY_HOLD_CARVED` (600) ms come
+  out of the flight as before; the rest lengthens the chip's whole trip: `dncChipBase()` (flight +
+  hold - 600 = 2040ms at 1x) is what every dance site that pins a chip's duration reads (the beat,
+  primes, `dncFly`), so the travel is the same 840ms and a number never lands ahead of its chip. A
+  prime's floor grows in the same ratio (`dncPrimeMin`). A skip (fast forward) has no sit. The store
+  is overrides only, so a typed hold stays. **Cost:** each beat is about 0.55s longer at the default pace.
+Measured in headless Chromium at 1440x820 and 420x900 (Classic, dev mode on): a chip sat 660ms
+before and 1240 to 1440ms after; a straight-up flight's sideways travel went 54px to 5px past its
+target; a Trick read 144 -> 187px wide and a card 96 -> 112 while their chips sat, both back to rest
+with no animation left; a primed hand with a x mult and a replay, a 3-hand burst, reduced motion and
+SPEED UP + SKIP: scores landed on the banked totals, no timeline drift, no page errors. Golden: 838 match.
+## r823 - Growth Mindset is Insatiable (owner)
 Display name only (id `growth_mindset`, Limitless's protocol Knack): js/data/knacks.js, the handbook's
 protocols entry, comments. The r750 note's "no unlock Knack yet" for Hyperfocus is corrected (ADHD, r789).

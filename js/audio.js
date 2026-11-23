@@ -595,6 +595,13 @@ function sfxOverdriveHit(k) {
   playTone({ freq: 110, type: 'triangle', gain: 0.14, attack: 0.002, decay: 0.08, sustain: 0.2, release: 0.14, duration: 0.14 });
   [1, 1.5, 2].forEach((ratio, i) => playTone({ freq: 261.6 * up * ratio, type: 'square', gain: 0.07 - i * 0.015, attack: 0.004, decay: 0.08, sustain: 0.25, release: 0.22, duration: 0.3, delay: 0.02 + i * 0.03 }));
 }
+// r804 (owner): PIPS going into MULT. Two dry clacks, the second a fifth up, closing on one
+// short bright note: a count, where Focus going in (sfxFocusAgain) is a swell.
+function sfxPipsCombine() {
+  playTone({ freq: 392, type: 'triangle', gain: 0.11, attack: 0.002, decay: 0.04, sustain: 0.12, release: 0.04, duration: 0.06 });
+  playTone({ freq: 587, type: 'triangle', gain: 0.11, attack: 0.002, decay: 0.04, sustain: 0.12, release: 0.05, duration: 0.07, delay: 0.06 });
+  playTone({ freq: 1175, type: 'square', gain: 0.04, attack: 0.002, decay: 0.05, sustain: 0.15, release: 0.1, duration: 0.12, delay: 0.12 });
+}
 function sfxFocusBeat() {
   // Low swell
   playTone({

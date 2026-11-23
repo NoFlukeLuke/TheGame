@@ -50,6 +50,8 @@ const SFX_CATALOG = [
   { id: 'score_trick',   fn: 'sfxScoreTrick',      group: 'Scoring', label: 'Trick triggers' },
   { id: 'entity_ping',   fn: 'sfxEntityPing',      group: 'Scoring', label: 'Knack or chance Trick goes off' },
   { id: 'focus_beat',    fn: 'sfxFocusBeat',       group: 'Scoring', label: 'Focus beat' },
+  { id: 'pips_combine',  fn: 'sfxPipsCombine',     group: 'Scoring', label: 'Pips go into mult',
+    note: 'r804: the PIPS number landing in the MULT tray. Focus landing there is focus_again.' },
   { id: 'focus_again',   fn: 'sfxFocusAgain',      group: 'Scoring', label: 'Focus applies again', args: [1],
     note: 'r571: the multiplier applying a second (third...) time: the beat a tone up per application.' },
   { id: 'overdrive_hit', fn: 'sfxOverdriveHit',    group: 'Scoring', label: 'Overdrive hand',     args: [1],
