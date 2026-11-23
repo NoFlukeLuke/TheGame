@@ -175,7 +175,7 @@ function updateGridTopline() {
   const t = document.getElementById('gt-time');
   if (t && typeof roundSeconds === 'number') {
     const m = Math.floor(Math.max(0, roundSeconds) / 60), sec = Math.max(0, roundSeconds) % 60;
-    t.textContent = `LEVEL ${typeof level === 'number' ? level : 1} · ROUND TIME ${m}:${String(sec).padStart(2, '0')}`;
+    t.textContent = `LEVEL ${typeof level === 'number' ? level : 1} · LEVEL TIME ${m}:${String(sec).padStart(2, '0')}`;
   }
   const c = document.getElementById('gt-coins');
   if (c && typeof coins === 'number') c.textContent = creditsTxt(coins);

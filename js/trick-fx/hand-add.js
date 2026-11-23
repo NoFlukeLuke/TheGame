@@ -32,10 +32,10 @@ fxDefine('hummingbird',    { handAdd: () => ({ mult: (pauseInstanceGame + rewind
 // The Kingfisher: +mult per interval of seconds paused or rewound this round.
 fxDefine('kingfisher',     { handAdd: () => ({ mult: Math.floor((pausedSecondsRound + rewoundSecondsRound) / TB('kingfisher').interval_seconds) * TB('kingfisher').mult_per_interval }) });
 // The Swift: +mult for every interval of round time gone.
-fxDefine('swift',          { handAdd: () => ({ mult: Math.floor(Math.max(0, roundStartSeconds - roundSeconds) / TB('swift').interval_seconds) * TB('swift').mult_per_interval }) });
+fxDefine('swift',          { handAdd: () => ({ mult: Math.floor(clockElapsed() / TB('swift').interval_seconds) * TB('swift').mult_per_interval }) });
 // Eagle Eye: +mult per interval since the last swap (the round's start if none).
 fxDefine('still_water',    { handAdd: () => {
-  const gone = lastSwapRoundSeconds !== null ? Math.max(0, lastSwapRoundSeconds - roundSeconds) : Math.max(0, roundStartSeconds - roundSeconds);
+  const gone = lastSwapRoundSeconds !== null ? Math.max(0, lastSwapRoundSeconds - roundSeconds) : clockElapsed();
   return { mult: BAL.still_water.mult_per_interval * Math.floor(gone / BAL.still_water.interval_seconds) };
 } });
 // Ready, Set, Go: a 3-card hand holding one of its ranks.

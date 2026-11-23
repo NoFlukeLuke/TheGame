@@ -234,7 +234,7 @@ function playHand() {
   if (rewardOnGrid) { confirmRewardPath(); return; }
   // Match-3: the board plays its own matches (match3Resolve). Manual play is off.
   if (match3Active()) { dbgEvent('info', 'play ignored (match-3 auto-plays)'); return; }
-  if (roundEnded) { dbgEvent('warn', 'play ignored (round ended)'); return; }
+  if (roundEnded) { dbgEvent('warn', 'play ignored (level ended)'); return; }
   // r773: while a cascade runs (Overdrive, Autopilot, All Hands: js/cascade.js) only the cascade plays; PLAY (button, key, drag) is off.
   if (typeof cascadeRunning === 'function' && cascadeRunning() && !cascadePlaying()) { dbgEvent('info', 'play ignored (cascade)'); return; }
   if (typeof logisticsRunning === 'function' && logisticsRunning()) return;   // r647
@@ -919,7 +919,7 @@ function playHand() {
       if (hasKnack('scavenger')) {
         grantEntityCoins(BAL.scavenger.coins, 'knack', 'scavenger');
         nextRoundDiscardDelta += 1;
-        showMessage(`Scavenger: +${BAL.scavenger.coins} coins, +1 discard next round`, 'var(--gold)');
+        showMessage(`Scavenger: +${BAL.scavenger.coins} coins, +1 discard next level`, 'var(--gold)');
       }
     }
   });

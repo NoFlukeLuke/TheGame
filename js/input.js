@@ -589,7 +589,7 @@ function onCardTap(r, c) {
         return;
       }
       if (!sleightCanActivateThisRound(jcard)) {
-        refuse(`${jdef.name} already used this round`, { color: 'var(--cream-dim)' });
+        refuse(`${jdef.name} already used this level`, { color: 'var(--cream-dim)' });
         return;
       }
       hideSleightGridTooltip();

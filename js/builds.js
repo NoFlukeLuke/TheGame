@@ -30,7 +30,7 @@ const BV_GROUPS = ['rarity', 'type', 'alpha', 'pays', 'scope', 'when', 'how', 'a
 const BV_RARITIES = ['common', 'rare', 'epic', 'legendary'];
 const BV_FILE = [['open', 'Found'], ['missing', 'Not found yet'], ['classified', 'Locked']];
 const BV_ACTS = [['double_tap', 'Double-tap'], ['on_play', 'On play'], ['on_discard', 'On discard'], ['on_swap', 'On swap'],
-  ['passive', 'Passive'], ['adjacent', 'Adjacent'], ['wildcard', 'Wild'], ['aim', 'Aim'], ['on_draw', 'On draw'], ['round_end', 'Round end']];
+  ['passive', 'Passive'], ['adjacent', 'Adjacent'], ['wildcard', 'Wild'], ['aim', 'Aim'], ['on_draw', 'On draw'], ['round_end', 'Level end']];
 const BV_ACT_LABEL = Object.fromEntries(BV_ACTS);
 
 // View state. Stored overrides-only.
@@ -594,7 +594,7 @@ function renderBuildsRail() {
       <div class="bv-actions">
         <button class="bv-key" id="bv-save">SAVE</button>
         <button class="bv-key bv-track" id="bv-file" title="Stars these wherever a run offers them">TRACK IN RUNS</button>
-        <button class="bv-key bv-drive" id="bv-drive" title="One round of Classic with this build granted">TEST DRIVE</button>
+        <button class="bv-key bv-drive" id="bv-drive" title="One level of Classic with this build granted">TEST DRIVE</button>
         <button class="bv-key" id="bv-share">COPY CODE</button>
         <button class="bv-key" id="bv-load">PASTE CODE</button>
         <button class="bv-key bv-clear-b" id="bv-clear-draft">CLEAR</button>
@@ -739,7 +739,7 @@ let testDrive = null;
 function testDriveDraft() {
   const n = draftBuild.tricks.length + draftBuild.sleights.length + draftBuild.knacks.length;
   if (!n) { showBuildsToast('Nothing in the draft yet'); return; }
-  if (!confirm('Test drive: one round of Classic with this build granted. Ready?')) return;
+  if (!confirm('Test drive: one level of Classic with this build granted. Ready?')) return;
   try { sessionStorage.setItem(TEST_DRIVE_KEY, JSON.stringify({ name: draftBuild.name, tricks: draftBuild.tricks, sleights: draftBuild.sleights, knacks: draftBuild.knacks })); } catch (e) {}
   location.reload();
 }
@@ -768,7 +768,7 @@ function launchTestDrive(req) {
       if (typeof recomputeFocusDecayInterval === 'function') recomputeFocusDecayInterval();
       if (typeof renderTrickTray === 'function') renderTrickTray();
       syncDiscoveredFromOwned();
-      showMessage('TEST DRIVE: one round', 'var(--c-mint)');
+      showMessage('TEST DRIVE: one level', 'var(--c-mint)');
     } catch (e) { console.error('[test drive] grant failed', e); }
   }, 600);
 }

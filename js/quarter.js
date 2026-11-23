@@ -275,7 +275,7 @@ function runReportHTML() {
   const tile = (label, value) => `<div class="rr-tile"><span>${label}</span><b>${value}</b></div>`;
   html += tile('Total score', _qScoreNow().toLocaleString());
   html += tile('Time played', _qFmtTime(secondsPlayed));
-  html += tile('Rounds cleared', (typeof level === 'number' ? level : 0));
+  html += tile('Levels cleared', (typeof level === 'number' ? level : 0));
   html += tile('Hands played', (typeof handsPlayed === 'number' ? handsPlayed : 0));
   html += tile('Best hand', (typeof highestHandName === 'string' && highestHandName)
     ? `${highestHandName} <i>${(highestHandScore || 0).toLocaleString()}</i>` : '·');

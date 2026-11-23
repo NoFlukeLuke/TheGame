@@ -262,7 +262,7 @@ function quotaIntroShow(full) {
   el.innerHTML = full
     ? `<div class="qi-card"><div class="qi-sw">${sw}</div><div class="qi-title">LINE QUOTAS</div>`
       + `<div class="qi-body">Each marked line has its own goal. A hand pays every marked line it touches.</div>`
-      + `<div class="qi-body">Fill every line to clear the round.${flow ? ` Cleared, it pays <b>${QUOTA_LINES_REWARDS} rewards</b>.` : ''}</div>`
+      + `<div class="qi-body">Fill every line to clear the level.${flow ? ` Cleared, it pays <b>${QUOTA_LINES_REWARDS} rewards</b>.` : ''}</div>`
       + `<button class="qi-ok">GOT IT</button></div>`
     : `<div class="qi-card"><div class="qi-sw">${sw}</div><div class="qi-title">LINE QUOTAS</div>`
       + `<div class="qi-body">Fill every marked line${flow ? ` for <b>${QUOTA_LINES_REWARDS} rewards</b>` : ''}.</div></div>`;

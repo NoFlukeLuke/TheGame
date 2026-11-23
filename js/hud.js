@@ -70,7 +70,7 @@ function updateScoreUI() {
   const totalLabel = document.getElementById('score-total-label');
   const goalLabel  = document.getElementById('score-goal-label');
   const barWrap    = document.getElementById('score-progress-bar-wrap');
-  if (totalLabel) totalLabel.textContent = between ? 'Last round' : 'Score';
+  if (totalLabel) totalLabel.textContent = between ? 'Last level' : 'Score';
   // lexTerm, never a literal: this label is the one r293 flipped from a
   // hardcoded QUOTA, and hardcoding GOAL instead is the same bug mirrored.
   const goalWord = (typeof lexTerm === 'function') ? lexTerm('goal') : 'GOAL';

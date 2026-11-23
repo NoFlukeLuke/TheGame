@@ -58,7 +58,7 @@ function renderAltar() {
   body.appendChild(all);
   const cands = investTrickCandidates();
   const tr = makeChoiceEl({ icon: '📈', rarity: 'epic', name: 'Invest a Trick', cls: 'inv-opt',
-    desc: cands.length ? `A Trick and an amount. The Trick is off until Q${q + 1} opens. Every round that starts before then it has ${INVEST.trickPerCoin}% per credit to improve.`
+    desc: cands.length ? `A Trick and an amount. The Trick is off until Q${q + 1} opens. Every level that starts before then it has ${INVEST.trickPerCoin}% per credit to improve.`
                        : 'No Trick of yours can improve.',
     onClick: () => { if (cands.length) pick('trick'); } });
   tr.dataset.kind = 'trick';
@@ -89,7 +89,7 @@ function renderAltar() {
   amt.querySelector('.inv-all').addEventListener('click', () => { range.value = String(coins | 0); eventState.invAmt = coins | 0; invSync(); });
   function invSync() {
     const n = Math.max(1, Math.min(coins | 0, eventState.invAmt | 0));
-    read.textContent = `${creditsTxt(n)} · ${Math.min(100, n * INVEST.trickPerCoin)}% a round`;
+    read.textContent = `${creditsTxt(n)} · ${Math.min(100, n * INVEST.trickPerCoin)}% a level`;
     const ok = eventState.invKind === 'credits' || (eventState.invKind === 'trick' && !!eventState.invTrick);
     evConfirmBtn(eventState.invKind === 'credits' ? `INVEST ${creditsTxt(coins | 0)}` : eventState.invKind === 'trick' ? `INVEST ${creditsTxt(n)}` : 'Confirm', ok);
   }
@@ -174,7 +174,7 @@ function investmentReportMaybe(done) {
     lines.push(rep.out.half ? 'HALF BACK' : `+${Math.round(rep.out.rate * 100)}% A LEVEL`);
     lines.push(`&gt; RETURNED ${creditsTxt(rep.amount)}`);
   } else {
-    lines.push(`${esc(rep.name.toUpperCase())} · ${creditsTxt(rep.credits)} · ${rep.rounds} ROUND${rep.rounds === 1 ? '' : 'S'}`);
+    lines.push(`${esc(rep.name.toUpperCase())} · ${creditsTxt(rep.credits)} · ${rep.rounds} LEVEL${rep.rounds === 1 ? '' : 'S'}`);
     lines.push(rep.ups ? `IMPROVED ${rep.ups === 1 ? 'ONCE' : rep.ups === 2 ? 'TWICE' : rep.ups + ' TIMES'}` : 'NOT IMPROVED');
     lines.push(`&gt; ${esc(rep.name.toUpperCase())} IS BACK`);
   }

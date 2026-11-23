@@ -32,7 +32,7 @@
 // How a counter reads in a goal ({n} is the number).
 const UL_STAT_TEXT = {
   'pwin:agentic': 'Win {n} run of the Agentic protocol',
-  'hands': 'Play {n} hands', 'cards': 'Score {n} cards', 'rounds': 'Clear {n} rounds', 'runs': 'Finish {n} runs', 'wins': 'Win {n} run',
+  'hands': 'Play {n} hands', 'cards': 'Score {n} cards', 'rounds': 'Clear {n} levels', 'runs': 'Finish {n} runs', 'wins': 'Win {n} run',
   'fam:set': 'Play {n} Set hands', 'fam:run': 'Play {n} Run hands', 'fam:flush': 'Play {n} Flush hands',
   'h:Pair': 'Play {n} Pairs', 'h:Two Pair': 'Play {n} Two Pairs', 'h:Full House': 'Play {n} Full Houses', 'h:Four of a Kind': 'Play Four of a Kind {n} times',
   'h:Flush': 'Play {n} Flushes', 'h:Straight': 'Play {n} Straights',
@@ -46,15 +46,15 @@ const UL_STAT_TEXT = {
   'longruns': 'Play {n} Run hands of 4 or more cards',
   'replays': 'Trigger {n} replays', 'max:handreplays': 'Trigger {n} replays in one hand',
   'pauses': 'Pause the clock {n} times', 'pausesecs': 'Keep the clock paused for {n}s in total', 'rewinds': 'Rewind the clock {n} times',
-  'timesecs': 'Pause or rewind the clock for {n}s in total', 'timedrounds': 'Pause or rewind the clock in {n} different rounds',
+  'timesecs': 'Pause or rewind the clock for {n}s in total', 'timedrounds': 'Pause or rewind the clock in {n} different levels',
   'pausedhands': 'Play {n} hands while the clock is paused', 'pausediscards': 'Discard {n} cards while the clock is paused',
   'discards': 'Discard {n} cards', 'swaps': 'Swap {n} times', 'sleights': 'Use a Sleight {n} times', 'sells': 'Sell {n} Tricks or Knacks',
   'focusmax': 'Fill the Focus bar {n} times', 'max:focusmult': 'Reach Focus x{n}',
-  'credits': 'Gain {n} credits', 'max:creditsheld': 'Hold {n} credits at once', 'max:secsleft': 'Clear a round with {n}s left',
+  'credits': 'Gain {n} credits', 'max:creditsheld': 'Hold {n} credits at once', 'max:secsleft': 'Clear a level with {n}s left',
   'streak3': 'Play the same hand type 3 times in a row, {n} times', 'max:streak': 'Play the same hand type {n} times in a row',
   'shapes:square': 'Play {n} hands in a 2x2 square', 'shapes:cross': 'Play {n} hands of 5 cards shaped like a +, T or L',
   'shapes:line5': 'Play {n} hands of 5 cards in a straight line',
-  'max:roundruns': 'Play {n} Run hands in one round', 'pairburst': 'Play 3 hands with a pair within 30s, {n} times',
+  'max:roundruns': 'Play {n} Run hands in one level', 'pairburst': 'Play 3 hands with a pair within 30s, {n} times',
   'max:pairhandscore': 'Score {n} with one hand that holds a pair',
   'challenges': 'Bank {n} challenge stages', 'bosses': 'Beat {n} bosses', 'improves': 'Improve {n} times', 'events': 'Open {n} events',
 };

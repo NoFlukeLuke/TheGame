@@ -1915,7 +1915,7 @@ function flowrOpenShop() {
 }
 function flowrCommonActions() {
   return [
-    { icon: '\ud83d\udcca', label: 'Round', sub: 'breakdown', onClick: () => flowrToggleRound() },
+    { icon: '\ud83d\udcca', label: 'Level', sub: 'breakdown', onClick: () => flowrToggleRound() },
     { icon: '\ud83d\uded2', label: 'Shop', sub: creditsTxt(SURVIVAL_SHOP_COST), cls: 'gp-act-buy',
       disabled: coins < SURVIVAL_SHOP_COST, onClick: () => flowrOpenShop() },
   ];

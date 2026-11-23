@@ -336,7 +336,7 @@ let heldBackScore = 0; // score temporarily withheld from display during goal da
 // ── Challenge card state ──
 let challengeCard = null;
 let challengeActive = false;
-let roundPenaltySeconds = 0;       // PERMANENT: seconds shaved off the round-time cap (stacks; reward "-5s round cap")
+let roundPenaltySeconds = 0;       // PERMANENT: seconds shaved off the round-time cap (stacks; reward "-5s level cap")
 // ── Reward-grid time/resource debuffs ──
 // Permanent (stack forever, reset only on new game):
 let extraPlayCostPerm    = 0;      // +seconds added to the cost of playing a hand
@@ -401,7 +401,7 @@ function resolveEntityLockout() {
   // Half of THIS round, measured off the clock the round actually started with,
   // so it is half a round in every mode rather than half of Classic's 180.
   entityLockout = { type, id: pick.id, name: pick.name, until: (roundStartSeconds || roundSeconds) / 2 };
-  showMessage(`Suspended: ${pick.name} (half the round)`, 'var(--red)');
+  showMessage(`Suspended: ${pick.name} (half the level)`, 'var(--red)');
 }
 // True while the lockout window is open. Flow has no round clock to run down, so
 // the window there is the first half of the session clock, which is the same

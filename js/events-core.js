@@ -269,7 +269,7 @@ function confirmEvent() {
 // openEvent's pool, confirmEvent's handler map, renderEventShell's renderer map,
 // recentEventIds and the dev panel's generated list.
 const EVENT_META = {
-  overtime:    { name:'Overtime',         flavor:'Longer rounds, for a price.' },
+  overtime:    { name:'Overtime',         flavor:'Longer levels, for a price.' },
   confluence:  { name:'Theme Draft',     flavor:'One theme. A Trick, a Sleight and a buffed card from it. Take two.' },
   crossroads:  { name:'The Trade',       flavor:'Every offer here gives you something and takes something.' },
   gamble:      { name:'The Gamble',      flavor:'Pick blind. One of these is worth having.' },

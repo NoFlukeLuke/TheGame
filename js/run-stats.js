@@ -205,7 +205,7 @@ function rsFinal() {
     protocol: (typeof ACTIVE_MODE !== 'undefined' && ACTIVE_MODE && ACTIVE_MODE.protocol) || 'standard',
     difficulty: typeof difficultyTier === 'function' ? difficultyTier() : 1,
     scoring: { model: typeof scoringModel !== 'undefined' ? scoringModel : '', ns: typeof nsModel !== 'undefined' ? nsModel : '' },
-    handKey: '[seconds into round, score, hand, cards, Focus x]',
+    handKey: '[seconds into level, score, hand, cards, Focus x]',
     rows: runStats.rows.map(r => ({ ...r, secs: Math.round(r.secs * 10) / 10 })),
     log: runStats.log, screens: runStats.scr, credits: runStats.cr, end,
   };

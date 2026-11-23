@@ -11,7 +11,8 @@ let stackedLvl = null, stackedBlock = 0;
 
 function stackedTick(elapsed) {
   if (typeof hasKnack !== 'function' || !hasKnack('stacked') || !BAL.stacked) return;
-  if (stackedLvl !== level) { stackedLvl = level; stackedBlock = 0; }
+  const _sk = clockSpanKey();   // r814: a Flow quarter is one span
+  if (stackedLvl !== _sk) { stackedLvl = _sk; stackedBlock = 0; }
   const blk = Math.floor(Math.max(0, elapsed) / Math.max(1, BAL.stacked.seconds));
   if (blk <= stackedBlock) return;
   stackedBlock = blk;

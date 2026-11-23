@@ -12,7 +12,7 @@ const BOSS_PRESETS = [
     objective: { type: 'score' },
     // r722 (owner): the stones MOVE (js/anvil.js); r723: they are WAR, the first horseman.
     // The deck dose is about a tenth (was 0.18): every one crushes its way down a column.
-    brief: 'War cards land on the board when the round starts, and more are shuffled into your deck. Every 15 seconds a War card drops a row and crushes the card under it. At the bottom it falls out after 30 seconds. A War card can be swapped, never selected, played or discarded.',
+    brief: 'War cards land on the board when the level starts, and more are shuffled into your deck. Every 15 seconds a War card drops a row and crushes the card under it. At the bottom it falls out after 30 seconds. A War card can be swapped, never selected, played or discarded.',
     modifiers: ['inject_stones'],
     // r216: stoneInjectCount is dead. The board dose is derived from the grid and
     // the deck dose from the real deck size (see inject_stones in js/boss.js).
@@ -25,7 +25,7 @@ const BOSS_PRESETS = [
     name: 'THE FOUR HORSEMEN',
     flavor: 'All of them',
     objective: { type: 'score' },
-    brief: 'The round starts with one of each curse card on the grid: War, Death, Famine and Pestilence.',
+    brief: 'The level starts with one of each curse card on the grid: War, Death, Famine and Pestilence.',
     modifiers: ['inject_horsemen'],
     params: {},
     final: true
@@ -35,7 +35,7 @@ const BOSS_PRESETS = [
     name: 'THE REAPER',
     flavor: 'Heads will roll',
     objective: { type: 'score' },
-    brief: 'The round starts with a Death card on the grid and another lands every 45 seconds. Every 30 seconds a Death card flies the way it faces and every card in its path goes to the played pile. Cards it takes cost half their rank in seconds.',
+    brief: 'The level starts with a Death card on the grid and another lands every 45 seconds. Every 30 seconds a Death card flies the way it faces and every card in its path goes to the played pile. Cards it takes cost half their rank in seconds.',
     modifiers: ['inject_death'],
     params: { everySecs: 45 }
   },
@@ -44,7 +44,7 @@ const BOSS_PRESETS = [
     name: 'THE PLAGUE',
     flavor: 'It gets around',
     objective: { type: 'score' },
-    brief: 'The round starts with two Pestilence cards in opposite corners and another lands every minute. Every 30 seconds a Pestilence card turns a neighbour into one unless it was played since.',
+    brief: 'The level starts with two Pestilence cards in opposite corners and another lands every minute. Every 30 seconds a Pestilence card turns a neighbour into one unless it was played since.',
     modifiers: ['inject_pestilence'],
     params: { everySecs: 60 }
   },
@@ -53,7 +53,7 @@ const BOSS_PRESETS = [
     name: 'THE SHORTAGE',
     flavor: 'Make do',
     objective: { type: 'score' },
-    brief: 'The round starts with a Famine card on the grid and another lands every 45 seconds. Swap a Famine card every 30 seconds or it takes a swap, a discard, 20 seconds, a Trick for 20 seconds or every Sleight on the grid.',
+    brief: 'The level starts with a Famine card on the grid and another lands every 45 seconds. Swap a Famine card every 30 seconds or it takes a swap, a discard, 20 seconds, a Trick for 20 seconds or every Sleight on the grid.',
     modifiers: ['inject_famine'],
     params: { everySecs: 45 }
   },
@@ -61,7 +61,7 @@ const BOSS_PRESETS = [
     id: 'voidwright',
     name: 'THE VOIDWRIGHT',
     flavor: 'Two of your Tricks at a time',
-    brief: 'Two of your Tricks are off for the first half of the round, and two others for the second half.',
+    brief: 'Two of your Tricks are off for the first half of the level, and two others for the second half.',
     objective: { type: 'score' },
     modifiers: ['trick_pool_split'],
     params: { perPhase: 2 }
@@ -135,7 +135,7 @@ const BOSS_PRESETS = [
     id: 'the_quarantine',
     name: 'THE QUARANTINE',
     flavor: 'The board is being condemned, cell by cell',
-    brief: 'Every 15 seconds a cell is marked. Ten seconds later it goes dark for the rest of the round: cards still fall into it, but nothing there can be selected, played, swapped or discarded.',
+    brief: 'Every 15 seconds a cell is marked. Ten seconds later it goes dark for the rest of the level: cards still fall into it, but nothing there can be selected, played, swapped or discarded.',
     objective: { type: 'score' },
     modifiers: ['cell_quarantine'],
     params: { everySecs: 15 }
@@ -162,7 +162,7 @@ const BOSS_PRESETS = [
     id: 'the_blight',
     name: 'THE BLIGHT',
     flavor: 'It spreads through the board',
-    brief: 'Every 20 seconds three more cells are contaminated for the rest of the round. A card scored from one pays half its pips and may fail to trigger a Trick.',
+    brief: 'Every 20 seconds three more cells are contaminated for the rest of the level. A card scored from one pays half its pips and may fail to trigger a Trick.',
     objective: { type: 'score' },
     modifiers: ['cell_blight'],
     params: { everySecs: 20, count: 3 }
@@ -183,7 +183,7 @@ const BOSS_PRESETS = [
     id: 'the_auditor',
     name: 'THE AUDITOR',
     flavor: 'Your allowances are under revision',
-    brief: 'Every 30 seconds you lose one swap or one discard for the round.',
+    brief: 'Every 30 seconds you lose one swap or one discard for the level.',
     objective: { type: 'score' },
     modifiers: ['ration_cut'],
     params: { everySecs: 30 }
@@ -237,7 +237,7 @@ const BOSS_PRESETS = [
     id: 'the_quota',
     name: 'THE QUOTA',
     flavor: 'Show your work, or start again',
-    brief: 'Three deadlines: a fifth of the goal by the first third of the round, two fifths by the second, three fifths by the third. Miss one and your score returns to zero.',
+    brief: 'Three deadlines: a fifth of the goal by the first third of the level, two fifths by the second, three fifths by the third. Miss one and your score returns to zero.',
     objective: { type: 'score' },
     modifiers: ['score_quota'],
     params: { shares: [0.2, 0.4, 0.6] }
@@ -246,7 +246,7 @@ const BOSS_PRESETS = [
     id: 'the_tax_man',
     name: 'THE TAX MAN',
     flavor: 'One credit a card, payable on play',
-    brief: 'Every hand costs 1 credit per card. Run out of credits and the round ends.',
+    brief: 'Every hand costs 1 credit per card. Run out of credits and the level ends.',
     objective: { type: 'score' },
     modifiers: ['play_fee_credits'],
     params: { perCard: 1 }
@@ -264,7 +264,7 @@ const BOSS_PRESETS = [
     id: 'the_drought',
     name: 'THE DROUGHT',
     flavor: 'Everything you learned, forgotten',
-    brief: 'Natural Scaling pays nothing this round.',
+    brief: 'Natural Scaling pays nothing this level.',
     objective: { type: 'score' },
     modifiers: ['no_natural_scaling'],
     params: {}
@@ -291,7 +291,7 @@ const BOSS_PRESETS = [
     id: 'short_fuse',
     name: 'SHORT FUSE',
     flavor: 'Ninety seconds. Go.',
-    brief: 'A 90-second round with half the usual goal.',
+    brief: 'A 90-second level with half the usual goal.',
     objective: { type: 'score' },
     modifiers: ['short_window'],
     params: { seconds: 90, goalMult: 0.5 }
@@ -345,7 +345,7 @@ const BOSS_PRESETS = [
     id: 'the_bookkeeper',
     name: 'THE BOOKKEEPER',
     flavor: 'One column for both',
-    brief: 'Swaps and discards share one pool of four for the round, with no refill. Anything that grants a swap or a discard adds to it.',
+    brief: 'Swaps and discards share one pool of four for the level, with no refill. Anything that grants a swap or a discard adds to it.',
     objective: { type: 'score' },
     modifiers: ['shared_pool'],
     params: { pool: 4 }

@@ -55,7 +55,7 @@ function showStats() {
   const generalRows = [
     { label:'Hands played', val: handsPlayed },
     { label:'Level', val: level },
-    { label:'Round goal', val: roundGoal.toLocaleString() },
+    { label:'Level goal', val: roundGoal.toLocaleString() },
     { label:'Tricks held', val: acquiredTricks.length },
     { label:'Aces played', val: C.aces },
     { label:'Hearts played', val: C.hearts },

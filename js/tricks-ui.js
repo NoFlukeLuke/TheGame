@@ -26,7 +26,7 @@ function trickLiveDesc(trick) {
   try {
     const B = (typeof BAL !== 'undefined') ? BAL : {};
     const live = (typeof gameTimerPaused === 'undefined') ? true : !gameTimerPaused;
-    const el   = Math.max(0, roundStartSeconds - roundSeconds);   // seconds elapsed this round
+    const el   = clockElapsed();   // seconds elapsed this round
     const now      = (v) => `${base} (now ${v})`;                 // always-meaningful
     const roundNow = (v) => `${base} ${live ? `(now ${v})` : '(N/A)'}`; // round-scoped
     switch (trick.id) {
@@ -57,7 +57,7 @@ function trickLiveDesc(trick) {
       case 'four_oh_one':    { const f = typeof fourOhOneFactors === 'function' ? fourOhOneFactors() : { m: 1, p: 1 }; return now(`x${f.p.toFixed(1)} pips · x${f.m.toFixed(1)} mult`); }
       case 'to_the_clouds':  return now(`+${(bonusMult_tens || 0) + (bonusMult_nines || 0)} mult`);
       case 'heartwood':      return now(`+${B.heartwood?.pips ?? 0} pips, +${B.heartwood?.mult ?? 0} mult a hand to its cell${(B.heartwood?.cells || 1) > 1 ? 's' : ''}`);
-      case 'first_fruits':   return roundNow(`${Math.max(0, (B.first_fruits?.hands ?? 1) - (handsPlayedRound || 0))} hand${Math.max(0, (B.first_fruits?.hands ?? 1) - (handsPlayedRound || 0)) === 1 ? '' : 's'} left this round`);
+      case 'first_fruits':   return roundNow(`${Math.max(0, (B.first_fruits?.hands ?? 1) - (handsPlayedRound || 0))} hand${Math.max(0, (B.first_fruits?.hands ?? 1) - (handsPlayedRound || 0)) === 1 ? '' : 's'} left this level`);
       case 'hummingbird':    return now(`+${((pauseInstanceGame || 0) + (rewindInstanceGame || 0)) * (B.hummingbird?.mult_per_pause ?? 2)} mult`);
       case 'magician':       return now(magicianNoSleights() ? `+${B.magician?.solo_pips ?? 50} pips, no Sleights` : `+${ownedSleightCount() * (B.magician?.mult_per_sleight ?? 3)} mult`);
       case 'scalper':        return now(`×${(1 + (B.scalper?.mult_mult_per_missing ?? 0.25) * sleightChargeInfo().missing).toFixed(2)} mult`);
@@ -77,8 +77,8 @@ function trickLiveDesc(trick) {
       case 'albatross':      return roundNow(`+${(pausedSecondsRound || 0) * B.albatross.pips_per_second} pips`);
       case 'kingfisher':     return roundNow(`+${Math.floor(((pausedSecondsRound || 0) + (rewoundSecondsRound || 0)) / B.kingfisher.interval_seconds) * B.kingfisher.mult_per_interval} mult`);
       case 'still_water': { const e = (lastSwapRoundSeconds !== null) ? Math.max(0, lastSwapRoundSeconds - roundSeconds) : el; return roundNow(`+${B.still_water.mult_per_interval * Math.floor(e / B.still_water.interval_seconds)} mult`); }
-      case 'spade_flood':    return roundNow(`+${Math.floor(roundSeconds / B.spade_flood.time_div)} pips`);
-      case 'sands_of_time':  return roundNow(`+${Math.floor(roundSeconds / sandsDivisor())} pips`);
+      case 'spade_flood':    return roundNow(`+${Math.floor(clockLeftSecs() / B.spade_flood.time_div * (B.spade_flood.time_mult || 1))} pips`);
+      case 'sands_of_time':  return roundNow(`+${Math.floor(clockLeftSecs() / sandsDivisor())} pips`);
       case 'discard_pips':   return roundNow(`+${(cardsDiscardedRound || 0) * ((typeof flowActive === 'function' && flowActive()) ? B.discard_pips.mult_per_flow : B.discard_pips.mult_per)} mult`);
       case 'landfill':       return now(`+${typeof landfillCount === 'function' ? landfillCount() * B.landfill.mult_per : 0} mult`);
       case 'working_class':  return now(`+${typeof landfillCount === 'function' ? Math.ceil(landfillCount() * (B.working_class?.mult_per ?? 4) + (typeof fusedCarry === 'function' ? fusedCarry('landfill', 'mult') : 0)) : 0} mult from swaps and discards`);

@@ -72,7 +72,7 @@ function changelingDescApply(t) {
   const base = (typeof TRICK_POOL_ALL !== 'undefined' ? TRICK_POOL_ALL : TRICK_POOL).find(x => x.id === CHG_TRICK_ID);
   const def = t._form ? TRICK_POOL_ALL.find(x => x.id === t._form) : null;
   if (base) t.name = base.name;
-  t.desc = def ? `${def.name} this round: ${def.desc}` : (base ? base.desc : t.desc);
+  t.desc = def ? `${def.name} this level: ${def.desc}` : (base ? base.desc : t.desc);
   if (t._posAxis != null && typeof positionDescApply === 'function') { t._posDescBase = t.desc; positionDescApply(t); }
 }
 function chgSetTrickForm(t, form, quiet) {
@@ -89,7 +89,7 @@ function chgSetTrickForm(t, form, quiet) {
   changelingDescApply(t);
   if (typeof renderTrickTray === 'function') renderTrickTray();
   const def = form && TRICK_POOL_ALL.find(x => x.id === form);
-  if (def && !quiet) showMessage(`${t.name} is ${def.name} this round`, '#e8dd54');
+  if (def && !quiet) showMessage(`${t.name} is ${def.name} this level`, '#e8dd54');
 }
 function chgChangeTrick() {
   const t = chgTrickObj(); if (!t) return;

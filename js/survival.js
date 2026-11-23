@@ -439,7 +439,7 @@ function survivalPickActions() {
   return [
     pickRerollAction(() => survivalReroll()),
     { icon: '👁', label: 'Peek', sub: 'view grid', onClick: () => survivalTogglePeek() },
-    { icon: '📊', label: 'Round', sub: 'breakdown', onClick: () => survivalToggleContrib() },
+    { icon: '📊', label: 'Level', sub: 'breakdown', onClick: () => survivalToggleContrib() },
     { icon: '🛒', label: 'Shop', sub: creditsTxt(SURVIVAL_SHOP_COST), cls: 'gp-act-buy',
       disabled: coins < SURVIVAL_SHOP_COST, onClick: () => survivalOpenShop() },
   ];
@@ -620,7 +620,7 @@ function rainCheckPay() {
   if (!hasTrick('rain_check') && !hasKnack('rain_check')) return;   // r625: a Knack
   const s = BAL.rain_check.seconds * trickFires('rain_check');
   if (typeof flowActive === 'function' && flowActive()) rewindTime(s, null, 'rain_check', 'trick');
-  else { nextRoundSecondsDelta += s; showMessage(`Rain Check · +${s}s next round`, 'var(--gold)'); }
+  else { nextRoundSecondsDelta += s; showMessage(`Rain Check · +${s}s next level`, 'var(--gold)'); }
 }
 
 // CONFIRM pressed twice with nothing selected (r362): take nothing and go on

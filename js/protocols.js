@@ -62,7 +62,7 @@ function protocolsFor(base) { return PROTOCOLS.filter(p => !p.bases || p.bases.i
 function protocolFits(id, base) { const p = PROTOCOLS.find(x => x.id === id); return !!p && (!p.bases || p.bases.includes(base)); }
 function crunchSay() {
   const f = n => formatTime(n), c = CRUNCH_TILE_COST;
-  return `One clock for the quarter: ${f(CRUNCH_ACT_SECONDS)}. It does not refill between rounds. A shop or a reward costs ${c.shop}s, an event or a raise ${c.event}s. Clearing a round in under ${f(CRUNCH_PAR_SECONDS)} pays credits. The review is fought on what is left. A new quarter adds ${f(Math.round(CRUNCH_ACT_SECONDS * CRUNCH_CARRY_FRACTION))}, up to ${f(CRUNCH_ACT_SECONDS)}.`;
+  return `One clock for the quarter: ${f(CRUNCH_ACT_SECONDS)}. It does not refill between levels. A shop or a reward costs ${c.shop}s, an event or a raise ${c.event}s. Clearing a level in under ${f(CRUNCH_PAR_SECONDS)} pays credits. The review is fought on what is left. A new quarter adds ${f(Math.round(CRUNCH_ACT_SECONDS * CRUNCH_CARRY_FRACTION))}, up to ${f(CRUNCH_ACT_SECONDS)}.`;
 }
 // r749 (owner): each protocol opens with a won run of the one before it, in this
 // order. A win in Flow or the Schedule counts for both (protoWon). An `open`
@@ -250,7 +250,7 @@ function precisionClockBonus() {
   return (typeof flowActive === 'function' && flowActive()) ? PRECISION.flowSeconds : PRECISION.mapSeconds;
 }
 function precisionSay(base) {
-  const clock = base === 'flow' ? `Every quarter's clock is ${PRECISION.flowSeconds / 60} minutes longer.` : `Every round is ${PRECISION.mapSeconds / 60} minute longer.`;
+  const clock = base === 'flow' ? `Every quarter's clock is ${PRECISION.flowSeconds / 60} minutes longer.` : `Every level is ${PRECISION.mapSeconds / 60} minute longer.`;
   return `The speed bonus is half as strong but the same for the first ${PRECISION.speedFlat} seconds, then fades slowly. Every hand but a Pair makes ${PRECISION.focusAdd} more Focus, and loses ${PRECISION.sizeStep} for every card it is short of your Hand Size, ${PRECISION.lossCap} at most. Start with ${knackName('meditation')}, ${knackName('attention_to_detail')}, +${PRECISION.swaps} swaps, +${PRECISION.discards} discards and +${PRECISION.cols} column. ${clock}`;
 }
 

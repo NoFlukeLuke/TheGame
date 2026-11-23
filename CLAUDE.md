@@ -5678,3 +5678,44 @@ Same Old (`echo_hand`, common) replays every card on the 3rd and later hand of a
 a streak of 2). It has a template now, so the number prints from BAL. The Heron (`patience_reward`,
 rare) is +3 mult a second since the last hand (was 2; the improvement step stays +0.5). Golden:
 only those two Tricks' cases move (46, tray02 holds Same Old); baseline in r813.
+
+## r814 - "round" is "level"; Flow's clock cards read the quarter; the owner's numbers
+- **Wording (owner):** every player-facing "round" is "level" (360 strings across 60 files, done by a
+  string-literal sweep that skipped comments, code, SVG attributes and "round" meaning circular). The
+  `round` keyword is gone; `level` is the one keyword (broad), and its sentence says what a level is
+  (in Flow: the clock runs across the quarter). Dev panel text, labs and tours were left alone.
+  **A new player-facing line says "level", never "round".** Code names (`roundSeconds`,
+  `roundGoal`...) are unchanged.
+- **Flow's clock cards measure the quarter** (FLOW_TIME_TRICKS.md, every row built). One reading in
+  js/hand-detect.js: `clockStartSecs()` (Flow outside a boss: `flowSessionSeconds()`; else
+  `roundStartSeconds`), `clockElapsed()`, `roundFractionRemaining()` (now the quarter in Flow, so
+  Early Bird, Night Owl, Crunch and Time and a Half's thirds are the quarter's; `moneyRoundLeft` just
+  reads it), `clockLeftSecs()` (Sands of Time, In the Black, Cornered: capped at 180s in Flow, Sands'
+  long-clock doubling off there) and `clockSpanKey()` (Stacked's counter). Readers: The Swift,
+  Seniority, Eagle Eye's start, the per-minute gate (Study Hall, Temporal Rift), Understudy, Stacked,
+  the cooldown rings, the preview lines and the tray's live lines. Hallmark and the Woodpecker keep the
+  LEVEL (`_elapsedRound`); Hallmark's mark is rolled inside `HALLMARK_FLOW_LEVEL_SECS` (40s) in Flow.
+  A Flow level-up inside the quarter keeps the quarter's counters (`_flowKeepClock` in
+  triggerLevelUp: Eagle Eye's swap mark, the per-minute gate, Understudy's mark, Tempo's drip, the
+  clock-mark charges); a boss window restarts them (`flowTriggerBoss`). Punctuality (`time_bank`) and
+  Safety Net are in `FLOW_BANNED_ENTITIES`. **In Flow their sentences say "quarter"**
+  (`flowWordApply`, end of `applyEntityTiers`: phrase swaps in `FLOW_QUARTER_PHRASES`, kept
+  reversible on the row as `_lvDesc`, so a fused Trick carrying a phrase is covered). Time and a
+  Half's "In Flow the level is the session" sentence is gone.
+- **Fixed, older than this pass:** closing the pause menu re-ran `startRoundTimer`, which reset
+  `roundStartSeconds`, so every "since the level began" Trick (The Swift, Seniority...) started over
+  after a pause, in every mode. `startRoundTimer({ resume: true })` / `startBossTimer(opts)` keep it.
+- **Numbers (owner):** The Swift +8 mult per 10s (was 6; its ladder starts at 8), Eagle Eye +10 per 5s
+  (was 15), Flow State +20 pips per card (was 15), Hyper Focus 5x the Focus multiplier (was 2x; +1 an
+  improvement), 3rd Down +5 Focus (was 3).
+- **Focus readout:** x10.0 and up (four characters) is set at 10px (`.fr-long`) and the readout never
+  sits above the gauge's top (`focusPlaceReadout` clamps it). Measured at 1440x820, 420x900 and 375x667
+  at caps 20 / 45 / 70 / 100: inside the gauge every time (x10.0 was 1px wide on a phone and 32px over
+  the top on a desktop).
+Measured in headless Chromium at 1440x820 and 420x900: Classic sentences read "level"; in Flow, The
+Swift at 70s into the quarter paid +56 mult before and after a level-up (it used to read 0 after it),
+Eagle Eye's swap mark and Understudy's mark survived the level-up, the six clock sentences read
+"quarter" in the pool and the tray and "level" again in the next Classic run, Punctuality and Safety
+Net were banned, a pause left the level's start alone. Golden: only Swift, Eagle Eye and Hyper Focus
+cases move (and tray34, which holds one); baseline in r815. tools/scoring-golden prints
+`GOLDEN_SHOW` differences (default 60).

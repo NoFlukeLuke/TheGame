@@ -263,7 +263,7 @@ function recordsRenderDeck() {
                    gr ? 'has-grow' : '',
                    isWhiteRankValue(rk) ? 'rec-white' : ''].filter(Boolean).join(' ');
       const dup = cell && cell.n > 1 ? ` (x${cell.n} in the run)` : '';
-      const tip = `${rk}${s} - ${w === 'draw' ? 'in draw pile' : w === 'grid' ? 'on the board' : w === 'played' ? 'played (returns next round)' : 'not in deck'}${dup}` +
+      const tip = `${rk}${s} - ${w === 'draw' ? 'in draw pile' : w === 'grid' ? 'on the board' : w === 'played' ? 'played (returns next level)' : 'not in deck'}${dup}` +
                   `${pp ? ` · scores +${pp} pips` : ''}${pm ? ` · scores +${pm} mult` : ''}` +
                   `${gr ? ' · scales up each play' : ''}${cell && cell.cursed ? ' · cursed' : ''}`;
       const marks = (pp ? '<i class="rec-m rec-m-p"></i>' : '') + (pm ? '<i class="rec-m rec-m-m"></i>' : '')
@@ -793,7 +793,7 @@ function recordsRenderStats() {
   }).join('') || `<div class="rec-empty">All hands unlocked.</div>`;
 
   const counters = [
-    ['Level', level], ['Round goal', roundGoal.toLocaleString()], ['Hands played', handsPlayed],
+    ['Level', level], ['Level goal', roundGoal.toLocaleString()], ['Hands played', handsPlayed],
     [entityLabel('trick', true) + ' held', acquiredTricks.length], ['Aces played', C.aces], ['Hearts played', C.hearts],
     ['Faces played', C.faces], ['Same-suit hands', C.sameSuitHands],
   ].map(([k, v]) => `<div class="rec-row"><span>${k}</span><span class="rec-row-v">${v}</span></div>`).join('');

@@ -923,7 +923,7 @@ function bossBriefHTML(preset, intro) {
     : `OBJECTIVE - REACH THE GOAL (${roundGoal.toLocaleString()})`;
   return `<button class="bp-x" aria-label="Close briefing">&#10005;</button>` +
     `<div class="bp-sigil">&#9760;</div>` +
-    `<div class="bp-eyebrow">Boss round</div>` +
+    `<div class="bp-eyebrow">Boss level</div>` +
     `<div class="bp-name">${preset.name}</div>` +
     `<div class="bp-flavor">${preset.flavor || ''}</div>` +
     `<div class="bp-brief">${preset.brief || 'Survive the review.'}</div>` +
@@ -998,7 +998,7 @@ function bossBriefConsole(el, intro) {
     el.addEventListener('pointerdown', fin, true);
   }
   if (intro && typeof keysTake === 'function') keysTake({
-    play: { ico: '&#9654;', word: 'PROCEED', title: 'Start the boss round', fn: () => { const b = el.querySelector('.bp-go'); if (b) b.click(); } },
+    play: { ico: '&#9654;', word: 'PROCEED', title: 'Start the boss level', fn: () => { const b = el.querySelector('.bp-go'); if (b) b.click(); } },
     disc: { word: '', off: true }, swap: { word: '', off: true },
   });
 }
@@ -1163,9 +1163,9 @@ function updateBossClockDisplay() { updateClockUI(); }
 // the countdown to startRoundTimer like any other round. The boss-specific parts
 // of the tick - the Metronome's variable step, the halftime phase flip, the
 // switched-off-Trick repaint and running out of time - live in that one tick.
-function startBossTimer() {
+function startBossTimer(opts) {
   if (typeof bossStartScheduledEffects === 'function') bossStartScheduledEffects();
-  startRoundTimer();
+  startRoundTimer(opts);
 }
 
 // r171 - no panel. A boss puts the SCORE and GOAL chips into alarm state (red,

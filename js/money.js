@@ -89,9 +89,7 @@ function fourOhOneFactors() {
 // clock between bosses): roundFractionRemaining() restarts at every level-up
 // there (startRoundTimer sets roundStartSeconds), so a "last third" read off it
 // would need two thirds of the session inside one level.
-function moneyRoundLeft() {
-  if (typeof flowSessionRunning === 'function' && flowSessionRunning() && typeof flowSessionSeconds === 'function')
-    return Math.max(0, roundSeconds / flowSessionSeconds());
+function moneyRoundLeft() {   // r814: roundFractionRemaining() reads the quarter in Flow itself now
   return typeof roundFractionRemaining === 'function' ? roundFractionRemaining() : 1;
 }
 

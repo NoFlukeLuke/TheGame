@@ -41,7 +41,8 @@ function showSuitEffect(text, color) {
 // ══════════════════════════════════════════════
 // TIMERS
 // ══════════════════════════════════════════════
-function startRoundTimer() {
+function startRoundTimer(opts) {
+  const _resume = !!(opts && opts.resume);   // r814: closing the pause menu keeps the level's start
   if (roundInterval) clearInterval(roundInterval);
   if (typeof flowrMaybeRunPendingDual === 'function' && flowrMaybeRunPendingDual()) return;
   // The last round's winning hand goes back into the deck now that the new
@@ -76,7 +77,7 @@ function startRoundTimer() {
   // r771: NOT reset here any more. "The clock gained time" was also true after any rewind that
   // carried the clock past the level's start, or a level-start time bonus, and wiped every line of
   // the session. The refills reset them themselves (flowNextRoundSeconds, crunchBeginQuarter).
-  roundStartSeconds = roundSeconds; // mark the start of the countdown ("how far into the round" reads it)
+  if (!_resume) roundStartSeconds = roundSeconds; // mark the start of the countdown ("how far into the level" reads it)
   if (typeof rsRoundStart === 'function') rsRoundStart();   // r755: the round's stats row (js/run-stats.js), above the save point
   if (typeof crunchNewRound === 'function') crunchNewRound();  // one write-off per round
   // Suspension resolves HERE, not in triggerLevelUp: it needs roundStartSeconds to
@@ -134,13 +135,14 @@ function startRoundTimer() {
     // out instead. The cheap tests are inside crunchCheckStuck, so the board scan
     // only runs on the rare tick where both stocks are actually empty.
     if (typeof crunchCheckStuck === 'function') crunchCheckStuck();
-    const _elapsedRound = roundStartSeconds - roundSeconds;
+    const _elapsedRound = roundStartSeconds - roundSeconds;   // the LEVEL (Hallmark, the Woodpecker)
+    const _elapsedClock = clockElapsed();                      // r814: the quarter in Flow (Understudy, Stacked)
     // Understudy: every N seconds of round time, prime one random Trick in the
     // tray. Priming is the mechanic the Rehearsal event already built on - a
     // primed Trick fires one extra time in calcScore - so this knack needed no
     // per-Trick code, and the primed tile shows its charge through the same
     // cooldown widget (js/cooldown.js).
-    if (hasKnack('understudy') && _elapsedRound >= understudyNextMark) {
+    if (hasKnack('understudy') && _elapsedClock >= understudyNextMark) {
       understudyNextMark += BAL.understudy.interval_seconds;
       const _pool = (trickTray || []).filter(t => !(typeof isTrickDisabledByBoss === 'function' && isTrickDisabledByBoss(t.id)));
       if (_pool.length) {
@@ -150,7 +152,7 @@ function startRoundTimer() {
       }
     }
     if (typeof hallmarkTick === 'function') hallmarkTick(_elapsedRound);
-    if (typeof stackedTick === 'function') stackedTick(_elapsedRound);   // r685: Stacked (js/stacked.js)
+    if (typeof stackedTick === 'function') stackedTick(_elapsedClock);   // r685: Stacked (js/stacked.js)
     // Card states (r278): ages every card on the board and fires whatever fuse
     // came due. Hung off the ROUND tick rather than a clock of its own, so it
     // stops with the round, with the pause menu and with RECORDS for free.

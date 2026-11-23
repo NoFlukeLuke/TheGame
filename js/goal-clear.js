@@ -68,7 +68,7 @@ function goalBannerGrid(opts) {
   const goalWord = (typeof lexTerm === 'function') ? lexTerm('goal') : 'GOAL';
   const num = (typeof roundGoal === 'number') ? roundGoal.toLocaleString() : '';
   el.className = opts.kicker ? 'gb-boss' : '';
-  el.innerHTML = `<div class="gbg-k">${opts.kicker ? opts.kicker : 'ROUND'}</div><div class="gbg-l">&gt; ${goalWord} CLEARED${num ? '\n  ' + num : ''}</div>`;
+  el.innerHTML = `<div class="gbg-k">${opts.kicker ? opts.kicker : 'LEVEL'}</div><div class="gbg-l">&gt; ${goalWord} CLEARED${num ? '\n  ' + num : ''}</div>`;
   const line = el.querySelector('.gbg-l');
   if (typeof bsType === 'function') bsType(line, {});
   el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
@@ -87,7 +87,7 @@ function showGoalBanner(opts) {
 
   const el = goalBannerEl();
   const kick = el.querySelector('.gb-kicker');
-  if (kick) kick.textContent = opts.kicker || 'ROUND';
+  if (kick) kick.textContent = opts.kicker || 'LEVEL';
   const ttl = el.querySelector('.gb-title');
   if (ttl) ttl.textContent = ((typeof lexTerm === 'function') ? lexTerm('goal') : 'GOAL') + ' CLEARED';
   el.classList.toggle('gb-boss', !!opts.kicker);

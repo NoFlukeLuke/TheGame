@@ -343,7 +343,7 @@ const TUTORIAL_STEPS = [
     when: () => tutMapOpen(),
     eyebrow: 'The schedule',
     title: 'Your schedule',
-    body: `Time slots run top to bottom. Each line is an <b>obligation</b>: a round, a shop, an event.<br><br>The bottom row is the <b>manager review</b>. Each review there shows what unlocks it.`,
+    body: `Time slots run top to bottom. Each line is an <b>obligation</b>: a level, a shop, an event.<br><br>The bottom row is the <b>manager review</b>. Each review there shows what unlocks it.`,
   },
   {
     // r662: the legend is the DISCARD key while the schedule is up (js/map-mode.js mapKeysSync).
@@ -450,14 +450,14 @@ const TUTORIAL_STEPS = [
     title: 'Score and goal',
     body: () => tutIsFlow()
       ? `Your score and the {GOAL}.<br><br>Reach the {GOAL} and you level up. The next one is higher.`
-      : `Your score this round and the {GOAL}.<br><br>Reach it and the round ends. Miss it and the run is over.`,
+      : `Your score this level and the {GOAL}.<br><br>Reach it and the level ends. Miss it and the run is over.`,
   },
   {
     id: 'clock', anchor: () => tutEl('#vclock', '#clock-area'), side: 'bottom', hold: true, next: true,
     not: ['noclock', 'crunch'],
     eyebrow: 'The clock',
     title: 'The clock',
-    body: () => `Run out before the {GOAL} and the run is over.<br><br>${tutCostLine()}<br><br>Time left at the end of a round pays credits.`,
+    body: () => `Run out before the {GOAL} and the run is over.<br><br>${tutCostLine()}<br><br>Time left at the end of a level pays credits.`,
   },
   {
     // Crunch's clock is the QUARTER's, so the step above is wrong here twice
@@ -467,7 +467,7 @@ const TUTORIAL_STEPS = [
     only: 'crunch',
     eyebrow: 'The clock',
     title: 'One clock, all quarter',
-    body: () => `This is the whole quarter's time, not this round's. It does not refill.<br><br>Playing a hand is free. ${tutCostLine()} Booking anything that is not a round costs a flat fee.<br><br>Clear a round under <b>${formatTime(CRUNCH_PAR_SECONDS)}</b> and you are paid for every ${efficiencySecondsPerCoin()}s you came in under.<br><br>The manager review is fought on whatever is left. Run the clock to zero and the run is over.`,
+    body: () => `This is the whole quarter's time, not this level's. It does not refill.<br><br>Playing a hand is free. ${tutCostLine()} Booking anything that is not a level costs a flat fee.<br><br>Clear a level under <b>${formatTime(CRUNCH_PAR_SECONDS)}</b> and you are paid for every ${efficiencySecondsPerCoin()}s you came in under.<br><br>The manager review is fought on whatever is left. Run the clock to zero and the run is over.`,
   },
   {
     id: 'flow-clock', only: 'flow', anchor: () => tutEl('#vclock', '#clock-area'), side: 'bottom', hold: true, next: true,
@@ -508,7 +508,7 @@ const TUTORIAL_STEPS = [
     eyebrow: 'The clock',
     title: 'Discarding cards',
     // r727: one flat charge whatever the count. The key's word is read off the key (console mode: DEFER).
-    body: () => `<b>Select a highlighted card and press ${tutDiscardWord()}.</b> A new card falls in.<br><br>A discarded card goes back into the deck. A scored card is out until the round ends.<br><br>Costs ${tutDiscardCost() > 0 ? '<b>' + tutDiscardCost() + 's</b> and ' : ''}one discard.`,
+    body: () => `<b>Select a highlighted card and press ${tutDiscardWord()}.</b> A new card falls in.<br><br>A discarded card goes back into the deck. A scored card is out until the level ends.<br><br>Costs ${tutDiscardCost() > 0 ? '<b>' + tutDiscardCost() + 's</b> and ' : ''}one discard.`,
     onEnter: () => {
       selected = []; swapPending = null;
       tutorialDiscardPlan = tutorialFindDeadCards();
@@ -531,7 +531,7 @@ const TUTORIAL_STEPS = [
     hold: true, next: true,
     eyebrow: 'What you own',
     title: 'Limits',
-    body: `Limits are your caps for the run. Upgrades raise them:<br><br><b>Selection Size</b>: cards per hand<br><b>Grid Rows</b> and <b>Grid Columns</b>: the size of the board<br><b>Swaps</b> and <b>Discards</b>: your stock each round<br><b>Starting Time</b>: seconds on the clock<br><b>{Trick} Slots</b>: how many you can hold<br><b>{FOCUS} Cap</b>: how high {FOCUS} goes<br><b>Luck</b>: how often rarer things are offered<br><br>RECORDS &rsaquo; Limits lists them all.`,
+    body: `Limits are your caps for the run. Upgrades raise them:<br><br><b>Selection Size</b>: cards per hand<br><b>Grid Rows</b> and <b>Grid Columns</b>: the size of the board<br><b>Swaps</b> and <b>Discards</b>: your stock each level<br><b>Starting Time</b>: seconds on the clock<br><b>{Trick} Slots</b>: how many you can hold<br><b>{FOCUS} Cap</b>: how high {FOCUS} goes<br><b>Luck</b>: how often rarer things are offered<br><br>RECORDS &rsaquo; Limits lists them all.`,
   },
   {
     id: 'tricks-cap', anchor: () => tutEl('#trick-tray-area', '#trick-tray-list'), side: 'left',
@@ -564,13 +564,13 @@ const TUTORIAL_STEPS = [
     only: 'nodes',
     eyebrow: 'The run',
     title: 'Where you are',
-    body: () => `Five rounds, then a <b>manager review</b>. Do that ${(typeof QUARTERS_PER_RUN === 'number') ? QUARTERS_PER_RUN : 4} times to win.`,
+    body: () => `Five levels, then a <b>manager review</b>. Do that ${(typeof QUARTERS_PER_RUN === 'number') ? QUARTERS_PER_RUN : 4} times to win.`,
   },
   {
     id: 'flow-review', only: 'flow', side: 'float', next: true,
     eyebrow: 'The run',
     title: 'The review',
-    body: () => `The review is a boss round with its own clock and {GOAL}. Fail it and the run ends. Pass it and the clock refills.<br><br>Pass ${(typeof SURVIVAL_BOSS_COUNT === 'number') ? SURVIVAL_BOSS_COUNT : 4} to win.`,
+    body: () => `The review is a boss level with its own clock and {GOAL}. Fail it and the run ends. Pass it and the clock refills.<br><br>Pass ${(typeof SURVIVAL_BOSS_COUNT === 'number') ? SURVIVAL_BOSS_COUNT : 4} to win.`,
   },
   {
     id: 'clear', side: 'float',
@@ -590,7 +590,7 @@ const TUTORIAL_STEPS = [
     // figures that have not appeared yet explains nothing.
     when: () => !!document.querySelector('#po-valued.show'),
     eyebrow: 'Payout',
-    title: 'End of round pay',
+    title: 'End of level pay',
     body: () => `<b>Interest</b>: 10% of your credits.<br><br><b>Early Finish Bonus</b>: 1 credit per <b>${(typeof efficiencySecondsPerCoin === 'function') ? efficiencySecondsPerCoin() : EFFICIENCY_SECONDS_PER_COIN} seconds</b> left.${(typeof unspentPays === 'function' && !unspentPays()) ? '' : '<br><br><b>Unspent</b>: swaps and discards you did not use.'}`,
     until: () => !tutPayoutEl(),
   },
@@ -623,15 +623,15 @@ const TUTORIAL_STEPS = [
     title: 'Take your pick',
     // r441: Flow's rerolls are the two keys, free up to the stock the round ended with.
     // r797: the same keys in Flow and on the Schedule.
-    body: `Tap an offer, then press <b>CONFIRM</b>.<br><br>The other two keys reroll. Swaps and discards left from the round make rerolls free.`,
+    body: `Tap an offer, then press <b>CONFIRM</b>.<br><br>The other two keys reroll. Swaps and discards left from the level make rerolls free.`,
     until: () => !tutPickOpen(),
   },
   {
     id: 'crossroads', only: 'crossroads', anchor: () => tutEl('#grid'), side: 'left', next: true,
     when: () => document.body.classList.contains('grid-screen') && tutIdle(),
-    eyebrow: 'Between rounds',
+    eyebrow: 'Between levels',
     title: 'You choose what comes next',
-    body: `Four tiles. Take one.<br><br>A <b>round</b> is free. Everything else costs credits.`,
+    body: `Four tiles. Take one.<br><br>A <b>level</b> is free. Everything else costs credits.`,
   },
   {
     id: 'reward-intro', anchor: () => tutEl('#grid'), side: 'left', next: true,
@@ -698,7 +698,7 @@ const TUTORIAL_STEPS = [
     when: () => tutShopReady(),
     eyebrow: 'The shop',
     title: 'Swaps and discards work here too',
-    body: `Swaps and discards left from the round work here.<br><br><b>Swap:</b> select a tile, press <b>SWAP</b>, tap the tile next to it. Two row labels swap whole rows.<br><br><b>Reroll:</b> select a row label, then press <b>REROLL</b>. 1 discard a row.`,
+    body: `Swaps and discards left from the level work here.<br><br><b>Swap:</b> select a tile, press <b>SWAP</b>, tap the tile next to it. Two row labels swap whole rows.<br><br><b>Reroll:</b> select a row label, then press <b>REROLL</b>. 1 discard a row.`,
     until: () => !tutShopOpen(),
   },
 

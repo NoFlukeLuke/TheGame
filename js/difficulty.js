@@ -28,7 +28,7 @@ const DIFF_TIERS = [
   { tier: 3, name: 'SPECIALIST',     hmDraws: 4,        startCurse: true,  swapSecs: 3, discardSecs: 5, timeCut: 0,  penalties: true,  harsh: false, goalMult: 1,    finalBoss: false,
     say: 'Forced penalties can appear in rewards.' },
   { tier: 4, name: 'MIDDLE MANAGER', hmDraws: 4,        startCurse: true,  swapSecs: 3, discardSecs: 5, timeCut: 30, penalties: true,  harsh: false, goalMult: 1,    finalBoss: false,
-    say: 'Every round starts with 30 fewer seconds.', sayFlow: 'Every quarter starts with 30 fewer seconds.' },
+    say: 'Every level starts with 30 fewer seconds.', sayFlow: 'Every quarter starts with 30 fewer seconds.' },
   { tier: 5, name: 'SENIOR MANAGER', hmDraws: 6,        startCurse: true,  swapSecs: 5, discardSecs: 7, timeCut: 30, penalties: true,  harsh: false, goalMult: 1,    finalBoss: false,
     say: 'The starting curse card lasts 6 draws. Swaps cost 5s, discards cost 7s.' },
   { tier: 6, name: 'EXECUTIVE',      hmDraws: 6,        startCurse: true,  swapSecs: 5, discardSecs: 7, timeCut: 30, penalties: true,  harsh: true,  goalMult: 1,    finalBoss: false,

@@ -1,14 +1,14 @@
 const KNACK_POOL = [
   // ── r625 (owner): three Tricks became Knacks. Same ids, so BAL and the templates carry over. ──
   { id:'move_as_one',   emoji:'🔀',  name:'Move as One',      rarity:'epic',   desc:'If 2+ of your Tricks share a keyword, a random Trick sharing that keyword scores its effect a second time each time all of them are triggered', tags:['retrigger','hand','tricks'] },
-  { id:'rain_check',    emoji:'⏱️',  name:'Rain Check',       rarity:'epic',   desc:'Skipping a reward: the next round starts with +30s (in Flow, rewind the clock 30s)', tags:['time','other','reward'] },
+  { id:'rain_check',    emoji:'⏱️',  name:'Rain Check',       rarity:'epic',   desc:'Skipping a reward: the next level starts with +30s (in Flow, rewind the clock 30s)', tags:['time','other','reward'] },
   { id:'wait_for_it',   emoji:'🎲',  name:'Wait For Iiiit',   rarity:'epic',   desc:'Each negative reward tile taken this run gives every scored card a +3% chance to replay. In Flow: each level-up that pays a single reward gives +5% instead, Luck aside', tags:['replay','card','reward','level','scores','scaling','chance'] },
   // ── r708 (owner): four more. Same ids; the retired Trick rows stay so a saved run keeps them. ──
   { id:'five_fodder',   emoji:'🗑️',  name:'Burn the Books',       rarity:'common', desc:'Discarding a valid hand grants the hand size in credits', tags:['credits','other','discard'] },
-  { id:'life_lessons',  emoji:'🎯',  name:'改善',     rarity:'rare',   desc:'Each round you complete increases your Focus limit by 1', tags:['focus','other','level','scaling'] },
+  { id:'life_lessons',  emoji:'🎯',  name:'改善',     rarity:'rare',   desc:'Each level you complete increases your Focus limit by 1', tags:['focus','other','level','scaling'] },
   { id:'meditation',    emoji:'🕊️',  name:'ध्यान',       rarity:'rare',   desc:'Focus decays 2 seconds slower', tags:['focus','other'] },
   // r767 (owner): The Vulture is a Knack. Same id; the retired Trick row stays so a saved run keeps it.
-  { id:'vulture',       emoji:'🐦',  name:'The Vulture',      rarity:'epic',   desc:'Cards discarded during a round’s first pause permanently gain a 3s pause (cannot stack from this source)', tags:['deck','time','card','discard','pause','scaling'] },
+  { id:'vulture',       emoji:'🐦',  name:'The Vulture',      rarity:'epic',   desc:'Cards discarded during a level’s first pause permanently gain a 3s pause (cannot stack from this source)', tags:['deck','time','card','discard','pause','scaling'] },
   { id:'mockingbird',   emoji:'🧳',  name:'Well-Rounded',         rarity:'rare',   desc:'Every 4 hands you play without a same-type streak grants +1 swap and +1 discard', tags:['stock','hand','streak'] },
   // ── Queue-view knacks (r329, js/queue-views.js) ──
   { id:'head_count',      emoji:'🔢',  name:'Head Count',       rarity:'common', desc:'The Sleight queue (the button on your Trick tray) shows how many cards sit in front of each Sleight.', tags:['info','other','sleights'] },
@@ -19,8 +19,8 @@ const KNACK_POOL = [
   { id:'free_discards',   emoji:'🪶',  name:'Decisiveness',    rarity:'common', desc:'Discarding costs no time.', tags:['stock','other','discard'] },
   { id:'steady_hand',     emoji:'♾️',  name:'Steady Hand',      rarity:'common', desc:'Swaps no longer count against the swap limit, but cost 2x the time.', tags:['stock','other','swap','cost'] },
   { id:'hoarder',         emoji:'🗑️',  name:'Spoiled',          rarity:'common', desc:'Discards no longer count against the discard limit, but cost 2x the time.', tags:['stock','other','discard','cost'] },
-  { id:'time_bank',       emoji:'⏳',  name:'Punctuality',        rarity:'rare',   desc:'Every round starts with +30s.', tags:['time','other','start'] },
-  { id:'inheritance',     emoji:'💰',  name:'Inheritance',      rarity:'rare',   desc:'Start each round with +5 credits.', tags:['credits','other','start'] },
+  { id:'time_bank',       emoji:'⏳',  name:'Punctuality',        rarity:'rare',   desc:'Every level starts with +30s.', tags:['time','other','start'] },
+  { id:'inheritance',     emoji:'💰',  name:'Inheritance',      rarity:'rare',   desc:'Start each level with +5 credits.', tags:['credits','other','start'] },
   { id:'short_change',    emoji:'🤏',  name:'Frugality',     rarity:'common', desc:'Each hand you play with fewer cards than your hand size earns 1 credit.', tags:['credits','hand','size'] },
   { id:'bulk_buyer',      emoji:'🛒',  name:'Bulk Buyer',       rarity:'rare',   desc:'The shop multi-buy discount is 5% per extra item instead of 3%.', tags:['credits','other','shop'] },
   { id:'haggler',         emoji:'🤝',  name:'Haggler',          rarity:'rare',   desc:'Shop prices are 5% lower.', tags:['credits','other','shop'] },
@@ -29,16 +29,16 @@ const KNACK_POOL = [
   { id:'high_roller',     emoji:'🎰',  name:'High Roller',      rarity:'epic',   desc:'Each scored card has a chance to replay equal to your credits plus your Luck, as a percent. Over 100% guarantees a replay and rolls the remainder for another.', tags:['replay','card','scores','chance','held'] },
   { id:'combo_keeper',    emoji:'🔥',  name:'Consistency',     rarity:'rare',   desc:'Streaks survive one non-streak hand. Re-arms after 2 streak hands.', tags:['other','streak'] },
   { id:'lucky_seven',     emoji:'🎯',  name:'Lucky Seven',      rarity:'common', desc:'Every 7th hand played gives +1 swap.', tags:['stock','hand'] },
-  { id:'extra_swaps',     emoji:'🔄',  name:'Swap Shop',        rarity:'common', desc:`Start each round with +2 extra swaps. After each boss you beat, ${KNACK_BOSS_GROW_PCT}% chance it gives 1 more.`, tags:['stock','other','boss','scaling','chance','start'] },
-  { id:'extra_discards',  emoji:'🌾',  name:'Harvest',          rarity:'common', desc:`Start each round with +2 extra discards. After each boss you beat, ${KNACK_BOSS_GROW_PCT}% chance it gives 1 more.`, tags:['stock','other','boss','scaling','chance','start'] },
-  { id:'carry_swaps',     emoji:'🎒',  name:'Pack Rat',         rarity:'common', desc:'Unused swaps carry over to the next round (max 8).', tags:['stock','other','level'] },
-  { id:'carry_discards',  emoji:'📦',  name:'Collector',        rarity:'common', desc:'Unused discards carry over to the next round (max 8).', tags:['stock','other','level'] },
-  { id:'carry_time',      emoji:'🕰️',  name:'Comp Time',      rarity:'rare',   desc:'The next round starts with the seconds this round ends with (max 60s).', tags:['time','other','level','clock'] },
-  { id:'safety_net',      emoji:'🪢',  name:'Safety Net',       rarity:'rare',   desc:'Once per game: if you miss the round goal, the round goes on with 30s on the clock instead of failing.', tags:['shield','time','other','level'] },
-  { id:'last_swap',       emoji:'🔀',  name:'Last Swap',        rarity:'rare',   desc:'End a round with exactly one swap left and you can trade two touching tiles on the ' + gridName('reward') + '. Double-tap a tile, then tap its neighbour. Uses the swap.', tags:['other','reward','level','cost'] },
+  { id:'extra_swaps',     emoji:'🔄',  name:'Swap Shop',        rarity:'common', desc:`Start each level with +2 extra swaps. After each boss you beat, ${KNACK_BOSS_GROW_PCT}% chance it gives 1 more.`, tags:['stock','other','boss','scaling','chance','start'] },
+  { id:'extra_discards',  emoji:'🌾',  name:'Harvest',          rarity:'common', desc:`Start each level with +2 extra discards. After each boss you beat, ${KNACK_BOSS_GROW_PCT}% chance it gives 1 more.`, tags:['stock','other','boss','scaling','chance','start'] },
+  { id:'carry_swaps',     emoji:'🎒',  name:'Pack Rat',         rarity:'common', desc:'Unused swaps carry over to the next level (max 8).', tags:['stock','other','level'] },
+  { id:'carry_discards',  emoji:'📦',  name:'Collector',        rarity:'common', desc:'Unused discards carry over to the next level (max 8).', tags:['stock','other','level'] },
+  { id:'carry_time',      emoji:'🕰️',  name:'Comp Time',      rarity:'rare',   desc:'The next level starts with the seconds this level ends with (max 60s).', tags:['time','other','level','clock'] },
+  { id:'safety_net',      emoji:'🪢',  name:'Safety Net',       rarity:'rare',   desc:'Once per game: if you miss the level goal, the level goes on with 30s on the clock instead of failing.', tags:['shield','time','other','level'] },
+  { id:'last_swap',       emoji:'🔀',  name:'Last Swap',        rarity:'rare',   desc:'End a level with exactly one swap left and you can trade two touching tiles on the ' + gridName('reward') + '. Double-tap a tile, then tap its neighbour. Uses the swap.', tags:['other','reward','level','cost'] },
   { id:'free_range_t',    emoji:'🦅',  name:'Jeitinho',       rarity:'rare',   desc:'Can swap any two non-adjacent cards. When taken, sets your swap limit to 2.', tags:['stock','other','swap','cost'] },
   { id:'understudy',      emoji:'🎭',  name:'Understudy',       rarity:'rare',   desc:'Every 30 seconds one of your Tricks is primed.', tags:['retrigger','other','clock','tricks'] },
-  { id:'hallmark',        emoji:'🔖',  name:'Hallmark',         rarity:'rare',   desc:'Once a round a card on the board is marked. Score it and it takes a random buff.', tags:['deck','card','position','scaling','chance'] },
+  { id:'hallmark',        emoji:'🔖',  name:'Hallmark',         rarity:'rare',   desc:'Once a level a card on the board is marked. Score it and it takes a random buff.', tags:['deck','card','position','scaling','chance'] },
   { id:'turnover',        emoji:'♻️',  name:'Turnover',         rarity:'rare',   desc:'Any card you leave alone for 45 seconds becomes Fodder until it leaves the board: swapping or discarding it costs no time and no stock.', tags:['stock','other','clock','swap','discard'] },
   // r556 (owner): a dial you turn by double-tapping the chip. challengeDial (js/challenge-round.js) holds its direction.
   { id:'challenge_dial',  emoji:'🎚️',  name:'Juggernaut',   rarity:'rare',   desc:'Challenge cards show up 25% more often. Double-tap this to make them 25% rarer instead, and back.', tags:['luck','other','challenge'] },
@@ -50,13 +50,13 @@ const KNACK_POOL = [
   { id:'overdrive',       emoji:'⚡',  name:'Overdrive',        rarity:'epic',   desc:'Double-tap the Focus bar: the board plays its best hand for 5 Focus, again and again until Focus runs out. Hand 1 scores x1.5 mult, hand 2 x2, and so on. These hands make no Focus of their own. Then 45 seconds to cool down. Replaces the Reserve.', tags:['xmult','focus','other','scores','cost'] },
   { id:'long_pause',      emoji:'🦉',  name:'Long Pause',       rarity:'common', desc:'All clock pauses last 1.5× as long.', tags:['time','other','pause'] },
   { id:'sundial',         emoji:'🌇',  name:'Vertical Thinking',          rarity:'common', desc:'Hands where every card shares a column pause the clock for 8s.', tags:['time','hand','position'] },
-  { id:'metronome',       emoji:'🥁',  name:'Metronome',        rarity:'common', desc:'Each round a hand type you can make is chosen; playing that hand type pauses the clock for 5s.', tags:['time','hand','chance','start'] },
+  { id:'metronome',       emoji:'🥁',  name:'Metronome',        rarity:'common', desc:'Each level a hand type you can make is chosen; playing that hand type pauses the clock for 5s.', tags:['time','hand','chance','start'] },
   // ── Rewind knacks ──
   { id:'time_slip',       emoji:'⏮️',  name:'Time Slip',        rarity:'common', desc:'Whenever the clock would pause, 10% chance to rewind the clock that many seconds instead.', tags:['time','other','pause','chance'] },
   { id:'replay_rewind',   emoji:'🔂',  name:'eeruh eeruh',     rarity:'common', desc:'Any time a card replays, 25% chance to rewind the clock 2s.', tags:['time','card','chance','replays'] },
   { id:'deja_vu',         emoji:'🔁',  name:'Déjà Vu',          rarity:'common', desc:'Playing the same ranks in two hands in a row rewinds the clock 15s.', tags:['time','hand','rank'] },
   { id:'clockmaker',      emoji:'⏱️',  name:'Clockmaker',       rarity:'rare',   retired:true,  // r767 (owner): removed from the game; the row stays for saved runs
-    desc:'Any time a single hand scores at least 30% of the round goal, rewind the clock 15s.', tags:['time','hand'] },
+    desc:'Any time a single hand scores at least 30% of the level goal, rewind the clock 15s.', tags:['time','hand'] },
   // ── Combo batch (r83) ──
   { id:'high_and_mighty', emoji:'👑',  name:'High and Mighty',  rarity:'rare',   desc:'The highest-ranked cards in each scored hand replay once.', tags:['replay','card','scores','rank'] },
   { id:'low_and_behold',  emoji:'🐛',  name:'Low and Behold',   rarity:'rare',   desc:'Any played hand containing the grid’s lowest rank replays the whole hand once.', tags:['replay','hand','scores','rank'] },
@@ -81,15 +81,15 @@ const KNACK_POOL = [
   // ── Reward-grid / risk knacks (r129) ──
   { id:'shady_stimulants',emoji:'💊',  name:'Shady Stimulants', rarity:'rare',   desc:'Every negative reward tile you take raises your Focus limit by 1.', tags:['focus','other','reward','scaling'] },
   { id:'greedy_boi',      emoji:'🤑',  name:'Greedy Boi',       rarity:'rare',   desc:`+2 selection size in the ${gridName('reward')} - grab more tiles at once.`, tags:['other','reward'] },
-  { id:'scavenger',       emoji:'🦴',  name:'Scavenger',        rarity:'common', desc:'Whenever a curse lifts, gain +10 coins and +1 discard next round.', tags:['credits','stock','other'] },
-  { id:'coin_toss',       emoji:'🪙',  name:'Coin Toss',        rarity:'common', desc:'At the start of each round, every Sleight has a 50% chance to restore 1 charge.', tags:['other','sleights','chance','charges','start'] },
+  { id:'scavenger',       emoji:'🦴',  name:'Scavenger',        rarity:'common', desc:'Whenever a curse lifts, gain +10 coins and +1 discard next level.', tags:['credits','stock','other'] },
+  { id:'coin_toss',       emoji:'🪙',  name:'Coin Toss',        rarity:'common', desc:'At the start of each level, every Sleight has a 50% chance to restore 1 charge.', tags:['other','sleights','chance','charges','start'] },
   // r677 (owner; named r685): buffs cards on the grid when a level is cleared (js/touch-up.js)
   { id:'touch_up',        emoji:'🖌️',  name:'Finishing Touch',  rarity:'rare',   desc:'If there are no buffed cards on the grid when you complete a level, 3 random cards on the grid take a buff: +pips or +mult.', tags:['deck','card','buffed','level'] },
   // r685 (owner): Trophy Case is a working name. js/challenge-knacks.js, js/stacked.js
   { id:'trophy_case',     emoji:'🏆',  name:'Trophy Case',      rarity:'rare',   desc:'Completed challenge cards turn into a random Sleight (common or rare) instead of paying their reward.', tags:['deck','other','challenge','sleights'] },
   { id:'stacked',         emoji:'📚',  name:'Stacked',          rarity:'rare',   desc:'Every 30s, each Sleight on the grid has a 25% chance to prime the Trick in the tray slot of its column.', tags:['retrigger','other','sleights','position','clock','chance'] },
   { id:'very_rewarding',  emoji:'🎁',  name:'Very Rewarding',   rarity:'rare',   desc:'Challenge cards pay their reward twice.', tags:['other','challenge'] },
-  { id:'green_station',   emoji:'🔌',  name:'Resourcefulness',    rarity:'rare',   desc:'Sleights have a 30% chance to get a charge back at the end of each round. A Sleight at 0 charges is not destroyed: it sits out of the deck until it has a charge again.', tags:['other','sleights','chance','charges','level'] },
+  { id:'green_station',   emoji:'🔌',  name:'Resourcefulness',    rarity:'rare',   desc:'Sleights have a 30% chance to get a charge back at the end of each level. A Sleight at 0 charges is not destroyed: it sits out of the deck until it has a charge again.', tags:['other','sleights','chance','charges','level'] },
   { id:'deluxe_subscription', emoji:'🎁', name:'Deluxe Subscription', rarity:'common', desc:'Tricks and Sleights you are offered have a 15% chance to come improved.', tags:['luck','other','reward','shop','chance'] },
   { id:'yoked',           emoji:'🐂',  name:'Overachiever',            rarity:'epic',   desc:'Buffs your cards gain are twice as strong. Improving this makes every buff your cards hold 25% stronger; the 5th improvement doubles them.', tags:['pips','mult','xpips','xmult','card','buffed','scores'] },
   { id:'martyr',          emoji:'⚰️',  name:'Martyr',           rarity:'common', desc:'Discarding a non-discard Sleight restores 1 charge to all Sleights on the grid.', tags:['other','sleights','discard','charges'] },
@@ -108,10 +108,10 @@ const KNACK_POOL = [
   { id:'king_pawn',      emoji:'🤝', name:'King Pawn',      rarity:'rare',   desc:'', tags:['credits','other','shop'] },
   { id:'buyback',        emoji:'🛒', name:'Buyback',        rarity:'rare',   desc:'', tags:['tricks','other','shop'] },
   { id:'dividend',     emoji:'🏦',  name:'Dividend',      rarity:'rare', desc:'Each time you hit your Focus limit, gain 8 credits, then Focus resets to a third of the limit.', tags:['credits','other','cost'] },
-  { id:'trade_winds',  emoji:'⛵',  name:'Trade Winds',   rarity:'rare', desc:'Your Focus limit is 10 lower. At the end of each round, gain credits equal to half your current Focus.', tags:['credits','focus','other','level','cost'] },
+  { id:'trade_winds',  emoji:'⛵',  name:'Trade Winds',   rarity:'rare', desc:'Your Focus limit is 10 lower. At the end of each level, gain credits equal to half your current Focus.', tags:['credits','focus','other','level','cost'] },
   { id:'knock_on',     emoji:'🔗',  name:'Knock-On',      rarity:'rare', desc:'Whenever a limit other than Focus Cap goes up, another random limit goes up too.', tags:['limit','other'] },
   { id:'four_by_four', emoji:'4️⃣',  name:'4x4',           rarity:'rare', desc:'Scored 4s have a 44% chance to force trigger the Trick in slot 4', tags:['retrigger','card','rank','chance','tricks'] },
-  { id:'growth_spurt', emoji:'🌱',  name:'Stretch Goal',  rarity:'rare', desc:'Each time you hit your Focus limit, the limit drops by 5. If you hit it during a round, a random limit rises by 1 at the end of that round.', tags:['limit','focus','other','level','cost'] },
+  { id:'growth_spurt', emoji:'🌱',  name:'Stretch Goal',  rarity:'rare', desc:'Each time you hit your Focus limit, the limit drops by 5. If you hit it during a level, a random limit rises by 1 at the end of that level.', tags:['limit','focus','other','level','cost'] },
   // ── Focus-capacity knacks (r104) ──
   { id:'stimulants',      emoji:'💊',  name:'Stimulants',       rarity:'rare', desc:'+10 to your Focus limit.', tags:['focus','other'] },
   // ── Focus RATE batch (r180) - these scale how fast Focus ACCRUES. Every knack
@@ -129,7 +129,7 @@ const KNACK_POOL = [
   { id:'attention_to_detail', emoji:'🔍', name:'Attention to Detail', rarity:'rare', startOnly:true, desc:'Tricks that pay for a card\'s rank, suit, buffs or position pay 50% more', tags:['pips','mult','other','rank','suit','position'] },
   // r805 (owner): Whiteout. The hook is whiteoutAugment (js/play-hand.js), after Roll Call.
   { id:'whiteout',       emoji:'🧹',  name:'Whiteout',         rarity:'rare',   desc:'When you play a hand, if one more card touching it would make a better hand, that card is played too.', tags:['board','hand','size'] },
-  { id:'curio',          emoji:'🏺',  name:'Curio',            rarity:'rare',   desc:'At the start of each round, a card of the last rank you scored joins your deck, in a random suit with a random buff.', tags:['deck','other','start','rank'] },
+  { id:'curio',          emoji:'🏺',  name:'Curio',            rarity:'rare',   desc:'At the start of each level, a card of the last rank you scored joins your deck, in a random suit with a random buff.', tags:['deck','other','start','rank'] },
   { id:'rewards_member', emoji:'🎲',  name:'Rewards Member',   rarity:'rare',   desc:'Events are 3 times as common in rewards.', tags:['other','reward'] },   // r795 (owner): locked until 15 events are filed (js/event-files.js)
   { id:'growth_mindset', emoji:'📈',  name:'Growth Mindset',   rarity:'rare',   desc:'Limit rewards are twice as common', tags:['limit','other','reward'] },
   { id:'adhd',          emoji:'🧠',  name:'ADHD',             rarity:'rare',   desc:'Focus holds 3x as long at each whole multiplier (x2.0, x3.0...) before it fades', tags:['focus','other'] },   // r789: Hyperfocus's unlock

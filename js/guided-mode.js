@@ -139,7 +139,7 @@ function guidedRollOffers() {
 
 function guidedMakeOffer(kind) {
   const P = k => guidedStopPrice(k);
-  if (kind === 'level')  return { kind, icon:'▶', name:'Play a round',
+  if (kind === 'level')  return { kind, icon:'▶', name:'Play a level',
     desc:'Clear the goal and take the payout. This is how you earn.', price:0 };
   if (kind === 'reward') return { kind, icon:'▦', name:gridName('reward', { bare: true }),
     desc:'Pick a path across the board and take everything on it.', price:P('reward') };
@@ -149,7 +149,7 @@ function guidedMakeOffer(kind) {
     desc:'Three rewards on the table. Take one, no charge.', price:0 };
   if (kind === 'elite') {
     const ch = rollChallengeLevel();
-    return { kind, icon:'⚠', name:'Hard round', challenge: ch,
+    return { kind, icon:'⚠', name:'Hard level', challenge: ch,
              desc:`${ch.label} Goal is ${Math.round((ch.goalMult - 1) * 100)}% higher, and it pays ${ch.rewardText}.`,
              price:0 };
   }
@@ -245,7 +245,7 @@ function guidedRenderCrossBar() {
   bar.innerHTML =
     `<span class="gxb-act">Q${actNumber}</span>` +
     `<span class="gxb-slots">SLOT ${guidedSlot + 1} / ${GUIDED_SLOTS_PER_ACT}</span>` +
-    `<span class="gxb-note">${left === 1 ? 'Boss next' : due <= 0 ? 'A round is due' : `${left} to the boss`}</span>` +
+    `<span class="gxb-note">${left === 1 ? 'Boss next' : due <= 0 ? 'A level is due' : `${left} to the boss`}</span>` +
     `<span class="gxb-coins">${creditsTxt(coins)}</span>`;
   bar.classList.add('show');
 }
@@ -673,7 +673,7 @@ function guidedTagOffers(mk) {
 function guidedPickActions(redraw) {
   return [
     pickRerollAction(redraw),
-    { icon: '📊', label: 'Round', sub: 'breakdown', onClick: () => survivalToggleContrib() },
+    { icon: '📊', label: 'Level', sub: 'breakdown', onClick: () => survivalToggleContrib() },
   ];
 }
 

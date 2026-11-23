@@ -248,7 +248,7 @@ function captureRunCheckpoint() {
 
 // ── Storage ──────────────────────────────────────────────────────────────────
 function saveRunToStorage() {
-  if (!runCheckpoint) return { ok: false, msg: 'No round checkpoint yet - start a round first.' };
+  if (!runCheckpoint) return { ok: false, msg: 'No level checkpoint yet - start a level first.' };
   try {
     localStorage.setItem(SAVE_KEY, JSON.stringify(runCheckpoint));
   } catch (e) {
@@ -257,7 +257,7 @@ function saveRunToStorage() {
   if (window.LETHE_STORAGE_OK === false)
     return { ok: true, msg: 'Saved for this session only - this browser blocks stored data.' };
   const m = runCheckpoint.meta;
-  return { ok: true, msg: `Saved - ${m.modeName}, Round ${m.level}.` };
+  return { ok: true, msg: `Saved - ${m.modeName}, Level ${m.level}.` };
 }
 
 function readSavedRun() {
@@ -428,7 +428,7 @@ function updateContinueBtn() {
   const s = savedRunSummary();
   if (!s) { btn.style.display = 'none'; return; }
   btn.style.display = '';
-  btn.innerHTML = `CONTINUE<span class="menu-continue-sub">${s.modeName} · Round ${s.level} · ${s.whenStr}</span>`;
+  btn.innerHTML = `CONTINUE<span class="menu-continue-sub">${s.modeName} · Level ${s.level} · ${s.whenStr}</span>`;
 }
 
 function continueSavedRun() {

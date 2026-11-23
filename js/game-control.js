@@ -89,7 +89,7 @@ function resumeGame() {
   // and then starts the same round timer everything else uses.
   // Guarded: paused from the map / shop / reward grid / an event there was no round
   // clock running, and starting one now would run the round behind that screen.
-  else if (pausedRoundClock) { if (bossActive) startBossTimer(); else startRoundTimer(); }
+  else if (pausedRoundClock) { if (bossActive) startBossTimer({ resume: true }); else startRoundTimer({ resume: true }); }
   pausedRoundClock = false;
 }
 
@@ -118,7 +118,7 @@ function quitToMainMenu() {
   // point is, so the warning should not claim otherwise.
   const _saved = (typeof savedRunSummary === 'function') ? savedRunSummary() : null;
   const _msg = _saved
-    ? `Return to the home screen? You can CONTINUE from your save (Round ${_saved.level}); anything since then is lost.`
+    ? `Return to the home screen? You can CONTINUE from your save (Level ${_saved.level}); anything since then is lost.`
     : 'Return to the home screen? Your current run will be lost.';
   if (!confirm(_msg)) return;
   location.reload();

@@ -92,7 +92,7 @@ const IMPROVE_STEP = {
   time_slip:      { chance: 0.05 },   // r771: 10 15 20 25 30 45% (was 25 35 45 55 65 95)
   replay_rewind:  { chance: 0.20 },
   prime_time:     { pips_per_card: 11 }, // owner: +11 per improvement, not +23
-  hyper_focus:    { focus_mult: 1 },     // 2x Focus -> 3x -> 4x
+  hyper_focus:    { focus_mult: 1 },     // r814: 5x Focus -> 6x -> 7x
   // r624, the owner's rare sheet
   heavy_hand:     { pips_per_card: 10 },
   high_pair:      { focus_per_card: 1 },   // r810: base is 1 now (was +2 on a base of 4)
@@ -130,7 +130,7 @@ const IMPROVE_PLAN = {
   // +5 pips, then one more hand, alternating; the 5th does both
   first_fruits:     t => ({ pips: 5 + 5 * [0, 1, 1, 2, 2, 3][t], hands: 1 + [0, 0, 1, 1, 2, 3][t] }),
   // +2 mult, then 2s less, alternating: +10 every 6s at tier 4; the 5th does both
-  swift:            t => ({ mult_per_interval: 6 + 2 * [0, 1, 1, 2, 2, 3][t], interval_seconds: 10 - 2 * [0, 0, 1, 1, 2, 3][t] }),
+  swift:            t => ({ mult_per_interval: 8 + 2 * [0, 1, 1, 2, 2, 3][t], interval_seconds: 10 - 2 * [0, 0, 1, 1, 2, 3][t] }),
   // r646 (owner): 44% +16% an improvement, capped at 100%; the 5th adds Queens
   four_by_four:     t => ({ chance: Math.min(1, 0.44 + 0.16 * Math.min(t, 4)), queens: t >= 5 ? 1 : 0 }),
   // r646 (owner): one more replay, then a Luck-free chance of one more every time, alternating; 2 replays (3 plays) to start
@@ -457,7 +457,33 @@ function applyEntityTiers() {
      if (!entityTierOf(e.id) && !(typeof detailBoosted === 'function' && detailBoosted(e.id))) { e.desc = DESC_BASE[e.id]; return; }
      rewriteDescForTier(e);
   }));
+  flowWordApply();
   syncOwnedEntityDescs();
+}
+
+// r814 (owner): in Flow the clock cards measure the QUARTER (clockElapsed, js/hand-detect.js),
+// so their sentences say so. Phrase-based, so a fused Trick that carries one is covered too.
+// Reversible: the level wording is kept on the row (`_lvDesc`) and put back outside Flow.
+const FLOW_QUARTER_PHRASES = [
+  [/\b(elapsed|paused|rewound) this level\b/g, '$1 this quarter'],
+  [/\bthird of (the|a) level\b/g, 'third of $1 quarter'],
+  [/\b(half|two thirds)\]\]\]\] of the level\b/g, '$1]]]] of the quarter'],
+  [/\bof the level pay\b/g, 'of the quarter pay'],
+  [/\bremaining level time\b/g, 'remaining quarter time'],
+  [/\bseconds of a level\b/g, 'seconds of a quarter'],
+];
+function flowWordApply() {
+  const flow = typeof flowActive === 'function' && flowActive();
+  [typeof TRICK_POOL_ALL !== 'undefined' ? TRICK_POOL_ALL : [],
+   typeof KNACK_POOL !== 'undefined' ? KNACK_POOL : [],
+   typeof SLEIGHT_POOL !== 'undefined' ? SLEIGHT_POOL : []].forEach(p => p.forEach(e => {
+    if (!e || typeof e.desc !== 'string') return;
+    const base = (e._qDesc != null && e.desc === e._qDesc) ? e._lvDesc : e.desc;   // a regenerated sentence replaces the old base
+    let d = base;
+    if (flow) for (const [re, to] of FLOW_QUARTER_PHRASES) d = d.replace(re, to);
+    if (d === base) { if (e._qDesc != null) { e.desc = base; delete e._qDesc; delete e._lvDesc; } return; }
+    e._lvDesc = base; e._qDesc = d; e.desc = d;
+  }));
 }
 
 // V6 names (r635, owner; js/data/v6-names.js): at tier 5 an entity listed there

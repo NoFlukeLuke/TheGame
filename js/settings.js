@@ -57,7 +57,7 @@ const SETTINGS_DEF = [
     type: 'slider', min: 0, max: 100, step: 5, default: 100, unit: '%' },
   // r694: the clock ramp (js/music.js). Read there every tick; nothing to apply.
   { group: 'Audio', id: 'musicClock', label: 'Music follows the clock',
-    hint: () => `In a run the track plays faster as the round clock runs down, up to ${(typeof MUSIC_CLOCK !== 'undefined' ? MUSIC_CLOCK.max : 1.65)}x at 0:00. Tempo keeps the key. Tape lets the pitch rise with it.`,
+    hint: () => `In a run the track plays faster as the level clock runs down, up to ${(typeof MUSIC_CLOCK !== 'undefined' ? MUSIC_CLOCK.max : 1.65)}x at 0:00. Tempo keeps the key. Tape lets the pitch rise with it.`,
     type: 'select', default: 'tempo', options: [['off', 'Off'], ['tempo', 'Tempo'], ['tape', 'Tape']] },
   // r721: the payout's coin (js/coin-sounds.js). Read at every coin; a change plays it.
   { group: 'Audio', id: 'payoutCoin', label: 'Payout coin',
@@ -140,11 +140,11 @@ const SETTINGS_DEF = [
   { group: 'Skip', id: 'skipScoring', label: 'Scoring animations',
     hint: 'Every hand tallies at skip speed. The same numbers land in the same order.',
     type: 'toggle', default: false },
-  { group: 'Skip', id: 'skipFinale', label: 'Round-winning finale',
+  { group: 'Skip', id: 'skipFinale', label: 'Level-winning finale',
     hint: 'The hand that clears the goal skips its jitter and explosion, as if you pressed SKIP.',
     type: 'toggle', default: false },
   { group: 'Skip', id: 'skipPayout', label: 'Payout count-up',
-    hint: 'The end-of-round credits land at once instead of counting up.',
+    hint: 'The end-of-level credits land at once instead of counting up.',
     type: 'toggle', default: false },
   { group: 'Skip', id: 'skipRewardCount', label: 'Reward count-up',
     hint: 'Flow: the GOAL CLEARED card that counts how many reward screens you earned. The count still shows as a toast.',
@@ -290,7 +290,7 @@ const SETTINGS_DEF = [
     buttons: () => {
       const has = (typeof hasSavedRun === 'function') && hasSavedRun();
       const inRun = (typeof runCheckpoint !== 'undefined') && !!runCheckpoint;
-      const rows = [{ label: inRun ? `Save Run (Round ${runCheckpoint.meta.level})` : 'Save Run',
+      const rows = [{ label: inRun ? `Save Run (Level ${runCheckpoint.meta.level})` : 'Save Run',
                       fn: 'settingsSaveRun()', primary: true, disabled: !inRun }];
       if (has) rows.push({ label: 'Resume', fn: 'settingsResumeRun()' },
                          { label: 'Delete', fn: 'settingsDeleteSave()' });

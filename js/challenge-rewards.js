@@ -81,7 +81,7 @@ function crrScreen(kind, floor) {
   const s = { kind, floor: floor || null };
   if (typeof flowActive === 'function' && flowActive()) { const st = crFlowState(); (st.steps = st.steps || []).push(s); return ' at the next level-up'; }
   crScreens.push(s);
-  return ' after the round';
+  return ' after the level';
 }
 // One pick of three of a reward chain kind, with an optional rarity floor
 // (flowrOfferFloor, read by flowrBuildOffers).
@@ -238,7 +238,7 @@ const CRR = {
     give(t, ctx) {
       const n = this.n[t];
       if (ctx.live) { rewindTime(n); return ''; }
-      crrPend('secs', n); return ' at the next round’s start';
+      crrPend('secs', n); return ' at the next level’s start';
     },
     penSay: '-15s', penTo: 'time', penLabel: '-15s',
     penCan: () => true,
@@ -282,7 +282,7 @@ const CRR = {
     can: () => true,
     give(t, ctx) {
       const n = this.n[t];
-      if (!ctx.live) { crrPend('swaps', n); crrPend('discards', n); return ' at the next round’s start'; }
+      if (!ctx.live) { crrPend('swaps', n); crrPend('discards', n); return ' at the next level’s start'; }
       swaps += n; discards += n;
       if (ctx.el) { crrFly(ctx.el, 'swaps', `+${n}`); setTimeout(() => crrFly(ctx.el, 'discards', `+${n}`), 160); }
       if (typeof updateSelectionUI === 'function') updateSelectionUI();
@@ -432,7 +432,7 @@ const CRR = {
     can: () => typeof focusCapNodes === 'function',
     give(t, ctx) {
       const cap = focusCapNodes(), n = t ? cap : Math.ceil(cap / 2);
-      if (!ctx.live) { crrPend('focus', t ? 'max' : n); return ' at the next round’s start'; }
+      if (!ctx.live) { crrPend('focus', t ? 'max' : n); return ' at the next level’s start'; }
       if (ctx.el) crrFly(ctx.el, 'focus', t ? 'MAX' : `+${n}`);
       addFocus(t ? Math.max(0, cap - focusNodes) : n);
       return '';

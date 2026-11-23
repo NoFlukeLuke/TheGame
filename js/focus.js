@@ -164,7 +164,10 @@ function focusPlaceReadout(total) {
   if (!(typeof trayMachineOn === 'function' && trayMachineOn()) || !wrap.offsetHeight) {
     wrap.style.removeProperty('--focus-top'); return; }
   const shake = (focusReduceMotion() || _focusHold != null) ? 0 : FOCUS_FX.jitterMaxPx * focusJitterFrac();
-  const fromBottom = wrap.offsetHeight - (_focusOffY(node) - _focusOffY(wrap)) + FOCUS_READOUT_GAP + shake;
+  const ro = document.getElementById('focus-mult-readout');
+  // r814: never above the gauge's own top (a very high cap put x10.0 32px over it).
+  const fromBottom = Math.min(wrap.offsetHeight - (ro ? ro.offsetHeight : 0),
+    wrap.offsetHeight - (_focusOffY(node) - _focusOffY(wrap)) + FOCUS_READOUT_GAP + shake);
   const was = parseFloat(wrap.style.getPropertyValue('--focus-top'));
   wrap.classList.toggle('fr-rise', !(fromBottom <= was));
   wrap.style.setProperty('--focus-top', fromBottom.toFixed(1) + 'px');
@@ -222,6 +225,7 @@ function updateFocusMultReadout(pulse = false) {
   const el = document.getElementById('focus-mult-readout');
   if (!el) return;
   el.textContent = mult.toFixed(1);   // r805 (owner): the number alone, no x
+  el.classList.toggle('fr-long', el.textContent.length > 3);   // r814: x10.0 and up is set smaller so it fits the phone's gauge
   const active = focusNodes > FOCUS_THRESHOLD;
   el.classList.toggle('active', active);
   el.classList.toggle('dim', !active);

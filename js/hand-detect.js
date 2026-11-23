@@ -201,9 +201,32 @@ function _withinOneRank(a, b) {
   return av.some(x => bv.some(y => Math.abs(x - y) === 1));
 }
 
-// Fraction of THIS round's clock still remaining (1.0 at start → 0 at end). Dynamic so
-// "first/middle/last third" language tracks the actual round length, not a constant.
-function roundFractionRemaining() { return roundStartSeconds > 0 ? Math.max(0, roundSeconds / roundStartSeconds) : 0; }
+// r814 (owner, FLOW_TIME_TRICKS.md): where the clock-reading entities measure from.
+// In Flow outside a boss that is the QUARTER (the session clock, which a level-up does
+// not refill: `flowSessionSeconds()` is what it started at); everywhere else, and in
+// a boss window, it is the level (`roundStartSeconds`). Read these, never
+// `roundStartSeconds - roundSeconds`, in anything a Trick or Knack pays from.
+function clockQuarterOn() { return typeof flowSessionRunning === 'function' && flowSessionRunning(); }
+function clockStartSecs() {
+  if (clockQuarterOn() && typeof flowSessionSeconds === 'function') return flowSessionSeconds();
+  return roundStartSeconds;
+}
+function clockElapsed() { return Math.max(0, clockStartSecs() - roundSeconds); }
+// Seconds left, as the "time left" Tricks read it (Sands of Time, Dark Matter, Cornered):
+// in Flow capped at a Classic level's length, so a 5:00 quarter (or a rewind past it)
+// does not pay more than a Classic level could.
+const CLOCK_LEFT_CAP_FLOW = 180;
+function clockLeftSecs() { return clockQuarterOn() ? Math.min(roundSeconds, CLOCK_LEFT_CAP_FLOW) : roundSeconds; }
+// A key that changes when the span the clock is measured over starts again (a level,
+// or in Flow a quarter or a boss window). Counters keyed on it restart with it.
+function clockSpanKey() {
+  if (typeof flowActive === 'function' && flowActive())
+    return 'q' + (typeof survivalBossesBeaten === 'number' ? survivalBossesBeaten : 0) + (bossActive ? 'b' : '');
+  return 'l' + level;
+}
+// Fraction of the clock still remaining (1.0 at start → 0 at end): the level's, or
+// in Flow the quarter's. Dynamic so "first/middle/last third" tracks the real length.
+function roundFractionRemaining() { const s = clockStartSecs(); return s > 0 ? Math.max(0, roundSeconds / s) : 0; }
 
 function spanStats(cells) {
   const rows = [...new Set(cells.map(([r])=>r))];

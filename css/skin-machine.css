@@ -515,6 +515,7 @@ html.skin-machine #stage #focus-mult-readout {
   text-shadow: 0 0 2px #000, 0 0 3px #000, 1px 1px 0 #000, -1px -1px 0 #000, 0 0 9px rgba(255,200,90,.85) !important;
 }
 html.skin-machine #stage #focus-mult-readout.dim { opacity: .92 !important; }
+html.skin-machine #stage #focus-mult-readout.fr-long { font-size: 10px !important; }   /* r814: four characters (x10.0+) */
 html.skin-machine #stage #focus-mult-readout.active { color: #d9ffe9 !important; }
 
 /* r805: with Line Quotas the goal screen is the meters, each printing its own goal; the 0/3 text would sit over them. */

@@ -97,7 +97,7 @@ async function finaleShareImage(F, opts) {
   x.shadowColor = 'rgba(255,176,46,.55)'; x.shadowBlur = 10;
   fsText(x, `> ${F.title}`, FS_M, 96, 64, F.won ? '#94ecb0' : FS_HI);
   x.shadowBlur = 0;
-  const sub = [F.mode ? F.mode.toUpperCase() : '', F.far, F.drive ? '' : `${F.rounds} ROUND${F.rounds === 1 ? '' : 'S'}`, finaleClock(F.secs)].filter(Boolean).join('  ·  ');
+  const sub = [F.mode ? F.mode.toUpperCase() : '', F.far, F.drive ? '' : `${F.rounds} LEVEL${F.rounds === 1 ? '' : 'S'}`, finaleClock(F.secs)].filter(Boolean).join('  ·  ');
   fsText(x, sub, FS_M, 136, 28, FS_DIM);
   if (F.records.length) fsText(x, F.records.map(r => '★ ' + r).join('    '), FS_M, 170, 26, '#ffe066');
   // the numbers

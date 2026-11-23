@@ -34,8 +34,8 @@ const OVERTIME_COSTS = [
     apply: () => 'leftover time pays less' },
   { id: 'interest',   icon: '🏦', name: 'Interest capped',     desc: `The interest cap is halved.`,
     apply: () => 'interest cap halved' },
-  { id: 'boss_hard',  icon: '☠', name: 'Tough reviews',       desc: `Boss rounds need ${Math.round((OVERTIME_BOSS_GOAL - 1) * 100)}% more score.`,
-    apply: () => 'boss rounds need more' },
+  { id: 'boss_hard',  icon: '☠', name: 'Tough reviews',       desc: `Boss levels need ${Math.round((OVERTIME_BOSS_GOAL - 1) * 100)}% more score.`,
+    apply: () => 'boss levels need more' },
   { id: 'clock_miss', icon: '🎲', name: 'Unreliable clock',    desc: `Rewinds and pauses have a ${Math.round(OVERTIME_MISS * 100)}% chance not to happen.`,
     apply: () => 'rewinds and pauses can miss' },
 ];
@@ -68,8 +68,8 @@ function renderOvertime() {
   eventState.phase = 'offer';
   body.appendChild(evLabel('ON THE CLOCK'));
   const pct = Math.round((OVERTIME_LEN_MULT - 1) * 100);
-  const tile = makeChoiceEl({ icon: '⏳', name: 'Longer rounds',
-    desc: `Every round from now on is ${pct}% longer, boss rounds included.`,
+  const tile = makeChoiceEl({ icon: '⏳', name: 'Longer levels',
+    desc: `Every level from now on is ${pct}% longer, boss levels included.`,
     onClick: () => { tile.classList.add('selected'); setEventConfirm(true); } });
   body.appendChild(tile);
   body.appendChild(evNote('Take it and three costs are dealt. You avoid one; the other two last the rest of the run.'));
@@ -108,7 +108,7 @@ function confirmOvertime() {
   const notes = keep.map(c => { try { return c.apply(); } catch (e) { return null; } }).filter(Boolean);
   // Deliberately NO render(): an event opens over a cleared board (on the Schedule
   // the grid holds map tiles), and every screen that follows repaints.
-  noteMessage(`Overtime · rounds ${Math.round((OVERTIME_LEN_MULT - 1) * 100)}% longer · ${notes.join(' · ')}`, 'var(--gold)');
+  noteMessage(`Overtime · levels ${Math.round((OVERTIME_LEN_MULT - 1) * 100)}% longer · ${notes.join(' · ')}`, 'var(--gold)');
   closeEvent();
 }
 
