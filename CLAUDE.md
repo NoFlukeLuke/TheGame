@@ -5722,3 +5722,16 @@ cases move (and tray34, which holds one); baseline in r815. tools/scoring-golden
 
 ## r815 - golden baseline rewritten for r814
 The Swift, Eagle Eye and Hyper Focus cases (and tray34) move with the new numbers; nothing else changed.
+## r814 (main) - PAUSE cannot open under the end screen (owner's bug)
+At the finale, PLAY AGAIN / HOME / ENDLESS went dead after pressing PAUSE, or after leaving the tab or
+app (`letheOnHidden` auto-pauses; its run-over test still read the pre-r634 `#end-overlay`). The pause
+menu opened UNDER the finale (z 10002) and its clear full-screen overlay took every tap on the keys.
+`finaleOpen()` (js/finale.js) is true while the end screen is up; `pauseGame` returns on it (so the
+PAUSE key, Records' pause and the tab-hidden pause all stand down; the PAUSE key refuses), and
+`showFinale` lets go of a pause menu that was already up, starting no timer. Measured by real clicks at
+1440x820 and 420x900 (Classic loss, Flow win): PAUSE, Records, PEEK, DETAILS, SHARE, then PLAY AGAIN
+started the run; pause works again in the new run; no page errors.
+
+## r814 numbering
+Two sessions shipped r814 in parallel: the round/level and Flow clock pass (above, with its r815
+baseline) and the end-screen PAUSE fix (above it, on main). The merge that joined them is r816.

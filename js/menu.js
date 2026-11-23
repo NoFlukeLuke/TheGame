@@ -1,4 +1,4 @@
-const BUILD = "2026-11-23 · r815 · golden baseline for r814";
+const BUILD = "2026-11-23 · r816 · merge the end-screen PAUSE fix";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
