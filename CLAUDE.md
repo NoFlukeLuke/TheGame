@@ -5894,3 +5894,31 @@ list (bracket, band, tags, thread, frame) across four states, and 10 costs, 10 r
 walk-away penalties to tick (`lethe.spPreview.v1`, this browser only; COPY MY PICKS). Owner's rules
 so far: two linked rounds (account, priority, audit or 1-on-1), the second in the next slot,
 about 25% of quarters, 2 a run at most, both shapes, a penalty on top for walking away.
+
+## r826 - the beats run while the chips sit; a short fire jump; the fire sliders (owner)
+- **The landing queue** (`landSched` / `landPush` / `landPump` in `playPreviewDance`, js/score-dance.js).
+  The walk used to wait for every chip of a step to land before the next card or Trick fired, so
+  r822's longer sit made every beat longer. Now a step fires, rests `TALLY_CFG.beat` (600ms, over the
+  pace) and the next one fires while the chips already out still sit or fly. A chip applies its
+  number when it lands and the arithmetic is order-sensitive, so every landing of the hand goes
+  through ONE queue, applied strictly in launch order: `landSched(d)` gives a chip its landing time
+  on `dncClock()` (js/dance-clock.js, the dance's clock, stopped while paused), never before the
+  chip ahead of it and `PT_SPACE.landGap` after it while that costs under `maxShift`; the wait is
+  handed to `dncFly` as `o.extra` (it sits that much longer, and skips its own `ptStagger`). A
+  card's subtotal is banked by a queue entry behind the card's last chip. After the last step the
+  walk waits for the queue to empty; SKIP there drops it (the blast lands the totals). Under fast
+  forward the pump does not wait. r772's `marks` loop is gone. **A new step in the walk launches
+  through `landSched` + `landPush`, never its own landing timer.**
+- **The fire jump is short** (`dncFire(el, ms, color, isCard)`, `dncFireMs()`): up for
+  `TALLY_CFG.fire` (450ms, never past the next beat), then down. r822's "stays raised while its
+  chip sits" is gone. A card fires once, as its beat opens. **The glow is off** (`fireGlow` 0).
+- **Dev -> HUD & Display -> Score tally pacing**: Chip sits at its source (`hold`), Chip path curve,
+  Next card or Trick fires after (`beat`), Fire jump lasts (`fire`), Fire jump size (`firePop`, 0 =
+  no movement), Fire brightness flash (`fireLight`), Fire glow (`fireGlow`, 0 = off), beside the gap,
+  order and speed-up rows. Store `lethe.tallyPace.v1`, overrides only; Reset puts all back.
+Measured in headless Chromium at 1440x820 and 420x900 (Classic, dev mode on): three cards fired
+0.88s apart (2.9s in r822) with the chip before still sitting; chips sat about 1.2s and landed in
+launch order about 250ms apart; a 3-card hand with a per-card Trick took about 4.5s (10.5s in r822,
+about 8s before it); a primed hand with a x mult and a replay, a 3-hand burst, reduced motion and
+SPEED UP + SKIP: scores on the banked totals, no timeline drift, nothing left on any element, no
+page errors. Golden: 838 match.
