@@ -24,6 +24,9 @@ function pauseGame(hideGrid = true) {
   if (isPaused) return;
   // No run has started yet (the main menu), so there is no menu to open either.
   if (!gameStartTime) return;
+  // r814: the run is over. The finale covers the board, so the pause menu would open
+  // UNDER it and its clear overlay would take every tap meant for PLAY AGAIN / HOME.
+  if (typeof finaleOpen === 'function' && finaleOpen()) return;
   // A running 3-2-1 counts as something to pause: the round timer has not started yet,
   // so the old test also made PAUSE a no-op during the deal and the round began
   // underneath the pause menu.
@@ -89,7 +92,7 @@ function resumeGame() {
   // and then starts the same round timer everything else uses.
   // Guarded: paused from the map / shop / reward grid / an event there was no round
   // clock running, and starting one now would run the round behind that screen.
-  else if (pausedRoundClock) { if (bossActive) startBossTimer(); else startRoundTimer(); }
+  else if (pausedRoundClock) { if (bossActive) startBossTimer({ resume: true }); else startRoundTimer({ resume: true }); }
   pausedRoundClock = false;
 }
 
@@ -101,6 +104,7 @@ function resumeGame() {
 // screen that never scrolls away - its bar.
 function togglePauseMenu() {
   if (isPaused) resumeGame();
+  else if (typeof finaleOpen === 'function' && finaleOpen()) { if (typeof refuse === 'function') refuse(); }
   else pauseGame(true);
 }
 document.getElementById('btn-pause').addEventListener('click', togglePauseMenu);
@@ -118,7 +122,7 @@ function quitToMainMenu() {
   // point is, so the warning should not claim otherwise.
   const _saved = (typeof savedRunSummary === 'function') ? savedRunSummary() : null;
   const _msg = _saved
-    ? `Return to the home screen? You can CONTINUE from your save (Round ${_saved.level}); anything since then is lost.`
+    ? `Return to the home screen? You can CONTINUE from your save (Level ${_saved.level}); anything since then is lost.`
     : 'Return to the home screen? Your current run will be lost.';
   if (!confirm(_msg)) return;
   location.reload();
@@ -289,6 +293,7 @@ document.querySelector('#stats-overlay .overlay-close').addEventListener('click'
 document.querySelector('#deck-overlay .overlay-close').addEventListener('click', () => closeInfoOverlay('deck-overlay'));
 
 function startGame() {
+  if (typeof runOverSet === 'function') runOverSet(false);   // r817: a new run is live
   if (typeof rsReset === 'function') rsReset();   // r755: run stats start empty (js/run-stats.js); a restore overwrites them
   if (typeof offerRecent !== 'undefined') offerRecent = [];   // r716: a new run remembers no offers
   if (typeof _ulRunLive !== 'undefined') _ulRunLive = false;   // r706: the opening balance is not earned credits
@@ -543,6 +548,7 @@ function startGame() {
   // ladder (r175). Pins hold payload objects with live buy() functions, which is
   // why they are NOT in SAVE_VARS - the Mart is shut at every save point anyway.
   altarEffects    = [];
+  if (typeof investmentReset === 'function') investmentReset();   // r805
   sleightNextHandDouble = false;
   sleightLegacyMult    = false;
   sleightAmplifierMult = 0;

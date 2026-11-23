@@ -72,7 +72,7 @@ const INFO_GROUPS = [
   ['board',   'The board'],
   ['scoring', 'Scoring'],
   ['owned',   'What you own'],
-  ['between', 'Between rounds'],
+  ['between', 'Between levels'],
   ['schedule','The schedule'],
   ['pressure','Pressure'],
   ['modes',   'Modes'],
@@ -110,7 +110,7 @@ const INFO_TOPICS = [
   // ── The board ─────────────────────────────────────────────────────────────
   { id: 'swap_discard', group: 'board', title: 'Swapping and discarding',
     body: [
-      'A SWAP trades two cards that touch. A DISCARD throws selected cards away and pulls new ones down. Both are capped per round.',
+      'A SWAP trades two cards that touch. A DISCARD throws selected cards away and pulls new ones down. Both are capped per level.',
       () => (swapSecondsBase() > 0 || discardSecondsBase() > 0)
         ? `At this difficulty a swap costs ${swapSecondsBase()}s and a discard ${discardSecondsBase()}s, whatever its size.`
         : 'At this difficulty neither costs time. From ENTRY LEVEL up, each costs seconds.',
@@ -183,7 +183,7 @@ const INFO_TOPICS = [
   { id: 'speed_bonus', group: 'scoring', title: 'The speed bonus',
     body: [
       'A hand\'s {FOCUS} comes from two things: what the hand IS, and how fast you played it after the previous one.',
-      'The speed part is largest the instant a hand lands and fades over the next few seconds. A round\'s first hand earns no speed bonus.',
+      'The speed part is largest the instant a hand lands and fades over the next few seconds. A level\'s first hand earns no speed bonus.',
       'Pair, Flush of 3 and Flush of 4 earn half the speed bonus. Overclock multiplies it. Long Fuse gives you longer to earn it.',
     ] },
 
@@ -212,7 +212,7 @@ const INFO_TOPICS = [
   { id: 'sleights', group: 'owned', title: '{Sleights}',
     body: [
       'A {sleight} is a card that lives in your deck. See "{Sleights} sit on the board" for how they behave in play.',
-      'Their charges are per RUN, not per round, and most cycle back into the deck after firing rather than being destroyed.',
+      'Their charges are per RUN, not per level, and most cycle back into the deck after firing rather than being destroyed.',
     ] },
 
   { id: 'knacks', group: 'owned', title: '{Knacks}',
@@ -242,7 +242,7 @@ const INFO_TOPICS = [
       () => ['Interest on the credits you are holding.',
        `Early Finish Bonus: 1 credit per ${(typeof efficiencySecondsPerCoin === 'function') ? efficiencySecondsPerCoin() : 10} seconds left on the clock.`],
       () => `Flow pays at each level-up instead: ${creditsTxt(SURVIVAL_LEVEL_COINS)} for the clear, more for score over the {GOAL}, and interest.`,
-      'The Contributions view on the same screen breaks the round down by what earned it.',
+      'The Contributions view on the same screen breaks the level down by what earned it.',
     ] },
 
   { id: 'reward_grid', group: 'between', title: `The ${gridName('reward')}`,
@@ -254,10 +254,10 @@ const INFO_TOPICS = [
 
   { id: 'pick_three', group: 'between', title: 'Take your pick',
     body: [
-      'Three offers, and you take one. The Schedule pays one after an ordinary round. In Flow it is one of the reward screens a level-up can pay.',
+      'Three offers, and you take one. The Schedule pays one after an ordinary level. In Flow it is one of the reward screens a level-up can pay.',
       'Each offer rolls its own type. The chances depend on the mode; see that mode\'s entry under Modes.',
       'A tap selects an option and shows its description. CONFIRM takes it.',
-      'The other two keys reroll: one the three options, one the kind of reward. Each is free once for every discard or swap the round ended with, then costs credits, more each time.',
+      'The other two keys reroll: one the three options, one the kind of reward. Each is free once for every discard or swap the level ended with, then costs credits, more each time.',
     ] },
 
   { id: 'shop', group: 'between', title: 'The company store',
@@ -303,7 +303,7 @@ const INFO_TOPICS = [
   { id: 'schedule', group: 'schedule', title: 'The schedule',
     body: [
       'Your schedule is a to-do list of OBLIGATIONS in four TIME SLOTS, read top to bottom, ending in the manager review.',
-      'Each obligation is one thing you will do: a client account is an ordinary round.',
+      'Each obligation is one thing you will do: a client account is an ordinary level.',
       'While the schedule is up, the three keys on the right are its tools: PEN, LEGEND and CLOCK IN. LEGEND lists every kind on this schedule, and tapping a row lights up where they are.',
       'Pick an obligation and its name shows on the command line at the foot. CLOCK IN takes it.',
       'You can draw on it. PEN lets a finger or the mouse lay ink, and the keys become DONE, COLOUR and UNDO. Right-drag draws without it, double right-click changes colour, and the ink is saved with your run.',
@@ -335,13 +335,13 @@ const INFO_TOPICS = [
       'It also decides what challenge cards pay: one reward for ordinary cards, another for hard ones. A card shows its reward and what raising it pays.',
     ] },
 
-  { id: 'curve', group: 'schedule', title: 'Round goals',
+  { id: 'curve', group: 'schedule', title: 'Level goals',
     body: [
-      'A round\'s {GOAL} is set by its time slot. Later slots ask more. In a slot with two or more rounds, one or two of them ask a level more. Each line prints its {GOAL} before you clock in.',
+      'A level\'s {GOAL} is set by its time slot. Later slots ask more. In a slot with two or more levels, one or two of them ask a level more. Each line prints its {GOAL} before you clock in.',
     ] },
 
   // ── Pressure ──────────────────────────────────────────────────────────────
-  { id: 'clock', group: 'pressure', title: 'The round clock',
+  { id: 'clock', group: 'pressure', title: 'The level clock',
     body: [
       'Reach the {GOAL} before the clock runs out. On the Schedule, running out ends the run. In Flow it starts the review.',
       'A PAUSE stops the clock for a few seconds. A REWIND puts seconds back on it. Playing a hand ends a pause.',
@@ -350,8 +350,8 @@ const INFO_TOPICS = [
 
   { id: 'boss', group: 'pressure', title: 'Manager reviews',
     body: [
-      'A review is an ordinary round with a modifier on it and a much larger {GOAL}. The briefing says what the modifier does before the clock starts. PROCEED starts it.',
-      'You can read the briefing again mid-round by tapping the {GOAL} chip or the progress block.',
+      'A review is an ordinary level with a modifier on it and a much larger {GOAL}. The briefing says what the modifier does before the clock starts. PROCEED starts it.',
+      'You can read the briefing again mid-level by tapping the {GOAL} chip or the progress block.',
     ] },
 
   { id: 'difficulty', group: 'pressure', title: 'Difficulty',
@@ -361,9 +361,9 @@ const INFO_TOPICS = [
     ] },
   { id: 'mini_boss', group: 'pressure', title: 'Priority accounts',
     body: [
-      `A priority account is an ordinary round with a RAISED {GOAL} and one extra requirement. Clearing it pays ${gridName('reward', { a: true })}; meeting the requirement pays credits too.`,
+      `A priority account is an ordinary level with a RAISED {GOAL} and one extra requirement. Clearing it pays ${gridName('reward', { a: true })}; meeting the requirement pays credits too.`,
       'A one-on-one is a review\u2019s modifier at half strength. It pays credits and an improvement you pick, not ' + gridName('reward', { a: true }) + '.',
-      'Missing the requirement loses its credits, not the round.',
+      'Missing the requirement loses its credits, not the level.',
     ] },
 
   // ── Modes (r310) - how each mode works, one entry per carousel card ──────
@@ -372,15 +372,16 @@ const INFO_TOPICS = [
     body: [
       () => `A run is ${typeof QUARTERS_PER_RUN !== 'undefined' ? QUARTERS_PER_RUN : 4} quarters. Each quarter is a new schedule: ${typeof MAP_SETS !== 'undefined' ? MAP_SETS : 4} time slots of ${typeof MAP_LANES !== 'undefined' ? MAP_LANES : 4} obligations, then the manager review. Two managers wait at the end. Each unlocks at ${typeof mapBossNeedN === 'function' ? mapBossNeedN() : 5} bookings in its two lanes. Unlock one and face it. Unlock both and choose. Unlock neither and a random manager holds the review.`,
       'Take any two obligations in a slot. Leaving a slot after one earns R&R: a perk.',
-      `Obligations: client accounts (rounds), priority accounts (hard rounds), one-on-ones (a review\u2019s modifier at half strength), audits (challenge cards), the shop, events and raise requests (Limit Break). IT\u2019s quarter adds incentive programs (${gridName('reward', { plural: true })}).`,
-      `An unconfirmed obligation (???) is a round, an audit, a priority account, an event, a one-on-one or ${gridName('reward', { a: true })}. You find out when you commit to it.`,
-      'A round\'s goal is set by its slot. The review\'s goal is fixed when the schedule is drawn.',
-      () => `Clearing a round offers a pick of three. Weights per offer: ${typeof GUIDED_PICK_WEIGHTS !== 'undefined' ? `{trick} ${GUIDED_PICK_WEIGHTS.trick}, {sleight} ${GUIDED_PICK_WEIGHTS.sleight}, {knack} ${GUIDED_PICK_WEIGHTS.knack}, event ${GUIDED_PICK_WEIGHTS.event}` : ''}. A priority account pays ${gridName('reward', { a: true })} instead; a one-on-one pays an improvement you pick. An audit pays its challenge cards\u2019 rewards and nothing more.`,
+      `Obligations: client accounts (levels), priority accounts (hard levels), one-on-ones (a review\u2019s modifier at half strength), audits (challenge cards), the shop, events and raise requests (Limit Break). IT\u2019s quarter adds incentive programs (${gridName('reward', { plural: true })}).`,
+      `An unconfirmed obligation (???) is a level, an audit, a priority account, an event, a one-on-one or ${gridName('reward', { a: true })}. You find out when you commit to it.`,
+      'A level\'s goal is set by its slot. The review\'s goal is fixed when the schedule is drawn.',
+      () => `Clearing a level offers a pick of three. Weights per offer: ${typeof GUIDED_PICK_WEIGHTS !== 'undefined' ? `{trick} ${GUIDED_PICK_WEIGHTS.trick}, {sleight} ${GUIDED_PICK_WEIGHTS.sleight}, {knack} ${GUIDED_PICK_WEIGHTS.knack}, event ${GUIDED_PICK_WEIGHTS.event}` : ''}. A priority account pays ${gridName('reward', { a: true })} instead; a one-on-one pays an improvement you pick. An audit pays its challenge cards\u2019 rewards and nothing more.`,
     ] },
   { id: 'seeds', group: 'modes', title: 'Seeds',
     body: [
       'Every run plays on a seed. The end of run screen shows it, with COPY.',
-      'To play a seed, turn SEED on at the foot of the run screen and type it. The same seed deals the same opening board, bosses and reward grids. What you play changes the rest.',
+      'To play a seeded run, turn SEED on at the foot of the run screen and type the seed. The same seed deals the same opening board, bosses and reward grids. What you play changes the rest.',
+      'A seeded run counts for nothing: no unlocks, win tokens, difficulty tiers or event files.',
     ] },
   { id: 'mode_protocols', group: 'modes', title: 'Protocols',
     body: [
@@ -400,7 +401,7 @@ const INFO_TOPICS = [
       () => `A protocol of Flow and the Schedule. The {FOCUS} speed bonus is half as strong, but the same for the first ${PRECISION.speedFlat} seconds after a hand, then it fades over ${PRECISION.speedFade} seconds.`,
       () => `Every hand but a Pair makes ${PRECISION.focusAdd} more {FOCUS}. A hand loses ${PRECISION.sizeStep} {FOCUS} for every card it is short of your Hand Size, so a short hand can lose {FOCUS}, ${PRECISION.lossCap} at most. Kickers do not count toward a hand's length.`,
       'Attention to Detail: Tricks that pay for a card\'s rank, suit, buffs or position pay 50% more.',
-      () => `You start with ${knackName('meditation')}, ${knackName('attention_to_detail')}, +${PRECISION.swaps} swaps, +${PRECISION.discards} discards and +${PRECISION.cols} column. Flow's quarters are ${PRECISION.flowSeconds / 60} minutes longer; the Schedule's rounds are ${PRECISION.mapSeconds / 60} minute longer.`,
+      () => `You start with ${knackName('meditation')}, ${knackName('attention_to_detail')}, +${PRECISION.swaps} swaps, +${PRECISION.discards} discards and +${PRECISION.cols} column. Flow's quarters are ${PRECISION.flowSeconds / 60} minutes longer; the Schedule's levels are ${PRECISION.mapSeconds / 60} minute longer.`,
     ] },
   { id: 'mode_limitless', group: 'modes', title: 'Limitless',
     body: [
@@ -445,14 +446,14 @@ const INFO_TOPICS = [
   { id: 'mode_guided', dev: true, group: 'modes', title: 'Guided',
     body: [
       () => `Each quarter is ${typeof GUIDED_SLOTS_PER_ACT !== 'undefined' ? GUIDED_SLOTS_PER_ACT : 8} slots, then the manager review.`,
-      'Before each slot you choose one of four offers: a round, a hard round, ' + gridName('reward', { a: true }) + ', the shop, a pick of three or an event. Rounds are free. Most other offers cost credits, and buying the same kind again in a quarter costs more.',
-      'At least one offer in every three choices is a round. Every slot raises the goal, whether it is played or bought.',
+      'Before each slot you choose one of four offers: a level, a hard level, ' + gridName('reward', { a: true }) + ', the shop, a pick of three or an event. Levels are free. Most other offers cost credits, and buying the same kind again in a quarter costs more.',
+      'At least one offer in every three choices is a level. Every slot raises the goal, whether it is played or bought.',
       () => `Pick of three weights per offer: ${typeof GUIDED_PICK_WEIGHTS !== 'undefined' ? `{trick} ${GUIDED_PICK_WEIGHTS.trick}, {sleight} ${GUIDED_PICK_WEIGHTS.sleight}, {knack} ${GUIDED_PICK_WEIGHTS.knack}, event ${GUIDED_PICK_WEIGHTS.event}` : ''}.`,
     ] },
   { id: 'mode_normal', dev: true, group: 'modes', title: 'Classic',
     body: [
-      () => `Four suits, 52 cards. A run is ${typeof QUARTERS_PER_RUN !== 'undefined' ? QUARTERS_PER_RUN : 4} quarters of five rounds, each followed by a manager review.`,
-      `Reach each round's {GOAL} before the clock runs out, or the run ends. After each round: the payout, then the ${gridName('reward')}. The ${gridName('reward')} can lead to the shop or an event.`,
+      () => `Four suits, 52 cards. A run is ${typeof QUARTERS_PER_RUN !== 'undefined' ? QUARTERS_PER_RUN : 4} quarters of five levels, each followed by a manager review.`,
+      `Reach each level's {GOAL} before the clock runs out, or the run ends. After each level: the payout, then the ${gridName('reward')}. The ${gridName('reward')} can lead to the shop or an event.`,
       `Passing a review opens the ${gridName('prize')}.`,
     ] },
   { id: 'mode_spectrum', dev: true, group: 'modes', title: 'Spectrum',
@@ -463,7 +464,7 @@ const INFO_TOPICS = [
     ] },
   { id: 'mode_picker', dev: true, group: 'modes', title: 'Custom',
     body: [
-      'Seven questions build the run: the deck, what happens between rounds, round length, whether swaps and discards cost time, bosses on or off, who submits hands, and what hand types are worth.',
+      'Seven questions build the run: the deck, what happens between levels, level length, whether swaps and discards cost time, bosses on or off, who submits hands, and what hand types are worth.',
       'Some answers set others. Those are shown in amber.',
     ] },
   { id: 'mode_squares', dev: true, group: 'modes', title: 'Poker Squares',

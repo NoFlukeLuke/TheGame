@@ -2,8 +2,8 @@
 // OWNED OFFERS (r799, owner): the Old Tricks Knack, reworked
 // ══════════════════════════════════════════════
 // With Old Tricks, Tricks, Knacks and Sleights you already own can stand on the
-// company store's shelves (ownedOfferSwap, called by the three shelf builders in
-// js/shop-grid-preview.js). Buying one opens a typed command-line screen on the
+// company store's shelves at the ordinary odds (ownedAllowIds / ownedMark, called by the
+// three shelf builders in js/shop-grid-preview.js). Buying one opens a typed command-line screen on the
 // board (ownedAsk): take a second copy, or improve the original. Click a line, or
 // on a desktop type one or two and press Enter.
 //
@@ -16,7 +16,6 @@
 // An owned entity that can neither be copied nor improved is not put on a shelf.
 // TBD: the two copies' chips fly from the first copy's tray tile, and primes are
 // read per Trick id, not per copy.
-const OWNED_OFFER = { chance: 35 };   // % of a Trick / Knack / Sleight shelf slot (dev -> Probabilities)
 // Tricks whose pickup writes run state or a line: a second copy would reset or double it.
 const OWNED_NO_COPY = new Set(['feelin_lucky', 'nines_mult', 'rising_tide', 'assembly_line', 'middle_man', 'fire_sale', 'changeling', 'tens_mult']);
 
@@ -43,7 +42,7 @@ function ownedOfferable(type, id) { return !ownedCopyBlock(type, id) || !ownedIm
 // The owned entities a shelf of `type` may show: [{ def, id }].
 function ownedShelfPool(type) {
   let list = [];
-  if (type === 'trick') list = (typeof trickTray !== 'undefined' ? trickTray : []).filter(t => t && !t.fused && t.id !== 'changeling').map(t => TRICK_POOL_ALL.find(r => r.id === t.id)).filter(Boolean);
+  if (type === 'trick') list = (typeof trickTray !== 'undefined' ? trickTray : []).filter(t => t && !t.fused && t.id !== 'changeling' && !(typeof SURVIVAL_STACKABLE_TRICKS !== 'undefined' && SURVIVAL_STACKABLE_TRICKS.includes(t.id))).map(t => TRICK_POOL_ALL.find(r => r.id === t.id)).filter(Boolean);
   else if (type === 'knack') list = (typeof acquiredKnacks !== 'undefined' ? acquiredKnacks : []).filter(k => k && k.id !== 'old_tricks').map(k => KNACK_POOL.find(r => r.id === k.id)).filter(Boolean);
   else if (type === 'sleight') {
     const ids = new Set((typeof allOwnedSleightCards === 'function' ? allOwnedSleightCards() : []).filter(c => c && !c._floater).map(c => c.sleightId));
@@ -52,18 +51,24 @@ function ownedShelfPool(type) {
   const seen = new Set();
   return list.filter(d => !seen.has(d.id) && seen.add(d.id) && ownedOfferable(type, d.id));
 }
-// Lay owned entities over a built shelf: each slot has OWNED_OFFER.chance% to hold
-// one, each owned entity once. `make(def)` builds the shelf's own payload for it.
-function ownedOfferSwap(type, payloads, make) {
-  if (!ownedOffersOn() || !payloads.length) return payloads;
-  const pool = shuffle(ownedShelfPool(type));
+// r808 (owner): an owned entity joins its shelf's pool at the ordinary odds, no more
+// likely than anything else. `ownedAllowIds(type)` is what the shelf may keep in;
+// `ownedMark(type, payloads)` turns a payload of an owned id into the copy-or-improve buy.
+function ownedAllowIds(type) { return ownedOffersOn() ? new Set(ownedShelfPool(type).map(d => d.id)) : new Set(); }
+function ownedMark(type, payloads) {
+  const allow = ownedAllowIds(type);
+  if (!allow.size) return payloads;
   return payloads.map(p => {
-    if (!pool.length || p._buyback || Math.random() * 100 >= OWNED_OFFER.chance) return p;
-    const def = pool.pop(), q = make(def);
-    q.owned = true; q.desc = 'You own this. ' + (q.desc || '');
-    q.buy = () => ownedBought(type, def);
-    return q;
+    const def = p._def; if (!def || p._buyback || !allow.has(def.id) || !ownedIsHeld(type, def.id)) return p;
+    p.owned = true; p.desc = 'You own this. ' + (p.desc || '');
+    p.buy = () => ownedBought(type, def);
+    return p;
   });
+}
+function ownedIsHeld(type, id) {
+  if (type === 'trick') return (typeof trickTray !== 'undefined') && trickTray.some(t => t && t.id === id);
+  if (type === 'knack') return (typeof acquiredKnacks !== 'undefined') && acquiredKnacks.some(k => k && k.id === id);
+  return (typeof _grantedSleightSet === 'function') && _grantedSleightSet().has(id);
 }
 
 // ── The purchase ─────────────────────────────────────────────────────────────
@@ -83,7 +88,15 @@ function ownedApply(type, def, n) {
   } else {
     improveEntity(def.id);
   }
-  if (typeof shopOrBoardRepaint === 'function') { try { shopOrBoardRepaint(); } catch (e) {} }
+  if (typeof shopGridActive !== 'undefined' && shopGridActive && typeof renderShopGrid === 'function') { try { renderShopGrid(); } catch (e) {} }
+}
+// r809 (owner): the pick-of-three screens and Flow's Tricks / Knacks / Sleights steps
+// offer owned entities too, at the ordinary odds (ownedAllowIds in their pools).
+// `ownedHeld(type, id)` says an offer is one you hold (the take asks copy or improve);
+// `ownedTake(type, def, then)` asks, applies, then runs the screen's own tail.
+function ownedHeld(type, id) { return ownedOffersOn() && ownedAllowIds(type).has(id) && ownedIsHeld(type, id); }
+function ownedTake(type, def, then) {
+  ownedAsk(type, def, n => { if (n) ownedApply(type, def, n); if (then) setTimeout(then, 250); });
 }
 // What a typed answer means: 1 / one, 2 / two.
 function ownedParse(v) {

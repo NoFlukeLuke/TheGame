@@ -141,7 +141,7 @@ sell on every visit.
 | 2 | Card Market | `market` | **A** | only way to add cards. Keep. |
 | 3 | Extra Rep | `rehearsal` | **A** | unique and permanent. Undercosted. |
 | 4 | Clean Slate | `clean_slate` | **A** | only counterplay to permanent damage. Too rare. |
-| 5 | The Investment | `altar` | **A** | only multi-round effect. Two of three offers are limp. |
+| 5 | The Investment | `altar` | **A** | r805: rebuilt (js/investment.js): credits held until the next quarter, or a Trick and credits that may improve it each round. |
 | 6 | Maintenance | `workshop` | **A** | only charge-ceiling raise. Narrow but real. |
 | 7 | Trade a Trick | `reassignment` | **A** | only way to move value between entity types. |
 | 8 | Tray Order | `shift_change` | **A** | genuinely unique, and almost always worth nothing. |

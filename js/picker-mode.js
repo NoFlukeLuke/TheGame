@@ -38,25 +38,25 @@ const PICKER_AXES = [
     ],
   },
   {
-    id: 'reward', label: 'BETWEEN ROUNDS', question: 'What happens after a round?',
+    id: 'reward', label: 'BETWEEN LEVELS', question: 'What happens after a level?',
     note: 'This also sets the shape of the run, because the two are the same decision in the engine.',
     options: [
       { id: 'grid',  name: gridName('reward', { bare: true }), tag: 'FOUR QUARTERS',
-        desc: 'Payout, then a path across a board of buffs and penalties. Four quarters of five rounds and a boss, and the run ends when the last quarter closes.' },
+        desc: 'Payout, then a path across a board of buffs and penalties. Four quarters of five levels and a boss, and the run ends when the last quarter closes.' },
       { id: 'slots', name: 'Eight slots', tag: 'FOUR QUARTERS',
-        desc: 'A quarter is eight slots and then the boss. At each one you are dealt four things you could do with it: play a round, or buy a shop, a grid, an event or a free pick. Buying always costs a round you will not get to play.' },
+        desc: 'A quarter is eight slots and then the boss. At each one you are dealt four things you could do with it: play a level, or buy a shop, a grid, an event or a free pick. Buying always costs a level you will not get to play.' },
       { id: 'pick3', name: 'Pick of three', tag: 'ENDLESS',
         desc: `Clear the goal, take one of three rewards, face a bigger goal. No ${gridName('reward')}, no payout screen and no end: the run lasts until you miss one. The three entities that only work on the ${gridName('reward')} are kept out of the pool.` },
     ],
   },
   {
-    id: 'clock', label: 'ROUND CLOCK', question: 'How long is a round?',
+    id: 'clock', label: 'LEVEL CLOCK', question: 'How long is a level?',
     note: 'The clock is what most of the timing entities read, so switching it off costs more than the pressure.',
     options: [
-      { id: 'standard', name: '3:00',        tag: 'CLASSIC',  desc: 'The standard round. Miss the goal before it runs out and the run ends.' },
-      { id: 'short',    name: '2:00',        tag: 'TIGHT',    desc: 'Survival\'s round. The same goals with a third less time to find them.' },
+      { id: 'standard', name: '3:00',        tag: 'CLASSIC',  desc: 'The standard level. Miss the goal before it runs out and the run ends.' },
+      { id: 'short',    name: '2:00',        tag: 'TIGHT',    desc: 'Survival\'s level. The same goals with a third less time to find them.' },
       { id: 'long',     name: '4:00',        tag: 'ROOMY',    desc: 'A minute more than standard. Slower boards and awkward hands stop being fatal.' },
-      { id: 'none',     name: 'No limit',    tag: 'NO FAIL',  desc: 'The clock still runs, so everything that reads it still works, but reaching zero no longer ends the round. Nothing can fail you except a boss window. Interacting stops costing time, and the two entities that assume a refilling clock are kept out of the pool.' },
+      { id: 'none',     name: 'No limit',    tag: 'NO FAIL',  desc: 'The clock still runs, so everything that reads it still works, but reaching zero no longer ends the level. Nothing can fail you except a boss window. Interacting stops costing time, and the two entities that assume a refilling clock are kept out of the pool.' },
     ],
   },
   {
@@ -64,7 +64,7 @@ const PICKER_AXES = [
     note: 'The counts cap them either way. This is only about the clock.',
     options: [
       { id: 'yes', name: 'Costs seconds', tag: '8s / 3s',
-        desc: 'A swap bills 8 seconds and a discard 3 per card, off the round clock. Manipulating the board is a real trade against finding the hand.' },
+        desc: 'A swap bills 8 seconds and a discard 3 per card, off the level clock. Manipulating the board is a real trade against finding the hand.' },
       { id: 'no',  name: 'Free',          tag: '0s',
         desc: 'Swaps and discards cost nothing but the count. The clock is purely a deadline.' },
     ],
@@ -76,7 +76,7 @@ const PICKER_AXES = [
       { id: 'yes', name: 'On',  tag: '34 PRESETS',
         desc: `A boss closes every quarter, or arrives every five minutes of play in an endless run. Beating one pays ${gridName('prize', { a: true })}.` },
       { id: 'no',  name: 'Off', tag: 'NONE',
-        desc: `No boss rounds. A quarter still closes on its last round and still pays the ${gridName('prize')}, it is just an ordinary round that closes it.` },
+        desc: `No boss levels. A quarter still closes on its last level and still pays the ${gridName('prize')}, it is just an ordinary level that closes it.` },
     ],
   },
   {
@@ -125,7 +125,7 @@ function pickerResolve(c) {
     // the entities that read it, but it cannot end the round, so a time charge is
     // a number with no consequence attached.
     out.timeCost = 'no';
-    notes.push('With no round limit there is no deadline to bill against, so interacting is free.');
+    notes.push('With no level limit there is no deadline to bill against, so interacting is free.');
   }
   pickerForcedNotes = notes;
   return out;
@@ -200,7 +200,7 @@ function pickerSummaryLine(c) {
   const deck = c.deck === 'spectrum' ? 'Spectrum' : c.deck === 'six' ? 'Six suits' : 'Four suits';
   const rew  = c.reward === 'pick3' ? 'pick of three' : c.reward === 'slots' ? 'eight slots' : gridName('reward');
   const bits = [deck, rew];
-  if (c.clock !== 'standard') bits.push(c.clock === 'none' ? 'no clock' : PICKER_CLOCK_SECONDS[c.clock] / 60 + ':00 rounds');
+  if (c.clock !== 'standard') bits.push(c.clock === 'none' ? 'no clock' : PICKER_CLOCK_SECONDS[c.clock] / 60 + ':00 levels');
   if (c.bosses === 'no') bits.push('no bosses');
   if (c.autoPlay === 'auto') bits.push('auto-submit');
   if (c.scoring !== 'card_ladder') bits.push({ hand_size: 'card-count scoring', classic: 'pips-and-mult scoring' }[c.scoring] || 'mult-only scoring');

@@ -85,6 +85,7 @@ function cascadeFindHand(state) {
 }
 
 function cascadeStart(spec) {
+  if (typeof runIsOver === 'function' && runIsOver()) return;   // r817: the run is over
   if (_casRun) return false;
   const run = _casRun = { spec, k: 0, miss: 0 };
   selected = []; swapPending = null;

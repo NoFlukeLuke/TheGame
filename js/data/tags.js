@@ -40,7 +40,7 @@ const TAG_DEFS = [
   { id: 'xpips',   group: 'pays', label: 'x Pips',   cls: 'kw-xpips',   def: 'Multiplies the pip total.' },
   { id: 'xmult',   group: 'pays', label: 'x Mult',   cls: 'kw-xmult',   def: 'Multiplies the mult.' },
   { id: 'focus',   group: 'pays', label: 'Focus',    cls: 'kw-focus',   def: 'Adds Focus, or changes how it is made or kept.' },
-  { id: 'time',    group: 'pays', label: 'Time',     cls: 'kw-time',    def: 'Pauses or rewinds the clock, or starts a round with more.' },
+  { id: 'time',    group: 'pays', label: 'Time',     cls: 'kw-time',    def: 'Pauses or rewinds the clock, or starts a level with more.' },
   { id: 'credits', group: 'pays', label: 'Credits',  cls: 'kw-credits', def: 'Pays credits, or changes prices and payouts.' },
   { id: 'replay',  group: 'pays', label: 'Replay',   cls: 'kw-replay',  def: 'Scores a card again.' },
   { id: 'stock',   group: 'pays', label: 'Stock',    cls: 'kw-swap',    def: 'Gives swaps or discards, or changes what they cost.' },
@@ -51,12 +51,12 @@ const TAG_DEFS = [
   { id: 'charges', group: 'pays', label: 'Sleight charges', cls: 'kw-sleight', def: 'Restores Sleight charges, or helps the Sleights you hold.' },
   { id: 'luck',    group: 'pays', label: 'Luck',     cls: 'kw-reward',  def: 'Changes the odds of offers or rolls.' },
   { id: 'info',    group: 'pays', label: 'Info',     cls: 'kw-round',   def: 'Shows something you could not see.' },
-  { id: 'shield',  group: 'pays', label: 'Shield',   cls: 'kw-bad',     def: 'Softens a boss, a curse or a failed round.' },
+  { id: 'shield',  group: 'pays', label: 'Shield',   cls: 'kw-bad',     def: 'Softens a boss, a curse or a failed level.' },
 
   // ── SCOPE ──
   { id: 'card',  group: 'scope', label: 'Per card', cls: 'kw-hand',  def: 'Pays on each scored card.' },
   { id: 'hand',  group: 'scope', label: 'Per hand', cls: 'kw-hand',  def: 'Pays once per hand.' },
-  { id: 'other', group: 'scope', label: 'Elsewhere', cls: 'kw-round', def: 'Pays outside a hand: a round start, a level-up, a reward, the shop, a boss, a double-tap.' },
+  { id: 'other', group: 'scope', label: 'Elsewhere', cls: 'kw-round', def: 'Pays outside a hand: a level start, a level-up, a reward, the shop, a boss, a double-tap.' },
 
   // ── WHEN ──
   { id: 'run',      group: 'when', label: 'Runs',      cls: 'kw-hand',    def: 'Needs a run.' },
@@ -75,12 +75,12 @@ const TAG_DEFS = [
   { id: 'wild',     group: 'when', label: 'Wilds',     cls: 'kw-wild',    def: 'Cares about wild cards.' },
   { id: 'sleights', group: 'when', label: 'Sleights',  cls: 'kw-sleight', def: 'Cares about the Sleights you own.' },
   { id: 'tricks',   group: 'when', label: 'Tricks',    cls: 'kw-trick',   def: 'Cares about the Tricks you own or their order.' },
-  { id: 'level',    group: 'when', label: 'Level-up',  cls: 'kw-round',   def: 'Fires at a round end or a level-up.' },
+  { id: 'level',    group: 'when', label: 'Level-up',  cls: 'kw-round',   def: 'Fires at a level end or a level-up.' },
   { id: 'reward',   group: 'when', label: 'Rewards',   cls: 'kw-reward',  def: 'Fires on a reward screen.' },
   { id: 'shop',     group: 'when', label: 'Shop',      cls: 'kw-buy',     def: 'Fires in the shop.' },
   { id: 'boss',     group: 'when', label: 'Boss',      cls: 'kw-bad',     def: 'Fires on a boss.' },
   { id: 'challenge', group: 'when', label: 'Challenge', cls: 'kw-bad',    def: 'Cares about challenge cards.' },
-  { id: 'start',    group: 'when', label: 'Round start', cls: 'kw-round', def: 'Fires when a round starts.' },
+  { id: 'start',    group: 'when', label: 'Level start', cls: 'kw-round', def: 'Fires when a level starts.' },
   { id: 'replays',  group: 'when', label: 'Replays',   cls: 'kw-replay',  def: 'Fires when a card scores again.' },
   { id: 'held',     group: 'when', label: 'Held',      cls: 'kw-credits', def: 'Cares what you are holding: credits, Luck, stock or the Focus level.' },
   { id: 'named',    group: 'when', label: 'Named hand', cls: 'kw-hand',   def: 'Names one hand type (Pair, Two Pair, Four of a Kind...), not a whole family. r725.' },

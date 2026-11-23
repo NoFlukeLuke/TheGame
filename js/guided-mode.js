@@ -139,7 +139,7 @@ function guidedRollOffers() {
 
 function guidedMakeOffer(kind) {
   const P = k => guidedStopPrice(k);
-  if (kind === 'level')  return { kind, icon:'▶', name:'Play a round',
+  if (kind === 'level')  return { kind, icon:'▶', name:'Play a level',
     desc:'Clear the goal and take the payout. This is how you earn.', price:0 };
   if (kind === 'reward') return { kind, icon:'▦', name:gridName('reward', { bare: true }),
     desc:'Pick a path across the board and take everything on it.', price:P('reward') };
@@ -149,7 +149,7 @@ function guidedMakeOffer(kind) {
     desc:'Three rewards on the table. Take one, no charge.', price:0 };
   if (kind === 'elite') {
     const ch = rollChallengeLevel();
-    return { kind, icon:'⚠', name:'Hard round', challenge: ch,
+    return { kind, icon:'⚠', name:'Hard level', challenge: ch,
              desc:`${ch.label} Goal is ${Math.round((ch.goalMult - 1) * 100)}% higher, and it pays ${ch.rewardText}.`,
              price:0 };
   }
@@ -245,7 +245,7 @@ function guidedRenderCrossBar() {
   bar.innerHTML =
     `<span class="gxb-act">Q${actNumber}</span>` +
     `<span class="gxb-slots">SLOT ${guidedSlot + 1} / ${GUIDED_SLOTS_PER_ACT}</span>` +
-    `<span class="gxb-note">${left === 1 ? 'Boss next' : due <= 0 ? 'A round is due' : `${left} to the boss`}</span>` +
+    `<span class="gxb-note">${left === 1 ? 'Boss next' : due <= 0 ? 'A level is due' : `${left} to the boss`}</span>` +
     `<span class="gxb-coins">${creditsTxt(coins)}</span>`;
   bar.classList.add('show');
 }
@@ -565,13 +565,15 @@ function guidedPickPools() {
   const ownedT = new Set((acquiredTricks || []).map(t => t.id));
   const ownedK = new Set((acquiredKnacks || []).map(k => k.id));
   const gotSl  = (typeof grantedSleightIds !== 'undefined' && grantedSleightIds) ? grantedSleightIds : new Set();
+  const ok = t => (typeof ownedAllowIds === 'function') ? ownedAllowIds(t) : new Set();   // r809: Old Tricks
+  const okT = ok('trick'), okK = ok('knack'), okS = ok('sleight');
   return {
-    trick:   TRICK_POOL.filter(t => !ownedT.has(t.id) && !banned(t.id)),
+    trick:   TRICK_POOL.filter(t => (!ownedT.has(t.id) || okT.has(t.id)) && !banned(t.id)),
     // sleightOfferable keeps the four Spectrum deck FIXTURES out - they are in
     // SLEIGHT_POOL so they can render, and the only way to have one is to draw it.
-    sleight: SLEIGHT_POOL.filter(s => !gotSl.has(s.id) && !banned(s.id)
+    sleight: SLEIGHT_POOL.filter(s => (!gotSl.has(s.id) || okS.has(s.id)) && !banned(s.id)
                && (typeof sleightOfferable !== 'function' || sleightOfferable(s))),
-    knack:   KNACK_POOL.filter(k => knackOfferable(k) && !ownedK.has(k.id) && !banned(k.id)),
+    knack:   KNACK_POOL.filter(k => knackOfferable(k) && (!ownedK.has(k.id) || okK.has(k.id)) && !banned(k.id)),
     event:   [],   // r795: filled by guidedPickThreeOffers only (other readers of these pools want entities)
   };
 }
@@ -593,6 +595,13 @@ function guidedPickType(pools) {
 
 // Wrap a pool entry in the payload the shared pick screen draws and grants from.
 function guidedPickOffer(type, d) {
+  const o = _guidedPickOffer(type, d);
+  if (o && d && type !== 'event' && typeof ownedHeld === 'function' && ownedHeld(type, d.id)) {
+    o.owned = { type, def: d }; o.desc = 'You own this. ' + (o.desc || '');   // r809: Old Tricks
+  }
+  return o;
+}
+function _guidedPickOffer(type, d) {
   if (type === 'trick') {
     const em = (typeof trickEmoji === 'function') ? trickEmoji(d) : '★';
     return { entity:'trick', icon: em, emoji: em, label: shownEntityName(d, 'trick'),
@@ -664,7 +673,7 @@ function guidedTagOffers(mk) {
 function guidedPickActions(redraw) {
   return [
     pickRerollAction(redraw),
-    { icon: '📊', label: 'Round', sub: 'breakdown', onClick: () => survivalToggleContrib() },
+    { icon: '📊', label: 'Level', sub: 'breakdown', onClick: () => survivalToggleContrib() },
   ];
 }
 
@@ -754,6 +763,7 @@ function guidedOpenPickThree(done, _rerolled) {
     onChoose: (i, p) => {
       closePanel();
       if (p.event) { guidedOpenNamedEvent(p.event, done); return; }   // r795
+      if (p.owned && typeof ownedTake === 'function') { ownedTake(p.owned.type, p.owned.def, done); return; }   // r809
       try { p.apply?.(); } catch (e) {} done();
     },
     onSkip: () => { closePanel(); done(); },

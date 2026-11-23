@@ -70,11 +70,15 @@ function hallmarkOutcomes() {
 // always lands with time left to actually use it - a mark planted with four
 // seconds to go is a mark that reads as the knack not working.
 const HALLMARK_TAIL_FRACTION = 0.25;
+const HALLMARK_FLOW_LEVEL_SECS = 40;   // r814: the length a Flow level's mark is rolled in
 
 function hallmarkRollRound() {
   hallmarkCardId = null;
   hallmarkPlanted = false;
-  const dur = (typeof roundStartSeconds !== 'undefined' && roundStartSeconds > 0)
+  // r814: a Flow level is far shorter than the quarter's clock, so the mark is rolled
+  // inside a typical Flow level instead of the clock left (most levels never reached it).
+  const dur = (typeof clockQuarterOn === 'function' && clockQuarterOn()) ? HALLMARK_FLOW_LEVEL_SECS
+    : (typeof roundStartSeconds !== 'undefined' && roundStartSeconds > 0)
     ? roundStartSeconds
     : (typeof currentRoundDuration === 'function' ? currentRoundDuration() : 180);
   hallmarkMarkAt = Math.floor(Math.random() * Math.max(1, dur * (1 - HALLMARK_TAIL_FRACTION)));

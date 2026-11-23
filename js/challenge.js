@@ -57,7 +57,7 @@ function spawnChallengeCard() {
     const handsArr = [...unlockedHands];
     const handKey = handsArr[Math.floor(Math.random() * handsArr.length)];
     reqParam = HAND_KEY_TO_NAME[handKey] || handKey;
-    reqDesc = `Score a ${reqParam} before this round ends`;
+    reqDesc = `Score a ${reqParam} before this level ends`;
   } else if (reqType === 'score_threshold') {
     const threshold = Math.round(roundGoal * (0.4 + Math.random() * 0.4) / 100) * 100;
     reqParam = threshold;
@@ -134,7 +134,7 @@ function resolveChallenge(success) {
     });
   } else {
     const penalties = [
-      () => { roundPenaltySeconds += 10; showMessage('–10s FUTURE ROUNDS', '#e74c3c'); },
+      () => { roundPenaltySeconds += 10; showMessage('–10s FUTURE LEVELS', '#e74c3c'); },
       () => {
         if (acquiredTricks.length > 0) {
           const lost = acquiredTricks.splice(Math.floor(Math.random() * acquiredTricks.length), 1)[0];

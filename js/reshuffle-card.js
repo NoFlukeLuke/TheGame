@@ -54,6 +54,7 @@ function reshuffleFaceHTML() {
 
 // onCardTap: one tap says what it does, a double tap does it.
 function reshuffleTap(r, c) {
+  if (typeof runIsOver === 'function' && runIsOver()) return;   // r817: the run is over
   const now = Date.now();
   const dbl = lastTapCell && lastTapCell[0] === r && lastTapCell[1] === c && (now - lastTapTime) < DOUBLE_TAP_MS;
   if (!dbl) { lastTapTime = now; lastTapCell = [r, c]; return; }

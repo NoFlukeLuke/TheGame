@@ -1,0 +1,41 @@
+/* ── PHONE TRAYS (r486 as stacked bars; r805 the only layout) ────────────────
+   On a phone the Trick tray and the preview / Knacks tray are two full-width
+   bars, each half the strip's height; the board's slot takes the difference.
+   The side-by-side halves and the zigzag Trick tray (js/tray-zigzag.js) are
+   gone (owner, r805): a full bar holds a row of Tricks, and a row that does not
+   fit tucks and scrolls like the desktop's (fanTrickTray, js/tricks-ui.js). */
+#stage:not(.landscape) #trick-panel { flex-direction: column; height: 165px; }
+#stage:not(.landscape) #trick-tray-area,
+#stage:not(.landscape) #hand-preview-area,
+#stage:not(.landscape) #knack-carousel-wrap {
+  flex: 0 0 calc((100% - 7px) / 2); width: 100%;
+}
+#stage:not(.landscape) #trick-tray-list { max-height: 70px; }
+#stage:not(.landscape) #trick-tray-list .trick-tray-chip { width: 66px; height: 63px; }
+#stage:not(.landscape) #panel-swap-btn { top: calc(50% + 7px); }
+/* A tucked row scrolls sideways with no scrollbar (the desktop's rule). */
+#stage:not(.landscape) #trick-tray-list.fanned { overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+#stage:not(.landscape) #trick-tray-list.fanned::-webkit-scrollbar { display: none; }
+
+/* r515 (owner): stacked bars, the hand preview. The bar is full width, so the
+   hand name moves out of the bottom band to a column on the right, family over
+   size, and the cards take 90% of the bar's height (fitPortraitPreviewCards,
+   js/portrait-panel.js, reads --pt-name-w off the bar for its width). */
+#stage:not(.landscape) #hand-preview-area {
+  --pt-name-w: 30%; padding-top: 0; padding-bottom: 0; justify-content: center;
+}
+#stage:not(.landscape) #selected-cards.dnc-active,
+#stage:not(.landscape) #selected-cards.dnc-active .dnc-track { padding-top: 0; padding-bottom: 0; }
+#stage:not(.landscape) #selected-cards { width: calc(100% - var(--pt-name-w)); }
+#stage:not(.landscape) #hand-name {
+  left: auto; right: 24px; top: 0; bottom: 0; width: calc(var(--pt-name-w) - 24px);
+  display: flex; flex-direction: column; justify-content: center; align-items: center;
+  font-size: 12px; line-height: 1.2; white-space: normal; text-overflow: clip;
+}
+#stage:not(.landscape) #hand-name.hn-layered { font-size: 10px; }
+#stage:not(.landscape) #hand-name .hn-l,
+#stage:not(.landscape) #hand-name .hn-l b,
+#stage:not(.landscape) #hand-name .hn-l i,
+#stage:not(.landscape) #hand-name .hn-plus { display: block; }
+#stage:not(.landscape) #hand-name .hn-l + .hn-l,
+#stage:not(.landscape) #hand-name .hn-l i { margin-left: 0; }

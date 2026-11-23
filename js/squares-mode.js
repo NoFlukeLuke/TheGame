@@ -294,7 +294,7 @@ function sqMountPanels() {
   if (bar && !document.getElementById('sq-round')) {
     _sqRoundEl = document.createElement('div');
     _sqRoundEl.id = 'sq-round';
-    _sqRoundEl.innerHTML = '<span class="sqr-l">ROUND</span><span class="sqr-v">1/10</span>';
+    _sqRoundEl.innerHTML = '<span class="sqr-l">LEVEL</span><span class="sqr-v">1/10</span>';
     bar.insertBefore(_sqRoundEl, bar.firstChild);
   }
 }
@@ -1322,7 +1322,7 @@ function sqPaintHud() {
   sqPaintScore();
   const rd = document.getElementById('sq-round');
   if (rd) { const v = rd.querySelector('.sqr-v'); if (v) v.textContent = `${sqRound}/${sqRounds()}`;
-            const l = rd.querySelector('.sqr-l'); if (l) l.textContent = sqDaily() ? 'GRID' : 'ROUND'; }
+            const l = rd.querySelector('.sqr-l'); if (l) l.textContent = sqDaily() ? 'GRID' : 'LEVEL'; }
   // THE CHIPS MEAN SOMETHING ELSE IN A DAILY. There is no mult, so PIPS x MULT
   // becomes HAND + CARDS - the hand's base and the value of the cards in it.
   const pl = document.querySelector('#pips-box .subbox-label'),

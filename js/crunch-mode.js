@@ -254,7 +254,7 @@ function crunchStuckOut() {
   // tick firing the legacy level-up path on top of the interlude.
   goalReachedThisRound = true;
   gameTimerPaused = true;
-  if (typeof showMessage === 'function') showMessage('Round written off', 'var(--red)');
+  if (typeof showMessage === 'function') showMessage('Level written off', 'var(--red)');
   startInterlude();
 }
 

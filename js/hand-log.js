@@ -69,7 +69,7 @@ function renderHandLog() {
   shown.forEach(e => {
     // A round boundary is worth marking: scores reset to zero each round, so two
     // adjacent rows from different rounds are not comparable as progress.
-    if (prevLevel !== null && e.level !== prevLevel) html += `<div class="hl-sep">Round ${prevLevel}</div>`;
+    if (prevLevel !== null && e.level !== prevLevel) html += `<div class="hl-sep">Level ${prevLevel}</div>`;
     prevLevel = e.level;
     html += `<div class="hl-r${e.boss ? ' hl-boss' : ''}">` +
               `<span class="hl-name">${e.hand}</span>` +

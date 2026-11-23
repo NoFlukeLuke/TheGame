@@ -212,7 +212,7 @@ function renderSpectrumDev() {
   if (st) {
     const n = spectrumDeckSize();
     st.textContent = `${spectrumRanks().length} values × ${spectrumColors().length} colours = ${n} cards`
-      + (spectrumDeckDirty ? ' · applies next round' : '');
+      + (spectrumDeckDirty ? ' · applies next level' : '');
     st.style.color = spectrumDeckDirty ? 'var(--gold)' : 'var(--cream-dim)';
   }
 }

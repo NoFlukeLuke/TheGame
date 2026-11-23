@@ -27,7 +27,7 @@ fxDefine('number_crunch', { handWhen: h => h.rankCount >= 4,    card: () => ({ m
 fxDefine('heavy_hand',    { handWhen: h => h.real5,             card: () => ({ pip:  BAL.heavy_hand.pips_per_card }) });
 fxDefine('prime_time',    {                                     card: c => ['A', '2', '3', '5', '7'].includes(c.rank) ? ({ pip: TB('prime_time').pips_per_card }) : null });
 // Hyper Focus: mult per card = focus_mult x the Focus multiplier (x1.5 Focus, 2x -> +3 mult).
-fxDefine('hyper_focus',   {                                     card: (c, h) => ({ mult: Math.round(BAL.hyper_focus.focus_mult * h.focusMult * 100) / 100 }) });
+// Hyper Focus (r817): no longer a per-card payer; it applies Focus again (focusExtraApplies, js/scoring.js).
 // Flow State (r238): an ordinary additive per-card pip, so the x pips Tricks multiply it.
 fxDefine('flow_state',    { handWhen: h => h.focusMult >= 1.5,  card: () => ({ pip:  BAL.flow_state.pips_per_card }) });
 // These count only the cards that qualify, with no minimum (r226, owner's call).

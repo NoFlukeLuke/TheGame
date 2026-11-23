@@ -129,7 +129,7 @@ function renderSleightQueue() {
     // from the right, so the left edge is the guaranteed-visible strip (r284).
     chip.innerHTML = entityTileHTML({ entity: 'sleight', id: def.id, label: def.name, emoji: def.emoji, uses }, def.rarity)
       + (en.where === 'grid'   ? '<div class="sq-tag" title="On the board">GRID</div>' : '')
-      + (en.where === 'played' ? '<div class="sq-tag" title="Returns to the deck at the round-end reshuffle">♻</div>' : '')
+      + (en.where === 'played' ? '<div class="sq-tag" title="Returns to the deck at the level-end reshuffle">♻</div>' : '')
       + (showCounts && en.where === 'deck'
           ? `<div class="sq-ahead" title="${en.ahead} card${en.ahead === 1 ? '' : 's'} in front of it">${en.ahead}</div>` : '');
     track.appendChild(chip);

@@ -923,7 +923,7 @@ function bossBriefHTML(preset, intro) {
     : `OBJECTIVE - REACH THE GOAL (${roundGoal.toLocaleString()})`;
   return `<button class="bp-x" aria-label="Close briefing">&#10005;</button>` +
     `<div class="bp-sigil">&#9760;</div>` +
-    `<div class="bp-eyebrow">Boss round</div>` +
+    `<div class="bp-eyebrow">Boss level</div>` +
     `<div class="bp-name">${preset.name}</div>` +
     `<div class="bp-flavor">${preset.flavor || ''}</div>` +
     `<div class="bp-brief">${preset.brief || 'Survive the review.'}</div>` +
@@ -998,7 +998,7 @@ function bossBriefConsole(el, intro) {
     el.addEventListener('pointerdown', fin, true);
   }
   if (intro && typeof keysTake === 'function') keysTake({
-    play: { ico: '&#9654;', word: 'PROCEED', title: 'Start the boss round', fn: () => { const b = el.querySelector('.bp-go'); if (b) b.click(); } },
+    play: { ico: '&#9654;', word: 'PROCEED', title: 'Start the boss level', fn: () => { const b = el.querySelector('.bp-go'); if (b) b.click(); } },
     disc: { word: '', off: true }, swap: { word: '', off: true },
   });
 }
@@ -1163,9 +1163,9 @@ function updateBossClockDisplay() { updateClockUI(); }
 // the countdown to startRoundTimer like any other round. The boss-specific parts
 // of the tick - the Metronome's variable step, the halftime phase flip, the
 // switched-off-Trick repaint and running out of time - live in that one tick.
-function startBossTimer() {
+function startBossTimer(opts) {
   if (typeof bossStartScheduledEffects === 'function') bossStartScheduledEffects();
-  startRoundTimer();
+  startRoundTimer(opts);
 }
 
 // r171 - no panel. A boss puts the SCORE and GOAL chips into alarm state (red,
@@ -1273,11 +1273,14 @@ function endBoss(success, opts) {
       // tally for the counter exactly as on a goal clear; an aborted dance
       // arrives without it and gets the chain after the same beat the old path
       // took. The run-complete 5th boss keeps the old path.
+      // r805: an investment's report shows before the chain (investmentReportMaybe runs `done` at once with none).
+      const _chain = () => { if (typeof flowrStartBossChain === 'function') flowrStartBossChain(_beaten); };
+      const _report = (fn) => (typeof investmentReportMaybe === 'function') ? investmentReportMaybe(fn) : fn();
       if (opts?.flowChain) {
         survivalBossBookkeeping();
-        if (typeof flowrStartBossChain === 'function') flowrStartBossChain(_beaten);
+        _report(_chain);
       } else if (typeof flowrBossChainEligible === 'function' && flowrBossChainEligible()) {
-        setTimeout(() => { survivalBossBookkeeping(); flowrStartBossChain(_beaten); }, 1100);
+        setTimeout(() => { survivalBossBookkeeping(); _report(_chain); }, 1100);
       } else {
         setTimeout(() => survivalPostBossReward(), 1100);
       }
@@ -1294,6 +1297,7 @@ function endBoss(success, opts) {
     }
   } else {
     if (typeof flowEndBoss === 'function') flowEndBoss();
+    if (typeof runOverSet === 'function') runOverSet(true);   // r817: lost; nothing plays in the beat before the finale
     setTimeout(() => onGameEnd(true), 1200);
   }
 

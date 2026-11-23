@@ -150,10 +150,11 @@
     100% { box-shadow: 0 0 0 0 rgba(201,168,76,0); transform: scale(1); }
   }
   .round-end-flash { animation: round-end-pulse 1.4s ease-out; }
+  /* r806 (owner): a changed number FLASHES; it never moves or grows. */
   @keyframes val-tick {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.18); }
-    100% { transform: scale(1); }
+    0% { filter: brightness(1); }
+    40% { filter: brightness(1.7); }
+    100% { filter: brightness(1); }
   }
   @keyframes box-pop {
     0%   { transform: scale(1); }
@@ -752,9 +753,10 @@
   }
   .pmf-ghost .pmf-merged-val { color: #f5c042; font-size: 25px; }
   /* The hold look (console mode): only the VALUES move, and only a little. */
+  /* r806 (owner): the fuse's jitter is a flicker now; the numbers stay put. */
   @keyframes pmfJitVal {
-    0%,100% { transform: translate(0,0); } 20% { transform: translate(-1.5px,1px); } 40% { transform: translate(1.5px,-1px); }
-    60% { transform: translate(-1px,-1px); } 80% { transform: translate(1px,1px); }
+    0%,100% { filter: brightness(1); } 20% { filter: brightness(1.6); } 40% { filter: brightness(.8); }
+    60% { filter: brightness(1.5); } 80% { filter: brightness(.9); }
   }
   .subbox-val.pmf-jit-val { animation: pmfJitVal 0.22s ease-in-out 3; display: inline-block; }
   .subbox-val.pmf-hold-score, #score-subboxes .subbox-val.pmf-hold-score { color: #f5c042 !important; text-shadow: 0 0 10px rgba(245,192,66,0.6); }
@@ -990,19 +992,7 @@
     gap: 0; width: 100%;
   }
   #stage:not(.landscape) #trick-tray-list .chip-marquee { gap: 0; }
-  /* r399: the tilt. fanTrickTray publishes --tilt per chip; it rides the
-     STANDALONE rotate property so it composes with every transform other
-     systems write (dance pop, mirror, selection) instead of replacing them. */
-  /* r429: each chip is its OWN perspective box and the tile inside it turns.
-     One shared vanishing point at the row's left (r399) squeezed tiles harder
-     the further right they sat, which is why the newest had to stay flat. */
-  #stage:not(.landscape) #trick-tray-list .trick-tray-chip { perspective: 260px; perspective-origin: 0 50%; }
-  #stage:not(.landscape) #trick-tray-list .trick-tray-chip > .reward-cell { rotate: y var(--tilt, 0deg); transform-origin: 0 50%; transition: rotate .32s ease; }
-  /* r408: the tile whose turn it is (or the one under a finger) turns flat and
-     comes forward. The list takes horizontal finger moves for the scrub. */
-  #stage:not(.landscape) #trick-tray-list .trick-tray-chip { transition: scale .32s ease, translate .32s ease; }
-  #stage:not(.landscape) #trick-tray-list .trick-tray-chip.tilt-focus { scale: 1.06; z-index: 50 !important; }
-  #stage:not(.landscape) #trick-tray-list .trick-tray-chip.tilt-focus > .reward-cell { rotate: y 0deg; }
+  /* r805: the r399 tilt and r408 turn-taking are gone; a tucked row scrolls (css/phone-trays.css). */
   #stage:not(.landscape) #trick-tray-list.fanned { touch-action: pan-y; }
   /* Each tile after the first pulls left by however much the row is short. The
      later tile sits ON TOP, so the fan reads left-to-right like a held hand. */
@@ -1076,17 +1066,7 @@
   }
   #stage:not(.landscape) #knack-list { gap: 7px; max-height: 72px; margin-bottom: 8px; }
   #stage:not(.landscape) .knack-chip { width: 42px; height: 42px; font-size: 23px; }
-  /* r717 (owner): side by side on a phone, the Knacks ZIGZAG (alternate up and down,
-     interlocking), so about twice as many show before the row has to scroll. The
-     row is set by the chip's own class (kc-hi / kc-lo, js/hud.js), so the marquee's
-     copies keep it. */
-  body:not(.pt-stacked) #stage:not(.landscape) #knack-list { max-height: none; overflow: visible; margin-bottom: 4px; }
-  body:not(.pt-stacked) #stage:not(.landscape) #knack-list .chip-marquee { gap: 0; height: 80px; padding-right: 18px; }
-  body:not(.pt-stacked) #stage:not(.landscape) #knack-list .knack-chip { margin-right: -18px; }
-  /* An odd count puts two top-row chips side by side where the marquee loops. */
-  body:not(.pt-stacked) #stage:not(.landscape) #knack-list .knack-chip.kc-end { margin-right: 6px; }
-  body:not(.pt-stacked) #stage:not(.landscape) #knack-list .knack-chip.kc-hi { translate: 0 -18px; }
-  body:not(.pt-stacked) #stage:not(.landscape) #knack-list .knack-chip.kc-lo { translate: 0 18px; }
+  /* r805: the r717 side-by-side Knack zigzag went with the side-by-side layout. */
 
   /* The swap button. Deliberately small and quiet - it is a view toggle, not an
      action, so it must not read as a third button next to PLAY / DISCARD. */
@@ -2486,7 +2466,7 @@
   #score-progress-bar-wrap { width: 80%; height: 4px; background: #2a2010; border-radius: 3px; overflow: hidden; }
   #score-progress-bar { height: 100%; background: linear-gradient(90deg, var(--gold-dim), var(--gold)); border-radius: 3px; transition: width 0.4s ease; }
 
-  @keyframes digitScroll { 0% { transform: translateY(6px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+  @keyframes digitScroll { 0% { opacity: .35; } 100% { opacity: 1; } }   /* r806: a fade; the digit no longer slides up */
   .digit-pop { animation: digitScroll 0.12s ease-out forwards; }
   @keyframes subboxPop { 0% { transform: scale(1); } 40% { transform: scale(1.18); } 100% { transform: scale(1); } }
   .subbox-pop { animation: subboxPop 0.15s ease-out forwards; }

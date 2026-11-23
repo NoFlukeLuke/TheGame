@@ -212,5 +212,5 @@ if (!ONLY) Object.keys(base).forEach(k => { if (!results[k]) diffs.push(`${k}: i
 const orderOnly = diffs.filter(d => d.includes('ORDER ONLY')).length;
 console.log(`${Object.keys(results).length} cases in ${ms}ms: ${diffs.length ? diffs.length + ' differ' + (orderOnly ? ` (${orderOnly} in order only, ${diffs.length - orderOnly} for real)` : '') : 'all match'}`);
 diffs.sort((x, y) => x.includes('ORDER ONLY') - y.includes('ORDER ONLY'));
-diffs.slice(0, 60).forEach(d => console.log('  ' + d));
+diffs.slice(0, +(process.env.GOLDEN_SHOW || 60)).forEach(d => console.log('  ' + d));
 process.exit(diffs.length ? 1 : 0);

@@ -278,14 +278,14 @@ function render() {
     if (hasTrick('still_water')) {
       const elapsedSinceSwap = lastSwapRoundSeconds !== null
         ? Math.max(0, lastSwapRoundSeconds - roundSeconds)
-        : Math.max(0, roundStartSeconds - roundSeconds);
+        : clockElapsed();
       const swMult = BAL.still_water.mult_per_interval * Math.floor(elapsedSinceSwap / BAL.still_water.interval_seconds);
       if (swMult > 0) bonusLines.push({ label:'Eagle Eye', val:`+${swMult} mult`, type:'mult' });
     }
-    if (hasTrick('swift')) { const _e = Math.max(0, roundStartSeconds - roundSeconds); const _sw = Math.floor(_e / BAL.swift.interval_seconds) * BAL.swift.mult_per_interval; if (_sw > 0) bonusLines.push({ label:'The Swift', val:`+${_sw} mult`, type:'mult' }); }
+    if (hasTrick('swift')) { const _e = clockElapsed(); const _sw = Math.floor(_e / BAL.swift.interval_seconds) * BAL.swift.mult_per_interval; if (_sw > 0) bonusLines.push({ label:'The Swift', val:`+${_sw} mult`, type:'mult' }); }
     if (hasTrick('hummingbird') && pauseInstanceGame + rewindInstanceGame > 0) bonusLines.push({ label:'Hummingbird', val:`+${(pauseInstanceGame+rewindInstanceGame)*BAL.hummingbird.mult_per_pause} mult`, type:'mult' });
     if (hasTrick('albatross') && pausedSecondsRound > 0) bonusLines.push({ label:'Albatross', val:`+${pausedSecondsRound*BAL.albatross.pips_per_second} pips`, type:'pip' });
-    if (hasTrick('sediment')) { const _el = Math.max(0, roundStartSeconds - roundSeconds); const _sp = Math.floor(_el/BAL.sediment.interval_seconds)*BAL.sediment.pips_per_interval; if (_sp > 0) bonusLines.push({ label:trickNameOf('sediment'), val:`+${_sp} pips`, type:'pip' }); }
+    if (hasTrick('sediment')) { const _el = clockElapsed(); const _sp = Math.floor(_el/BAL.sediment.interval_seconds)*BAL.sediment.pips_per_interval; if (_sp > 0) bonusLines.push({ label:trickNameOf('sediment'), val:`+${_sp} pips`, type:'pip' }); }
     if (hasTrick('kingfisher')) { const _km = Math.floor((pausedSecondsRound+rewoundSecondsRound)/BAL.kingfisher.interval_seconds)*BAL.kingfisher.mult_per_interval; if (_km > 0) bonusLines.push({ label:'The Kingfisher', val:`+${_km} mult`, type:'mult' }); }
     if (pendingHandPips > 0) bonusLines.push({ label:'Quarter Chime', val:`+${pendingHandPips} pips`, type:'pip' });
     if (pendingCardPips > 0) bonusLines.push({ label:'Second Hand', val:`+${pendingCardPips} pips`, type:'pip' });

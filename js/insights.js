@@ -203,7 +203,7 @@ const INSIGHTS = [
     body: 'Tiles that touch are cheaper bought together. A swap moves a tile. A discard rerolls a row.',
     when: () => typeof shopGridActive !== 'undefined' && shopGridActive },
 
-  { id: 'payout', screen: 'any', title: 'What the round paid',
+  { id: 'payout', screen: 'any', title: 'What the level paid',
     anchor: ['#po-valued'],
     body: () => 'Interest on your credits and the Early Finish Bonus.' + ((typeof unspentPays === 'function' && !unspentPays()) ? '' : ' Unused swaps and discards pay too.'),
     when: () => !!document.querySelector('#po-valued.show') },

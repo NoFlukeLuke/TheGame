@@ -190,6 +190,8 @@ body.kb-keys #stage :is(#btn-play, #btn-discard, #swap-indicator).kb-on { transf
 #event-overlay.ev-console #event-bar-dots { display: none; }
 #event-overlay.ev-console #event-eyebrow { font-family: inherit; font-size: 15px; letter-spacing: 1px; color: var(--am-dim); text-shadow: inherit; }
 #event-overlay.ev-console .con-pause { font-family: inherit; font-size: 14px; color: var(--am); border-color: var(--am-dim); background: transparent; border-radius: 3px; }
+/* r805: on the board the stage's own RECORDS and PAUSE keys are in reach; the bar's chips go. */
+#event-overlay.ev-console .con-bar-right .con-pause { display: none; }
 #event-overlay.ev-console #event-name {
   font-family: inherit; font-weight: normal; font-size: 19px; line-height: 24px; letter-spacing: 1px; text-transform: uppercase;
   color: var(--am-hi); text-shadow: inherit; text-align: left; margin-bottom: 4px; min-height: 24px;
@@ -265,3 +267,8 @@ body.kb-keys.map-keys .mapk { visibility: hidden; }
 .oo-in { display: flex; align-items: center; gap: 6px; font-size: 17px; color: var(--am-hi); }
 .oo-in input { flex: 1 1 auto; min-width: 0; background: transparent; border: 0; border-bottom: 1px solid var(--am-dim); color: var(--am-hi); font: inherit; font-size: 17px; letter-spacing: 1px; outline: none; padding: 2px 0; }
 .oo-in input::placeholder { color: var(--am-dim); }
+
+/* ── The Investment's report (r805, js/investment.js): typed lines, the last one lit. ── */
+.bs-screen.inv-screen .inv-wrap { display: flex; flex-direction: column; gap: 10px; padding: 8px 10px; }
+.bs-screen.inv-screen .inv-line { font-size: 18px; line-height: 1.15; color: var(--am); }
+.bs-screen.inv-screen .inv-line.inv-last { font-size: 24px; color: var(--am-hi); padding: 6px 8px; border: 3px double var(--am-dim); }

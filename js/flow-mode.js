@@ -47,7 +47,7 @@ const FLOW_FOCUS_CAP       = 20;
 //     it off is the one thing the mode can't offer.
 //   carry_time  - "bank the round's unused seconds". Flow's clock is not reset by a
 //     level-up, so the same seconds would be banked again at every level.
-const FLOW_BANNED_ENTITIES = new Set(['first_wind', 'carry_time']);
+const FLOW_BANNED_ENTITIES = new Set(['first_wind', 'carry_time', 'time_bank', 'safety_net']);   // r814: Punctuality and Safety Net do nothing in Flow
 
 // ── Per-run state ──
 let flowBossFighting = false;  // true from the inspection trigger until endBoss resolves
@@ -201,6 +201,8 @@ function setMapGoalScale(id) {
 function flowTriggerBoss() {
   if (bossActive || flowBossFighting) return;
   flowBossFighting = true;
+  // r814: the boss window is a span of its own for the clock counters (clockElapsed reads it).
+  understudyNextMark = BAL.understudy.interval_seconds; _perMinuteFired = {}; lastSwapRoundSeconds = null; tempoElapsed = 0;
   // The clock can reach zero mid-dance. triggerBoss re-renders the board and returns
   // cards sitting on newly-void cells to the deck, so a dance still in flight has to
   // be torn down first - same teardown _onRoundEndCore does when any other mode's

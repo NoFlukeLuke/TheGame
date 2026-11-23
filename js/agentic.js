@@ -127,6 +127,7 @@ function _agFree() {
 }
 
 function agenticTick() {
+  if (typeof runIsOver === 'function' && runIsOver()) return;   // r817: the run is over
   const now = performance.now(), dt = Math.min(400, now - (_agLast || now));
   _agLast = now;
   if (!agenticOn()) { if (_agWait) _agWaitDrop(); _agChain = 0; return; }

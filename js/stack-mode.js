@@ -203,7 +203,7 @@ function stkOpenStart() {
   rail.innerHTML = `<button class="pk-rail-step on"><span class="pk-rail-n">1</span><span class="pk-rail-l">CLOCK</span></button>`;
   const opts = [
     { id: 'untimed', name: 'No clock',  tag: 'UNTIMED', desc: 'Play until the goal is met or no hand is left. The cards are the limit.' },
-    { id: 'timed',   name: '5:00',      tag: 'TIMED',   desc: 'A five minute round. Miss the goal before it runs out and the run ends. Swaps and discards cost no time.' },
+    { id: 'timed',   name: '5:00',      tag: 'TIMED',   desc: 'A five minute level. Miss the goal before it runs out and the run ends. Swaps and discards cost no time.' },
   ];
   const paint = () => {
     body.innerHTML = `<div class="pk-q">Is there a clock?</div>` +
@@ -678,7 +678,7 @@ function stkCheckEnd() {
     return;
   }
   stkNoHandSaid = false;
-  if (typeof dbgEvent === 'function') dbgEvent('info', 'stacked: no hand left, the round ends');
+  if (typeof dbgEvent === 'function') dbgEvent('info', 'stacked: no hand left, the level ends');
   showMessage('No hands left', 'var(--red)');
   stkEndRound();
 }

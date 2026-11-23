@@ -42,6 +42,7 @@ superseded is history, not current code. The other reference docs:
 | `CLEANUP.md` | the dead-code audit and removal log |
 | `CURSE_CARDS.md` | the four horsemen as built (r723), Pestilence's open call, the parked card conditions, the r722 survey |
 | `DIFFICULTY.md` | the eight difficulty tiers (r728), what follows from them, and whether the ladder is spaced well |
+| `TRICK_AUDIT.md` | r804: every Trick against its rarity's average by bonus type, the +25 base buff, recommended numbers for the Tricks and Knacks that buff cards (not applied) |
 | `docs/archive/` | finished design docs, kept for reference |
 | `tools/sim/README.md` | the Monte Carlo bot that plays whole runs headlessly; rerun after any deck or hand-value change |
 
@@ -5532,7 +5533,263 @@ Employee of the Month joins the list (838 cases). Its place in the Trick list mo
 placement of the cases after it, so line Tricks' cases change with no scoring change (the 834 old
 cases matched with it held out, r802).
 
-## r804 - the score merge is LEDs: lit squares fly in a random order; the total rests 500ms (owner)
+## r804 - the base card buff is +25; the Trick audit (owner)
+A flat card buff offered anywhere is +25 pips or +25 mult (was +10 to +15 pips, +8 to +12 mult):
+the deck editor rows (`FLOWR_DECK_OPS`, read by the Balance Sheet's buff tiles, card packs, the
+Reserve, the Lockbox, `rollBuffs` / `rollEditorBuff` and so every event, challenge reward and Knack
+that rolls one), the shop's buffed cards, the Balance Sheet's fallback Blessed Card, the Bench's mult
+boon, Bargain's two pips trades, Dealer's Choice (`DEALER_BUFFS`) and the payout pick's Boost
+(`BAL.payout_pick`). x buffs, replays, time, credits and Card Upgrade's growing buffs are unchanged.
+TRICK_AUDIT.md lists the Tricks outside their rarity's average and the recommended new numbers for
+the Tricks and Knacks that buff cards (not applied). Golden: 838 cases match.
+
+## r805 - the owner's pass: the Investment, the phone trays, the chips, the fly-in, Whiteout
+- **CONFIRM is never see-through**: `#btn-play.reward-buy:disabled` keeps its grey and drops the
+  r381 opacity (css/grid-pick.css).
+- **Phone trays are two stacked bars, the only layout** (`css/phone-trays.css`; the Settings rows
+  Trick tray on a phone / Phone tray layout, `js/tray-zigzag.js`, its CSS and dev knobs, the r399 tilt
+  and the r408 turn-taking are gone). `fanTrickTray` has one rule in both orientations: a row that
+  fits is a row; one that does not tucks to at most half a tile hidden and then scrolls sideways. A
+  covered Trick still comes forward under the pointer or a thumb (js/tray-lift.js).
+- **The Investment** (`js/investment.js`; event id `altar` frozen; `investment` in SAVE_VARS): two
+  choices. CREDITS: everything you hold until the next quarter opens, then one roll of
+  `INVEST.outcomes` (60% +5% a level, 10% +10%, 10% +20%, all compounding over the levels passed;
+  20% half back). A TRICK: a Trick (switched off through `altarTrickLocked`) and an amount from a
+  slider; every round that starts before the quarter turns has credits x 2% to improve it
+  (`investmentRoundStart`, from startRoundTimer once a level); the credits are spent. Unprinted
+  (owner): all your credits, 10 or more, improve it at least once. `investmentSettle` pays as the
+  quarter turns (`rolloverQuarter`; Flow's `survivalBossBookkeeping`) and `investmentReportMaybe`
+  types the result on a board screen ("> INVESTMENT") after the quarter card, or before Flow's
+  post-review rewards. The r590 timed boosts are no longer offered; their tick and readers stay
+  for saved runs.
+- **The fly-in** (`js/entity-flyin.js`, `css/entity-flyin.css`): a screen that shows something you
+  own flies it in from where it lives (its tray chip, the Sleight on the board; RECORDS for a card)
+  and leaves a dotted outline in its rarity colour (`.efi-gone`) until the screen is gone (a 400ms
+  watch restores it, re-rendered chips included). `entityTileHTML` stamps `data-ent-id`;
+  `efiScan(root)` runs from `evShow` (every event: Spin to Improve, Restructuring, Line Shift, the
+  Editor, Trade a Trick, the Investment's Trick row...), `gridPickRender` (Flow's Improve step),
+  `renderRewardTiles` (improve tiles, tagged there) and `renderShopGrid` (Old Tricks' owned shelf
+  items). `efiCardsIn` flies the deck picker's first 14 cards from RECORDS. Slot reels built with
+  `fillFrom` start BLANK and fill as the first spin runs (`efiBurst`): Card Slots from RECORDS,
+  Entity Slots from the chips. The riffle is `sfxFlipShuffle`, once a batch.
+- **The deck picker** (`evDeckPicker`): cards 46 x 62 (were 36 x 48); a row tucks until 60% of
+  each card shows, then it SCROLLS sideways (finger, mouse drag, wheel; `.edp-wide`). Seven
+  screens show the whole deck through it: Clean Up, Deck Trim, Card Upgrade, State Change, Rewire,
+  the Plinko edit and the challenge card pick (Card Slots and the Forge show a subset).
+- **Small fixes**: Starting Time's text loses "(rewinds can carry you above it)"; the slot cabinet
+  zooms to 88% of its room (`SLOT.fitShare`); the Focus readout is the number alone, 13px, brighter
+  and outlined in black (css/skin-machine.css); the +15s Round tile is +10s in Flow; Records opens
+  from the pause menu (a button) and over an event (`recordsClockHeld`: it takes the clock only when
+  nothing else holds it; z 440); the event bar's pause and records chips are hidden in console mode,
+  where the real keys are in reach.
+- **DISCARD double tap counts once**: a press within 500ms of a discard that ran is dropped
+  (`_lastDiscardRun`, js/tricks-ui.js); it used to arm the next drag and take the next hand too.
+- **Line Quotas**: a 3-line round asks 20 / 30 / 40% of the goal, smallest first (`QUOTA_LINE_SHARE`);
+  the Relay's three bars are the same shares and `QUOTA_RELAY_CARRY` is 0 (nothing rolls over). The HUD
+  meters are equal, faint until filled, each printing its goal short (`qShort`: 37.5k) in its colour;
+  the Relay's bar sections print theirs; the grid bands carry no number pills now. In console mode the
+  goal text hides under the meters.
+- **Records**: the limit circles are gone; Still drawable is two columns of rank and count, Ace
+  high (`recRanksShown`, also the deck map, the card view and the deck picker); the hand family and
+  Focus strips are wide notched meters (`.rh-prog`).
+- **Score chips** (`PARTICLE_CFG`): black plate, the chip's colour as outline and ink, VT323, size
+  30 opening at .35; a chip appears near the middle of its source at a spot clear of the chips out
+  (`ptSpawnSpot`, at most half covered unless more than 6 are out) and lands at least 150ms apart
+  from every other landing (`ptStagger`, pushing a start back up to 220ms); `TALLY_CFG.hold` 600.
+- **Live lines** for Wellspring, Expense Account, Firesale, 401, To the Clouds, Heartwood, First
+  Fruits; Overtime's counts the cards scored from its line.
+- **Whiteout** (rare Knack `whiteout`): when a hand is played, one more card touching the selection
+  that makes a better hand (or a hand where there was none) is played with it (`whiteoutAugment`,
+  js/play-hand.js, after Roll Call; the Selection Size holds).
+
+## r806 - still numbers; letters from 100k; a Sleight's charges x / y (owner)
+- **The PIPS / MULT / FOCUS figures never move when they change.** Every value animation is a
+  flash now, not a transform: `val-tick` (the dance's tick on each write), `pmfJitVal` (the fuse's
+  jitter) and `digitScroll` (the HUD's digit change, which slid 6px up). The box pops were already a
+  brightness flash in console mode.
+- **Letters from 100,000 up:** `fmtBig(n, small)` (js/labels.js) reads 100k, 346k, 1.2m, 12m, 3.2b;
+  under that the caller's own style. Read by the dance's PIPS / MULT writes, `fmtM`, `_pmfFmt` (the
+  fused product and the score on MULT / FOCUS) and `animateDigitEl` for the three box ids. SCORE keeps
+  its odometer.
+- **Records:** every Sleight prints CHARGES x / y (`sleightCapOf` for the y; ∞ stays ∞) under its tag
+  in both Owned views, and the Deck tab's Sleights list reads left / of.
+
+## r807 - the slots open empty and fill before the first pull; the reels divided (owner)
+`evSlotMachine` with `fillFrom` (Card Slots, Entity Slots; js/event-slot-machine.js) runs the
+fill as the event OPENS, not on the first pull: the reels are blank while the window comes on
+screen (`SLOT.openHold`), the copies fly in from RECORDS or the tray chips (`efiBurst`), then the
+reels light left to right every `SLOT.openStep` with the brake's flash and clunk, and the
+machine's `ready` promise resolves `openTail` later. The events start `floorBusy` / `plBusy`
+true and clear them on `ready`, so PULL is off until then (about 2.5s at the default animation
+speed; instant with Skip transitions). `.evt-blank` is per reel now. The three columns are
+divided (css/event-toys.css): a 10px gap, a lit rim round each reel and a raised bar in each gap,
+both box-shadows because a reel clips its children; the brake's flash is an outline, so it no
+longer wipes the rim. Measured in headless Chromium at 1440x820 and 420x900: both events opened
+with every reel blank, PULL off, seven copies in flight, reels lit F B B / F F B / F F F, PULL on
+at 2.4-2.6s, a pull then ran and finished; no page errors.
+
+## r808 - Old Tricks at ordinary odds; a typed seed counts for nothing (owner)
+- **Old Tricks** (js/owned-offers.js): an owned Trick, Knack or Sleight now joins its store shelf's pool
+  at the ordinary odds (`ownedAllowIds(type)` lets the offerable owned ids past each shelf's "not owned"
+  filter; `ownedMark(type, payloads)` turns a payload of a held id into the copy-or-improve buy, read off
+  the payload's `_def`). r799's 35% a slot (`OWNED_OFFER`, `ownedOfferSwap`, its PROB_TABLES row) is gone.
+  Measured, 9,000 Trick slots with a 61-Trick pool: the owned Trick 1.36%, another Trick 1.78% (a fair
+  share is 1.64%); none without the Knack.
+- **A run on a typed seed counts for nothing** (js/unlocks.js): `unlockPaused()` is `unlockTour()` (the
+  tours, labs and test drives) or `seedRunPaused()` (`runSeedEntered`), so unlock counters, Trick unlocks,
+  win tokens, difficulty tiers, protocol wins and Knacks, event files, discoveries and the lore event all
+  stand down. `trickLocked` asks `unlockTour()` only, so a seeded run still keeps locked Tricks locked.
+  The run screen's rules box says "A run on a typed seed unlocks nothing." while SEED is on; the finale
+  reads "typed, did not count"; the handbook's Seeds entry says so.
+Measured in headless Chromium at 1440x820 and 420x900: a run started on ABC-123 by real click and tap
+counted nothing, kept a locked Trick locked and printed the finale line; the next run rolled its own seed
+and counted. Golden: 838 match. No page errors.
+
+## r809 - Old Tricks reaches the reward picks; "a seeded run" (owner)
+- **Old Tricks** now also lets owned Tricks, Knacks and Sleights into the pick of three (Flow's
+  `survivalBuildPools`, the Schedule's `guidedPickPools`) and Flow's Tricks / Knacks / Sleights chain
+  steps (`flowrBuildOffers`), at the ordinary odds (`ownedAllowIds`). An offer you hold is marked
+  (`survivalMakeOption` / `guidedPickOffer` wrap the old bodies, now `_survivalMakeOption` /
+  `_guidedPickOffer`; "You own this." leads its text) and taking it runs `ownedTake(type, def, then)`:
+  the copy-or-improve screen, then the pick's own tail (Flow's next step or level-up, the Schedule's
+  `done`). An owned Trick is not refused for a full tray (improving needs no slot). The Balance Sheet
+  and Classic's pick are not included. `ownedShelfPool` leaves out `SURVIVAL_STACKABLE_TRICKS` (a second
+  one is an ordinary take there). `ownedApply` repaints only the shop. The Knack reads "can be offered
+  in the company store and in reward picks".
+- **Wording** (owner): "a seeded run" everywhere: the run screen ("A seeded run unlocks nothing."), the
+  finale ("seeded run, did not count") and the handbook.
+- Owner: Classic keeps its Unspent line at 2 credits each.
+Measured in headless Chromium at 1440x820 (click) and 420x900 (tap), Flow and the Schedule: before the
+Knack the owned Trick was in neither pool, after it in both; over 6,000 Flow Tricks-step offers the owned
+Trick showed 3.6% against another common's 3.4% (38 in the pool); a real pick with it first read "You own
+this.", CONFIRM opened the screen with the copy line dimmed (a Trick that is not a behaviour yet), Improve
+took it to v2, then Flow levelled up and the Schedule's pick ran its `done`. Golden: 838 match. No page errors.
+
+## r810 - the owner's calls from the Trick audit (TRICK_AUDIT.md)
+Perk Package +12 mult (the common mult-per-card average; was 6), Odd One In +13 (was 7), Equal
+Opportunity +14 per card (was 8), Twynergy +1 Focus per card (was 4; its improvement step 2 -> 1),
+Hands of Blue is rare (was epic). Company Time is not changed yet: it rewinds only on a 5-card
+Flush (`hand === 'Flush'` in play-hand.js), though its sentence says "Flushes". The rest of the
+audit is on the Trick Tuning page (the Trick Pool Triage artifact, rebuilt) for the owner to tune.
+
+## r812 - Same Old needs a streak of 3; The Heron pays 3 a second (owner)
+Same Old (`echo_hand`, common) replays every card on the 3rd and later hand of a same-hand streak
+(`BAL.echo_hand.streak` 3, read in calcScore through `TB`; was "the same hand type as the last one",
+a streak of 2). It has a template now, so the number prints from BAL. The Heron (`patience_reward`,
+rare) is +3 mult a second since the last hand (was 2; the improvement step stays +0.5). Golden:
+only those two Tricks' cases move (46, tray02 holds Same Old); baseline in r813.
+
+## r814 - "round" is "level"; Flow's clock cards read the quarter; the owner's numbers
+- **Wording (owner):** every player-facing "round" is "level" (360 strings across 60 files, done by a
+  string-literal sweep that skipped comments, code, SVG attributes and "round" meaning circular). The
+  `round` keyword is gone; `level` is the one keyword (broad), and its sentence says what a level is
+  (in Flow: the clock runs across the quarter). Dev panel text, labs and tours were left alone.
+  **A new player-facing line says "level", never "round".** Code names (`roundSeconds`,
+  `roundGoal`...) are unchanged.
+- **Flow's clock cards measure the quarter** (FLOW_TIME_TRICKS.md, every row built). One reading in
+  js/hand-detect.js: `clockStartSecs()` (Flow outside a boss: `flowSessionSeconds()`; else
+  `roundStartSeconds`), `clockElapsed()`, `roundFractionRemaining()` (now the quarter in Flow, so
+  Early Bird, Night Owl, Crunch and Time and a Half's thirds are the quarter's; `moneyRoundLeft` just
+  reads it), `clockLeftSecs()` (Sands of Time, In the Black, Cornered: capped at 180s in Flow, Sands'
+  long-clock doubling off there) and `clockSpanKey()` (Stacked's counter). Readers: The Swift,
+  Seniority, Eagle Eye's start, the per-minute gate (Study Hall, Temporal Rift), Understudy, Stacked,
+  the cooldown rings, the preview lines and the tray's live lines. Hallmark and the Woodpecker keep the
+  LEVEL (`_elapsedRound`); Hallmark's mark is rolled inside `HALLMARK_FLOW_LEVEL_SECS` (40s) in Flow.
+  A Flow level-up inside the quarter keeps the quarter's counters (`_flowKeepClock` in
+  triggerLevelUp: Eagle Eye's swap mark, the per-minute gate, Understudy's mark, Tempo's drip, the
+  clock-mark charges); a boss window restarts them (`flowTriggerBoss`). Punctuality (`time_bank`) and
+  Safety Net are in `FLOW_BANNED_ENTITIES`. **In Flow their sentences say "quarter"**
+  (`flowWordApply`, end of `applyEntityTiers`: phrase swaps in `FLOW_QUARTER_PHRASES`, kept
+  reversible on the row as `_lvDesc`, so a fused Trick carrying a phrase is covered). Time and a
+  Half's "In Flow the level is the session" sentence is gone.
+- **Fixed, older than this pass:** closing the pause menu re-ran `startRoundTimer`, which reset
+  `roundStartSeconds`, so every "since the level began" Trick (The Swift, Seniority...) started over
+  after a pause, in every mode. `startRoundTimer({ resume: true })` / `startBossTimer(opts)` keep it.
+- **Numbers (owner):** The Swift +8 mult per 10s (was 6; its ladder starts at 8), Eagle Eye +10 per 5s
+  (was 15), Flow State +20 pips per card (was 15), Hyper Focus 5x the Focus multiplier (was 2x; +1 an
+  improvement), 3rd Down +5 Focus (was 3).
+- **Focus readout:** x10.0 and up (four characters) is set at 10px (`.fr-long`) and the readout never
+  sits above the gauge's top (`focusPlaceReadout` clamps it). Measured at 1440x820, 420x900 and 375x667
+  at caps 20 / 45 / 70 / 100: inside the gauge every time (x10.0 was 1px wide on a phone and 32px over
+  the top on a desktop).
+Measured in headless Chromium at 1440x820 and 420x900: Classic sentences read "level"; in Flow, The
+Swift at 70s into the quarter paid +56 mult before and after a level-up (it used to read 0 after it),
+Eagle Eye's swap mark and Understudy's mark survived the level-up, the six clock sentences read
+"quarter" in the pool and the tray and "level" again in the next Classic run, Punctuality and Safety
+Net were banned, a pause left the level's start alone. Golden: only Swift, Eagle Eye and Hyper Focus
+cases move (and tray34, which holds one); baseline in r815. tools/scoring-golden prints
+`GOLDEN_SHOW` differences (default 60).
+
+## r815 - golden baseline rewritten for r814
+The Swift, Eagle Eye and Hyper Focus cases (and tray34) move with the new numbers; nothing else changed.
+## r814 (main) - PAUSE cannot open under the end screen (owner's bug)
+At the finale, PLAY AGAIN / HOME / ENDLESS went dead after pressing PAUSE, or after leaving the tab or
+app (`letheOnHidden` auto-pauses; its run-over test still read the pre-r634 `#end-overlay`). The pause
+menu opened UNDER the finale (z 10002) and its clear full-screen overlay took every tap on the keys.
+`finaleOpen()` (js/finale.js) is true while the end screen is up; `pauseGame` returns on it (so the
+PAUSE key, Records' pause and the tab-hidden pause all stand down; the PAUSE key refuses), and
+`showFinale` lets go of a pause menu that was already up, starting no timer. Measured by real clicks at
+1440x820 and 420x900 (Classic loss, Flow win): PAUSE, Records, PEEK, DETAILS, SHARE, then PLAY AGAIN
+started the run; pause works again in the new run; no page errors.
+
+## r814 numbering
+Two sessions shipped r814 in parallel: the round/level and Flow clock pass (above, with its r815
+baseline) and the end-screen PAUSE fix (above it, on main). The merge that joined them is r816.
+
+## r817 - the averages pass; Hyper Focus applies Focus again; the Focus number fits (owner)
+- **Owner's calls:** **Hyper Focus** (rare) no longer adds mult per card: while Focus is over `share` (50%)
+  of its limit, the Focus multiplier applies `extra` (1) more time (`focusExtraApplies`, js/scoring.js).
+  Ladder (`IMPROVE_PLAN`): 50 / 45 / 40 / 35 / 30%, v6 25% and twice more. Tags focus / hand / held.
+  **生きがい** (`wellspring`) is +1 mult per 10 Focus made this run (was 30) and common. It counts all
+  Focus made, before the cap (`focusGenGame`, in `addFocus`); the sim bot makes about 25-35 a level.
+- **My recommendations, applied (owner: "apply your other recommendations")**, toward each rarity's
+  average by bonus type (TRICK_AUDIT.md, the Trick Triage page). Common pips per card 18 to about 15:
+  Cash Cow Aces 42 -> 31, Right Place 25 -> 20, Express Lane / Face Value / Early Bird 20 -> 15, Get
+  Even 16 -> 15; Enriched +100 -> +60 a hand. Rare mult per card 12 to about 16: Esprit de Corps 15 ->
+  20, Equal Opportunity 14 -> 18, Odd One In 13 -> 18, Lie Down / Stand-Up 12 -> 16, Work-Life 10 ->
+  15. Crossroads' Focus 25 -> 10 (mult 25 kept). Company Time 15s -> 8s, and its sentence says what it
+  always did: a 5-card Flush. Epic: Corporate Culture x5 -> x3.5, Ornery x2 -> x1.75, Twinners x3 ->
+  x2, Água mole +20 -> +14 Focus, High Voltage / Live Wire x1.2 -> x1.5 (v6's second line too), Feelin
+  Lucky x1.25 -> x1.5, Rerun x1.25 -> x1.4, Growth curve starts x1.5, Partnered x1.5 -> x2, Red Water
+  Diamonds +25 -> +40 mult, Threepeat +40 mult / +13 Focus, Four Times a Zombie +40 / +40 / +13 Focus,
+  Compound +0.3 a hand. Legendary: Blackjack x3 -> x5, Five Stack +25 pips, Buried Treasure x1.25,
+  Relentless x0.1 a spade. Card-buff Tricks (TRICK_AUDIT's table): Middle Management +16, First
+  Impressions +10 (ladder +10), Board of Directors +20, UVP +10 / +10 (ladder +20), Matrix Management
+  +6, D6 2-12, Hallmark +25 / +25, Naturalist +10 (ladder doubled; its second buff +10 mult), Catalyst
+  +20 / +20 (ladder doubled), Pivot +20 mult. Fused Tricks keep their own rows. The ladders that wrote
+  a base number (`IMPROVE_PLAN`) now start from the new one. Literal sentences were regenerated from
+  the templates so the data file matches.
+- **The Focus number never leaves its gauge:** in console mode the readout was `left: 50%` with
+  `max-width: 100%`, so its box was half the gauge wide and a long number spilled to the right. It is
+  `width: max-content` now, and `focusReadoutFit` (js/focus.js) steps the font down until it fits, in
+  every skin. The number carries no x (r805; the console FOCUS box drops it too, r486). Measured at
+  1440x820, 420x900 and 375x667 at caps 20 to 100 and with a forced "123.4": inside every time.
+Golden: only the Tricks above move (and the trays that hold them); baseline in r818. A real hand with
+Hyper Focus over half Focus played with no timeline drift at 1440x820 and 420x900.
+
+## r818 - golden baseline rewritten for r817
+Only the Tricks r817 retuned (and the trays holding them) moved.
+## r817 (main) - a finished run stops (owner's bug: reward keys showing under the end screen)
+Nothing marked a LOST run as over (`roundEnded` is only set on a cleared goal), so `playHand` still
+worked after the loss: a hand that then cleared the goal ran the goal exit, and the interlude / Flow's
+pick opened UNDER the finale and took its keys (CONFIRM / REROLL where PLAY AGAIN / HOME were).
+Measured before: Classic clock-out then a hand: `interludeActive` true under the finale; Flow boss
+loss then a hand: PLAY read CONFIRM. **`runIsOver()`** (js/finale.js; `runOver`, `runOverSet`) is set by
+`showFinale` and by the two losses that wait a beat before it (a failed boss, 1.2s; a failed
+challenge, 2.3s), cleared by `closeFinale` (PLAY AGAIN, ENDLESS) and `startGame`. While set these
+return at once: playHand, doDiscard, doSwap, doSwapMulti, swapSelected, onCardTap, reshuffleTap,
+severanceTap, the Focus bar's double-tap, cascadeStart, agenticTick, startRoundTimer, triggerLevelUp,
+startInterlude, survivalShowPick, openGridPick, openRewardGrid, openShopGrid, openEvent,
+flowrMaybeStart, flowrStartBossChain. **A new way to act on the board, or a new between-rounds
+screen, asks `runIsOver()` first.** A winning hand already scoring when the clock would run out is
+still a win (the goal hand stops the clock; unchanged). Measured at 1440x820 and 420x900 (Classic
+clock-out, Flow boss loss): taps, a drag and a direct playHand under PEEK did nothing, no screen opened
+in 8s, PLAY AGAIN started a run that takes taps and hands; Flow's 4th boss won by a real hand, then
+ENDLESS opened the prize grid. Golden: 838 cases match. No page errors.
+
+## r817 numbering
+Two sessions shipped r817 in parallel: the averages pass (with its r818 baseline) and the finished-run stop (on main). The merge that joined them is r819.
+## r820 - the score merge is LEDs: lit squares fly in a random order; the total rests 500ms (owner)
 - **LEDs** (`leds`, the default carry look; `auto` is LEDs; js/pmf-merge.js `_pmfLedCarry`). A number
   leaving its tray, and the number the tray it lands in held, are both drawn as lit squares (the keys'
   5x7 grid `kdGlyph`, sized and placed the way `ledDraw` draws a readout) on ONE canvas over

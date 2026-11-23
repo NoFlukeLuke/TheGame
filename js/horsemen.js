@@ -379,6 +379,7 @@ function pestMove(r, c) {
 // Double-tap a curse card or a stone: spend the swaps and discards, it is discarded.
 let _sevLast = null;
 function severanceTap(r, c) {
+  if (typeof runIsOver === 'function' && runIsOver()) return;   // r817: the run is over
   if (typeof hasTrick !== 'function' || !hasTrick('severance_package')) return false;
   const cd = gridData[r]?.[c];
   if (!cd || !cd._isStone || cd._isChallenge || cd._isReshuffle) return false;

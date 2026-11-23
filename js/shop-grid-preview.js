@@ -175,7 +175,7 @@ function updateGridTopline() {
   const t = document.getElementById('gt-time');
   if (t && typeof roundSeconds === 'number') {
     const m = Math.floor(Math.max(0, roundSeconds) / 60), sec = Math.max(0, roundSeconds) % 60;
-    t.textContent = `LEVEL ${typeof level === 'number' ? level : 1} · ROUND TIME ${m}:${String(sec).padStart(2, '0')}`;
+    t.textContent = `LEVEL ${typeof level === 'number' ? level : 1} · LEVEL TIME ${m}:${String(sec).padStart(2, '0')}`;
   }
   const c = document.getElementById('gt-coins');
   if (c && typeof coins === 'number') c.textContent = creditsTxt(coins);
@@ -241,23 +241,26 @@ function shopgDrawCats(prev) {
 // a payload with `_span: 2` covers two cells and counts twice against n. ──
 function shopgKnackPayloads(n) {
   const owned = new Set(acquiredKnacks.map(t => t.id));
-  const mk = k => ({ entity:'knack', label:k.name, desc:k.desc, emoji:k.emoji, rarity:k.rarity || 'common',
+  const mk = k => ({ _def: k, entity:'knack', label:k.name, desc:k.desc, emoji:k.emoji, rarity:k.rarity || 'common',
                  price: shopRaised(SHOP_KNACK_PRICE, 'knack'), buy: () => { acquiredKnacks.push({ ...k }); updateKnackList?.(); } });
-  return ownedOfferSwap('knack', shuffle(KNACK_POOL.filter(t => knackOfferable(t) && !owned.has(t.id))).slice(0, n).map(mk), mk);   // r799: Old Tricks
+  const ok = ownedAllowIds('knack');   // r808: Old Tricks lets owned Knacks in at the ordinary odds
+  return ownedMark('knack', shuffle(KNACK_POOL.filter(t => knackOfferable(t) && (!owned.has(t.id) || ok.has(t.id)))).slice(0, n).map(mk));
 }
 function shopgTrickPayloads(n) {
   const owned = new Set(acquiredTricks.map(b => b.id));
   const bb = (typeof buybackPayload === 'function') ? buybackPayload() : null;   // r722: Buyback takes the first shelf
-  const mk = t => ({ entity:'trick', label:shownEntityName(t, 'trick'), desc:t.desc, emoji:trickEmoji(t), rarity:t.tier || 'common', tier:t.tier || 'common',
+  const mk = t => ({ _def: t, entity:'trick', label:shownEntityName(t, 'trick'), desc:t.desc, emoji:trickEmoji(t), rarity:t.tier || 'common', tier:t.tier || 'common',
                  price: shopRaised(SHOP_TRICK_PRICES[t.tier] || 8), buy: () => injectTrickAfterReward(t) });
-  const out = ownedOfferSwap('trick', shuffle(TRICK_POOL.filter(b => !owned.has(b.id) && !(bb && b.id === buybackItem.id))).slice(0, bb ? n - 1 : n).map(mk), mk);   // r799: Old Tricks
+  const ok = ownedAllowIds('trick');   // r808: Old Tricks lets owned Tricks in at the ordinary odds
+  const out = ownedMark('trick', shuffle(TRICK_POOL.filter(b => (!owned.has(b.id) || ok.has(b.id)) && !(bb && b.id === buybackItem.id))).slice(0, bb ? n - 1 : n).map(mk));
   return bb && n > 0 ? [bb, ...out] : out;
 }
 function shopgSleightPayloads(n) {
-  const mk = s => ({ entity:'sleight', label:s.name, desc:s.desc, emoji:s.emoji || '🃏',
+  const mk = s => ({ _def: s, entity:'sleight', label:s.name, desc:s.desc, emoji:s.emoji || '🃏',
                  uses: s.durability === 'infinite' ? '∞' : `${s.durability}×`, rarity:s.rarity || 'common',
                  price: shopRaised(SHOP_SLEIGHT_PRICES[s.rarity] || 12), buy: () => grantSleight(s) });
-  return ownedOfferSwap('sleight', pickSleightByRarity(n, _grantedSleightSet()).map(mk), mk);   // r799: Old Tricks
+  const ex = _grantedSleightSet(); ownedAllowIds('sleight').forEach(id => ex.delete(id));   // r808: Old Tricks, ordinary odds
+  return ownedMark('sleight', pickSleightByRarity(n, ex).map(mk));
 }
 function shopgLimitPayloads(n) {
   // `reroll` is excluded: shop rerolls are rationed by leftover swaps now, so
@@ -292,8 +295,8 @@ function shopgCardPayloads(n) {
   return deck.map(card => {
     const face = `${card.rank}${(typeof cardColorSuit === 'function' ? cardColorSuit(card) : card.suit) || ''}`;
     const roll = Math.random();
-    const buff = roll < 0.60 ? { e:{ pips: 12 },    price: 6  }
-               : roll < 0.85 ? { e:{ mult: 5 },     price: 10 }
+    const buff = roll < 0.60 ? { e:{ pips: 25 },    price: 6  }
+               : roll < 0.85 ? { e:{ mult: 25 },    price: 10 }
                              : { e:{ growMult: 1 }, price: 15 };
     return {
       _cardBuff: true, icon: face, label: face,
@@ -547,6 +550,7 @@ function shopAttachLabelHold(el, cat) {
 // ── Open / close ──
 let _shopPrevPV = null;   // portrait panel view to restore on close
 function openShopGrid() {
+  if (typeof runIsOver === 'function' && runIsOver()) return;   // r817: the run is over
   if (typeof rsScreen === 'function') rsScreen('shop');   // r755: run stats
   shopGridActive = true;
   shopGridMode   = 'buy';
@@ -916,6 +920,7 @@ function renderShopGrid(animateIn = false) {
           shopSwapPending ? 'shop-drop-target' : '',
         ].filter(Boolean).join(' ');
         const chip = p._sold ? '✓' : `${creditsTxt((shopGridMode === 'sell') ? p.price : shopEffPrice(p))}`;
+        if (p.owned && p.id && p.entity) div.dataset.entId = p.id;   // r805: a 'you own this' shelf item flies in (js/entity-flyin.js)
         div.innerHTML = buildShopTileInner(p) + `<div class="shop-price-chip ${p._sold ? 'sold' : (coins < ((shopGridMode === 'sell') ? p.price : shopEffPrice(p)) ? 'cant-afford' : '')}">${chip}</div>`;
         if (!p._sold) div.onclick = () => {
           if (div._lpJustFired) { div._lpJustFired = false; return; }   // that tap was a long-press read
@@ -933,6 +938,7 @@ function renderShopGrid(animateIn = false) {
   renderShopCostReadout();
   updateShopGridButtons();
   syncShopActionChips();
+  if (typeof efiScan === 'function') requestAnimationFrame(() => efiScan(gridEl));   // r805
 }
 
 // ── Span-aware selection helpers ──

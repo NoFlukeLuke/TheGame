@@ -780,6 +780,7 @@ function gridPickRender(animateIn) {
   });
 
   gridPickRenderActions(animateIn);
+  if (typeof efiScan === 'function') requestAnimationFrame(() => efiScan(document.getElementById('grid')));   // r805: owned entities (an improve step) fly in
   gridPickAfterRender(gridEl, offers, onChoose);
   gridPickPaintSelection();
   if (_gpDeal) { gridDealTiles(_gpDeal); _gpDeal = null; }
@@ -875,6 +876,7 @@ function gridPickLeave(i, go) {
 
 // opts: { kicker, title, tone, offers, actions, onChoose(i, offer) }
 function openGridPick(opts) {
+  if (typeof runIsOver === 'function' && runIsOver()) return;   // r817: the run is over
   if (typeof rsScreen === 'function') rsScreen('pick');   // r755: run stats
   // r749: Limitless shows two options (js/protocols.js).
   const offers = (typeof protoTrimOffers === 'function') ? protoTrimOffers(opts.offers || []) : (opts.offers || []);

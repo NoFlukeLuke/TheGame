@@ -69,7 +69,7 @@ function finaleFacts(kind) {
   if (typeof difficultyTier === 'function' && difficultyTier() > 1) mode += ` · ${difficultyName()}`;   // r727
   // How far: a quarter mode counts quarters (a won run closed its last one), Flow its bosses.
   let far = '';
-  if (drive) far = 'ONE ROUND';
+  if (drive) far = 'ONE LEVEL';
   else if (actMode) far = won ? `Q${Math.max(1, act - 1)} CLOSED` : `REACHED Q${act}`;
   else if (typeof survivalBossesBeaten === 'number' && (typeof survivalActive === 'function' && survivalActive())) far = `${survivalBossesBeaten} BOSS${survivalBossesBeaten === 1 ? '' : 'ES'} BEATEN`;
   const rounds = Math.max(0, won ? lvl : lvl - 1);
@@ -124,12 +124,12 @@ function finaleBodyHTML(F) {
   const r = F.records;
   const closeLine = F.drive
     ? `<b>${F.sc.toLocaleString()}</b> of <b>${F.goal.toLocaleString()}</b> · ${F.cleared ? 'cleared' : 'short'}`
-    : F.won ? `${F.far} · ${F.rounds} ROUND${F.rounds === 1 ? '' : 'S'} · ${finaleClock(F.secs)}`
-    : `${F.far} · ROUND ${F.lvl}${F.goal ? ` · <b>${F.sc.toLocaleString()}</b> of <b>${F.goal.toLocaleString()}</b>` : ''} · ${finaleClock(F.secs)}`;
+    : F.won ? `${F.far} · ${F.rounds} LEVEL${F.rounds === 1 ? '' : 'S'} · ${finaleClock(F.secs)}`
+    : `${F.far} · LEVEL ${F.lvl}${F.goal ? ` · <b>${F.sc.toLocaleString()}</b> of <b>${F.goal.toLocaleString()}</b>` : ''} · ${finaleClock(F.secs)}`;
   const n = F.owned.tricks.length + F.owned.knacks.length + F.owned.sleights.length;
   return `
     <div class="bs-note fn-close">${closeLine}${F.records.length ? `<div class="fn-records">${F.records.map(x => `<span>★ ${x}</span>`).join('')}</div>` : ''}${(F.oneAway || []).map(n => `<div class="fn-away">ONE TRICK AWAY · <b>${n}</b> + ????</div>`).join('')}${F.token ? `<div class="fn-token">${F.token.full ? `${TOKEN_MODES[F.token.id]} TOKENS ${TOKENS_PER_MODE}/${TOKENS_PER_MODE}` : `+1 TOKEN · ${TOKEN_MODES[F.token.id]} ${F.token.n}/${TOKENS_PER_MODE} · spend it in Builds`}</div>` : ''}</div>
-    ${F.seed ? `<div class="fn-seed">SEED <b>${F.seed}</b>${F.seedEntered ? ' · entered' : ''} <button class="bs-key fn-seed-copy" onclick="seedCopy('${F.seed}', this)">COPY</button></div>` : ''}
+    ${F.seed ? `<div class="fn-seed">SEED <b>${F.seed}</b>${F.seedEntered ? ' · seeded run, did not count' : ''} <button class="bs-key fn-seed-copy" onclick="seedCopy('${F.seed}', this)">COPY</button></div>` : ''}
     <div class="bs-lines fn-stats">
       ${box('SCORE', F.total.toLocaleString(), '', r.includes('BEST SCORE'))}
       ${box('BEST HAND', F.bestHand || '·', F.bestHandScore ? F.bestHandScore.toLocaleString() : '', r.includes('BEST HAND'))}
@@ -147,8 +147,28 @@ function finaleBodyHTML(F) {
     <div class="fn-details" hidden>${(typeof runReportHTML === 'function') ? runReportHTML() : ''}</div>`;
 }
 
+// r817: THE RUN IS OVER. Set the moment a run is lost or won (showFinale, and the two
+// losses that wait a beat before the finale: a failed boss, a failed challenge), cleared by
+// closeFinale (PLAY AGAIN, ENDLESS) and startGame. While it is set nothing may move the run
+// on: playHand, discard, swap, card taps, the autoplayers and every between-rounds screen
+// return at once. Before this a hand played after a loss (the board takes taps under PEEK)
+// could clear the goal, and the reward screen opened under the finale and took its keys.
+let runOver = false;
+function runIsOver() { return runOver; }
+function runOverSet(on) { runOver = !!on; }
+// r814: true while the run's end screen is up. pauseGame() asks it: nothing is left to pause.
+function finaleOpen() { return !!_fnCtl || !!document.getElementById('end-overlay')?.classList.contains('show'); }
 function showFinale(kind) {
+  runOver = true;
   const F = finaleFacts(kind); _fnFacts = F;
+  // A pause menu still up would sit under the finale and block its keys: let it go, start no timer.
+  if (typeof isPaused !== 'undefined' && isPaused) {
+    isPaused = false;
+    const po = document.getElementById('pause-overlay'); if (po) po.style.display = 'none';
+    const g = document.getElementById('grid'); if (g) g.style.visibility = '';
+    const pb = document.getElementById('btn-pause'); if (pb) pb.textContent = '⏸ Pause';
+    if (typeof dncSetPaused === 'function') dncSetPaused(false);
+  }
   if (typeof hideGoalBanner === 'function') hideGoalBanner();
   if (typeof boardScreenOpen !== 'function' || !bsStage()) { finaleFallback(F); return; }
   if (typeof keysReturn === 'function') keysReturn();
@@ -186,6 +206,7 @@ function finaleFitStats(ctl) {
   });
 }
 function closeFinale() {
+  runOver = false;
   if (typeof keysReturn === 'function') keysReturn();
   if (_fnCtl) { const c = _fnCtl; _fnCtl = null; c.close(true); }
 }

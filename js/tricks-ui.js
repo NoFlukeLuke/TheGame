@@ -26,7 +26,7 @@ function trickLiveDesc(trick) {
   try {
     const B = (typeof BAL !== 'undefined') ? BAL : {};
     const live = (typeof gameTimerPaused === 'undefined') ? true : !gameTimerPaused;
-    const el   = Math.max(0, roundStartSeconds - roundSeconds);   // seconds elapsed this round
+    const el   = clockElapsed();   // seconds elapsed this round
     const now      = (v) => `${base} (now ${v})`;                 // always-meaningful
     const roundNow = (v) => `${base} ${live ? `(now ${v})` : '(N/A)'}`; // round-scoped
     switch (trick.id) {
@@ -50,6 +50,14 @@ function trickLiveDesc(trick) {
       case 'rising_tide':    return now(`+${risingTideMult || 0} mult`);
       case 'employee_month': return roundNow(`hand ${eotmSync().n + 1} of the row: Focus ${1 + eotmFocusExtra()}x`);   // r802
       case 'middle_man':     return now(`+${middleManMult || 0} mult`);
+      // r805 (owner): every scaling Trick says what it is worth now.
+      case 'wellspring':     return now(`+${Math.floor((focusGenGame || 0) / (B.wellspring?.per_focus ?? 30)) * (B.wellspring?.mult_per ?? 1)} mult · ${Math.floor(focusGenGame || 0)} Focus made`);
+      case 'expense_account': return now(`+${typeof expenseAccountMult === 'function' ? expenseAccountMult() : 0} mult`);
+      case 'fire_sale':      return now(`+${Math.round((fireSaleMult || 0) * 100) / 100} mult`);
+      case 'four_oh_one':    { const f = typeof fourOhOneFactors === 'function' ? fourOhOneFactors() : { m: 1, p: 1 }; return now(`x${f.p.toFixed(1)} pips · x${f.m.toFixed(1)} mult`); }
+      case 'to_the_clouds':  return now(`+${(bonusMult_tens || 0) + (bonusMult_nines || 0)} mult`);
+      case 'heartwood':      return now(`+${B.heartwood?.pips ?? 0} pips, +${B.heartwood?.mult ?? 0} mult a hand to its cell${(B.heartwood?.cells || 1) > 1 ? 's' : ''}`);
+      case 'first_fruits':   return roundNow(`${Math.max(0, (B.first_fruits?.hands ?? 1) - (handsPlayedRound || 0))} hand${Math.max(0, (B.first_fruits?.hands ?? 1) - (handsPlayedRound || 0)) === 1 ? '' : 's'} left this level`);
       case 'hummingbird':    return now(`+${((pauseInstanceGame || 0) + (rewindInstanceGame || 0)) * (B.hummingbird?.mult_per_pause ?? 2)} mult`);
       case 'magician':       return now(magicianNoSleights() ? `+${B.magician?.solo_pips ?? 50} pips, no Sleights` : `+${ownedSleightCount() * (B.magician?.mult_per_sleight ?? 3)} mult`);
       case 'scalper':        return now(`×${(1 + (B.scalper?.mult_mult_per_missing ?? 0.25) * sleightChargeInfo().missing).toFixed(2)} mult`);
@@ -60,7 +68,7 @@ function trickLiveDesc(trick) {
       case 'first_play':     return roundNow(`next hand +${Math.max(0, (B.first_play?.focus ?? 5) - (handsPlayedRound || 0))} Focus`);
       // ── position-line accumulators (reset each round) ──
       case 'groove':         return roundNow(`+${Math.floor((markCount_groove || 0) / 2)} Focus/hand`);
-      case 'overtime':       return roundNow(`rewinds ${Math.floor((markCount_overtime || 0) / 3)}s per hand`);
+      case 'overtime':       return roundNow(`${markCount_overtime || 0} scored from its line · rewinds ${Math.floor((markCount_overtime || 0) / 3) * (B.overtime?.seconds_per_3 ?? 1)}s a hand`);
       case 'assembly_line':  return now(`+${typeof asmLinePerCard === 'function' ? asmLinePerCard() : 0} mult per line card · ${asmLine.cur} played from the line so far`);
       case 'coin_sword':     return now(`a hit adds +${typeof coinSwordMult === 'function' ? coinSwordMult() : 0} mult`);
       // ── round-time / round-counter scaling (live round only) ──
@@ -69,8 +77,8 @@ function trickLiveDesc(trick) {
       case 'albatross':      return roundNow(`+${(pausedSecondsRound || 0) * B.albatross.pips_per_second} pips`);
       case 'kingfisher':     return roundNow(`+${Math.floor(((pausedSecondsRound || 0) + (rewoundSecondsRound || 0)) / B.kingfisher.interval_seconds) * B.kingfisher.mult_per_interval} mult`);
       case 'still_water': { const e = (lastSwapRoundSeconds !== null) ? Math.max(0, lastSwapRoundSeconds - roundSeconds) : el; return roundNow(`+${B.still_water.mult_per_interval * Math.floor(e / B.still_water.interval_seconds)} mult`); }
-      case 'spade_flood':    return roundNow(`+${Math.floor(roundSeconds / B.spade_flood.time_div)} pips`);
-      case 'sands_of_time':  return roundNow(`+${Math.floor(roundSeconds / sandsDivisor())} pips`);
+      case 'spade_flood':    return roundNow(`+${Math.floor(clockLeftSecs() / B.spade_flood.time_div * (B.spade_flood.time_mult || 1))} pips`);
+      case 'sands_of_time':  return roundNow(`+${Math.floor(clockLeftSecs() / sandsDivisor())} pips`);
       case 'discard_pips':   return roundNow(`+${(cardsDiscardedRound || 0) * ((typeof flowActive === 'function' && flowActive()) ? B.discard_pips.mult_per_flow : B.discard_pips.mult_per)} mult`);
       case 'landfill':       return now(`+${typeof landfillCount === 'function' ? landfillCount() * B.landfill.mult_per : 0} mult`);
       case 'working_class':  return now(`+${typeof landfillCount === 'function' ? Math.ceil(landfillCount() * (B.working_class?.mult_per ?? 4) + (typeof fusedCarry === 'function' ? fusedCarry('landfill', 'mult') : 0)) : 0} mult from swaps and discards`);
@@ -483,21 +491,25 @@ document.getElementById('btn-play').addEventListener('click', () => {
   cancelAutoSubmit();
   playHand();
 });
-let _lastDiscardArm = 0;
+let _lastDiscardArm = 0, _lastDiscardRun = 0;
 document.getElementById('btn-discard').addEventListener('click', () => {
   // Drag to play (r409): DISCARD with nothing selected arms (or disarms) the
   // next drag to discard. With a selection it discards as it always has.
   if (selected.length === 0 && typeof dragControlsLive === 'function' && dragControlsLive()) {
     // r717: a phone can fire one tap's click twice ~150-200ms apart (PLAY has the
     // same guard); the second toggled the arm straight back off.
+    // r805 (owner): a second press right after a discard RAN is the same tap too. The
+    // selection was already gone, so it used to arm the next drag and discard the next
+    // hand as well. One quick double tap is one discard, before or after selecting.
     const _now = Date.now();
-    if (_now - _lastDiscardArm < 400) return;
+    if (_now - _lastDiscardArm < 400 || _now - _lastDiscardRun < 500) return;
     _lastDiscardArm = _now;
     setDragDiscardArmed(!dragDiscardArmed);
     showMessage(dragDiscardArmed ? 'Drag to discard' : 'Discard cancelled', 'var(--cream-dim)');
     return;
   }
   if (typeof ctlDiscardGate === 'function' && !ctlDiscardGate()) return;
+  _lastDiscardRun = Date.now();
   doDiscard();
 });
 
@@ -517,8 +529,6 @@ document.getElementById('btn-discard').addEventListener('click', () => {
 // Returns true when it took charge of the layout (so the caller skips the
 // marquee), false in landscape or when there is nothing to measure.
 const FAN_MIN_STEP = 13;
-const FAN_MAX_TILT = 55;        // deg, portrait tilt ceiling (r399)
-const FAN_PERSP_SHRINK = 0.97;  // perspective narrows a receding tile a touch more than cos   // px of each tucked tile that must stay visible
 
 function fanTrickTray(list, track) {
   if (!list || !track) return false;
@@ -548,175 +558,28 @@ function fanTrickTray(list, track) {
 
   if (avail <= 0) return false;   // not laid out yet - leave it alone
 
-  // r486: the zigzag tray (js/tray-zigzag.js) is torn down first; it comes
-  // back below only when the row does not fit flat (r492, like the tilt).
-  if (typeof zzTeardown === 'function') zzTeardown(list);
-
   const GAP = 4;
   const PAD = 3;          // rounding + the track's own box; without it the fan
                           // lands a few px wide and clips its leftmost tile
   const room = avail - PAD;
   const n = chips.length;
 
-  if (landscape) {
-    const LGAP = 5;
-    if (n * tile + (n - 1) * LGAP <= room) {
-      track.style.setProperty('--fan-gap', LGAP + 'px');   // fits: an ordinary row
-      return true;
-    }
-    // Tuck until they fit, but never past half a tile hidden. Past that floor
-    // the row keeps the 50% step and SCROLLS instead (overflow-x on the list,
-    // scrollbar hidden) - scrolled to the end so the newest Trick starts visible.
-    const minStep = Math.ceil(tile * 0.5);
-    const step = Math.max(minStep, (room - tile) / (n - 1));
-    track.style.setProperty('--fan-gap', (step - tile).toFixed(2) + 'px');
-    list.classList.add('fanned');
-    requestAnimationFrame(() => { list.scrollLeft = list.scrollWidth; });
+  // r805 (owner): one rule in both orientations. The phone's Trick tray is a
+  // full-width bar now (css/phone-trays.css), so the zigzag (r486) and the tilt
+  // that took turns straightening (r399 / r408) are gone. A row that fits is an
+  // ordinary row; one that does not TUCKS, each tile showing at least half of
+  // itself, and past that floor the row keeps the 50% step and SCROLLS sideways
+  // (scrollbar hidden), scrolled to the end so the newest Trick starts visible.
+  // A covered Trick comes forward under the pointer or a thumb (js/tray-lift.js).
+  const LGAP = landscape ? 5 : GAP;
+  if (n * tile + (n - 1) * LGAP <= room) {
+    track.style.setProperty('--fan-gap', LGAP + 'px');   // fits: an ordinary row
     return true;
   }
-
-  // ONE variable, and it is the gap between tiles - positive when they fit,
-  // negative when they tuck. Writing the measured TILE width back into a var
-  // that the tile's own `width` reads would be a feedback loop; this cannot be.
-  chips.forEach(c => { c.style.removeProperty('--tilt'); c.style.marginRight = ''; });
-  if (n * tile + (n - 1) * GAP <= room) {
-    track.style.setProperty('--fan-gap', GAP + 'px');   // fits: an ordinary row
-    return true;
-  }
-  // Doesn't fit: the zigzag, when that is the Settings choice.
-  if (typeof trayZigzagOn === 'function' && trayZigzagOn()) {
-    trayTiltStop();
-    if (zigzagTrickTray(list, track, chips)) return true;
-  }
-  // Doesn't fit (r399): TILT first. Every tile but the newest turns its right
-  // edge back (rotateY about its left edge, css `rotate: y`), which shortens its
-  // on-screen width to about tile*cos(a) while its LAYOUT box stays full width -
-  // so the step is computed from the projected width, not the box. Only past FAN_MAX_TILT does the row start to overlap,
-  // and then by less than the old flat tuck, floored at FAN_MIN_STEP.
-  // r429: EVERY tile tilts, the newest included (owner: a flat last tile made
-  // the turns cycle read wrong). The row is right-aligned by LAYOUT box, and a
-  // tilted tile's visible width is only `proj`, so the last tile gives back the
-  // difference as a negative right margin or the row ends in an empty gap.
-  const k = n - 1;
-  const cosNeed = (room - k * GAP) / (n * tile);
-  const cosA = Math.max(Math.cos(FAN_MAX_TILT * Math.PI / 180), Math.min(1, cosNeed));
-  const deg = Math.acos(cosA) * 180 / Math.PI;
-  const proj = tile * cosA * FAN_PERSP_SHRINK;
-  const fitStep = (room - proj) / k;
-  const step = Math.max(FAN_MIN_STEP, Math.min(proj + GAP, fitStep));
-  chips.forEach(c => c.style.setProperty('--tilt', deg.toFixed(1) + 'deg'));
-  chips[k].style.marginRight = (proj - tile).toFixed(2) + 'px';
+  const minStep = Math.ceil(tile * 0.5);
+  const step = Math.max(minStep, (room - tile) / (n - 1));
   track.style.setProperty('--fan-gap', (step - tile).toFixed(2) + 'px');
   list.classList.add('fanned');
-  // `proj` is an estimate of the perspective; close the remaining gap against the
-  // real painted edge (rect is zoomed, so convert to design px).
-  const lr = list.getBoundingClientRect(), z = lr.width / (list.clientWidth || 1);
-  const padR = parseFloat(getComputedStyle(list).paddingRight) || 0;
-  // The face transitions its rotate, so measure it with the transition off
-  // (a freshly set --tilt would otherwise still read 0deg).
-  const face = chips[k].querySelector('.reward-cell') || chips[k];
-  const faces = chips.map(c => c.querySelector('.reward-cell')).filter(Boolean);
-  faces.forEach(f => { f.style.transition = 'none'; });
-  const short = (lr.right - padR * z - face.getBoundingClientRect().right) / z;
-  void list.offsetWidth;
-  faces.forEach(f => { f.style.transition = ''; });
-  if (Math.abs(short) > 0.5) chips[k].style.marginRight = (proj - tile - short).toFixed(2) + 'px';
-  if (deg > 0.5) trayTiltArm(list); else trayTiltStop();
+  requestAnimationFrame(() => { list.scrollLeft = list.scrollWidth; });
   return true;
 }
-
-// ── THE TILT TAKES TURNS (r408) ─────────────────────────────────────────────
-// Portrait only. A tilted row hides most of each tile's face, so the tiles take
-// turns STRAIGHTENING: one turns flat and comes forward, holds, tilts back, and
-// the next one does it. A finger sliding over the row takes over: the tile under
-// it straightens and its tooltip opens, so thumbing along the row reads every
-// Trick in turn. The cycle resumes a few seconds after the finger lifts.
-const TRAY_TILT_HOLD = 1500;     // ms each tile spends flat
-const TRAY_TILT_RESUME = 4000;   // ms after a scrub before the cycle restarts
-let _trayTiltTimer = null, _trayTiltIdx = -1, _trayTiltHoldUntil = 0;
-function trayTiltChips() {
-  const list = document.getElementById('trick-tray-list');
-  if (!list || !list.classList.contains('fanned')) return [];
-  if (document.getElementById('stage')?.classList.contains('landscape')) return [];
-  return [...list.querySelectorAll('.trick-tray-chip')];
-}
-function trayTiltFocus(i) {
-  const chips = trayTiltChips();
-  // r429: every tile is tilted, so one near the right edge, turned flat, would
-  // run past the tray and be clipped. It slides left by the overhang for its turn.
-  const list = document.getElementById('trick-tray-list');
-  const lr = list ? list.getBoundingClientRect() : null;
-  const z = lr && list.clientWidth ? lr.width / list.clientWidth : 1;
-  chips.forEach((c, j) => {
-    const on = j === i;
-    let dx = 0;
-    if (on && lr) {
-      // offsetLeft, not a rect: the rect already carries this chip's own
-      // translate and scale if it is being re-focused.
-      const op = (c.offsetParent || list).getBoundingClientRect();
-      const right = op.left + (c.offsetLeft + c.offsetWidth * 1.03) * z;
-      dx = Math.max(0, (right - (lr.right - 2 * z)) / z);
-    }
-    c.style.translate = dx ? `${-dx.toFixed(1)}px 0` : '';
-    c.classList.toggle('tilt-focus', on);
-  });
-  _trayTiltIdx = i;
-  return chips[i] || null;
-}
-function trayTiltStop() {
-  clearInterval(_trayTiltTimer); _trayTiltTimer = null;
-  document.querySelectorAll('#trick-tray-list .tilt-focus').forEach(c => c.classList.remove('tilt-focus'));
-}
-function trayTiltArm(list) {
-  if (!_trayTiltTimer) _trayTiltTimer = setInterval(() => {
-    const chips = trayTiltChips();
-    if (!chips.length) { trayTiltStop(); return; }
-    if (Date.now() < _trayTiltHoldUntil) return;
-    if (document.body.classList.contains('reduced-motion')) { trayTiltFocus(-1); return; }
-    // Every tile takes a turn (r429: the newest is tilted too). A tile that is
-    // flat goes back before the next one comes up (an empty beat between them).
-    const tilted = chips.length;
-    if (_trayTiltIdx >= 0) { trayTiltFocus(-1); _trayTiltNext = (_trayTiltNext + 1) % Math.max(1, tilted); return; }
-    trayTiltFocus(_trayTiltNext % Math.max(1, tilted));
-  }, TRAY_TILT_HOLD);
-  if (list._tiltScrub) return;
-  list._tiltScrub = true;
-  let active = false, moved = false, shown = -1, x0 = 0;
-  const hit = x => {
-    const chips = trayTiltChips();
-    let idx = -1;
-    chips.forEach((c, j) => { if (c.getBoundingClientRect().left <= x) idx = j; });
-    return idx < 0 && chips.length ? 0 : idx;
-  };
-  list.addEventListener('pointerdown', e => {
-    if (e.pointerType === 'mouse' || !trayTiltChips().length) return;
-    active = true; moved = false; shown = -1; x0 = e.clientX;
-    _trayTiltHoldUntil = Date.now() + 1e9;
-    trayTiltFocus(hit(e.clientX));
-  });
-  list.addEventListener('pointermove', e => {
-    if (!active) return;
-    if (Math.abs(e.clientX - x0) > 6) moved = true;
-    if (!moved) return;
-    const i = hit(e.clientX);
-    if (i === shown) return;
-    shown = i;
-    const chip = trayTiltFocus(i);
-    const trick = chip && trickTray.find(t => t.id === chip.dataset.trickId);
-    if (trick) showTrickTrayTooltip(trick, chip);
-  });
-  const end = () => {
-    if (!active) return;
-    active = false;
-    _trayTiltHoldUntil = Date.now() + TRAY_TILT_RESUME;
-    // A scrub ends ON the tooltip it opened; the click that follows must not
-    // toggle it shut again.
-    if (moved) list._swallowClick = Date.now();
-  };
-  list.addEventListener('pointerup', end);
-  list.addEventListener('pointercancel', end);
-  list.addEventListener('click', e => {
-    if (list._swallowClick && Date.now() - list._swallowClick < 400) { e.stopPropagation(); list._swallowClick = 0; }
-  }, true);
-}
-let _trayTiltNext = 0;

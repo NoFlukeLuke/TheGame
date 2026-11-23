@@ -47,6 +47,7 @@ function computeRoundResources() {
 }
 
 function triggerLevelUp() {
+  if (typeof runIsOver === 'function' && runIsOver()) return;   // r817: the run is over
   // During a boss, the legacy goal-based level-up flow is suppressed.
   // The new XP-grid level-up (Step 2) will replace this entirely; for now,
   // we just skip the old round-reset to avoid disrupting the boss.
@@ -196,6 +197,10 @@ function triggerLevelUp() {
   // Crunch carries for the same reason Flow does and a stronger one: the
   // allowance is the QUARTER's, so refilling it here would hand back the whole
   // clock at every level and the mode would have no cost at all.
+  // r814: a Flow level-up inside the quarter keeps the quarter's clock counters (Eagle Eye's
+  // swap mark, the per-minute gate, Understudy, Tempo, the clock-mark charges), since the
+  // clock-reading entities measure the quarter there (clockElapsed, js/hand-detect.js).
+  const _flowKeepClock = typeof flowActive === 'function' && flowActive() && !flowRefillClock;
   roundSeconds = (typeof crunchActive === 'function' && crunchActive())
                ? crunchNextRoundSeconds(roundSeconds)
                : (typeof flowNextRoundSeconds === 'function' && flowActive())
@@ -221,7 +226,7 @@ function triggerLevelUp() {
   if (hasKnack('carry_swaps'))    accumulatedSwaps    = 0;
   if (hasKnack('carry_time'))     accumulatedSeconds  = 0;
   lastSwapTime = 0;
-  lastSwapRoundSeconds = null;
+  if (!_flowKeepClock) lastSwapRoundSeconds = null;
   lastHandRoundSeconds = null;
   firstHandThisRound = true;
   freeDiscardsLeft = 0;   // r728: no free discards
@@ -241,7 +246,7 @@ function triggerLevelUp() {
   markCount_groove  = 0;   // Groove
   markCount_overtime = 0;  // Overtime
   _cleanSweepPrev   = [];  // Clean Sweep
-  _perMinuteFired   = {};  // once-per-minute gate (Study Hall, Ley Line)
+  if (!_flowKeepClock) _perMinuteFired = {};  // once-per-minute gate (Study Hall, Ley Line)
   fullHouseThisRound = 0;
   roundContributions = {};
   roundHandsScored = 0;
@@ -289,14 +294,14 @@ function triggerLevelUp() {
   retriggersThisRound = 0;
   replaysThisRound = 0;
   timeManipRound = 0;
-  understudyNextMark = BAL.understudy.interval_seconds;
+  if (!_flowKeepClock) understudyNextMark = BAL.understudy.interval_seconds;
   if (typeof hallmarkRollRound === 'function') hallmarkRollRound();
   // The card-state fuses refresh every level (owner's spec), so a charged card
   // you were holding does not blow up the instant the next round deals.
   if (typeof cardStatesResetRound === 'function') cardStatesResetRound();
   forcedTrickIds = [];
   // Clock-mark Tricks + Déjà Vu: pending bonuses and rank-history reset each round
-  pendingHandPips = 0; pendingHandMult = 0; pendingCardPips = 0; minuteHandCharges = 0;
+  if (!_flowKeepClock) { pendingHandPips = 0; pendingHandMult = 0; pendingCardPips = 0; minuteHandCharges = 0; }
   lastHandRankKey = null;
   _altSwapCount = 0;
   doubleJeopardyCells = hasTrick('double_jeopardy') ? pickDoubleJeopardyCells() : [];
@@ -316,7 +321,7 @@ function triggerLevelUp() {
   // Lighthouse sleight: its favored column alternates first ↔ last each round.
   lighthouseColumn = (lighthouseFlip++ % 2 === 0) ? 0 : gridCols - 1;
   // Tempo knack: restart the alternating swap/discard drip, swap first.
-  tempoElapsed = 0; tempoNextIsSwap = true;
+  if (!_flowKeepClock) { tempoElapsed = 0; tempoNextIsSwap = true; }
   // Stopwatch: clear any lingering freeze/timer from the previous round.
   stopwatchActive = false;
   if (stopwatchTimer) { clearInterval(stopwatchTimer); stopwatchTimer = null; }

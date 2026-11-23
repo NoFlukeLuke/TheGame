@@ -167,7 +167,7 @@ function crOnRoundStart() {
   if (!crRound) { crSpotRoll(); return; }
   if (crRound.started || crRound.over) return;
   crRound.started = true;
-  showMessage(`⚑ Challenge round: ${CR_CARDS} challenge cards, one at a time, and the goal.`, 'var(--c-amber, #ffb347)', { ms: 4200 });
+  showMessage(`⚑ Challenge level: ${CR_CARDS} challenge cards, one at a time, and the goal.`, 'var(--c-amber, #ffb347)', { ms: 4200 });
   setTimeout(() => crBeginArrival('seq', 1, 0), 650);
 }
 
@@ -1243,11 +1243,11 @@ function sfxChallengeTick() {
 // Dev panel: the next round is a challenge round; drop a Flow card now.
 function devArmChallengeRound() {
   crArmNext({ source: 'dev' });
-  showMessage('Next round is a challenge round', 'var(--gold)');
+  showMessage('Next level is a challenge level', 'var(--gold)');
 }
 function devSpotChallengeNow(tier) {
   if (typeof closeDevPanel === 'function') closeDevPanel();
-  if (!crSpotMayRun()) { showMessage('Ordinary rounds of a node mode only', 'var(--red)'); return; }
+  if (!crSpotMayRun()) { showMessage('Ordinary levels of a node mode only', 'var(--red)'); return; }
   crBeginArrival('spot', tier || 2, 0);
 }
 function devFlowChallengeNow(tier) {

@@ -26,7 +26,8 @@
 <link rel="stylesheet" href="css/board-screen.css">
 <link rel="stylesheet" href="css/inseparable.css">
 <link rel="stylesheet" href="css/unlocks.css">
-<link rel="stylesheet" href="css/tray-zigzag.css">
+<link rel="stylesheet" href="css/phone-trays.css">
+<link rel="stylesheet" href="css/entity-flyin.css">
 <link rel="stylesheet" href="css/dance.css">
 <link rel="stylesheet" href="css/climb.css">
 <link rel="stylesheet" href="css/dev-overlays.css">
@@ -542,8 +543,8 @@
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:4px;">
       How a card's score chips leave it, and how far a long hand may speed itself up.
     </div>
-    <div class="dev-slider-row"><span>Chip sits at its source <b id="dev-tally-hold-val">300</b>ms</span>
-      <input id="dev-tally-hold" type="range" min="0" max="700" value="300" step="10" oninput="devSetTally('hold', this.value)"></div>
+    <div class="dev-slider-row"><span>Chip sits at its source <b id="dev-tally-hold-val">600</b>ms</span>
+      <input id="dev-tally-hold" type="range" min="0" max="1200" value="600" step="10" oninput="devSetTally('hold', this.value)"></div>
     <div class="dev-slider-row"><span>Gap between chips <b id="dev-tally-gap-val">140</b>ms</span>
       <input id="dev-tally-gap" type="range" min="0" max="400" value="140" step="10" oninput="devSetTally('gap', this.value)"></div>
     <div class="dev-row"><span style="font-size:11px;color:var(--cream-dim)">Chip order</span>
@@ -979,17 +980,6 @@
         <option value="resolve">Resolve - quick pop</option>
       </select>
     </label>
-  </div>
-
-  <!-- r486: the portrait zigzag Trick tray (js/tray-zigzag.js) -->
-  <div class="dev-section" data-group="hud">
-    <div class="dev-section-title">Zigzag tray (phone)</div>
-    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);margin:3px 0;">Tile height, % of the tilted tile<input id="dev-zz-height" type="number" min="50" max="110" step="5" onchange="zzSetCfg('height', this.value)" style="width:70px;background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;"></label>
-    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);margin:3px 0;">Step right, % of a tile<input id="dev-zz-step" type="number" min="20" max="100" step="5" onchange="zzSetCfg('step', this.value)" style="width:70px;background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;"></label>
-    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);margin:3px 0;">Lower row drop, % of a tile<input id="dev-zz-drop" type="number" min="10" max="80" step="5" onchange="zzSetCfg('drop', this.value)" style="width:70px;background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;"></label>
-    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);margin:3px 0;">Size when forward (x)<input id="dev-zz-scale" type="number" min="1" max="1.5" step="0.05" onchange="zzSetCfg('scale', this.value)" style="width:70px;background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;"></label>
-    <label style="display:flex;align-items:center;gap:8px;font-family:'Crimson Pro',serif;font-size:13px;color:var(--cream);margin:3px 0;">Hold forward (ms)<input id="dev-zz-hold" type="number" min="200" max="6000" step="100" onchange="zzSetCfg('hold', this.value)" style="width:70px;background:#1a1510;color:var(--cream);border:1px solid var(--border);border-radius:4px;padding:2px 5px;"></label>
-    <button class="dev-btn" onclick="zzResetCfg()">Reset</button>
   </div>
 
   <!-- DISPLAY (fullscreen - usable mid-run since Settings = this panel) -->
@@ -1488,7 +1478,7 @@
       <div id="focus-bar-outer">
         <div id="focus-active-segment"><!-- 10 nodes built by JS --></div>
       </div>
-      <div id="focus-mult-readout" class="dim">×1.0</div>
+      <div id="focus-mult-readout" class="dim">1.0</div>
     </div>
     <!-- The boss result overlay sits in #grid-slot, NOT in #grid. The reward grid
          takes #grid over and clears it with innerHTML = '' (three sites in
@@ -1576,6 +1566,7 @@
     <button id="btn-pause-settings" class="pause-btn pause-btn-ghost" onclick="openSettings(false)">⚙ Settings</button>
     <button id="btn-pause-builds" class="pause-btn pause-btn-ghost" onclick="pauseBuildsToggle()">★ Builds</button>
     <button id="btn-pause-history" class="pause-btn pause-btn-ghost" onclick="openHistory(false)">≡ History</button>
+    <button id="btn-pause-records" class="pause-btn pause-btn-ghost" onclick="openRecords()">🗄 Records</button>
     <div id="pause-builds" style="display:none;"></div>
     <button id="btn-pause-newrun" class="pause-btn pause-btn-ghost" onclick="restartRun()">↻ New Run</button>
     <button id="btn-pause-home" class="pause-btn pause-btn-ghost" onclick="quitToMainMenu()">⌂ Home</button>
@@ -1663,6 +1654,9 @@
            console that never scrolls away, so the chip lives in it. -->
       <span class="con-bar-right">
         <span id="event-bar-dots"><i></i><i></i><i></i></span>
+        <!-- r805: Records too, for the same reason. In console mode the panel sits on the
+             board and the real RECORDS / PAUSE keys are in reach, so both chips are hidden. -->
+        <button class="con-pause con-records" type="button" title="Records" aria-label="Records" onclick="openRecords()">&#128450;</button>
         <button class="con-pause" type="button" title="Pause / menu" aria-label="Pause" onclick="togglePauseMenu()">&#9208;</button>
       </span>
     </div>
@@ -1870,6 +1864,7 @@
 <script src="js/event-slot-machine.js"></script>
 <script src="js/events-core.js"></script>
 <script src="js/events.js"></script>
+<script src="js/investment.js"></script>
 <script src="js/overtime.js"></script>
 <script src="js/events-upgrade.js"></script>
 <script src="js/events-slots.js"></script>
@@ -1883,12 +1878,12 @@
 <script src="js/level-up.js"></script>
 <script src="js/tricks-ui.js"></script>
 <script src="js/tray-lift.js"></script>
+<script src="js/entity-flyin.js"></script>
 <script src="js/board-screen.js"></script>
 <script src="js/reveal-line.js"></script>
 <script src="js/owned-offers.js"></script>
 <script src="js/improve-anim.js"></script>
 <script src="js/inseparable.js"></script>
-<script src="js/tray-zigzag.js"></script>
 <script src="js/shop.js"></script>
 <script src="js/shop-grid-preview.js"></script>
 <script src="js/builds.js"></script>

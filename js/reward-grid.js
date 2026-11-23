@@ -208,15 +208,15 @@ function rewardDebuffList() {
   // resolves instantly and is then over (Pickpocket) is NOT permanent: it costs
   // you once.
   const debuffs = [
-    { weight: 8, perm: true, icon: '☁', label: '-5s Round Cap', tier: 'penalty',
-      desc: `Round cap: ${formatTime(_capNow)} → ${formatTime(Math.max(10, _capNow - 5))} · permanent, stacks`,
-      apply: () => { roundPenaltySeconds += 5; noteMessage('Round cap -5s (permanent)', 'var(--red)'); } },
+    { weight: 8, perm: true, icon: '☁', label: '-5s Level Cap', tier: 'penalty',
+      desc: `Level cap: ${formatTime(_capNow)} → ${formatTime(Math.max(10, _capNow - 5))} · permanent, stacks`,
+      apply: () => { roundPenaltySeconds += 5; noteMessage('Level cap -5s (permanent)', 'var(--red)'); } },
     { weight: 8, perm: false, icon: '☠', label: '-1 Discard', tier: 'penalty',
-      desc: `Next round discards: ${_proj.discards} → ${Math.max(0, _proj.discards - 1)} · next round only`,
-      apply: () => { nextRoundDiscardDelta -= 1; noteMessage('-1 discard next round', 'var(--red)'); } },
+      desc: `Next level discards: ${_proj.discards} → ${Math.max(0, _proj.discards - 1)} · next level only`,
+      apply: () => { nextRoundDiscardDelta -= 1; noteMessage('-1 discard next level', 'var(--red)'); } },
     { weight: 8, perm: false, icon: '✖', label: '-1 Swap', tier: 'penalty',
-      desc: `Next round swaps: ${_proj.swaps} → ${Math.max(0, _proj.swaps - 1)} · next round only`,
-      apply: () => { nextRoundSwapDelta -= 1; noteMessage('-1 swap next round', 'var(--red)'); } },
+      desc: `Next level swaps: ${_proj.swaps} → ${Math.max(0, _proj.swaps - 1)} · next level only`,
+      apply: () => { nextRoundSwapDelta -= 1; noteMessage('-1 swap next level', 'var(--red)'); } },
     { weight: 8, perm: true, serious: true, icon: '💔', label: 'Lose a Trick', tier: 'penalty',
       desc: 'Discard one random Trick you own.',
       apply: applyRewardLoseTrick },
@@ -224,14 +224,14 @@ function rewardDebuffList() {
       desc: `Hand cost: ${_handNow}s → ${_handNow + 2}s each · permanent, stacks`,
       apply: () => { extraPlayCostPerm += 2; noteMessage('Playing a hand costs +2s (permanent)', 'var(--red)'); } },
     { weight: 8, perm: false, icon: '⌛', label: 'Hands +5s · 1rd', tier: 'penalty',
-      desc: `Next round hand cost: ${_handNow}s → ${_handNow + 5}s each · next round only`,
-      apply: () => { nextRoundPlayCost += 5; noteMessage('Hands cost +5s next round', 'var(--red)'); } },
+      desc: `Next level hand cost: ${_handNow}s → ${_handNow + 5}s each · next level only`,
+      apply: () => { nextRoundPlayCost += 5; noteMessage('Hands cost +5s next level', 'var(--red)'); } },
     { weight: 8, perm: true, icon: '🐌', label: 'Discards +2s', tier: 'penalty',
       desc: `Discard cost: ${_discNow}s → ${_discNow + 2}s · permanent, stacks`,
       apply: () => { extraDiscardCostPerm += 2; noteMessage('Discarding costs +2s (permanent)', 'var(--red)'); } },
     { weight: 8, perm: false, icon: '⌛', label: 'Discards +5s · 1rd', tier: 'penalty',
-      desc: `Next round discard cost: ${_discNow}s → ${_discNow + 5}s · next round only`,
-      apply: () => { nextRoundDiscardCost += 5; noteMessage('Discards cost +5s next round', 'var(--red)'); } },
+      desc: `Next level discard cost: ${_discNow}s → ${_discNow + 5}s · next level only`,
+      apply: () => { nextRoundDiscardCost += 5; noteMessage('Discards cost +5s next level', 'var(--red)'); } },
     // ── Variety debuffs (r74) ──
     { weight: 8, perm: false, icon: '💸', label: 'Pickpocket', tier: 'penalty',
       desc: `Lose 10 coins (${coins} → ${Math.max(0, coins - 10)}).`,
@@ -240,20 +240,20 @@ function rewardDebuffList() {
       desc: 'Two War cards are shuffled into your deck until the next boss is over.',
       apply: () => { injectStonesIntoDeck(2); noteMessage('2 War cards added to deck', 'var(--red)'); } },
     { weight: 8, perm: false, icon: '⏳', label: 'Slow Start', tier: 'penalty',
-      desc: 'Next round starts with 20 fewer seconds.',
-      apply: () => { nextRoundSecondsDelta -= 20; noteMessage('-20s next round', 'var(--red)'); } },
+      desc: 'Next level starts with 20 fewer seconds.',
+      apply: () => { nextRoundSecondsDelta -= 20; noteMessage('-20s next level', 'var(--red)'); } },
     // ── r193 penalties: four that cost something other than seconds ──────────
     // Every penalty before these took time, resources or a card. The grid needed
     // costs aimed at the other three things a run runs on - the goal you are
     // chasing, the Focus multiplier, the credits, and the loadout itself.
     { weight: 7, perm: true, serious: true, icon: '📈', label: 'Quota Revision', tier: 'penalty',
-      desc: `Every future round goal rises by 10% (now ×${goalPenaltyMult.toFixed(2)} → ×${(goalPenaltyMult * 1.10).toFixed(2)}) · permanent, stacks`,
+      desc: `Every future level goal rises by 10% (now ×${goalPenaltyMult.toFixed(2)} → ×${(goalPenaltyMult * 1.10).toFixed(2)}) · permanent, stacks`,
       apply: () => { goalPenaltyMult *= 1.10; noteMessage('Goals +10% (permanent)', 'var(--red)'); } },
     { weight: 7, perm: true, serious: true, icon: '📋', label: 'Red Tape', tier: 'penalty',
       desc: `Hands generate ${Math.round(100 / (focusRatePenalty * 1.25))}% of their listed Focus (now ${Math.round(100 / focusRatePenalty)}%) · permanent, stacks`,
       apply: () => { focusRatePenalty *= 1.25; noteMessage('Focus gain reduced (permanent)', 'var(--red)'); } },
     { weight: 7, perm: false, icon: '🚫', label: 'Withheld', tier: 'penalty',
-      desc: 'The next round pays out nothing: no interest, no leftover-time credits.',
+      desc: 'The next level pays out nothing: no interest, no leftover-time credits.',
       apply: () => { skipNextPayout = true; noteMessage('Next payout withheld', 'var(--red)'); } },
     // The TYPE is fixed when the tile is generated so the tile can name it; WHICH
     // entity gets suspended is rolled at the start of the round it applies to.
@@ -261,8 +261,8 @@ function rewardDebuffList() {
       const t = ['trick', 'knack', 'sleight'][Math.floor(Math.random() * 3)];
       const noun = { trick: 'Trick', knack: 'Knack', sleight: 'Sleight' }[t];
       return { weight: 7, perm: false, icon: '⛔', label: `Suspend a ${noun}`, tier: 'penalty',
-        desc: `One random ${noun} you own stops working for the first half of next round. Which one is decided when the round deals.`,
-        apply: () => { pendingEntityLockout = { type: t }; noteMessage(`A ${noun} will be suspended next round`, 'var(--red)'); } };
+        desc: `One random ${noun} you own stops working for the first half of next level. Which one is decided when the level deals.`,
+        apply: () => { pendingEntityLockout = { type: t }; noteMessage(`A ${noun} will be suspended next level`, 'var(--red)'); } };
     })(),
     // ── r194 penalties: five that cost you a board, a habit or a Trick's rent ──
     (() => {
@@ -272,8 +272,8 @@ function rewardDebuffList() {
         apply: () => { luckModifiers -= n; noteMessage(`-${n} Luck`, 'var(--red)'); } };
     })(),
     { weight: 7, perm: false, icon: '🧊', label: 'Interest Freeze', tier: 'penalty',
-      desc: `No interest paid for the next ${BAL.interest_freeze.rounds} rounds. Leftover-time credits still pay.`,
-      apply: () => { interestFreezeRounds += BAL.interest_freeze.rounds; noteMessage(`Interest frozen for ${BAL.interest_freeze.rounds} rounds`, 'var(--red)'); } },
+      desc: `No interest paid for the next ${BAL.interest_freeze.rounds} levels. Leftover-time credits still pay.`,
+      apply: () => { interestFreezeRounds += BAL.interest_freeze.rounds; noteMessage(`Interest frozen for ${BAL.interest_freeze.rounds} levels`, 'var(--red)'); } },
   ];
 
   // ── Conditional penalties (r194) ────────────────────────────────────────────
@@ -292,8 +292,8 @@ function rewardDebuffList() {
     if (_axes.length) {
       const [_ax, _noun, _now] = _axes[Math.floor(Math.random() * _axes.length)];
       debuffs.push({ weight: 7, perm: false, icon: '📉', label: `Short Staffed`, tier: 'penalty',
-        desc: `Next round the board is one ${_noun} smaller (${_now} → ${_now - 1}). One round only.`,
-        apply: () => { nextRoundGridShrink = _ax; noteMessage(`-1 ${_noun} next round`, 'var(--red)'); } });
+        desc: `Next level the board is one ${_noun} smaller (${_now} → ${_now - 1}). One level only.`,
+        apply: () => { nextRoundGridShrink = _ax; noteMessage(`-1 ${_noun} next level`, 'var(--red)'); } });
     }
   }
 
@@ -641,7 +641,7 @@ function _generateRewardContent() {
           picks.forEach(cd => enhanceCardKey(cardId(cd), { [op.buff.key]: v }));
           noteMessage(`${op.icon} ${lbl} on ${picks.length} card${picks.length === 1 ? '' : 's'}`, 'var(--gold)'); } };
     }
-    return bless('✨', 'Blessed Card', 'rare', { pips: 12 });
+    return bless('✨', 'Blessed Card', 'rare', { pips: 25 });
   }
   function makeLimitUpPayload() {
     // EVERY LIMIT HAS ITS OWN STEP, and this tile used to ignore all of them: it
@@ -700,14 +700,16 @@ function _generateRewardContent() {
       case 'improve_knack':   return makeImprovePayload('knack');
       case 'improve_sleight': return makeImprovePayload('sleight');
       case 'discard': return { icon: '🗑', label: '+1 Discard',   tier: 'common',
-                               desc: `Next round discards: ${_proj.discards} → ${_proj.discards + 1}`,
-                               apply: () => { nextRoundDiscardDelta += 1; noteMessage('+1 discard next round', 'var(--gold)'); } };
+                               desc: `Next level discards: ${_proj.discards} → ${_proj.discards + 1}`,
+                               apply: () => { nextRoundDiscardDelta += 1; noteMessage('+1 discard next level', 'var(--gold)'); } };
       case 'swap':    return { icon: '⚡', label: '+1 Swap',      tier: 'common',
-                               desc: `Next round swaps: ${_proj.swaps} → ${_proj.swaps + 1}`,
-                               apply: () => { nextRoundSwapDelta += 1; noteMessage('+1 swap next round', 'var(--gold)'); } };
-      case 'time':    return { icon: '⏱', label: '+15s Round',   tier: 'common',
-                               desc: `Next round starts with +15s`,
-                               apply: () => { nextRoundSecondsDelta += 15; noteMessage('+15s next round', 'var(--gold)'); } };
+                               desc: `Next level swaps: ${_proj.swaps} → ${_proj.swaps + 1}`,
+                               apply: () => { nextRoundSwapDelta += 1; noteMessage('+1 swap next level', 'var(--gold)'); } };
+      // r805 (owner): +10s in Flow, +15s elsewhere.
+      case 'time':  { const _ts = (typeof flowActive === 'function' && flowActive()) ? 10 : 15;
+                      return { icon: '⏱', label: `+${_ts}s Level`,   tier: 'common',
+                               desc: `Next level starts with +${_ts}s`,
+                               apply: () => { nextRoundSecondsDelta += _ts; noteMessage(`+${_ts}s next level`, 'var(--gold)'); } }; }
       case 'coins':   return { icon: '💰', label: 'Windfall',     tier: 'common',
                                desc: `Gain 8 coins (${coins} → ${coins + 8}).`,
                                apply: () => { coins += 8; updateCoinsUI(); noteMessage('+8 coins', 'var(--gold)'); } };
@@ -941,12 +943,12 @@ function rollRewardMystery(goodChance) {
     const roll = Math.floor(Math.random() * 5);
     if (roll === 0) return { good, icon:'💰', label:'+12 Credits', flyTo:'coins', desc:'Gain 12 credits.',
       apply:()=>{ coins += 12; updateCoinsUI(); showMessage('Mystery: +12 coins!', 'var(--gold)'); } };
-    if (roll === 1) return { good, icon:'⚡', label:'+2 Swaps', flyTo:'swaps', desc:'+2 swaps next round.',
-      apply:()=>{ nextRoundSwapDelta += 2; showMessage('Mystery: +2 swaps next round!', 'var(--gold)'); } };
-    if (roll === 2) return { good, icon:'🗑', label:'+2 Discards', flyTo:'discards', desc:'+2 discards next round.',
-      apply:()=>{ nextRoundDiscardDelta += 2; showMessage('Mystery: +2 discards next round!', 'var(--gold)'); } };
-    if (roll === 3) return { good, icon:'⏱', label:'+25s Round', flyTo:'clock', desc:'Next round starts with +25 seconds.',
-      apply:()=>{ nextRoundSecondsDelta += 25; showMessage('Mystery: +25s next round!', 'var(--gold)'); } };
+    if (roll === 1) return { good, icon:'⚡', label:'+2 Swaps', flyTo:'swaps', desc:'+2 swaps next level.',
+      apply:()=>{ nextRoundSwapDelta += 2; showMessage('Mystery: +2 swaps next level!', 'var(--gold)'); } };
+    if (roll === 2) return { good, icon:'🗑', label:'+2 Discards', flyTo:'discards', desc:'+2 discards next level.',
+      apply:()=>{ nextRoundDiscardDelta += 2; showMessage('Mystery: +2 discards next level!', 'var(--gold)'); } };
+    if (roll === 3) return { good, icon:'⏱', label:'+25s Level', flyTo:'clock', desc:'Next level starts with +25 seconds.',
+      apply:()=>{ nextRoundSecondsDelta += 25; showMessage('Mystery: +25s next level!', 'var(--gold)'); } };
     const _all = everyDeckCard();
     const _c = _all.length ? _all[Math.floor(Math.random()*_all.length)] : null;
     const rank = _c ? _c.rank : '?', suit = _c ? _c.suit : '';
@@ -956,10 +958,10 @@ function rollRewardMystery(goodChance) {
   const roll = Math.floor(Math.random() * 5);
   if (roll === 0) return { good, icon:'💸', label:'-8 Credits', flyTo:'coins', desc:'Lose 8 credits.',
     apply:()=>{ coins = Math.max(0, coins - 8); updateCoinsUI(); showMessage('Mystery: -8 coins…', 'var(--red)'); } };
-  if (roll === 1) return { good, icon:'✖', label:'-1 Swap', flyTo:'swaps', desc:'-1 swap next round.',
-    apply:()=>{ nextRoundSwapDelta -= 1; showMessage('Mystery: -1 swap next round…', 'var(--red)'); } };
-  if (roll === 2) return { good, icon:'☁', label:'-15s Round', flyTo:'clock', desc:'Next round starts with 15 fewer seconds.',
-    apply:()=>{ nextRoundSecondsDelta -= 15; showMessage('Mystery: -15s next round…', 'var(--red)'); } };
+  if (roll === 1) return { good, icon:'✖', label:'-1 Swap', flyTo:'swaps', desc:'-1 swap next level.',
+    apply:()=>{ nextRoundSwapDelta -= 1; showMessage('Mystery: -1 swap next level…', 'var(--red)'); } };
+  if (roll === 2) return { good, icon:'☁', label:'-15s Level', flyTo:'clock', desc:'Next level starts with 15 fewer seconds.',
+    apply:()=>{ nextRoundSecondsDelta -= 15; showMessage('Mystery: -15s next level…', 'var(--red)'); } };
   if (roll === 3) return { good, icon:'🗡', label:'War', flyTo:'deck', desc:'A War card slips into your deck until the next boss is over.',
     apply:()=>{ injectStonesIntoDeck(1); showMessage('Mystery: a War card slips into your deck…', 'var(--red)'); } };
   // r726: a horseman (js/horsemen.js) instead of a card curse.
@@ -1120,6 +1122,7 @@ function openPrizeGrid() {
 
 let rewardSwapReady = false, rewardSwapLift = null, rewardTapKey = null, rewardTapAt = 0;
 function openRewardGrid() {
+  if (typeof runIsOver === 'function' && runIsOver()) return;   // r817: the run is over
   if (typeof rsScreen === 'function') rsScreen('grid:' + (typeof rewardGridMode !== 'undefined' && rewardGridMode || 'reward'));   // r755: run stats
   gameTimerPaused = true;
   if (!penaltyGridActive() && !miniGridActive() && !callItGridActive()) rewardGridsSeen++;   // count this grid (gates the first-5 guaranteed upgrades)
@@ -1225,6 +1228,7 @@ function renderRewardTiles(animateIn = false) {
       div.style.height = CARD_H + 'px';
       div.dataset.r = r; div.dataset.c = c;
       div.dataset.floatKey = `reward-${r}-${c}`;   // keeps this tile's float phase across re-renders
+      if (p._improve && p.id) div.dataset.entId = p.id;   // r805: an improve tile shows something you own (js/entity-flyin.js)
       div.innerHTML = buildRewardTileInner(p);
       div.onclick = () => onRewardCellClick(r, c);
       // Every tile with a description gets the hover tooltip - including card-face
@@ -1283,6 +1287,7 @@ function renderRewardTiles(animateIn = false) {
   } else if (rewardOnGrid) {
     startRewardFloat();
   }
+  if (typeof efiScan === 'function') requestAnimationFrame(() => efiScan(gridEl));   // r805: owned entities fly in from their trays
 }
 
 // Reward tiles drift with the same barely-there float as the shop (js/float-anim.js).
@@ -1353,7 +1358,7 @@ function skipRewardGrid() {
   rewardConfirmed = true;
   coins += BAL.reward_skip.gold; updateCoinsUI();
   let _msg = `Skipped rewards · +${BAL.reward_skip.gold} gold`;
-  if (hasTrick('rain_check') || hasKnack('rain_check')) { nextRoundSecondsDelta += BAL.rain_check.seconds; _msg += ` · +${BAL.rain_check.seconds}s next round`; }   // r625: a Knack
+  if (hasTrick('rain_check') || hasKnack('rain_check')) { nextRoundSecondsDelta += BAL.rain_check.seconds; _msg += ` · +${BAL.rain_check.seconds}s next level`; }   // r625: a Knack
   noteMessage(_msg, 'var(--gold)');
   rewardSelected = new Set(); // abandon any in-progress picks
   rewardPickOrder = []; rewardTipKey = null;
@@ -1839,7 +1844,7 @@ function rewardTargetKey(p) {
   if (label.includes('swap'))                                                     return 'swaps';
   if (label.includes('discard'))                                                  return 'discards';
   if (label.includes('windfall') || label.includes('pickpocket') || icon === '💰' || icon === '💸') return 'coins';
-  if (label.includes('round') || label.includes('slow') || label.includes('hands') ||
+  if (label.includes('round') || label.includes('level') || label.includes('slow') || label.includes('hands') ||
       icon === '⏱' || icon === '☁' || icon === '⌛' || icon === '🐌' || icon === '⏳')             return 'clock';
   if (p.cardFace || label.includes('stone') || label.includes('cleanse') ||
       label.includes('curse') || label.includes('cull') || label.includes('blessed'))               return 'deck';

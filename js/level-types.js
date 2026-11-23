@@ -9,7 +9,7 @@
 //
 //   RELAY  - the goal is cut into GOAL_RELAY_BARS bars filled one after another.
 //            A hand that overfills the current bar carries only HALF of the
-//            overflow into the next (QUOTA_RELAY_CARRY), so one enormous hand
+//            overflow into the next (QUOTA_RELAY_CARRY; 0 since r805: nothing rolls over), so one enormous hand
 //            cannot clear the whole round on its own. With a full carry this
 //            would be the ordinary goal drawn in three pieces.
 //   LINES  - two or three rows and columns of the board each carry their own
@@ -33,9 +33,9 @@ let LEVEL_TYPE_RELAY_CHANCE = 0.125;
 const LEVEL_TYPE_FLOW_FROM   = 3;     // levels 1-2 always teach the plain goal
 const GOAL_RELAY_BARS        = 3;
 const QUOTA_RELAY_SHARE      = 0.30;  // each bar is this share of the goal
-const QUOTA_RELAY_CARRY      = 0.5;   // share of a bar's overflow that reaches the next
-const QUOTA_LINE_SHARE       = { 2: 0.60, 3: 0.45 };   // per line, by how many lines
-const QUOTA_LINE_EASE3       = [0.8, 0.9, 1];   // r563: a 3-line round's goals, one each, dealt to random lines
+const QUOTA_RELAY_CARRY      = 0;     // r805 (owner): nothing rolls over from one goal to the next (was 0.5)
+const QUOTA_RELAY_SHARES     = [0.20, 0.30, 0.40];   // r805 (owner): the three goals, smallest first, each a share of the round goal
+const QUOTA_LINE_SHARE       = { 2: 0.60, 3: [0.20, 0.30, 0.40] };   // per line, by how many lines; r805 (owner): a 3-line round asks 20 / 30 / 40%, smallest first
 const QUOTA_LINES_REWARDS    = 3;     // Flow: a cleared LINES round pays at least this many rewards
 const QUOTA_LINE_COLORS      = ['#5ee6ee', '#ff6fd8', '#ffc24a'];   // line i on the board = meter i in the HUD
 const QUOTA_INTRO_KEY        = 'lethe.lineQuotaIntro.v1';   // how many times the explainer has shown
@@ -58,8 +58,9 @@ function _q10(n) { return Math.max(10, Math.round(n / 10) * 10); }
 
 function roundQuotaBuild(kind) {
   if (kind === 'relay') {
-    const t = _q10(roundGoal * QUOTA_RELAY_SHARE);
-    return { kind, bars: Array.from({ length: GOAL_RELAY_BARS }, () => t), idx: 0, prog: 0, announced: false };
+    // r805 (owner): three goals of 20 / 30 / 40% of the round goal, in that order.
+    const bars = QUOTA_RELAY_SHARES.map(sh => _q10(roundGoal * sh));
+    return { kind, bars, idx: 0, prog: 0, announced: false };
   }
   // LINES. Always both axes, so the two quotas cross and a hand at the crossing
   // can pay both - which is the decision the round is about.
@@ -68,14 +69,10 @@ function roundQuotaBuild(kind) {
   const take = arr => arr.splice(Math.floor(Math.random() * arr.length), 1)[0];
   const lines = [{ axis: 'row', index: take(rows) }, { axis: 'col', index: take(cols) }];
   if (n === 3) lines.push(Math.random() < 0.5 ? { axis: 'row', index: take(rows) } : { axis: 'col', index: take(cols) });
-  const t = _q10(roundGoal * QUOTA_LINE_SHARE[n]);
+  const share = QUOTA_LINE_SHARE[n];
   // `shown` is what the board and HUD draw: it trails `prog` and catches up with
   // the score tally (roundQuotaClimb), so a line fills as the score climbs.
-  lines.forEach((l, i) => { l.target = t; l.prog = 0; l.shown = 0; l.hue = i; });
-  if (n === 3) {
-    const k = [...QUOTA_LINE_EASE3].sort(() => Math.random() - 0.5);
-    lines.forEach((l, i) => { l.target = _q10(t * k[i]); });
-  }
+  lines.forEach((l, i) => { l.target = _q10(roundGoal * (Array.isArray(share) ? share[i] : share)); l.prog = 0; l.shown = 0; l.hue = i; });
   return { kind: 'lines', lines, announced: false };
 }
 
@@ -265,7 +262,7 @@ function quotaIntroShow(full) {
   el.innerHTML = full
     ? `<div class="qi-card"><div class="qi-sw">${sw}</div><div class="qi-title">LINE QUOTAS</div>`
       + `<div class="qi-body">Each marked line has its own goal. A hand pays every marked line it touches.</div>`
-      + `<div class="qi-body">Fill every line to clear the round.${flow ? ` Cleared, it pays <b>${QUOTA_LINES_REWARDS} rewards</b>.` : ''}</div>`
+      + `<div class="qi-body">Fill every line to clear the level.${flow ? ` Cleared, it pays <b>${QUOTA_LINES_REWARDS} rewards</b>.` : ''}</div>`
       + `<button class="qi-ok">GOT IT</button></div>`
     : `<div class="qi-card"><div class="qi-sw">${sw}</div><div class="qi-title">LINE QUOTAS</div>`
       + `<div class="qi-body">Fill every marked line${flow ? ` for <b>${QUOTA_LINES_REWARDS} rewards</b>` : ''}.</div></div>`;
@@ -347,6 +344,7 @@ function roundQuotaPaint() {
   if (wrap) {
     wrap.querySelectorAll('.q-div').forEach(e => e.remove());
     wrap.classList.toggle('q-relay', !!(roundQuota && roundQuota.kind === 'relay'));
+    wrap.querySelectorAll('.q-seg-lbl').forEach(e => e.remove());
     if (roundQuota && roundQuota.kind === 'relay') {
       const n = roundQuota.bars.length;
       for (let i = 1; i < n; i++) {
@@ -354,6 +352,13 @@ function roundQuotaPaint() {
         d.className = 'q-div'; d.style.left = (i / n * 100) + '%';
         wrap.appendChild(d);
       }
+      // r805 (owner): each section prints its goal, short (37.5k).
+      roundQuota.bars.forEach((b, i) => {
+        const s = document.createElement('span');
+        s.className = 'q-seg-lbl' + (i < roundQuota.idx ? ' q-done' : ''); s.textContent = qShort(b);
+        s.style.left = (i / n * 100) + '%'; s.style.width = (100 / n) + '%';
+        wrap.appendChild(s);
+      });
     }
   }
   roundQuotaPaintHud();
@@ -361,6 +366,14 @@ function roundQuotaPaint() {
 }
 
 const _qShown = l => (l.shown != null ? l.shown : l.prog);
+// A goal in a few characters for the bar: 37,500 -> 37.5k, 800 -> 800, 1,200,000 -> 1.2M.
+function qShort(n) {
+  n = Math.round(n || 0);
+  const f = (v, u) => (Math.round(v * 10) / 10) + u;   // 37.5k, 11.3k, 15k
+  if (n >= 1e6) return f(n / 1e6, 'M');
+  if (n >= 1e3) return f(n / 1e3, 'k');
+  return String(n);
+}
 const _qColor = l => QUOTA_LINE_COLORS[(l.hue || 0) % QUOTA_LINE_COLORS.length];
 
 // One meter per line inside the goal bar's wrap. Elements are kept and updated,
@@ -379,13 +392,15 @@ function roundQuotaPaintHud() {
     if (!m) {
       m = document.createElement('div');
       m.className = 'q-meter'; m.dataset.qi = i;
-      m.innerHTML = '<div class="q-meter-fill"></div>';
+      m.innerHTML = '<div class="q-meter-fill"></div><span class="q-meter-lbl"></span>';
       box.appendChild(m);
     }
     m.style.setProperty('--qc', _qColor(l));
     m.style.setProperty('--qf', Math.min(1, _qShown(l) / l.target));
-    // A smaller goal draws a shorter meter: cubed, so 80/90/100% reads as about 1/2, 3/4, full.
-    m.style.flexGrow = Math.pow(l.target / Math.max(...q.lines.map(x => x.target)), 3).toFixed(3);
+    // r805 (owner): equal meters, each printing its goal, short, in its line's colour; the
+    // meter is faint and fills with the colour (the grid bands carry no numbers now).
+    const _lbl = m.querySelector('.q-meter-lbl'), _txt = qShort(l.target);
+    if (_lbl && _lbl.textContent !== _txt) _lbl.textContent = _txt;
     m.classList.toggle('q-done', _qShown(l) >= l.target);
   });
   box.querySelectorAll('.q-meter').forEach(m => { if (+m.dataset.qi >= q.lines.length) m.remove(); });
@@ -434,17 +449,8 @@ function renderQuotaLines() {
       el.style.width = (CARD_W + 6) + 'px';
       el.style.height = (H - 2 * GRID_PAD + 6) + 'px';
     }
-    // The pill is a SIBLING, not a child: the band carries z-index 1 and so is a
-    // stacking context, and a pill inside it could never rise above the cards.
-    const pill = get('q-pill', i);
-    pill.classList.toggle('q-pill-row', l.axis === 'row');
-    pill.classList.toggle('q-pill-col', l.axis !== 'row');
-    pill.classList.toggle('q-done', done);
-    pill.style.setProperty('--qc', _qColor(l));
-    const txt = done ? '✓' : `${Math.round(shown).toLocaleString()}/${l.target.toLocaleString()}`;
-    if (pill.textContent !== txt) pill.textContent = txt;
-    if (l.axis === 'row') { pill.style.left = (W - GRID_PAD) + 'px'; pill.style.top = (cellTop(l.index) + CARD_H / 2) + 'px'; }
-    else { pill.style.left = (cellLeft(l.index) + CARD_W / 2) + 'px'; pill.style.top = (H - GRID_PAD) + 'px'; }
+    // r805 (owner): no pill. The band's fill is the progress; the goal is printed in the
+    // HUD's meter, where it can be read.
   });
   gridEl.querySelectorAll('.q-line, .q-pill').forEach(e => { if (+e.dataset.qi >= q.lines.length) e.remove(); });
 }

@@ -155,7 +155,7 @@ function mapBossCondShort(b) {
   if (b.hidden) return 'NEITHER UNLOCKED';
   const n = mapBossProgress(b), need = mapBossNeed(b);
   if (mapBossRule() === 'lanes') return `LANES ${b.lanes.map(l => l + 1).join('-')} · ${Math.min(n, need)}/${need}`;
-  return `${b.slot === 'a' ? 'ROUNDS' : 'OTHERS'} · ${Math.min(n, need)}/${need}`;
+  return `${b.slot === 'a' ? 'LEVELS' : 'OTHERS'} · ${Math.min(n, need)}/${need}`;
 }
 // r717 (owner): a counter on the review tile, one box per booking it needs.
 function mapBossPips(b) {
@@ -168,7 +168,7 @@ function mapBossCondSay(b) {
   const n = mapBossProgress(b), need = mapBossNeed(b);
   const what = mapBossRule() === 'lanes'
     ? `${need} bookings in lanes ${b.lanes.map(l => l + 1).join(' and ')}`
-    : `${need} ${b.slot === 'a' ? 'rounds' : 'obligations that are not rounds (a mystery counts, and counts as a round too if it is one)'}`;
+    : `${need} ${b.slot === 'a' ? 'levels' : 'obligations that are not levels (a mystery counts, and counts as a level too if it is one)'}`;
   return mapBossUnlocked(b) ? `Unlocked: ${what}.` : `Unlocks at ${what} (${n} so far${mapBossReachable(b) ? '' : ', out of reach now'}).`;
 }
 // The minimums a map is built and validated against (r655: 2/2/3/2 on the old 4 x 6).
@@ -395,16 +395,16 @@ const MAP_ICON_PRIORITY =
   '<path d="M4 3 L20 12 L4 21 Z M8.3 7.4 h2.3 v6.3 h-2.3 z M8.3 15.1 h2.3 v2.3 h-2.3 z"/></svg>';
 const MAP_KIND_META = {
   level:      { icon: '▶\uFE0E', name: 'ACCOUNT',   full: 'Client Account',   cls: 'mk-level',
-                blurb: 'An ordinary round. Clear it and take a pick of three.' },
+                blurb: 'An ordinary level. Clear it and take a pick of three.' },
   challenge:  { icon: MAP_ICON_PRIORITY, name: 'PRIORITY', full: 'Priority Account', cls: 'mk-challenge',
-                blurb: `A round with a raised goal and one extra ask. Pays credits and ${gridName('reward', { a: true })}.` },
+                blurb: `A level with a raised goal and one extra ask. Pays credits and ${gridName('reward', { a: true })}.` },
   // r690: a priority account whose ask is a boss handicap (CHALLENGE_DEFS' `mini`).
   mini:       { icon: '⚔\uFE0E', name: '1-ON-1', full: 'One-on-One', cls: 'mk-mini',
-                blurb: 'A round with a raised goal and a review\u2019s handicap at half strength. Pays credits and an improvement you pick.' },
+                blurb: 'A level with a raised goal and a review\u2019s handicap at half strength. Pays credits and an improvement you pick.' },
   // r444: half the challenge tiles are an AUDIT instead - a challenge round
   // (js/challenge-round.js). Same tile kind; `t.audit` picks the face.
   audit:      { icon: '⚑\uFE0E', name: 'AUDIT', full: 'Audit', cls: 'mk-audit',
-                blurb: `A round with ${CR_CARDS} challenge cards on top of the goal, and an extra minute. Each card solved pays its reward; run out of time and you pick penalties.` },
+                blurb: `A level with ${CR_CARDS} challenge cards on top of the goal, and an extra minute. Each card solved pays its reward; run out of time and you pick penalties.` },
   shop:       { icon: '$', name: 'MART',      full: 'LETHE Mart',       cls: 'mk-shop',
                 blurb: 'The company store. Spend credits on anything on the shelves.' },
   reward:     { icon: '▦', name: 'INCENTIVE', full: 'Incentive Program', cls: 'mk-reward',
@@ -443,7 +443,7 @@ function mapTileDesc(t, legalIds) {
   const st = mapTileStake(t, legalIds || mapLegalIds());
   const goal = st && st.goal ? ` ${G} ${st.goal.toLocaleString()}${st.k > 1 ? ' or more' : ''}.` : '';
   switch (t.kind) {
-    case 'level':      return `Play a round.${goal} Clear it for the payout and a pick of three.`;
+    case 'level':      return `Play a level.${goal} Clear it for the payout and a pick of three.`;
     case 'challenge':  if (t.audit) return MAP_KIND_META.audit.blurb + goal;
                        return (t.challenge ? t.challenge.label + ' ' : '')
       + `${G} +${Math.round(((t.challenge?.goalMult || 1.2) - 1) * 100)}%.${goal} Pays +${t.challenge?.credits || 0} credits and ` + (mapTileIsMini(t) ? 'an improvement you pick (1 of 3).' : `${gridName('reward', { a: true })} (a path of up to ${mapRewardPath()}).`);
@@ -1273,7 +1273,7 @@ function mapHelpRows() {
   // r702: the two reviews.
   rows.push(['Two reviews', mapBossRule() === 'lanes'
     ? `Each review unlocks at ${mapBossNeedN()} bookings in its two lanes. Neither unlocked: a random manager.`
-    : `One review unlocks at ${MAP_BOSS_NEED.kinds} rounds booked, the other at ${MAP_BOSS_NEED.kinds} other obligations. A mystery counts as another obligation, and as a round too if it is one. Neither: a random manager.`]);
+    : `One review unlocks at ${MAP_BOSS_NEED.kinds} levels booked, the other at ${MAP_BOSS_NEED.kinds} other obligations. A mystery counts as another obligation, and as a level too if it is one. Neither: a random manager.`]);
   const d = (typeof deptHelpRow === 'function') ? deptHelpRow() : null;   // r673: this quarter's department
   if (d) rows.unshift(d);
   return rows;

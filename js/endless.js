@@ -43,6 +43,6 @@ function endlessContinue() {
   if (typeof drawActBoss === 'function') drawActBoss();
   if (typeof updateActProgressUI === 'function') updateActProgressUI();
   if (typeof showMessage === 'function') showMessage('ENDLESS. Quotas climb faster. No quarter resource limit.', 'var(--c-coral, #ff6a3c)');
-  showQuarterCard(actNumber - 1, actNumber, next);
+  showQuarterCard(actNumber - 1, actNumber, () => (typeof investmentReportMaybe === 'function') ? investmentReportMaybe(next) : next());   // r805
   return true;
 }

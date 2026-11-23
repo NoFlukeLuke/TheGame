@@ -31,7 +31,7 @@ const CD_PER_MINUTE_TRICKS = ['study_hall'];
 
 function cdRoundElapsed() {
   if (typeof roundStartSeconds === 'undefined' || typeof roundSeconds === 'undefined') return 0;
-  return Math.max(0, roundStartSeconds - roundSeconds);
+  return clockElapsed();   // r814: the quarter in Flow
 }
 // Seconds until the round clock crosses the next multiple of `every`.
 function cdUntilNextMark(every) {

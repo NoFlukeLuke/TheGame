@@ -41,26 +41,26 @@ const KEYWORD_DEFS = [
   { key:'speed_bonus', cls:'kw-focus', terms:['speed bonus'],
     name:'Speed bonus', def:'Extra Focus for playing a hand quickly after the previous one. It is largest the moment a hand lands and fades over the next few seconds. Pair, Flush of 3 and Flush of 4 earn only half of it.' },
   { key:'score',     cls:'kw-score',   terms:['score'], broad:true, basic:true,
-    name:'Score',    def:'Your points this round. Reach the round Goal to move on.' },
+    name:'Score',    def:'Your points this level. Reach the level Goal to move on.' },
   { key:'goal',      cls:'kw-score',   terms:['goal'],
-    name:'Goal',     def:'The score you must reach before the clock runs out to finish the round.' },
+    name:'Goal',     def:'The score you must reach before the clock runs out to finish the level.' },
 
   // ── economy / resources ──
   { key:'credits',   cls:'kw-credits', terms:['credits','credit','gold'],
-    name:'Credits',  def:'The shop currency. Earned from rounds, rewards and selling.' },
+    name:'Credits',  def:'The shop currency. Earned from levels, rewards and selling.' },
   { key:'time',      cls:'kw-time',    terms:['seconds','second','time','clock'], broad:true, basic:true,   // r626: 'clock' (46 descriptions) coloured like 'seconds'
-    name:'Time',     def:'The round clock. It runs down while you play; at zero the round ends.' },
+    name:'Time',     def:'The level clock. It runs down while you play; at zero the level ends.' },
   { key:'pause',     cls:'kw-pause',   terms:['pause','paused','pauses'],   // r550: its own colour, not the clock's
-    name:'Pause',    get def() { return (typeof pauseEndsOnPlay === 'undefined' || pauseEndsOnPlay) ? 'Stops the round clock for a number of seconds. Playing a hand ends every pause; that hand still counts as played while paused.' : 'Freezes the round clock for a moment - you act for free while it is held.'; } },
+    name:'Pause',    get def() { return (typeof pauseEndsOnPlay === 'undefined' || pauseEndsOnPlay) ? 'Stops the level clock for a number of seconds. Playing a hand ends every pause; that hand still counts as played while paused.' : 'Freezes the level clock for a moment - you act for free while it is held.'; } },
   { key:'rewind',    cls:'kw-rewind',  terms:['rewind','rewinds','rewound'],
     name:'Rewind',   def:'Moves the clock backward, re-entering time you already spent.' },
 
   // ── actions ──
   { key:'swap',      cls:'kw-swap',    terms:['swaps','swap','swapped','swapping'],
-    name:'Swap',     def:'Trade two adjacent cards’ positions. Limited per round by the Swaps limit.',
+    name:'Swap',     def:'Trade two adjacent cards’ positions. Limited per level by the Swaps limit.',
     live:() => `Current max: ${limits.swaps.current}.` },
   { key:'discard',   cls:'kw-discard', terms:['discards','discard','discarded','discarding'],
-    name:'Discard',  def:'Throw selected cards away and draw replacements. Limited per round by the Discards limit.',
+    name:'Discard',  def:'Throw selected cards away and draw replacements. Limited per level by the Discards limit.',
     live:() => `Current max: ${limits.discards.current}.` },
   { key:'play',      cls:'kw-play',    terms:['played','plays','play'], broad:true, basic:true,
     name:'Play',     def:'Submitting a selected hand to score it.' },
@@ -108,7 +108,7 @@ const KEYWORD_DEFS = [
   { key:'grid',      cls:'kw-board',   terms:['grid','board'], broad:true, basic:true,
     name:'Grid',     def:'The playing field of cards. Its size is upgradeable.' },
   { key:'deck',      cls:'kw-board',   terms:['deck'], basic:true,
-    name:'Deck',     def:'Every card you own. Scored cards return to it and are reshuffled each round.' },
+    name:'Deck',     def:'Every card you own. Scored cards return to it and are reshuffled each level.' },
   { key:'suit',      cls:'kw-board',   terms:['suits','suit'], basic:true,
     name:'Suit',     def:'♠ ♥ ♦ ♣. Suits are neutral by default - effects come from entities.' },
   { key:'rank',      cls:'kw-board',   terms:['ranks','rank'], basic:true,
@@ -130,14 +130,15 @@ const KEYWORD_DEFS = [
   { key:'stone',     cls:'kw-bad',     terms:['stone','stones'],
     name:'Stone',    def:'An inert blocker that occupies a grid cell and cannot be played.' },
   { key:'boss',      cls:'kw-bad',     terms:['boss','bosses'],
-    name:'Boss',     def:'The round that ends each Act, with a modifier that changes the rules.' },
-  { key:'round',     cls:'kw-round',   terms:['rounds','round'], broad:true,
-    name:'Round',    def:'One timed attempt at a Goal. Clearing it advances you a node.' },
-  { key:'level',     cls:'kw-round',   terms:['level','levels'],
-    name:'Level',    def:'How far into the run you are. Goals scale with it.',
+    name:'Boss',     def:'The level that ends each Act, with a modifier that changes the rules.' },
+  // r814: "round" is "level" in every player-facing line; one keyword.
+  { key:'level',     cls:'kw-round',   terms:['level','levels'], broad:true,
+    name:'Level',    get def() { return (typeof flowActive === 'function' && flowActive())
+      ? 'One goal to clear. In Flow the clock runs across the whole quarter, not a level.'
+      : 'One goal to clear against the clock. Goals grow level by level.'; },
     live:() => `You are on level ${level}.` },
   { key:'reward',    cls:'kw-reward',  terms:['reward','rewards'],
-    name:'Reward',   def:'The pick-a-tile grid between rounds. Skipping the whole grid pays credits instead.' },
+    name:'Reward',   def:'The pick-a-tile grid between levels. Skipping the whole grid pays credits instead.' },
   { key:'shop',      cls:'kw-buy',     terms:['shop','mart'],
     name:'Shop',     def:'The LETHE Mart, where credits become Tricks, Sleights, Knacks and Limit upgrades.' },
 

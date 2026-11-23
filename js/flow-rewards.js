@@ -615,6 +615,7 @@ function flowrKindViable(kind) {
 
 // ── Entry: called from the top of survivalShowPick (goal-clear only) ─────────
 function flowrMaybeStart() {
+  if (typeof runIsOver === 'function' && runIsOver()) return;   // r817: the run is over
   if (_flowrBypass) return false;
   if (typeof flowActive !== 'function' || !flowActive()) return false;
   if (!flowrCfg().on) return false;
@@ -729,6 +730,7 @@ function flowrRollBossCount() {
 // grid plus N-1 ordinary rolled kinds; pick3 may still appear once, since the
 // prize grid is not a pick.
 function flowrStartBossChain(bossName) {
+  if (typeof runIsOver === 'function' && runIsOver()) return;   // r817: the run is over
   const n = flowrRollBossCount();
   const odds = flowrOddsNow();
   const queue = ['prize'], taken = {};
@@ -1836,6 +1838,7 @@ function flowrBuildOffers(kind) {
       shuffle(pool.slice()).slice(0, 3).forEach(d => out.push(survivalMakeOption('limit', d)));
     } else if (kind === 'sleights') {
       const granted = _grantedSleightSet();
+      if (typeof ownedAllowIds === 'function') ownedAllowIds('sleight').forEach(id => granted.delete(id));   // r809: Old Tricks
       const pool = flowrFloorPool(SLEIGHT_POOL.filter(j => !survivalEntityBanned(j.id) && !granted.has(j.id) && sleightOfferable(j)), j => j.rarity || 'common');
       const used = new Set();
       for (let i = 0; i < 3 && used.size < pool.length; i++) {
@@ -1914,7 +1917,7 @@ function flowrOpenShop() {
 }
 function flowrCommonActions() {
   return [
-    { icon: '\ud83d\udcca', label: 'Round', sub: 'breakdown', onClick: () => flowrToggleRound() },
+    { icon: '\ud83d\udcca', label: 'Level', sub: 'breakdown', onClick: () => flowrToggleRound() },
     { icon: '\ud83d\uded2', label: 'Shop', sub: creditsTxt(SURVIVAL_SHOP_COST), cls: 'gp-act-buy',
       disabled: coins < SURVIVAL_SHOP_COST, onClick: () => flowrOpenShop() },
   ];
@@ -2028,10 +2031,10 @@ const FLOWR_DECK_OPS = [
   // r567: a flag, not a number, so it is its own op rather than a buff row.
   { id: 'fodder', fodder: true, icon: '♻', name: 'Fodder',
     desc: 'Pick up to 3 touching cards, then APPLY. Each becomes Fodder: swapping or discarding it costs no time and no stock.' },
-  { id: 'pips',   buff: { key: 'pips',   range: [10, 15, 1],    word: 'pips'   }, icon: '➕', name: 'Pip Buff',
-    desc: 'Pick up to 3 touching cards, then APPLY. Buffed cards score +10 to +15 pips.' },
-  { id: 'mult',   buff: { key: 'mult',   range: [8, 12, 1],     word: 'mult'   }, icon: '✖', name: 'Mult Buff',
-    desc: 'Pick up to 3 touching cards, then APPLY. Buffed cards score +8 to +12 mult.' },
+  { id: 'pips',   buff: { key: 'pips',   range: [25, 25, 1],    word: 'pips'   }, icon: '➕', name: 'Pip Buff',
+    desc: 'Pick up to 3 touching cards, then APPLY. Buffed cards score +25 pips.' },
+  { id: 'mult',   buff: { key: 'mult',   range: [25, 25, 1],    word: 'mult'   }, icon: '✖', name: 'Mult Buff',
+    desc: 'Pick up to 3 touching cards, then APPLY. Buffed cards score +25 mult.' },
   { id: 'focus',  buff: { key: 'focus',  range: [1, 2, 1],      word: 'Focus'  }, icon: '◉', name: 'Focus Buff',
     desc: 'Pick up to 3 touching cards, then APPLY. Buffed cards grant +1 to +2 Focus when they score.' },
   { id: 'time',   buff: { key: 'time',   range: [1, 5, 1],      word: 's'      }, icon: '⏱', name: 'Time Buff',

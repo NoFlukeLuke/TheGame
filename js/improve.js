@@ -92,10 +92,9 @@ const IMPROVE_STEP = {
   time_slip:      { chance: 0.05 },   // r771: 10 15 20 25 30 45% (was 25 35 45 55 65 95)
   replay_rewind:  { chance: 0.20 },
   prime_time:     { pips_per_card: 11 }, // owner: +11 per improvement, not +23
-  hyper_focus:    { focus_mult: 1 },     // 2x Focus -> 3x -> 4x
   // r624, the owner's rare sheet
   heavy_hand:     { pips_per_card: 10 },
-  high_pair:      { focus_per_card: 2 },
+  high_pair:      { focus_per_card: 1 },   // r810: base is 1 now (was +2 on a base of 4)
   patience_reward:{ mult_per_second: 0.5 },
   first_play:     { focus: 1 },
   quarter_chime:  { pips: 30 },
@@ -128,9 +127,9 @@ const IMPROVE_PLAN = {
   // +1 swap, +1 discard, -4 Focus lost, round and round; the 5th does all three
   release_valve:    t => ({ swaps: 1 + [0, 1, 1, 1, 2, 3][t], discards: 1 + [0, 0, 1, 1, 1, 2][t], focus_drop: 16 - 4 * [0, 0, 0, 1, 1, 2][t] }),
   // +5 pips, then one more hand, alternating; the 5th does both
-  first_fruits:     t => ({ pips: 5 + 5 * [0, 1, 1, 2, 2, 3][t], hands: 1 + [0, 0, 1, 1, 2, 3][t] }),
+  first_fruits:     t => ({ pips: 10 + 10 * [0, 1, 1, 2, 2, 3][t], hands: 1 + [0, 0, 1, 1, 2, 3][t] }),
   // +2 mult, then 2s less, alternating: +10 every 6s at tier 4; the 5th does both
-  swift:            t => ({ mult_per_interval: 6 + 2 * [0, 1, 1, 2, 2, 3][t], interval_seconds: 10 - 2 * [0, 0, 1, 1, 2, 3][t] }),
+  swift:            t => ({ mult_per_interval: 8 + 2 * [0, 1, 1, 2, 2, 3][t], interval_seconds: 10 - 2 * [0, 0, 1, 1, 2, 3][t] }),
   // r646 (owner): 44% +16% an improvement, capped at 100%; the 5th adds Queens
   four_by_four:     t => ({ chance: Math.min(1, 0.44 + 0.16 * Math.min(t, 4)), queens: t >= 5 ? 1 : 0 }),
   // r646 (owner): one more replay, then a Luck-free chance of one more every time, alternating; 2 replays (3 plays) to start
@@ -138,8 +137,8 @@ const IMPROVE_PLAN = {
   // r646 (owner): +2 swaps, +2 discards, alternating; the 5th does both
   bellhop:          t => ({ swaps: 2 + 2 * [0, 1, 1, 2, 2, 3][t], discards: 2 + 2 * [0, 0, 1, 1, 2, 3][t] }),
   // r646 line Tricks (owner): +0.2x / +10% a tier for four tiers; the 5th marks a SECOND line at the base value (line2 / chance2)
-  line_xpips:       t => ({ pip_mult: 1.2 + 0.2 * Math.min(4, t), line2: t >= 5 ? 1.2 : 0 }),
-  line_xmult:       t => ({ mult_mult: 1.2 + 0.2 * Math.min(4, t), line2: t >= 5 ? 1.2 : 0 }),
+  line_xpips:       t => ({ pip_mult: 1.5 + 0.25 * Math.min(4, t), line2: t >= 5 ? 1.5 : 0 }),
+  line_xmult:       t => ({ mult_mult: 1.5 + 0.25 * Math.min(4, t), line2: t >= 5 ? 1.5 : 0 }),
   obligatory:       t => ({ chance: 0.25 + 0.1 * Math.min(4, t), chance2: t >= 5 ? 0.25 : 0 }),
   suggestive:       t => ({ chance: 0.35 + 0.1 * Math.min(4, t), chance2: t >= 5 ? 0.35 : 0 }),
   // both chances +10%, then the credit share +15%, alternating; the 5th adds the second line at the base odds
@@ -158,9 +157,9 @@ const IMPROVE_PLAN = {
   // +10% chance, then 10s sooner, alternating; the 5th does both
   hourglass:        t => ({ chance: 0.5 + 0.1 * [0, 1, 1, 2, 2, 3][t], interval_seconds: 60 - 10 * [0, 0, 1, 1, 2, 3][t] }),
   // +5 credits, +10 mult, 2s cheaper, round and round; the 5th does all three
-  monochrome:       t => ({ coins: 5 + 5 * [0, 1, 1, 1, 2, 3][t], mult: 25 + 10 * [0, 0, 1, 1, 1, 2][t], seconds: 10 - 2 * [0, 0, 0, 1, 1, 2][t] }),
+  monochrome:       t => ({ coins: 5 + 5 * [0, 1, 1, 1, 2, 3][t], mult: 40 + 15 * [0, 0, 1, 1, 1, 2][t], seconds: 10 - 2 * [0, 0, 0, 1, 1, 2][t] }),
   // doubles one of the three in turn; the 5th doubles all three and lifts the silent all-three chance
-  ninesong:         t => ({ seconds: 9 * [1, 2, 2, 2, 4, 8][t], mult: 27 * [1, 1, 2, 2, 2, 4][t], focus: 9 * [1, 1, 1, 2, 2, 4][t], all_chance: t >= 5 ? 0.35 : 0.2 }),
+  ninesong:         t => ({ seconds: 9 * [1, 2, 2, 2, 4, 8][t], mult: 40 * [1, 1, 2, 2, 2, 4][t], focus: 13 * [1, 1, 1, 2, 2, 4][t], all_chance: t >= 5 ? 0.35 : 0.2 }),
   // a second replay chance, +33% a tier (past 100% a third); the 5th adds a second marked line
   perfect_timing:   t => ({ chance2: [0, 0.33, 0.66, 0.99, 1, 1][t], extra_line: t >= 5 ? 1 : 0 }),   // r631 (owner): capped at a sure second replay
   // +8 mult, +4 Focus, alternating; the 5th does both
@@ -177,9 +176,9 @@ const IMPROVE_PLAN = {
   // +3% a tier of a second force trigger per card
   temporal_rift:    t => ({ chance_extra: 0.03 * t }),
   // +10 pips, +10 mult, alternating; the 5th does both and adds a second secret cell
-  heartwood:        t => ({ pips: 5 + 10 * [0, 1, 1, 2, 2, 3][t], mult: 5 + 10 * [0, 0, 1, 1, 2, 3][t], cells: t >= 5 ? 2 : 1 }),
+  heartwood:        t => ({ pips: 10 + 20 * [0, 1, 1, 2, 2, 3][t], mult: 10 + 20 * [0, 0, 1, 1, 2, 3][t], cells: t >= 5 ? 2 : 1 }),
   // each number by its base in turn; the 5th does all four and pays two of them
-  four_horseman:    t => ({ pips: 24 * (1 + [0, 1, 1, 1, 1, 2][t]), mult: 24 * (1 + [0, 0, 1, 1, 1, 2][t]), focus: 8 * (1 + [0, 0, 0, 1, 1, 2][t]), pause: 8 * (1 + [0, 0, 0, 0, 1, 2][t]), picks: t >= 5 ? 2 : 1 }),
+  four_horseman:    t => ({ pips: 40 * (1 + [0, 1, 1, 1, 1, 2][t]), mult: 40 * (1 + [0, 0, 1, 1, 1, 2][t]), focus: 13 * (1 + [0, 0, 0, 1, 1, 2][t]), pause: 8 * (1 + [0, 0, 0, 0, 1, 2][t]), picks: t >= 5 ? 2 : 1 }),
   // improves once, straight to tier 5
   undue_influence:  t => ({ faces: t >= 1 ? 1 : 0 }),
   // +0.75 a tier; the 5th extends to 3 rolled ranks (rolled through IMPROVE_HOOKS)
@@ -187,8 +186,9 @@ const IMPROVE_PLAN = {
   // +11% chance, +0.4x, alternating; the 5th does both and even cards replay
   even_better:      t => ({ chance: 0.66 + 0.11 * [0, 1, 1, 2, 2, 3][t], pip_mult: 2.25 + 0.4 * [0, 0, 1, 1, 2, 3][t], replay: t >= 5 ? 1 : 0 }),
   what_odds:        t => ({ mult_mult: 1.7 + 0.35 * t, replay: t >= 5 ? 1 : 0 }),
-  critical:         t => ({ mult_mult: 5 + t, extra_family: t >= 5 ? 1 : 0 }),
-  twinners:         t => ({ pip_mult: 3 + t, replay: t >= 5 ? 1 : 0 }),
+  hyper_focus:      t => ({ share: [0.5, 0.45, 0.4, 0.35, 0.3, 0.25][t], extra: t >= 5 ? 2 : 1 }),   // r817: the bar needs less; v6 applies twice more
+  critical:         t => ({ mult_mult: 3.5 + t, extra_family: t >= 5 ? 1 : 0 }),
+  twinners:         t => ({ pip_mult: 2 + t, replay: t >= 5 ? 1 : 0 }),
   // one more application, then flushes, then more applications; sets at the 5th
   marathon:         t => ({ extra: [1, 2, 2, 3, 4, 4][t], flush: t >= 2 ? 1 : 0, sets: t >= 5 ? 1 : 0 }),
   // r802 (owner): a discard allowed, odd hands carry the bonus, a swap allowed, a prime chance, then every hand.
@@ -238,9 +238,9 @@ const IMPROVE_PLAN = {
   the_ringer: t => ({ charges: [10, 11, 11, 13, 13, 13][t], second: [0, 0.25, 0.25, 0.5, 1, 1][t], inert: t < 2 ? 1 : 0 }),
   fight_power: t => ({ charges: [9, 11, 13, 15, 17, 17][t], use_seconds: 20 * [9, 11, 13, 15, 17, 17][t] }),
   dazed: t => ({ free: t >= 1 ? 1 : 0, played: t >= 5 ? 1 : 0 }),
-  pivot: t => ({ charges: [3, 3, 4, 4, 4, 5][t], mult: [8, 16, 16, 16, 24, 32][t], swaps: [1, 1, 1, 2, 2, 3][t] }),
+  pivot: t => ({ charges: [3, 3, 4, 4, 4, 5][t], mult: [20, 30, 30, 30, 40, 50][t], swaps: [1, 1, 1, 2, 2, 3][t] }),
   echo_play: t => ({ charges: [5, 6, 6, 7, 7, 8][t], replays: [2, 2, 3, 3, 4, 5][t] }),
-  the_naturalist: t => ({ pips: [5, 10, 10, 15, 15, 15][t], chance: [0, 0, 0.5, 0.5, 1, 1][t], adj: t >= 5 ? 1 : 0 }),
+  the_naturalist: t => ({ pips: [10, 20, 20, 30, 30, 30][t], chance: [0, 0, 0.5, 0.5, 1, 1][t], adj: t >= 5 ? 1 : 0 }),
   retake: t => ({ charges: [6, 8, 8, 8, 8, 8][t], copies_a: t >= 2 ? 2 : 0, perm_a: t >= 3 ? 1 : 0, copies_b: t >= 4 ? 2 : 0, perm_b: t >= 5 ? 1 : 0 }),
   the_bomb: t => ({ charges: [3, 4, 4, 5, 5, 5][t], pips: [3, 3, 9, 9, 15, 15][t], rank_up: t >= 5 ? 1 : 0 }),
   the_legacy: t => ({ charges: [5, 5, 6, 6, 7, 8][t], pips_x: [3, 4, 4, 5, 5, 6][t], mult_x: t >= 5 ? 6 : 0 }),
@@ -248,7 +248,7 @@ const IMPROVE_PLAN = {
   sandbag: t => ({ flat: [0, 5, 5, 10, 10, 15][t], extra_per_member: [0.5, 0.5, 0.75, 0.75, 1, 1.25][t] }),
   procrastinate: t => ({ charges: [5, 7, 7, 9, 9, 11][t], recharge: [0, 0, 1, 1, 2, 3][t] }),
   shredder: t => ({ charges: [3, 5, 5, 7, 7, 7][t], deletes: [1, 1, 2, 2, 3, 99][t] }),
-  the_catalyst: t => ({ charges: [6, 6, 6, 7, 7, 8][t], mult: [10, 20, 20, 20, 30, 40][t], pips: [10, 10, 20, 20, 20, 30][t] }),
+  the_catalyst: t => ({ charges: [6, 6, 6, 7, 7, 8][t], mult: [20, 40, 40, 40, 60, 80][t], pips: [20, 20, 40, 40, 40, 60][t] }),
   the_wanderer: t => ({ charges: [5, 7, 9, 11, 13, 13][t] }),
   amplifier: t => ({ charges: [5, 6, 6, 7, 7, 8][t], mult_per_level: [5, 5, 10, 10, 15, 20][t] }),
   magnet: t => ({ charges: [5, 6, 6, 7, 7, 7][t], copies: [0, 0, 1, 1, 2, 2][t], perm: t >= 5 ? 2 : 0 }),
@@ -457,7 +457,33 @@ function applyEntityTiers() {
      if (!entityTierOf(e.id) && !(typeof detailBoosted === 'function' && detailBoosted(e.id))) { e.desc = DESC_BASE[e.id]; return; }
      rewriteDescForTier(e);
   }));
+  flowWordApply();
   syncOwnedEntityDescs();
+}
+
+// r814 (owner): in Flow the clock cards measure the QUARTER (clockElapsed, js/hand-detect.js),
+// so their sentences say so. Phrase-based, so a fused Trick that carries one is covered too.
+// Reversible: the level wording is kept on the row (`_lvDesc`) and put back outside Flow.
+const FLOW_QUARTER_PHRASES = [
+  [/\b(elapsed|paused|rewound) this level\b/g, '$1 this quarter'],
+  [/\bthird of (the|a) level\b/g, 'third of $1 quarter'],
+  [/\b(half|two thirds)\]\]\]\] of the level\b/g, '$1]]]] of the quarter'],
+  [/\bof the level pay\b/g, 'of the quarter pay'],
+  [/\bremaining level time\b/g, 'remaining quarter time'],
+  [/\bseconds of a level\b/g, 'seconds of a quarter'],
+];
+function flowWordApply() {
+  const flow = typeof flowActive === 'function' && flowActive();
+  [typeof TRICK_POOL_ALL !== 'undefined' ? TRICK_POOL_ALL : [],
+   typeof KNACK_POOL !== 'undefined' ? KNACK_POOL : [],
+   typeof SLEIGHT_POOL !== 'undefined' ? SLEIGHT_POOL : []].forEach(p => p.forEach(e => {
+    if (!e || typeof e.desc !== 'string') return;
+    const base = (e._qDesc != null && e.desc === e._qDesc) ? e._lvDesc : e.desc;   // a regenerated sentence replaces the old base
+    let d = base;
+    if (flow) for (const [re, to] of FLOW_QUARTER_PHRASES) d = d.replace(re, to);
+    if (d === base) { if (e._qDesc != null) { e.desc = base; delete e._qDesc; delete e._lvDesc; } return; }
+    e._lvDesc = base; e._qDesc = d; e.desc = d;
+  }));
 }
 
 // V6 names (r635, owner; js/data/v6-names.js): at tier 5 an entity listed there

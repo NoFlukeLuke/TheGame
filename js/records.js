@@ -36,13 +36,24 @@ function recordsOverlay() {
   return el;
 }
 
+// r805 (owner): Records opens from the pause menu and over an event too. It only
+// takes the clock when nothing else holds it: the pause menu, a between-rounds
+// screen or an open event keeps its own hold, and closing Records gives nothing back.
+let _recHeld = false;
+function recordsClockHeld() {
+  return screenOwnsClock()
+      || (typeof isPaused !== 'undefined' && isPaused)
+      || (typeof activeEventId !== 'undefined' && !!activeEventId)
+      || (typeof gameTimerPaused !== 'undefined' && gameTimerPaused);
+}
 function openRecords(tab) {
   const el = recordsOverlay();
   if (tab) recordsTab = tab;
   if (!recordsOpen) {
     recordsOpen = true;
     // Pause the round (but keep the board visible) unless another screen owns the clock.
-    if (!screenOwnsClock()) pauseGame(false);
+    _recHeld = recordsClockHeld();
+    if (!_recHeld) pauseGame(false);
   }
   renderRecords();
   el.classList.add('show');
@@ -56,7 +67,8 @@ function closeRecords() {
   recordsOpen = false;
   if (typeof hideEntityTooltip === "function") hideEntityTooltip(true);
   recordsOverlay().classList.remove('show');
-  if (!screenOwnsClock()) resumeGame();
+  if (!_recHeld) resumeGame();
+  _recHeld = false;
 }
 
 function recordsSwitchTab(id) { recordsTab = id; renderRecords(); }
@@ -88,6 +100,12 @@ function renderRecords() {
 // are, and whether ANY of them carries a buff.
 // `where` for a cell is the most present copy (on the board beats in the pile beats
 // played), because "can I still draw this" is the question the matrix answers.
+// r805 (owner): Records reads ranks Ace HIGH: the deck's order with the Ace moved to the end.
+function recRanksShown() {
+  const r = [...(typeof ACTIVE_RANKS !== 'undefined' ? ACTIVE_RANKS : RANKS)];
+  const i = r.indexOf('A'); if (i >= 0) { r.splice(i, 1); r.push('A'); }
+  return r;
+}
 function recordsDeckCensus() {
   const cells = {};                      // cardKey (rank+suit) → cell summary
   const rank = { grid: 3, draw: 2, played: 1 };
@@ -148,7 +166,7 @@ function recordsRenderDeckCards() {
   const suits = (typeof deckSuitsShown === 'function') ? deckSuitsShown(everyDeckCard()) : (typeof ACTIVE_SUITS !== 'undefined' && ACTIVE_SUITS.length) ? ACTIVE_SUITS : SUITS;   // r709
   const whereOf = recordsDeckWhere();
   const all = everyDeckCard();
-  const rankIdx = rk => { const i = ACTIVE_RANKS.indexOf(rk); return i < 0 ? 99 : i; };
+  const rankIdx = rk => { const i = recRanksShown().indexOf(rk); return i < 0 ? 99 : i; };   // r805: Ace high
   const counts = { draw: 0, grid: 0, played: 0 };
   all.forEach(c => counts[whereOf(c)]++);
   _recDeckCards = [];
@@ -229,11 +247,12 @@ function recordsRenderDeck() {
   const counts = { draw: 0, grid: 0, played: 0 };
   Object.values(where).forEach(cell => { if (counts[cell.where] !== undefined) counts[cell.where] += cell.n; });
 
-  // Rank × suit matrix.
+  // Rank × suit matrix. r805 (owner): Ace high, in every Records list (recRanksShown).
+  const _ranks = recRanksShown();
   const head = `<div class="rec-deck-row rec-deck-head"><span class="rec-deck-corner"></span>` +
-    ACTIVE_RANKS.map(r => `<span class="rec-deck-rank">${r}</span>`).join('') + `</div>`;
+    _ranks.map(r => `<span class="rec-deck-rank">${r}</span>`).join('') + `</div>`;
   const rows = suits.map(s => {
-    const cells = ACTIVE_RANKS.map(rk => {
+    const cells = _ranks.map(rk => {
       const cell = where[cardKey(rk, s)];
       const w  = cell ? cell.where : null;
       const pp = cell ? cell.pips : 0, pm = cell ? cell.mult : 0;
@@ -244,7 +263,7 @@ function recordsRenderDeck() {
                    gr ? 'has-grow' : '',
                    isWhiteRankValue(rk) ? 'rec-white' : ''].filter(Boolean).join(' ');
       const dup = cell && cell.n > 1 ? ` (x${cell.n} in the run)` : '';
-      const tip = `${rk}${s} - ${w === 'draw' ? 'in draw pile' : w === 'grid' ? 'on the board' : w === 'played' ? 'played (returns next round)' : 'not in deck'}${dup}` +
+      const tip = `${rk}${s} - ${w === 'draw' ? 'in draw pile' : w === 'grid' ? 'on the board' : w === 'played' ? 'played (returns next level)' : 'not in deck'}${dup}` +
                   `${pp ? ` · scores +${pp} pips` : ''}${pm ? ` · scores +${pm} mult` : ''}` +
                   `${gr ? ' · scales up each play' : ''}${cell && cell.cursed ? ' · cursed' : ''}`;
       const marks = (pp ? '<i class="rec-m rec-m-p"></i>' : '') + (pm ? '<i class="rec-m rec-m-m"></i>' : '')
@@ -257,14 +276,12 @@ function recordsRenderDeck() {
       <span class="rec-deck-suit ${suitClass(s)}">${s}<b>${remaining}</b></span>${cells}</div>`;
   }).join('');
 
-  // Remaining-by-rank bar (what is still drawable) - the planning tool.
-  const rankBars = ACTIVE_RANKS.map(rk => {
-    const left = suits.reduce((n, s) => n + (where[cardKey(rk, s)]?.draw || 0), 0);
-    const pct = Math.round((left / suits.length) * 100);
-    return `<div class="rec-bar"><span class="rec-bar-l">${rk}</span>
-      <span class="rec-bar-track"><span class="rec-bar-fill" style="width:${pct}%"></span></span>
-      <span class="rec-bar-v">${left}</span></div>`;
-  }).join('');
+  // Still drawable, by rank. r805 (owner): no bars; the rank and its count, in two
+  // columns (2 to 8, then 9 to Ace), Ace high.
+  const _dr = _ranks.map(rk => ({ rk, left: suits.reduce((n, s) => n + (where[cardKey(rk, s)]?.draw || 0), 0) }));
+  const _half = Math.ceil(_dr.length / 2);
+  const _dcol = list => `<div class="rec-dcol">${list.map(d => `<div class="rec-dr${d.left ? '' : ' none'}"><span>${d.rk}</span><b>${d.left}</b></div>`).join('')}</div>`;
+  const rankBars = _dcol(_dr.slice(0, _half)) + _dcol(_dr.slice(_half));
 
   // Sleights are deck cards too - list them with charges left.
   const sleightCards = [];
@@ -275,9 +292,10 @@ function recordsRenderDeck() {
   const sleightHTML = sleightCards.length ? sleightCards.map(([card, w]) => {
     const def = SLEIGHT_POOL.find(j => j.id === card.sleightId) || {};
     const uses = card._usesLeft === 'infinite' ? '∞' : card._usesLeft;
+    const cap = (typeof sleightCapOf === 'function') ? sleightCapOf(card) : null;
     return `<div class="rec-sl"><span class="rec-sl-ico">${def.emoji || '🎴'}</span>
       <span class="rec-sl-name">${def.name || card.sleightId}</span>
-      <span class="rec-sl-where w-${w}">${w}</span><span class="rec-sl-uses">${uses}</span></div>`;
+      <span class="rec-sl-where w-${w}">${w}</span><span class="rec-sl-uses">${uses === '∞' ? '∞' : `${uses} / ${cap != null ? cap : uses}`}</span></div>`;
   }).join('') : `<div class="rec-empty">No ${entityLabel('sleight', true)} in the deck.</div>`;
 
   return `
@@ -302,10 +320,10 @@ function recordsRenderDeck() {
       </div>
       <div class="rec-col">
         <div class="rec-h">Still drawable <span class="rec-h-note">by rank</span></div>
-        <div class="rec-bars">${rankBars}</div>
+        <div class="rec-drawable">${rankBars}</div>
       </div>
     </div>
-    <div class="rec-h">${entityLabel('sleight', true)} in deck</div>
+    <div class="rec-h">${entityLabel('sleight', true)} in deck <span class="rec-h-note">charges, left / of</span></div>
     <div class="rec-sl-list">${sleightHTML}</div>`;
 }
 
@@ -346,8 +364,10 @@ function recordsOwnedLists() {
     const def = SLEIGHT_POOL.find(j => j.id === card.sleightId);
     if (!def) return;
     const uses = card._usesLeft === 'infinite' ? '∞' : card._usesLeft;
+    // r806 (owner): CHARGES x / y, the cap read off the card (sleightCapOf).
+    const cap = (typeof sleightCapOf === 'function') ? sleightCapOf(card) : null;
     sleights.push({ kind: 'sleight', id: def.id, emoji: def.emoji || '🎴', name: def.name, rar: _tid(def.rarity),
-      tag: `${tierLabel('sleight', def.rarity).toUpperCase()} · ${uses} LEFT`, desc: def.desc, off: false });
+      tag: tierLabel('sleight', def.rarity).toUpperCase(), charges: uses === '∞' ? '∞' : `${uses} / ${cap != null ? cap : uses}`, desc: def.desc, off: false });
   };
   [...drawPile, ...playedPile].forEach(pushSleight);
   gridData.forEach(row => (row || []).forEach(pushSleight));
@@ -367,13 +387,15 @@ function recordsEntityRow(e) {
     <div class="rec-ent-big">${recordsEntityTile(e)}</div>
     <div class="rec-ent-text">
       <div class="rec-ent-top"><span class="rec-ent-name">${e.name}</span><span class="rec-ent-tag">${e.off ? 'SWITCHED OFF' : e.tag}</span></div>
+      ${e.charges ? `<div class="rec-ent-charges"><span>CHARGES</span><b>${e.charges}</b></div>` : ''}
       <div class="rec-ent-desc">${recordsEntityDesc(e)}</div></div></div>`;
 }
 function recordsEntityTrayItem(e) {
   return `<div class="rec-ent rec-ent-tray rar-${e.rar}${e.off ? ' ent-off' : ''}">
     <div class="rec-ent-head"><div class="rec-ent-mid">${recordsEntityTile(e)}</div>
       <div class="rec-ent-id"><div class="rec-ent-name">${e.name}</div>
-        <div class="rec-ent-tag">${e.off ? 'SWITCHED OFF' : e.tag}</div></div></div>
+        <div class="rec-ent-tag">${e.off ? 'SWITCHED OFF' : e.tag}</div>
+        ${e.charges ? `<div class="rec-ent-charges"><span>CHARGES</span><b>${e.charges}</b></div>` : ''}</div></div>
     <div class="rec-ent-desc">${recordsEntityDesc(e)}</div></div>`;
 }
 
@@ -434,16 +456,7 @@ function recordsRenderPersonnel() {
 // One circle per step up to the limit's max (a step is the limit's own step, so
 // Starting Time's 300s is 20 circles of 15s); lit circles are what you have now.
 const recLimTime = s => (typeof formatTime === 'function') ? formatTime(s) : `${s}s`;
-function recLimDots(def, l, shown) {
-  // r756 (owner): Starting Time is read as a time, not 20 circles.
-  if (def.id === 'round_time') return '';
-  const step = l.step || def.step || 1;
-  const total = Math.max(1, Math.round(l.max / step));
-  const lit = Math.max(0, Math.min(total, Math.floor(shown / step)));
-  let h = '';
-  for (let i = 0; i < total; i++) h += `<i class="${i < lit ? 'on' : ''}"></i>`;
-  return `<div class="rec-dots" title="${lit} of ${total}">${h}</div>`;
-}
+// r805 (owner): the row of circles (r751) is gone; the figure and its max say it.
 function recordsRenderLimits() {
   const rows = LIMITS_DEF.map(def => {
     const l = limits[def.id];
@@ -462,7 +475,6 @@ function recordsRenderLimits() {
     return `<div class="rec-lim${maxed ? ' maxed' : ''}">
       <div class="rec-lim-top"><span><span class="rec-lim-ico">${emGlyph(def.icon)}</span>${def.label}</span>
         <span class="rec-lim-v">${def.id === 'round_time' ? recLimTime(shown) : shown}${dlStr}${def.hideMax ? '' : `<span class="rec-lim-max">/${def.id === 'round_time' ? recLimTime(l.max) : l.max}</span>`}${maxed ? ' <b>MAX</b>' : ''}</span></div>
-      ${recLimDots(def, l, shown)}
       <div class="rec-lim-desc">${extra}</div></div>`;
   }).join('');
   return `<div class="rec-note">Operating allowances for this run. Raised at the Mart, by a Limit Break, or as a reward.</div>
@@ -651,12 +663,11 @@ function recHandLadderOn() {
   return (typeof scoringModel !== 'undefined' && scoringModel === 'card_ladder')
       && (typeof nsDoubleOn === 'function' && nsDoubleOn());
 }
-// n of every, as a strip of squares (the stock squares' look).
+// n of every, as a meter: a wide bar with big notches (r805, owner; the strip of
+// 15 squares was too fine to read), filled k of n.
 function recProgress(have, every) {
   const n = Math.max(1, every), k = have % n;
-  const segs = Math.min(n, 15);
-  const lit = Math.floor(k / n * segs);
-  return `<span class="rh-prog">${'<i class="on"></i>'.repeat(lit)}${'<i></i>'.repeat(segs - lit)}</span>`;
+  return `<span class="rh-prog" style="--f:${(k / n).toFixed(3)};--n:${n}"><i></i></span>`;
 }
 
 function recordsHandsScore() {
@@ -693,7 +704,7 @@ function recFocusRow(name, why) {
   return `<div class="rh-frow${why ? ' off' : ''}">
     <div class="rh-mhand">${cards}</div>
     <div class="rh-fname">${recHandWord(name)}${why ? `<small>${why}</small>` : half ? '<small>half the speed bonus</small>' : ''}</div>
-    <div class="rh-fval"><span class="rh-fbar">${'<i></i>'.repeat(Math.max(0, Math.min(f, 14)))}</span><b>${f}</b></div></div>`;
+    <div class="rh-fval"><span class="rh-prog rh-fbar" style="--f:${(Math.max(0, Math.min(f, 14)) / 14).toFixed(3)};--n:14"><i></i></span><b>${f}</b></div></div>`;
 }
 function recordsHandsFocus() {
   const sel = _recSel();
@@ -782,7 +793,7 @@ function recordsRenderStats() {
   }).join('') || `<div class="rec-empty">All hands unlocked.</div>`;
 
   const counters = [
-    ['Level', level], ['Round goal', roundGoal.toLocaleString()], ['Hands played', handsPlayed],
+    ['Level', level], ['Level goal', roundGoal.toLocaleString()], ['Hands played', handsPlayed],
     [entityLabel('trick', true) + ' held', acquiredTricks.length], ['Aces played', C.aces], ['Hearts played', C.hearts],
     ['Faces played', C.faces], ['Same-suit hands', C.sameSuitHands],
   ].map(([k, v]) => `<div class="rec-row"><span>${k}</span><span class="rec-row-v">${v}</span></div>`).join('');

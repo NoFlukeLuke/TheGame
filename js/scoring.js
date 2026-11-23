@@ -391,7 +391,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   const _3rdKey = (hasTrick('third_charm') && _scoreCells.length >= 3 && _scoreCells[2]) ? cellKey(_scoreCells[2]) : null;
   // Straight Shot: capture the modified pip value of the line's first & last card
   let _slSumPips = 0, _slSumBase = 0;   // Straight Shot: buffed and bare pip sums (r625: buffs count from tier 3)
-  const _crMins = hasTrick('corner_retrigger') ? Math.floor(roundSeconds / 60) : 0;
+  const _crMins = hasTrick('corner_retrigger') ? Math.floor(clockLeftSecs() / 60) : 0;   // r814: capped at 3 in Flow
   const _crSet = new Set(_crMins >= 1 ? cornerCells(cells).map(([_r,_c]) => _r + '-' + _c) : []);
   // Encore (r608): an odd-ranked card in a set replays once. Only the cells of a set
   // component count, so an odd card in a run layered on the set does not.
@@ -578,7 +578,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     let _re = qrlBuffOn(card, 'retrig') ? (permRetrig[_eKey] || 0) : 0;  // permanent per-card retrigger (events); QRL may switch the buff off
     let _rne = hasTrick('closing_time') && roundFractionRemaining() < 1/3; // Near Extinction: last third of the round
     let _hnm = _hnmOn && _rankHigh(baseRank) === _hnmMax; // High and Mighty: top-rank card(s)
-    let _ech = hasTrick('echo_hand') && _effStreak >= 2; // Echoes
+    let _ech = hasTrick('echo_hand') && _effStreak >= ((TB('echo_hand') || {}).streak || 3); // Same Old (r812: a streak of 3)
     let _wp = hasTrick('woodpecker') && woodpeckerCell === `${r}-${c}`; // Woodpecker: the card in the marked cell
     // Wait For Iiiit: each card independently rolls a replay at 2% × negative reward tiles taken this
     // run. Deterministic per (card, hand) so preview == score (see _detReplayRand).
@@ -908,7 +908,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
 
   // Sediment: +10 pips per 10 seconds of round time elapsed (grows as the round runs down)
   if (hasTrick('sediment')) {
-    const _elapsed = Math.max(0, roundStartSeconds - roundSeconds);
+    const _elapsed = clockElapsed();   // r814: the quarter in Flow
     const _a = Math.floor(_elapsed / TB('sediment').interval_seconds) * TB('sediment').pips_per_interval;
     if (_a) { totalPips += _a; bPip('sediment', _a); }
   }
@@ -926,10 +926,10 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   // Dark Matter (r625): suits 0 = all spades, 1 = all clubs and/or spades, 2 = any club or spade in the hand; x time_mult.
   const _dmBlack = c => c.suit === '♠' || c.suit2 === '♠' || c.suit === '♣' || c.suit2 === '♣';
   const _dmOn = BAL.spade_flood.suits >= 2 ? _natCards.some(_dmBlack) : BAL.spade_flood.suits >= 1 ? (_natCards.length > 0 && _natCards.every(_dmBlack)) : allSpadesCalc;
-  if (hasTrick('spade_flood') && _dmOn) { const _a = Math.floor(roundSeconds / BAL.spade_flood.time_div * BAL.spade_flood.time_mult); if (_a) { totalPips += _a; bPip('spade_flood', _a); } }
+  if (hasTrick('spade_flood') && _dmOn) { const _a = Math.floor(clockLeftSecs() / BAL.spade_flood.time_div * BAL.spade_flood.time_mult); if (_a) { totalPips += _a; bPip('spade_flood', _a); } }
 
   // Sands of Time: remaining round seconds / 2 as trick pips
-  if (hasTrick('sands_of_time')) { const _a = Math.floor(roundSeconds / sandsDivisor()); totalPips += _a; bPip('sands_of_time', _a); }
+  if (hasTrick('sands_of_time')) { const _a = Math.floor(clockLeftSecs() / sandsDivisor()); totalPips += _a; bPip('sands_of_time', _a); }
 
   // Penny Saved: accumulated trick pips from discarded 5s
   if (hasTrick('fives_discard')) { totalPips += bonusMult_fives; bPip('fives_discard', bonusMult_fives); }
@@ -1079,7 +1079,6 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   if (_pcPips.men_of_means) { bPipQ('men_of_means', _pcPips.men_of_means, 1); }
   if (_pcPips.gold_standard) { bPipQ('gold_standard', _pcPips.gold_standard, 1); }
   if (_pcMult.men_of_means) { bMultQ('men_of_means', _pcMult.men_of_means, 1); }
-  if (_pcMult.hyper_focus) { bMultQ('hyper_focus', _pcMult.hyper_focus, 1); }
   // King's Guard's mult is accumulated per card in the loop now, so it animates on
   // the K or J that earned it; same replay-weighted sum the _wc sweep produced.
   if (_kgMult) { bMultQ('king_guard', _kgMult, 1); }
@@ -1691,7 +1690,7 @@ function fmtContribution(e) {
 function roundContributionRowsHTML() {
   const entries = Object.values(roundContributions);
   if (!entries.length || roundHandsScored === 0) {
-    return `<div class="contrib-empty">No hands scored this round.</div>`;
+    return `<div class="contrib-empty">No hands scored this level.</div>`;
   }
   let html = '';
   [{ kind: 'pip', title: 'Pips' }, { kind: 'mult', title: 'Mult' }, { kind: 'coin', title: 'Credits' }].forEach(g => {
@@ -1926,6 +1925,7 @@ function isEffectIntersection(r, c) {
 // One function, read by calcScore AND the live desc in tricks-ui.
 function sandsDivisor() {
   const d = TB('sands_of_time').divisor;
+  if (clockQuarterOn()) return d;   // r814: Flow reads at most 180s left (clockLeftSecs), so no long-clock doubling
   return (typeof currentRoundDuration === 'function' && currentRoundDuration() > 180) ? d * 2 : d;
 }
 
@@ -1983,6 +1983,8 @@ function focusExtraApplies(handName, cells) {
       if (handHasFamily(_names, 'run') || (BAL.marathon.flush && handHasFamily(_names, 'flush')) || (BAL.marathon.sets && handHasFamily(_names, 'set'))) n += BAL.marathon.extra;
     }
     if (hasTrick('phoenix') && (clockPausedForHand() || handTriggersPause(handName, cells))) n++;
+    // Hyper Focus (r817, owner): while Focus is over `share` of its limit, the multiplier applies `extra` more times.
+    if (hasTrick('hyper_focus') && typeof focusCapNodes === 'function' && focusNodes > focusCapNodes() * TB('hyper_focus').share) n += TB('hyper_focus').extra || 1;
     if (hasTrick('kaleidoscope')) {
       // Four or more suits in the hand. Same counting the old +4 Focus effect used:
       // white counts as white, a combined card counts both suits, a wild counts none.
@@ -2031,7 +2033,7 @@ function handTriggersPause(handName, cells) {
 // Once-per-minute gate (round-time minutes). Rewind (task #10) will re-arm these by re-crossing
 // minute boundaries. Returns true (and marks fired) at most once per whole round-minute per id.
 function firesThisMinute(id) {
-  const minute = Math.floor((roundStartSeconds - roundSeconds) / 60);
+  const minute = Math.floor(clockElapsed() / 60);   // r814: the quarter's minutes in Flow
   if (_perMinuteFired[id] === minute) return false;
   _perMinuteFired[id] = minute;
   return true;

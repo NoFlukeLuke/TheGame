@@ -23,7 +23,7 @@ const ENGINES = [
     tricks:   ['deep_breath', 'frozen_moment', 'phoenix', 'albatross', 'kingfisher', 'hummingbird', 'patient_rulers', 'high_water', 'dam_holding', 'five_second', 'right_time', 'double_jeopardy', 'vulture', 'wait_four_it'],
     sleights: ['snooze', 'stopwatch', 'syncopation', 'shady_tree', 'the_queen'],
     knacks:   ['long_pause', 'sundial', 'metronome', 'time_slip'] },
-  { id: 'rewind', name: 'Long Round', icon: '⏪', buff: 'time',
+  { id: 'rewind', name: 'Long Level', icon: '⏪', buff: 'time',
     desc: 'Keep the clock high with rewinds, then cash the time left in.',
     tricks:   ['deluge', 'magpie', 'temporal_rift', 'overtime', 'rain_check', 'spade_flood', 'corner_retrigger', 'kingfisher', 'hummingbird'],
     sleights: ['rewind', 'last_call', 'sandbag'],

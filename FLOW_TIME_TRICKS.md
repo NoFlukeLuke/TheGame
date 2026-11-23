@@ -1,4 +1,9 @@
-# Round-time entities in Flow (r722)
+# Round-time entities in Flow (r722; built r814)
+
+**r814: every recommendation below is built** (owner: "these make sense"). The clock-reading
+entities read `clockElapsed()` / `roundFractionRemaining()` / `clockLeftSecs()` (js/hand-detect.js),
+which measure the QUARTER in Flow outside a boss; their sentences say "quarter" in Flow
+(`flowWordApply`, js/improve.js). Player text says "level" wherever it said "round".
 
 The owner asked what "the round" means in Flow for entities that read the clock, and
 for a balance check. Nothing below is changed yet except Time and a Half (r722); each

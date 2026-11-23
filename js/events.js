@@ -167,7 +167,7 @@ function buildCrossroadsTrades() {
     const legends = TRICK_POOL.filter(b => !ownedTrick.has(b.id) && b.tier === 'legendary');
     if (legends.length > 0) {
       const pick = legends[Math.floor(Math.random()*legends.length)];
-      trades.push({ icon:'🍂', name:`${pick.name}, for a discard`, desc:`Lose 1 discard per round, permanently. Gain ${pick.name}. ${pick.desc}`, rarity:'legendary',
+      trades.push({ icon:'🍂', name:`${pick.name}, for a discard`, desc:`Lose 1 discard per level, permanently. Gain ${pick.name}. ${pick.desc}`, rarity:'legendary',
         apply: () => {
           limits.discards.current = Math.max(1, limits.discards.current - 1);
           discards = Math.min(discards, limits.discards.current);
@@ -197,7 +197,7 @@ function buildCrossroadsTrades() {
   }
   // Always-available fallback
   if (trades.length === 0) {
-    trades.push({ icon:'⏱', name:'10 seconds for a swap and a discard', desc:'Lose 10s of round time, permanently. Gain +1 swap and +1 discard per round, permanently.', rarity:'rare',
+    trades.push({ icon:'⏱', name:'10 seconds for a swap and a discard', desc:'Lose 10s of level time, permanently. Gain +1 swap and +1 discard per level, permanently.', rarity:'rare',
       apply: () => {
         limits.round_time.current = Math.max(30, limits.round_time.current - 10);
         limits.swaps.current++;  limits.discards.current++;
@@ -265,7 +265,7 @@ function buildDoorPrize(tier) {
   }
   if (tier === 'bad') {
     const bads = [
-      { icon:'☠', name:'One less discard', desc:'Lose 1 discard for this round.', cls:'revealed-bad', apply:()=>{discards=Math.max(0,discards-1);render();showMessage('−1 Discard','var(--red)');} },
+      { icon:'☠', name:'One less discard', desc:'Lose 1 discard for this level.', cls:'revealed-bad', apply:()=>{discards=Math.max(0,discards-1);render();showMessage('−1 Discard','var(--red)');} },
       { icon:'☁', name:'Eight seconds', desc:'Eight seconds come off the clock now.',  cls:'revealed-bad', apply:()=>{roundSeconds=Math.max(1,roundSeconds-8);updateClockUI();showMessage('−8s','var(--red)');} },
       { icon:'✖', name:'Nothing', desc:'This one was empty.',        cls:'revealed-bad', apply:()=>{showMessage('Empty door','var(--cream-dim)');} },
     ];
@@ -614,8 +614,8 @@ function buildBargainTrades() {
   }
 
   trades.push({ icon:'\ud83d\udd6f\ufe0f', rarity:'rare', name:'Eight seconds for a copy',
-    desc:'Lose 8s of round time, permanently. A random card is copied into your deck, and that card scores 20 more pips from now on.',
-    apply:()=>{ limits.round_time.current=Math.max(30, limits.round_time.current-8); const t=randomDeckCard(); if(t){ copyCardToDeck(t); enhanceCardKey(cardId(t), {pips:20}); noteMessage(`Copied ${cardLabel(t)} \u00b7 +20 pips`, 'var(--gold)'); } } });
+    desc:'Lose 8s of level time, permanently. A random card is copied into your deck, and that card scores 25 more pips from now on.',
+    apply:()=>{ limits.round_time.current=Math.max(30, limits.round_time.current-8); const t=randomDeckCard(); if(t){ copyCardToDeck(t); enhanceCardKey(cardId(t), {pips:25}); noteMessage(`Copied ${cardLabel(t)} \u00b7 +25 pips`, 'var(--gold)'); } } });
 
   // The credit trade was 10, which a mid-run wallet pays without noticing. It is
   // the one cost here that is plainly legible, so it is the one worth pricing
@@ -632,7 +632,7 @@ function buildBargainTrades() {
 
   if (buffed >= 3) {
     trades.push({ icon:'\ud83d\uddd1\ufe0f', rarity:'epic', name:'Three buffed cards for two swaps',
-      desc:'Three of your BUFFED cards leave your deck, with everything you put into them. Gain +2 swaps per round permanently, and a random card scores 40 more pips.',
+      desc:'Three of your BUFFED cards leave your deck, with everything you put into them. Gain +2 swaps per level permanently, and a random card scores 40 more pips.',
       cost:'Costs 3 buffed cards',
       apply:()=>{ const take=pickBuffedCards(3); removeDeckCards(take);
                   limits.swaps.current+=2; swaps=Math.min(swaps+2, limits.swaps.current); knockOnLimit('swaps');
@@ -641,8 +641,8 @@ function buildBargainTrades() {
 
   // Always-available fallback
   if (trades.length === 0) {
-    trades.push({ icon:'\ud83d\udd6f\ufe0f', rarity:'common', name:'Five seconds for +15 pips', desc:'Lose 5s of round time, permanently. A random card scores 15 more pips from now on.',
-      apply:()=>{ limits.round_time.current=Math.max(30, limits.round_time.current-5); const t=randomDeckCard(); if(t){ enhanceCardKey(cardId(t), {pips:15}); noteMessage(`${cardLabel(t)} +15 pips`, 'var(--gold)'); } } });
+    trades.push({ icon:'\ud83d\udd6f\ufe0f', rarity:'common', name:'Five seconds for +25 pips', desc:'Lose 5s of level time, permanently. A random card scores 25 more pips from now on.',
+      apply:()=>{ limits.round_time.current=Math.max(30, limits.round_time.current-5); const t=randomDeckCard(); if(t){ enhanceCardKey(cardId(t), {pips:25}); noteMessage(`${cardLabel(t)} +25 pips`, 'var(--gold)'); } } });
   }
 
   const a=[...trades]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
@@ -780,71 +780,13 @@ function confirmMerchant() {
 }
 
 // ══════════════════════════════════════════════
-// EVENT: ALTAR
+// EVENT: ALTAR  (The Investment)
 // ══════════════════════════════════════════════
-// r590 (owner): bigger stakes and more of them; credits-for-time is gone (time
-// is credits in many modes). Three of these are offered, each a cost now or over
-// the next rounds for a gain over the next rounds. Numbers scale with the
-// quarter (Q) where the owner asked: +8 mult x Q.
-// Effects live in altarEffects ({ type, value, roundsLeft }), ticked at each
-// round start (tickAltarEffects, js/level-up.js). READ BY: getAltarMultBoost /
-// altarPipBoost (calcScore's starting mult and pips, and the ledger base),
-// tickAltarEffects (goal, swaps, clock), altarTrickLocked (isTrickDisabledByBoss,
-// the sells), altarFocusMult (focusRateMods).
-// (Before r590 nothing read the mult boost or the half goal: both did nothing.)
+// r805 (owner): the event is js/investment.js (renderAltar / confirmAltar there):
+// credits held until the next quarter, or a Trick and credits with a chance to
+// improve it each round. The r590 timed boosts (altarEffects) are no longer
+// offered; the tick and its readers below stay so a saved run finishes them.
 function altarQ() { return (typeof qrlQuarter === 'function') ? qrlQuarter() : 1; }
-function altarOfferings() {
-  const Q = altarQ();
-  return [
-    { id: 'discards', icon: '🕯️', rarity: 'rare', name: `+${8 * Q} mult for 3 rounds`,
-      desc: `Every hand scores +${8 * Q} mult for the next 3 rounds.`, cost: 'Costs 5 discards next round',
-      canTake: () => true,
-      apply: () => { nextRoundDiscardDelta -= 5; altarEffects.push({ type: 'mult_boost', value: 8 * Q, roundsLeft: 3 }); } },
-    { id: 'tricks', icon: '🌑', rarity: 'legendary', name: 'Half goals for 4 rounds',
-      desc: 'The next 4 rounds need half the score.', cost: '2 random Tricks are switched off and their slots locked for those 4 rounds',
-      canTake: () => (trickTray || []).length >= 2,
-      apply: () => {
-        const ids = evShuffle(trickTray.map(t => t.id)).slice(0, 2);
-        altarEffects.push({ type: 'goal_reduce', value: 0.5, roundsLeft: 4 }, { type: 'trick_lock', ids, roundsLeft: 4 });
-        renderTrickTray?.();
-        const names = ids.map(id => (trickTray.find(t => t.id === id) || {}).name).join(' and ');
-        showMessage(`${names} locked for 4 rounds`, 'var(--red)');
-      } },
-    { id: 'swaps', icon: '🧱', rarity: 'rare', name: `+${18 * Q} pips for 3 rounds`,
-      desc: `Every hand scores +${18 * Q} pips for the next 3 rounds.`, cost: 'No swaps for the next 2 rounds',
-      canTake: () => true,
-      apply: () => { altarEffects.push({ type: 'swap_tax', roundsLeft: 2 }, { type: 'pip_boost', value: 18 * Q, roundsLeft: 3 }); } },
-    { id: 'time', icon: '⏳', rarity: 'epic', name: 'Double Focus for 3 rounds',
-      desc: 'Hands make twice the Focus for the next 3 rounds.', cost: 'The next 3 rounds start 30 seconds shorter',
-      canTake: () => !(typeof modeHasNoRoundClock === 'function' && modeHasNoRoundClock()),
-      apply: () => { altarEffects.push({ type: 'time_tax', value: 30, roundsLeft: 3 }, { type: 'focus_fast', value: 2, roundsLeft: 3 }); } },
-    { id: 'payout', icon: '🧾', rarity: 'rare', name: `+${5 * Q} mult for 4 rounds`,
-      desc: `Every hand scores +${5 * Q} mult for the next 4 rounds.`, cost: 'Your next payout pays nothing',
-      canTake: () => !skipNextPayout,
-      apply: () => { skipNextPayout = true; altarEffects.push({ type: 'mult_boost', value: 5 * Q, roundsLeft: 4 }); } },
-  ];
-}
-function renderAltar() {
-  const offerings = evShuffle(altarOfferings().filter(o => o.canTake())).slice(0, 3);
-  eventState.altarPick = null;
-  const body = document.getElementById('event-body');
-  offerings.forEach(off => {
-    const el = makeChoiceEl({ icon: off.icon, rarity: off.rarity, name: off.name, desc: off.desc, cost: off.cost,
-      onClick: () => {
-        body.querySelectorAll('.event-choice').forEach(e => e.classList.remove('selected'));
-        el.classList.add('selected');
-        eventState.altarPick = off;
-        setEventConfirm(true);
-      } });
-    body.appendChild(el);
-  });
-}
-
-function confirmAltar() {
-  const off = eventState.altarPick;
-  if (off) { off.apply(); noteMessage(off.name, 'var(--gold)'); render?.(); }
-  closeEvent();
-}
 
 // ── Altar tick: called at each round start, after the round's goal and stock are set ──
 // An effect applies to `roundsLeft` rounds counted from the first round start it sees.
@@ -871,6 +813,7 @@ function altarFocusMult() {
   return (altarEffects || []).filter(e => e.started && e.type === 'focus_fast').reduce((s, e) => s * e.value, 1);
 }
 function altarTrickLocked(id) {
+  if (typeof investmentTrickLocked === 'function' && investmentTrickLocked(id)) return true;   // r805: an invested Trick is off
   return (altarEffects || []).some(e => e.type === 'trick_lock' && e.ids && e.ids.includes(id));
 }
 function getAltarGoalMultiplier() {
@@ -1011,9 +954,9 @@ function renderTwinPath() {
   }
   const shadow = [
     { icon:'☁', name:'Five seconds', desc:'Five seconds come off the clock now.',     apply:()=>{roundSeconds=Math.max(1,roundSeconds-5);updateClockUI();showMessage('The catch: −5s','var(--red)');} },
-    { icon:'☠', name:'One less discard', desc:'Lose 1 discard per round, permanently.',      apply:()=>{limits.discards.current=Math.max(1,limits.discards.current-1);discards=Math.min(discards,limits.discards.current);render();showMessage('The catch: −1 discard','var(--red)');} },
-    { icon:'✖', name:'One less swap', desc:'Lose 1 swap per round, permanently.',         apply:()=>{limits.swaps.current=Math.max(0,limits.swaps.current-1);swaps=Math.min(swaps,limits.swaps.current);render();showMessage('The catch: −1 swap','var(--red)');} },
-    { icon:'🌑', name:'Goal +15%', desc:'This round needs 15% more score.', apply:()=>{roundGoal=Math.floor(roundGoal*1.15);showMessage('The catch: goal +15%','var(--red)');} },
+    { icon:'☠', name:'One less discard', desc:'Lose 1 discard per level, permanently.',      apply:()=>{limits.discards.current=Math.max(1,limits.discards.current-1);discards=Math.min(discards,limits.discards.current);render();showMessage('The catch: −1 discard','var(--red)');} },
+    { icon:'✖', name:'One less swap', desc:'Lose 1 swap per level, permanently.',         apply:()=>{limits.swaps.current=Math.max(0,limits.swaps.current-1);swaps=Math.min(swaps,limits.swaps.current);render();showMessage('The catch: −1 swap','var(--red)');} },
+    { icon:'🌑', name:'Goal +15%', desc:'This level needs 15% more score.', apply:()=>{roundGoal=Math.floor(roundGoal*1.15);showMessage('The catch: goal +15%','var(--red)');} },
   ];
   eventState.shadow = shadow[Math.floor(Math.random()*shadow.length)];
   eventState.twinTricks = picks;
@@ -1253,7 +1196,7 @@ function renderBench() {
   // The card is picked on the NEXT step, so the subject is "this card" here.
   const boons = [
     { icon:'🔨', rarity:'common', e:{ pips:40 }  },
-    { icon:'✨', rarity:'rare',   e:{ mult:6 }   },
+    { icon:'✨', rarity:'rare',   e:{ mult:25 }  },
     { icon:'💥', rarity:'epic',   e:{ xmult:2 }  },
     { icon:'🔁', rarity:'rare',   e:{ retrig:1 } },
     { icon:'📈', rarity:'epic',   e:{ growMult:1 } },
@@ -1589,7 +1532,7 @@ function renderMarket() {
   s.marketOffers = Array.from({ length: MARKET_OFFERS }, marketRollCard);
   s.marketBasket = [];
   const price = marketCardPrice();
-  body.appendChild(evNote(`${price} credits each. In a round, double-tap the Focus bar to put them on the board.`));
+  body.appendChild(evNote(`${price} credits each. In a level, double-tap the Focus bar to put them on the board.`));
   const grid = document.createElement('div'); grid.className = 'mk-grid'; grid.id = 'mk-grid';
   s.marketOffers.forEach((off, i) => {
     const el = document.createElement('div');
@@ -1702,10 +1645,10 @@ const CLEAN_SLATE_FIXES = [
     desc: () => `Every goal is raised ${Math.round((goalPenaltyMult - 1) * 100)}%.`,
     fix:  () => { goalPenaltyMult = 1; return 'Goals back to normal'; } },
   { id:'time',   icon:'⏱', rarity:'rare',
-    name:'Shortened rounds',
+    name:'Shortened levels',
     has:  () => roundPenaltySeconds > 0,
-    desc: () => `Rounds start ${roundPenaltySeconds}s short.`,
-    fix:  () => { const n = roundPenaltySeconds; roundPenaltySeconds = 0; return `+${n}s back on every round`; } },
+    desc: () => `Levels start ${roundPenaltySeconds}s short.`,
+    fix:  () => { const n = roundPenaltySeconds; roundPenaltySeconds = 0; return `+${n}s back on every level`; } },
   { id:'play',   icon:'🎟', rarity:'rare',
     name:'Play surcharge',
     has:  () => extraPlayCostPerm > 0,
@@ -1729,7 +1672,7 @@ const CLEAN_SLATE_FIXES = [
   { id:'freeze', icon:'❄', rarity:'common',
     name:'Interest freeze',
     has:  () => interestFreezeRounds > 0,
-    desc: () => `Interest is frozen for ${interestFreezeRounds} more round${interestFreezeRounds === 1 ? '' : 's'}.`,
+    desc: () => `Interest is frozen for ${interestFreezeRounds} more level${interestFreezeRounds === 1 ? '' : 's'}.`,
     fix:  () => { interestFreezeRounds = 0; return 'Interest paying again'; } },
   { id:'payout', icon:'🚫', rarity:'common',
     name:'Withheld payout',

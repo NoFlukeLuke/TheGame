@@ -10,7 +10,7 @@ function keeperCycle(card) {
   const ok = keeperModesAllowed();
   if (ok.length < 2) { refuse('Keeper keeps the cards. Improve it to choose', { color: 'var(--cream-dim)' }); return false; }
   card._keepMode = ok[(ok.indexOf(keeperModeOf(card)) + 1) % ok.length];
-  if (typeof noteMessage === 'function') noteMessage(`\ud83d\udccc Keeper: ${keeperModeLabel(card).toLowerCase()} between rounds`, 'var(--gold)');
+  if (typeof noteMessage === 'function') noteMessage(`\ud83d\udccc Keeper: ${keeperModeLabel(card).toLowerCase()} between levels`, 'var(--gold)');
   return true;
 }
 
@@ -757,7 +757,7 @@ function applySleightGridEffect(id, r, c) {
   // half of a round. Checked here rather than at each activation site because
   // every activation-driven sleight passes through this one function.
   if (typeof entitySuspended === 'function' && entitySuspended('sleight', id)) {
-    showMessage(`${id} is suspended this round`, 'var(--red)');
+    showMessage(`${id} is suspended this level`, 'var(--red)');
     return;
   }
   // A STOCK payout throws the scoring dance's own plate at the readout it
@@ -960,15 +960,15 @@ function showSleightGridTooltip(r, c, card) {
   if (def.id === 'capacitor') uses = `bonus L¢${card._thetaBank || 0} · ` + uses;
   if (def.id === 'recycler' && card._recHand) uses = `Hand: ${card._recHand} · ` + uses;
   if (def.id === 'keeper') uses = keeperModeLabel(card) + ' · ' + uses;
-  const _usedLock = card._usedThisRound ? ' · USED THIS ROUND' : '';
+  const _usedLock = card._usedThisRound ? ' · USED THIS LEVEL' : '';
   const _hint = def.id === 'stopwatch' ? 'DOUBLE-TAP TO FREEZE THE CLOCK'
               : def.id === 'keeper' ? 'DOUBLE-TAP TO CHOOSE WHAT STAYS'
               : def.activation === 'double_tap' ? (INERT_ON_USE_SLEIGHTS.has(def.id)
-                  ? `DOUBLE-TAP TO ACTIVATE · ONCE PER ROUND · INERT AFTER USE${_usedLock}`
+                  ? `DOUBLE-TAP TO ACTIVATE · ONCE PER LEVEL · INERT AFTER USE${_usedLock}`
                   : 'DOUBLE-TAP TO ACTIVATE · DISCARDED AFTER USE')
               : def.activation === 'on_play' ? 'SELECT &amp; PLAY TO ACTIVATE'
               : def.activation === 'on_discard' ? 'SELECT &amp; DISCARD TO ACTIVATE'
-              : def.activation === 'on_swap' ? `SWAP TO ACTIVATE · ONCE PER ROUND${_usedLock}`
+              : def.activation === 'on_swap' ? `SWAP TO ACTIVATE · ONCE PER LEVEL${_usedLock}`
               : def.activation === 'passive' ? 'ALWAYS ACTIVE WHILE ON THE GRID'
               : 'LONG-PRESS FOR TOOLTIP';
   // r741: in Dexterous the card is played like any other and fires then too.

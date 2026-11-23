@@ -1,4 +1,4 @@
-const BUILD = "2026-11-23 · r804 · score merge in LEDs";
+const BUILD = "2026-11-23 · r820 · score merge in LEDs";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
@@ -6,7 +6,7 @@ const MODES = {
   normal: {
     id: 'normal',
     name: 'Classic',
-    desc: `Four quarters. Play rounds, path through the ${gridName('reward')}, and defeat bosses.`,
+    desc: `Four quarters. Play levels, path through the ${gridName('reward')}, and defeat bosses.`,
     winCondition: 'boss_defeat',
     enableBosses: true,
     enableShops: true,
@@ -126,7 +126,7 @@ const MODES = {
   flow: {
     id: 'flow',
     name: 'Flow',
-    desc: 'No round clock. Clear goals back to back for as many level-ups as you can, then a boss arrives every five minutes. Swaps and discards cost half the usual time off that clock. Max Focus is 20.',
+    desc: 'No level clock. Clear goals back to back for as many level-ups as you can, then a boss arrives every five minutes. Swaps and discards cost half the usual time off that clock. Max Focus is 20.',
     winCondition: 'endless',
     enableBosses: true,
     enableShops: true,
@@ -300,16 +300,16 @@ const MODE_SELECT_LIST = [...modeChainWithSiblings(), ...MODE_FINALE_GROUP, ...M
 const MODE_HIDDEN_LIST = ['normal', 'picker', 'stacks', 'squares', 'match3', 'zen', 'guided', 'spectrum', 'climb'];   // r799: Crunch is a protocol of the Schedule (MODES.crunch stays for saved runs)
 const MODE_META = {
   normal:   { accent: 'var(--c-yellow)', suits: '♠ ♥ ♦ ♣',
-              blurb: `Four suits. Four quarters, each five rounds and then a review. Reach each round's goal before the clock runs out. Between rounds you pick a path on the ${gridName('reward')}, and some paths lead to the shop or an event.` },
+              blurb: `Four suits. Four quarters, each five levels and then a review. Reach each level's goal before the clock runs out. Between levels you pick a path on the ${gridName('reward')}, and some paths lead to the shop or an event.` },
   // Crunch is in MODE_HIDDEN_LIST, so this card is not drawn today. Kept ready:
   // promoting the mode is one entry in MODE_FINALE_GROUP and one deletion from
   // the hidden list, with nothing to rewrite.
   crunch:   { accent: '#e8734a',         suits: '13:00 · ONE CLOCK',
-              blurb: 'The schedule, played on one clock for the whole quarter. Rounds use it up as you play, and every obligation that is not a round costs a flat amount of time. The review is played on what is left. At zero the run ends.' },
+              blurb: 'The schedule, played on one clock for the whole quarter. Levels use it up as you play, and every obligation that is not a level costs a flat amount of time. The review is played on what is left. At zero the run ends.' },
   map:      { accent: '#6fd08c',         suits: '4 × 4 + REVIEW',
-              blurb: `Each quarter is a schedule: four time slots, top to bottom, then a review. Every obligation you book happens: a round, a shop, ${gridName('reward', { a: true })}, an event and more. Up to two obligations per slot. Leaving a slot after one earns R&R: a perk. Clearing a round offers a pick of three.` },
+              blurb: `Each quarter is a schedule: four time slots, top to bottom, then a review. Every obligation you book happens: a level, a shop, ${gridName('reward', { a: true })}, an event and more. Up to two obligations per slot. Leaving a slot after one earns R&R: a perk. Clearing a level offers a pick of three.` },
   guided:   { accent: '#c9a0ff',         suits: '8 SLOTS',
-              blurb: `Each quarter is eight slots and then a review. Before each slot you choose from four offers: a round, a hard round, the shop, ${gridName('reward', { a: true })}, a pick of three or an event. Rounds are free. Most other offers cost credits. The goal rises with every slot.` },
+              blurb: `Each quarter is eight slots and then a review. Before each slot you choose from four offers: a level, a hard level, the shop, ${gridName('reward', { a: true })}, a pick of three or an event. Levels are free. Most other offers cost credits. The goal rises with every slot.` },
   spectrum: { accent: '#ff9d3c',        suits: '🔴 🟡 🔵 🟢 🟣 🟠 ⚫ ⚪',
               blurb: 'No suits and no face cards. Seven colours, values 0 to 11, plus a single 15 and 20 in each colour. 9s, 10s and 11s are white and never count toward a flush. Four payout cards are in the deck: score two hands next to one and it pays out.' },
   flow:     { accent: '#6fd0ff',         suits: '5:00 · ONE CLOCK',
@@ -325,7 +325,7 @@ const MODE_META = {
   zen:      { accent: '#7fe3c0',         suits: 'NO CLOCK',
               blurb: 'The auto-playing board with no clock and unlimited swaps and discards. Goals are doubled.' },
   picker:   { accent: '#ff5fa8',         suits: 'BUILD ONE',
-              blurb: 'Answer seven questions to build a run: the deck, what happens between rounds, round length, whether actions cost time, bosses, who submits hands, and hand values.' },
+              blurb: 'Answer seven questions to build a run: the deck, what happens between levels, level length, whether actions cost time, bosses, who submits hands, and hand values.' },
 };
 
 function openModeSelect() {

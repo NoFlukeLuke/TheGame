@@ -101,6 +101,17 @@ const LEXICONS = {
 // payout prints it from here, in front of the number: L¢12.
 const CREDIT_SYM = 'L¢';
 function creditsTxt(n) { return CREDIT_SYM + n; }
+// r806 (owner): a figure too big for its box reads in letters from 100,000 up: 100k,
+// 346k, 1.2m, 12m, 3.2b. Under that it reads as `small` says (the caller's own style).
+function fmtBig(n, small) {
+  n = +n || 0;
+  const a = Math.abs(n);
+  if (a < 1e5) return small ? small(n) : String(Math.round(n));
+  const u = a >= 1e9 ? [1e9, 'b'] : a >= 1e6 ? [1e6, 'm'] : [1e3, 'k'];
+  const v = a / u[0];
+  const s = v < 10 ? (Math.round(v * 10) / 10).toString() : String(Math.round(v));
+  return (n < 0 ? '-' : '') + s + u[1];
+}
 
 // r721: the inside of a screen's skip key (css/screen-skip.css): pixel triangles drawn as
 // rects (a ▶ glyph turns into an emoji on a phone), a bar after them for a skip.

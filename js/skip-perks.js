@@ -61,12 +61,12 @@ const LUNCH_PERKS = {
   },
   stock: {
     noun: '+1 swap and +1 discard for good',
-    say: '+1 swap and +1 discard every round', short: '+1 SWAP +1 DISCARD',
+    say: '+1 swap and +1 discard every level', short: '+1 SWAP +1 DISCARD',
     can: () => ['swaps', 'discards'].some(id => limits[id] && limits[id].current < limits[id].max),
     // Permanent: the two limits. A two-limit grant knocks on once (Knock-On).
     give() {
       const a = incrementLimit('swaps'), b = incrementLimit('discards', { noKnockOn: a });
-      return a && b ? '+1 swap and +1 discard every round' : a ? '+1 swap every round' : '+1 discard every round';
+      return a && b ? '+1 swap and +1 discard every level' : a ? '+1 swap every level' : '+1 discard every level';
     },
   },
   path: {
