@@ -5769,3 +5769,23 @@ Hyper Focus over half Focus played with no timeline drift at 1440x820 and 420x90
 
 ## r818 - golden baseline rewritten for r817
 Only the Tricks r817 retuned (and the trays holding them) moved.
+## r817 (main) - a finished run stops (owner's bug: reward keys showing under the end screen)
+Nothing marked a LOST run as over (`roundEnded` is only set on a cleared goal), so `playHand` still
+worked after the loss: a hand that then cleared the goal ran the goal exit, and the interlude / Flow's
+pick opened UNDER the finale and took its keys (CONFIRM / REROLL where PLAY AGAIN / HOME were).
+Measured before: Classic clock-out then a hand: `interludeActive` true under the finale; Flow boss
+loss then a hand: PLAY read CONFIRM. **`runIsOver()`** (js/finale.js; `runOver`, `runOverSet`) is set by
+`showFinale` and by the two losses that wait a beat before it (a failed boss, 1.2s; a failed
+challenge, 2.3s), cleared by `closeFinale` (PLAY AGAIN, ENDLESS) and `startGame`. While set these
+return at once: playHand, doDiscard, doSwap, doSwapMulti, swapSelected, onCardTap, reshuffleTap,
+severanceTap, the Focus bar's double-tap, cascadeStart, agenticTick, startRoundTimer, triggerLevelUp,
+startInterlude, survivalShowPick, openGridPick, openRewardGrid, openShopGrid, openEvent,
+flowrMaybeStart, flowrStartBossChain. **A new way to act on the board, or a new between-rounds
+screen, asks `runIsOver()` first.** A winning hand already scoring when the clock would run out is
+still a win (the goal hand stops the clock; unchanged). Measured at 1440x820 and 420x900 (Classic
+clock-out, Flow boss loss): taps, a drag and a direct playHand under PEEK did nothing, no screen opened
+in 8s, PLAY AGAIN started a run that takes taps and hands; Flow's 4th boss won by a real hand, then
+ENDLESS opened the prize grid. Golden: 838 cases match. No page errors.
+
+## r817 numbering
+Two sessions shipped r817 in parallel: the averages pass (with its r818 baseline) and the finished-run stop (on main). The merge that joined them is r819.

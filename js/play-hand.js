@@ -229,6 +229,7 @@ function generateHandFocus(hand, handCells, vultureSec) {
 // PLAY HAND
 // ══════════════════════════════════════════════
 function playHand() {
+  if (typeof runIsOver === 'function' && runIsOver()) return;   // r817: the run is over
   // On grid-takeover screens the Play button is repurposed: BUY (shop) / CONFIRM (reward).
   if (typeof shopGridActive !== 'undefined' && shopGridActive) { shopGridBuySelection(); return; }
   if (rewardOnGrid) { confirmRewardPath(); return; }

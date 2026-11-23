@@ -1297,6 +1297,7 @@ function endBoss(success, opts) {
     }
   } else {
     if (typeof flowEndBoss === 'function') flowEndBoss();
+    if (typeof runOverSet === 'function') runOverSet(true);   // r817: lost; nothing plays in the beat before the finale
     setTimeout(() => onGameEnd(true), 1200);
   }
 

@@ -615,6 +615,7 @@ function flowrKindViable(kind) {
 
 // ── Entry: called from the top of survivalShowPick (goal-clear only) ─────────
 function flowrMaybeStart() {
+  if (typeof runIsOver === 'function' && runIsOver()) return;   // r817: the run is over
   if (_flowrBypass) return false;
   if (typeof flowActive !== 'function' || !flowActive()) return false;
   if (!flowrCfg().on) return false;
@@ -729,6 +730,7 @@ function flowrRollBossCount() {
 // grid plus N-1 ordinary rolled kinds; pick3 may still appear once, since the
 // prize grid is not a pick.
 function flowrStartBossChain(bossName) {
+  if (typeof runIsOver === 'function' && runIsOver()) return;   // r817: the run is over
   const n = flowrRollBossCount();
   const odds = flowrOddsNow();
   const queue = ['prize'], taken = {};

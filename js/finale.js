@@ -147,9 +147,19 @@ function finaleBodyHTML(F) {
     <div class="fn-details" hidden>${(typeof runReportHTML === 'function') ? runReportHTML() : ''}</div>`;
 }
 
+// r817: THE RUN IS OVER. Set the moment a run is lost or won (showFinale, and the two
+// losses that wait a beat before the finale: a failed boss, a failed challenge), cleared by
+// closeFinale (PLAY AGAIN, ENDLESS) and startGame. While it is set nothing may move the run
+// on: playHand, discard, swap, card taps, the autoplayers and every between-rounds screen
+// return at once. Before this a hand played after a loss (the board takes taps under PEEK)
+// could clear the goal, and the reward screen opened under the finale and took its keys.
+let runOver = false;
+function runIsOver() { return runOver; }
+function runOverSet(on) { runOver = !!on; }
 // r814: true while the run's end screen is up. pauseGame() asks it: nothing is left to pause.
 function finaleOpen() { return !!_fnCtl || !!document.getElementById('end-overlay')?.classList.contains('show'); }
 function showFinale(kind) {
+  runOver = true;
   const F = finaleFacts(kind); _fnFacts = F;
   // A pause menu still up would sit under the finale and block its keys: let it go, start no timer.
   if (typeof isPaused !== 'undefined' && isPaused) {
@@ -196,6 +206,7 @@ function finaleFitStats(ctl) {
   });
 }
 function closeFinale() {
+  runOver = false;
   if (typeof keysReturn === 'function') keysReturn();
   if (_fnCtl) { const c = _fnCtl; _fnCtl = null; c.close(true); }
 }

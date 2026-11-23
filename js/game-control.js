@@ -293,6 +293,7 @@ document.querySelector('#stats-overlay .overlay-close').addEventListener('click'
 document.querySelector('#deck-overlay .overlay-close').addEventListener('click', () => closeInfoOverlay('deck-overlay'));
 
 function startGame() {
+  if (typeof runOverSet === 'function') runOverSet(false);   // r817: a new run is live
   if (typeof rsReset === 'function') rsReset();   // r755: run stats start empty (js/run-stats.js); a restore overwrites them
   if (typeof offerRecent !== 'undefined') offerRecent = [];   // r716: a new run remembers no offers
   if (typeof _ulRunLive !== 'undefined') _ulRunLive = false;   // r706: the opening balance is not earned credits

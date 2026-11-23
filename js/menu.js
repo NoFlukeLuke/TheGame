@@ -1,4 +1,4 @@
-const BUILD = "2026-11-23 · r818 · golden baseline for r817";
+const BUILD = "2026-11-23 · r819 · merge the finished-run stop";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

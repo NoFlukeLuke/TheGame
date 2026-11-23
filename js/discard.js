@@ -1,4 +1,5 @@
 function doDiscard() {
+  if (typeof runIsOver === 'function' && runIsOver()) return;   // r817: the run is over
   if (typeof cascadeRunning === 'function' && cascadeRunning()) { dbgEvent('info', 'discard ignored (cascade)'); return; }   // r773
   if (typeof logisticsRunning === 'function' && logisticsRunning()) return;   // r647
   if (typeof bossJumpRunning === 'function' && bossJumpRunning()) { dbgEvent('info', 'discard ignored (skipping to the boss)'); return; }   // r606

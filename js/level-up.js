@@ -47,6 +47,7 @@ function computeRoundResources() {
 }
 
 function triggerLevelUp() {
+  if (typeof runIsOver === 'function' && runIsOver()) return;   // r817: the run is over
   // During a boss, the legacy goal-based level-up flow is suppressed.
   // The new XP-grid level-up (Step 2) will replace this entirely; for now,
   // we just skip the old round-reset to avoid disrupting the boss.
