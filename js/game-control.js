@@ -24,6 +24,9 @@ function pauseGame(hideGrid = true) {
   if (isPaused) return;
   // No run has started yet (the main menu), so there is no menu to open either.
   if (!gameStartTime) return;
+  // r804: the run is over. The finale covers the board, so the pause menu would open
+  // UNDER it and its clear overlay would take every tap meant for PLAY AGAIN / HOME.
+  if (typeof finaleOpen === 'function' && finaleOpen()) return;
   // A running 3-2-1 counts as something to pause: the round timer has not started yet,
   // so the old test also made PAUSE a no-op during the deal and the round began
   // underneath the pause menu.
@@ -101,6 +104,7 @@ function resumeGame() {
 // screen that never scrolls away - its bar.
 function togglePauseMenu() {
   if (isPaused) resumeGame();
+  else if (typeof finaleOpen === 'function' && finaleOpen()) { if (typeof refuse === 'function') refuse(); }
   else pauseGame(true);
 }
 document.getElementById('btn-pause').addEventListener('click', togglePauseMenu);

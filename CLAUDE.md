@@ -5531,3 +5531,13 @@ after; a real hand through PLAY with the Trick: no timeline drift. The chain and
 Employee of the Month joins the list (838 cases). Its place in the Trick list moves the random line
 placement of the cases after it, so line Tricks' cases change with no scoring change (the 834 old
 cases matched with it held out, r802).
+
+## r804 - PAUSE cannot open under the end screen (owner's bug)
+At the finale, PLAY AGAIN / HOME / ENDLESS went dead after pressing PAUSE, or after leaving the tab or
+app (`letheOnHidden` auto-pauses; its run-over test still read the pre-r634 `#end-overlay`). The pause
+menu opened UNDER the finale (z 10002) and its clear full-screen overlay took every tap on the keys.
+`finaleOpen()` (js/finale.js) is true while the end screen is up; `pauseGame` returns on it (so the
+PAUSE key, Records' pause and the tab-hidden pause all stand down; the PAUSE key refuses), and
+`showFinale` lets go of a pause menu that was already up, starting no timer. Measured by real clicks at
+1440x820 and 420x900 (Classic loss, Flow win): PAUSE, Records, PEEK, DETAILS, SHARE, then PLAY AGAIN
+started the run; pause works again in the new run; no page errors.

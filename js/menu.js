@@ -1,4 +1,4 @@
-const BUILD = "2026-11-17 · r803 · golden baseline for Employee of the Month";
+const BUILD = "2026-11-23 · r804 · PAUSE cannot open under the end screen";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

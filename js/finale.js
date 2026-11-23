@@ -147,8 +147,18 @@ function finaleBodyHTML(F) {
     <div class="fn-details" hidden>${(typeof runReportHTML === 'function') ? runReportHTML() : ''}</div>`;
 }
 
+// r804: true while the run's end screen is up. pauseGame() asks it: nothing is left to pause.
+function finaleOpen() { return !!_fnCtl || !!document.getElementById('end-overlay')?.classList.contains('show'); }
 function showFinale(kind) {
   const F = finaleFacts(kind); _fnFacts = F;
+  // A pause menu still up would sit under the finale and block its keys: let it go, start no timer.
+  if (typeof isPaused !== 'undefined' && isPaused) {
+    isPaused = false;
+    const po = document.getElementById('pause-overlay'); if (po) po.style.display = 'none';
+    const g = document.getElementById('grid'); if (g) g.style.visibility = '';
+    const pb = document.getElementById('btn-pause'); if (pb) pb.textContent = '⏸ Pause';
+    if (typeof dncSetPaused === 'function') dncSetPaused(false);
+  }
   if (typeof hideGoalBanner === 'function') hideGoalBanner();
   if (typeof boardScreenOpen !== 'function' || !bsStage()) { finaleFallback(F); return; }
   if (typeof keysReturn === 'function') keysReturn();
