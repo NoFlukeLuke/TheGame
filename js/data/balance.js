@@ -66,7 +66,7 @@ const BAL = {
   discard_pips: { mult_per: 4, mult_per_flow: 2 },   // r651 (owner): Flow pays the smaller one
   landfill: { mult_per: 1 },   // r651 (owner): per swapped or discarded card THIS GAME (landfillCount)
   magician: { mult_per_sleight: 6, solo_pips: 50 },   // r635: solo_pips while you own no Sleight
-  stand_up: { mult_per_card: 16 },   // r817 (owner, the averages pass): was 12
+  stand_up: { mult_per_card: 20 },   // r827 (owner): matches Lie Down; was 16 (r817), 12 before
   scalper: { mult_mult_per_missing: 0.25 },
   down_and_back_in: { coins: 5, grant: 2 },   // r635: grant swaps or discards, alternating
   short_change: { coins: 1 },
@@ -129,7 +129,7 @@ const BAL = {
   wild_heart: { primes: 1, extra_ranks: 0 },   // r625: primes per Ace; extra ranks are rolled on the Trick when improved
   same_kind: { mult_per_match: 2 },
   column_rush: { mult_per_card: 5 },
-  row_power: { mult_per_card: 16 },   // r817 (owner, the averages pass): was 12
+  row_power: { mult_per_card: 20 },   // r827 (owner): was 16 (r817), 12 before
   groove:        { focus_per_2: 1 },
   assembly_line: { mult_per_prior: 2, mult_per_flow: 1, lines: 1 },   // r646 (owner): per card played from the line LAST round (last quarter in Flow); lines 2 = the 5th improvement's second line
   overtime:      { seconds_per_3: 1 },

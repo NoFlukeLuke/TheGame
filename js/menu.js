@@ -1,4 +1,4 @@
-const BUILD = "2026-11-23 · r826 · beats run while chips sit; short fire jump; fire sliders";
+const BUILD = "2026-11-23 · r827 · Lie Down and Stand-Up +20 mult per card";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
