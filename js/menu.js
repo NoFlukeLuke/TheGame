@@ -1,4 +1,4 @@
-const BUILD = "2026-11-23 · r819 · merge the finished-run stop";
+const BUILD = "2026-11-23 · r820 · every corner: pixel notches in console mode, slightly rounded outside it";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
