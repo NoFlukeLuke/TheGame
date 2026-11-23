@@ -6,7 +6,10 @@ They are human-composed library pieces published between 2006 and 2020, years
 before generative music tools existed; nothing newer from the catalogue is used.
 
 The files were re-encoded from the originals at 128 kbps with their loudness
-matched (ffmpeg loudnorm, -16 LUFS), nothing else changed.
+matched (ffmpeg loudnorm, -16 LUFS). In the game every track plays through a
+"small speaker" filter (js/music.js, MUSIC_SPEAKER: bass and treble cut, the
+middle pushed, compressed). Settings -> Audio -> Music speaker turns it off.
+The last six play only in the shop.
 
 The attribution the licence asks for, per track:
 
@@ -21,6 +24,12 @@ The attribution the licence asks for, per track:
 | `shiny-tech.mp3` | Shiny Tech | 2006 | https://incompetech.com/music/royalty-free/mp3-royaltyfree/Shiny%20Tech.mp3 |
 | `getting-it-done.mp3` | Getting it Done | 2018 | https://incompetech.com/music/royalty-free/mp3-royaltyfree/Getting%20it%20Done.mp3 |
 | `nowhere-land.mp3` | Nowhere Land | 2016 | https://incompetech.com/music/royalty-free/mp3-royaltyfree/Nowhere%20Land.mp3 |
+| `dispersion-relation.mp3` | Dispersion Relation | 2007 | https://incompetech.com/music/royalty-free/mp3-royaltyfree/Dispersion%20Relation.mp3 |
+| `intractable.mp3` | Intractable | 2006 | https://incompetech.com/music/royalty-free/mp3-royaltyfree/Intractable.mp3 |
+| `c-funk.mp3` | C-Funk | 2006 | https://incompetech.com/music/royalty-free/mp3-royaltyfree/C-Funk.mp3 |
+| `semi-funk.mp3` | Semi-Funk | 2005 | https://incompetech.com/music/royalty-free/mp3-royaltyfree/Semi-Funk.mp3 |
+| `private-eye.mp3` | Private Eye | 2010 | https://incompetech.com/music/royalty-free/mp3-royaltyfree/Private%20Eye.mp3 |
+| `spy-glass.mp3` | Spy Glass | 2015 | https://incompetech.com/music/royalty-free/mp3-royaltyfree/Spy%20Glass.mp3 |
 
 Standard credit line (one per track):
 

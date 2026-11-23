@@ -56,6 +56,11 @@ const SETTINGS_DEF = [
   { group: 'Audio', id: 'sfxVolumePct', label: 'Sound effects', hint: 'Cards, coins, scoring, bosses.',
     type: 'slider', min: 0, max: 100, step: 5, default: 100, unit: '%' },
   // r694: the clock ramp (js/music.js). Read there every tick; nothing to apply.
+  // r824: the small speaker every track plays through (js/music.js, MUSIC_SPEAKER).
+  { group: 'Audio', id: 'musicSpeaker', label: 'Music speaker',
+    hint: 'Small speaker plays the music through a cheap cabinet speaker: thin bass, soft top. Off plays the recordings as they are.',
+    type: 'select', default: 'on', options: [['on', 'Small speaker'], ['off', 'Off']],
+    apply: () => { if (typeof musicSpeakerApply === 'function') musicSpeakerApply(); } },
   { group: 'Audio', id: 'musicClock', label: 'Music follows the clock',
     hint: () => `In a run the track plays faster as the level clock runs down, up to ${(typeof MUSIC_CLOCK !== 'undefined' ? MUSIC_CLOCK.max : 1.65)}x at 0:00. Tempo keeps the key. Tape lets the pitch rise with it.`,
     type: 'select', default: 'tempo', options: [['off', 'Off'], ['tempo', 'Tempo'], ['tape', 'Tape']] },

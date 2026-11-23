@@ -76,7 +76,7 @@ function musicPlayableIndexes() {
   return musicAllTracks().map((t, i) => i).filter(i => {
     const t = musicTrackAt(i);
     const scene = t.scene || 'any';
-    return musicTrackOn(t.id) && !_musicDeadIds.has(t.id) && (scene === 'any' || scene === _musicScene);
+    return musicTrackOn(t.id) && !_musicDeadIds.has(t.id) && musicSceneFits(scene, _musicScene);
   });
 }
 
@@ -86,7 +86,85 @@ function musicVolume() {
   const mus = (typeof SETTINGS.musicVolume === 'number' ? SETTINGS.musicVolume : 60) / 100;
   return master * mus;
 }
-function applyMusicVolume() { if (_musicEl) _musicEl.volume = Math.max(0, Math.min(1, musicVolume())); }
+function applyMusicVolume() {
+  if (!_musicEl) return;
+  const v = Math.max(0, Math.min(1, musicVolume()));
+  // Routed through the speaker (below), the volume is a gain node after it and the
+  // element plays at full level, so no browser applies the volume twice.
+  if (_spk) { _musicEl.volume = 1; _spk.vol.gain.value = v; }
+  else _musicEl.volume = v;
+}
+
+// ── THE SPEAKER (r824, owner) ───────────────────────────────────────────────
+// Every track plays as if through the small speaker in a cheap cabinet: the low
+// end and the top are cut off steeply, the middle where a small cone rings is
+// pushed up a little, a compressor evens the level out, it is made up for what was cut, and a soft clip
+// rounds the loudest peaks off the way a little speaker breaks up.
+//   element -> highpass x2 -> peak -> lowpass x2 -> compressor -> makeup -> tanh clip -> volume
+// The <audio> element is routed into the Web Audio graph the first time the
+// speaker is wanted (createMediaElementSource can only be called once per
+// element); after that the element's sound only ever leaves through the graph,
+// so Off is a bypass (source straight to the volume), not an unroute. Music does
+// NOT go through sfxOut: it is not ducked or bus-limited (r191), as before.
+// musicSpeakerChain() is the ONE builder: the game and speaker-preview tooling
+// (an OfflineAudioContext) both call it, so a preview is the game's sound.
+// Settings -> Audio -> Music speaker (musicSpeaker: 'on' / 'off').
+// Q for the high / low passes is in dB in the Web Audio spec: -3.01 dB is the
+// linear 0.707 of a Butterworth stage, so two stages make a clean 24 dB/octave.
+const MUSIC_SPEAKER = { hp: 260, lp: 4200, passQ: -3.01, peakF: 1600, peakQ: 0.8, peakDb: 3,
+                        compDb: -30, compKnee: 10, compRatio: 6, makeupDb: 2, clip: 1 };
+let _spk = null;   // { src, chainIn, chainOut, vol } once routed
+
+function musicSpeakerOn() { return !(typeof SETTINGS !== 'undefined' && SETTINGS.musicSpeaker === 'off'); }
+
+// Build the speaker on `ctx` between `input` and `output`; returns its nodes.
+function musicSpeakerChain(ctx, input, output) {
+  const c = MUSIC_SPEAKER, bq = (type, f, q, g) => {
+    const n = ctx.createBiquadFilter(); n.type = type; n.frequency.value = f; n.Q.value = q;
+    if (g != null) n.gain.value = g; return n;
+  };
+  const nodes = [bq('highpass', c.hp, c.passQ), bq('highpass', c.hp, c.passQ),
+                 bq('peaking', c.peakF, c.peakQ, c.peakDb),
+                 bq('lowpass', c.lp, c.passQ), bq('lowpass', c.lp, c.passQ)];
+  // A compressor evens the tracks out: a bass-heavy mix loses more to the high
+  // pass than a trumpet-heavy one, and a fixed gain left them 8 dB apart.
+  const comp = ctx.createDynamicsCompressor();
+  comp.threshold.value = c.compDb; comp.knee.value = c.compKnee; comp.ratio.value = c.compRatio;
+  comp.attack.value = 0.005; comp.release.value = 0.2;
+  const makeup = ctx.createGain(); makeup.gain.value = Math.pow(10, c.makeupDb / 20);
+  const clip = ctx.createWaveShaper();
+  const N = 2048, curve = new Float32Array(N), k = c.clip;
+  // tanh: unity for quiet passages, rounds peaks off; the input is clamped to +-1.
+  for (let i = 0; i < N; i++) { const x = (i / (N - 1)) * 2 - 1; curve[i] = Math.tanh(k * x) / k; }
+  clip.curve = curve; clip.oversample = '2x';
+  nodes.push(comp, makeup, clip);
+  input.connect(nodes[0]);
+  for (let i = 0; i < nodes.length - 1; i++) nodes[i].connect(nodes[i + 1]);
+  nodes[nodes.length - 1].connect(output);
+  return { first: nodes[0], last: nodes[nodes.length - 1] };
+}
+
+// Route the element into the graph (once), then wire speaker or bypass.
+function musicSpeakerApply() {
+  if (!_musicEl) return;
+  if (!_spk) {
+    if (!musicSpeakerOn()) return;   // never routed until the speaker is wanted
+    let ctx; try { ctx = getAudioCtx(); } catch (e) { return; }
+    if (!ctx || !ctx.createMediaElementSource) return;
+    try {
+      const src = ctx.createMediaElementSource(_musicEl);
+      const vol = ctx.createGain(); vol.connect(ctx.destination);
+      _spk = { ctx, src, vol, chain: null, wired: null };
+    } catch (e) { console.warn('[music] speaker unavailable', e); return; }
+  }
+  const want = musicSpeakerOn() ? 'on' : 'off';
+  if (_spk.wired === want) { applyMusicVolume(); return; }
+  try { _spk.src.disconnect(); } catch (e) {}
+  if (want === 'on') { if (!_spk.chain) _spk.chain = musicSpeakerChain(_spk.ctx, _spk.src, _spk.vol); else _spk.src.connect(_spk.chain.first); }
+  else _spk.src.connect(_spk.vol);
+  _spk.wired = want;
+  applyMusicVolume();
+}
 
 // ── THE SPEED RAMP (r244) ───────────────────────────────────────────────────
 // A track can get faster the longer it plays: `ramp` on its manifest row. The
@@ -211,6 +289,8 @@ function musicPlay() {
   const pool = musicPlayableIndexes();
   if (!pool.length) return;
   if (pool.indexOf(_musicIndex) === -1) { if (!musicLoadIndex(_musicPickNext(-1))) return; }
+  musicSpeakerApply();
+  if (_spk && _spk.ctx.state === 'suspended') { try { _spk.ctx.resume(); } catch (e) {} }
   applyMusicVolume();
   const p = musicEl().play();
   if (p && p.catch) p.catch(() => { /* autoplay blocked - armMusicAutostart retries on the next gesture */ });
@@ -260,14 +340,50 @@ function setMusicOn(on) {
   if (typeof renderPlaylist === 'function') renderPlaylist();
 }
 
+// Does a track of scene `ts` belong in scene `at`? 'any' is the menu and the run,
+// never the shop: the shop plays its own tracks and nothing else (r824).
+function musicSceneFits(ts, at) {
+  ts = ts || 'any';
+  if (at === 'shop') return ts === 'shop';
+  return ts === 'any' || ts === at;
+}
+
 // The menu and a run can have different tracks. Changing scene only interrupts
 // the current track if it does not belong in the new scene.
 function musicSetScene(scene) {
   if (_musicScene === scene) return;
+  if (scene !== 'shop') _musicResume = null;
   _musicScene = scene;
   const cur = musicTrackAt(_musicIndex);
-  const ok = cur && ((cur.scene || 'any') === 'any' || (cur.scene || 'any') === scene);
+  const ok = cur && musicSceneFits(cur.scene, scene);
   if (!ok) musicNext();
+}
+
+// ── The shop's music (r824) ──
+// Opening the shop puts the run's track aside (index and position) and plays a
+// shop track; closing it brings the run's track back where it stopped. With
+// every shop track switched off the run's music just carries on.
+let _musicResume = null;
+function musicShopHasTracks() {
+  return musicAllTracks().some(t => t.scene === 'shop' && musicTrackOn(t.id) && !_musicDeadIds.has(t.id));
+}
+function musicEnterShop() {
+  if (_musicScene !== 'game' || !musicShopHasTracks()) return;
+  const keep = (_musicIndex >= 0 && _musicEl) ? { i: _musicIndex, t: _musicEl.currentTime || 0 } : null;
+  _clockRate = 1;   // the shop plays at 1x from its first note (the clock ramp's target there is 1)
+  musicSetScene('shop');
+  _musicResume = keep;
+}
+function musicLeaveShop() {
+  if (_musicScene !== 'shop') return;
+  const back = _musicResume; _musicResume = null;
+  _musicScene = 'game';
+  const t = back && musicTrackAt(back.i);
+  if (t && musicPlayableIndexes().indexOf(back.i) >= 0) {
+    musicLoadIndex(back.i);
+    try { musicEl().currentTime = back.t; } catch (e) {}
+    if (_musicWantPlaying) musicPlay();
+  } else musicNext();
 }
 
 // ── Autostart on the first interaction ───────────────────────────────────────

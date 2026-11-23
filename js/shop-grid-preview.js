@@ -560,6 +560,7 @@ function openShopGrid() {
   _shopTapKey = null; _shopTapAt = 0;
   gameTimerPaused = true;
   try { sfxShopOpen?.(); } catch (e) {}
+  if (typeof musicEnterShop === 'function') musicEnterShop();   // r824: the shop's own music
   shopGridItems  = buildShopGridStock();
   // The shop board is the PLAYER'S board: same rows and columns, read from the
   // limits (never the live globals - a boss or a penalty can have shrunk those
@@ -661,6 +662,7 @@ function shopRestoreSize(saved) {
 function closeShopGrid() {
   if (!shopGridActive) return;
   shopGridActive = false;
+  if (typeof musicLeaveShop === 'function') musicLeaveShop();   // r824: the run's track picks up again
   hideRewardTooltip();
   closeShopOwnedPanel();
   document.body.classList.remove('shop-active');

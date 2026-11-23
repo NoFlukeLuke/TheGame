@@ -5866,7 +5866,29 @@ SPEED UP + SKIP: scores landed on the banked totals, no timeline drift, no page 
 Display name only (id `growth_mindset`, Limitless's protocol Knack): js/data/knacks.js, the handbook's
 protocols entry, comments. The r750 note's "no unlock Knack yet" for Hyperfocus is corrected (ADHD, r789).
 
-## r824 - side projects preview (Schedule chunk 4, owner)
+## r824 - the shop's jazz; every track plays through a small speaker (owner)
+- **Shop music** (`scene: 'shop'` in js/data/audio-manifest.js): Dispersion Relation, Intractable, C-Funk,
+  Semi-Funk, Private Eye, Spy Glass (Kevin MacLeod, CC BY 4.0, 2005-2015; CREDITS.md, the handbook).
+  `musicSceneFits(ts, at)` is the one scene rule: the shop plays only 'shop' tracks, 'any' is menu and run.
+  `openShopGrid` calls `musicEnterShop()` (keeps the run's track index and position in `_musicResume`,
+  clock rate to 1x), `closeShopGrid` calls `musicLeaveShop()` (that track again, from where it stopped).
+  With every shop track switched off the run's music carries on through the shop.
+- **The speaker** (`MUSIC_SPEAKER`, `musicSpeakerChain(ctx, in, out)` in js/music.js, the ONE builder):
+  highpass x2 at 260 Hz, +3 dB at 1.6 kHz, lowpass x2 at 4.2 kHz (Butterworth, Q -3.01 dB), compressor
+  (-30 dB, 6:1, knee 10), +2 dB, tanh soft clip. The <audio> element is routed into the Web Audio graph
+  (`createMediaElementSource`, once) the first time the speaker is on (`musicSpeakerApply`, from
+  `musicPlay`); after that Off is a bypass. Volume is a gain after the chain (`_spk.vol`; the element
+  plays at 1). Music still does not go through `sfxOut`. Routed, music follows the AudioContext: a
+  suspended context is silent (musicPlay resumes it) and an iPhone's silent switch mutes it like the
+  effects. **Settings -> Audio -> Music speaker**: Small speaker (default) / Off (`musicSpeaker`).
+- Measured (OfflineAudioContext through `musicSpeakerChain`, 18s of each of the 15 tracks): every track
+  within -2.2 to +0.7 dB of its dry RMS, peaks at most 0.76 (the clip's ceiling). A fixed gain without
+  the compressor left them 8 dB apart and pushed the trumpet tracks into the clip. In Chromium at 1440x820
+  and 420x900: Your Call playing routed (speaker 'on', context running, signal on a meter after the
+  chain); opening the shop played Dispersion Relation at 1x; closing it went back to Your Call at the
+  second it left; the setting switched the chain off and on with the track playing; no page errors.
+
+## r825 - side projects preview (Schedule chunk 4, owner)
 `side-projects-preview.html` (standalone, nothing wired): five ways to show a side project on the
 list (bracket, band, tags, thread, frame) across four states, and 10 costs, 10 rewards and 5
 walk-away penalties to tick (`lethe.spPreview.v1`, this browser only; COPY MY PICKS). Owner's rules

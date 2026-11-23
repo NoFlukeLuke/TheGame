@@ -18,7 +18,8 @@ const AUDIO_MANIFEST = {
   //   id     - short unique name, no spaces (used to remember on/off)
   //   title  - what the playlist shows
   //   file   - path from the repo root
-  //   scene  - 'menu' (main menu only), 'game' (in a run only), 'any' (both)
+  //   scene  - 'menu' (main menu only), 'game' (in a run only), 'any' (both),
+  //            'shop' (only while the shop is open; nothing else plays there)
   //   artist - optional, shown under the title
   //   off    - true to ship it switched OFF (the player turns it on)
   //   ramp   - the track gets FASTER the longer it plays. `true` is every 20s,
@@ -55,6 +56,17 @@ const AUDIO_MANIFEST = {
     { id: 'getting_done', title: 'Getting it Done',        artist: 'Kevin MacLeod', file: 'assets/music/getting-it-done.mp3',  scene: 'game' },
     { id: 'nowhere_land', title: 'Nowhere Land',           artist: 'Kevin MacLeod', file: 'assets/music/nowhere-land.mp3',     scene: 'game' },
     { id: 'shiny_tech',   title: 'Shiny Tech',             artist: 'Kevin MacLeod', file: 'assets/music/shiny-tech.mp3',       scene: 'game' },
+    // ── The shop (r824, owner) ──
+    // 70s library jazz with trumpets, Kevin MacLeod, CC BY 4.0, 2005-2015. Scene
+    // 'shop' plays ONLY while the shop is open (openShopGrid / closeShopGrid); the
+    // run's track stops and picks up where it was when the shop closes. No clock
+    // ramp: the shop holds the round clock, so they play at 1x.
+    { id: 'dispersion',   title: 'Dispersion Relation',    artist: 'Kevin MacLeod', file: 'assets/music/dispersion-relation.mp3', scene: 'shop' },
+    { id: 'intractable',  title: 'Intractable',            artist: 'Kevin MacLeod', file: 'assets/music/intractable.mp3',      scene: 'shop' },
+    { id: 'c_funk',       title: 'C-Funk',                 artist: 'Kevin MacLeod', file: 'assets/music/c-funk.mp3',           scene: 'shop' },
+    { id: 'semi_funk',    title: 'Semi-Funk',              artist: 'Kevin MacLeod', file: 'assets/music/semi-funk.mp3',        scene: 'shop' },
+    { id: 'private_eye',  title: 'Private Eye',            artist: 'Kevin MacLeod', file: 'assets/music/private-eye.mp3',      scene: 'shop' },
+    { id: 'spy_glass',    title: 'Spy Glass',              artist: 'Kevin MacLeod', file: 'assets/music/spy-glass.mp3',        scene: 'shop' },
   ],
   // ── SOUND EFFECTS ────────────────────────────────────────────────────────
   // id: 'path/to/file'. The ids are listed in Settings -> Sound effects, and in

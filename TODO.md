@@ -117,7 +117,7 @@ on the rest of `SCHEDULE_IDEAS.md`, taken one chunk at a time, questions first:
    Balance Sheet, Restructuring needs one Trick.
 4. **Side projects** (idea 5). Two linked tiles framed together: book both under a cost, clear
    both for a reward. Five ways to show it; twenty rewards and costs.
-   **Owner (r824):** two linked rounds (account, priority, audit or 1-on-1), the second in the
+   **Owner (r825):** two linked rounds (account, priority, audit or 1-on-1), the second in the
    next slot; about 25% of quarters, 2 a run at most, both shapes; walking away after the first
    half adds a penalty. Looks, costs, rewards and penalties to pick: `side-projects-preview.html`.
 5. **The Schedule's difficulty ladder** (ideas 6, 7, 9). Tier 1 any tile; tier 2 adjacent moves
