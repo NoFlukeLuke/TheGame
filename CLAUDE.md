@@ -5766,3 +5766,6 @@ baseline) and the end-screen PAUSE fix (above it, on main). The merge that joine
   1440x820, 420x900 and 375x667 at caps 20 to 100 and with a forced "123.4": inside every time.
 Golden: only the Tricks above move (and the trays that hold them); baseline in r818. A real hand with
 Hyper Focus over half Focus played with no timeline drift at 1440x820 and 420x900.
+
+## r818 - golden baseline rewritten for r817
+Only the Tricks r817 retuned (and the trays holding them) moved.

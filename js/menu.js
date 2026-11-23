@@ -1,4 +1,4 @@
-const BUILD = "2026-11-23 · r817 · the averages pass; Hyper Focus applies Focus again";
+const BUILD = "2026-11-23 · r818 · golden baseline for r817";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
