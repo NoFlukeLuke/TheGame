@@ -96,13 +96,18 @@ function dncSetPaused(on) {
 // queue and the preview's SPEED UP are the player's own doing and are untouched.
 //
 // TALLY_CFG also holds how a card's score chips leave it (js/score-dance.js):
-//   hold   ms a chip sits at its source before it flies (carved out of the flight,
-//          so a chip takes no longer than before)
+//   hold   ms a chip sits at its source before it flies. r822 (owner: "twice as long"):
+//          1200. The first TALLY_HOLD_CARVED (600) ms are carved out of the flight;
+//          anything past that makes the chip's whole trip that much longer
+//          (dncChipBase), so the travel itself is never shorter than it was.
+//   curve  % of the flight's length the path bulges sideways at its midpoint
+//          (0 = dead straight). Always the same side, so chips never weave.
 //   gap    ms between one chip and the next in the same beat
 //   order  'ltr' the card first, then Tricks left to right across the tray;
 //          'rtl' right to left; 'emit' the order the score is worked out in
 // Dev -> HUD & Display -> Score tally pacing. Store lethe.tallyPace.v1, overrides only.
-const TALLY_DEFAULT = { accelStep: 1, accelMax: 2, focusMax: 1.5, hold: 600, gap: 140, order: 'ltr' };
+const TALLY_DEFAULT = { accelStep: 1, accelMax: 2, focusMax: 1.5, hold: 1200, gap: 140, order: 'ltr', curve: 6 };
+const TALLY_HOLD_CARVED = 600;
 const TALLY_CFG = Object.assign({}, TALLY_DEFAULT);
 (function () { try {
   const o = JSON.parse(localStorage.getItem('lethe.tallyPace.v1') || 'null'); if (!o) return;

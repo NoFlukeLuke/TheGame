@@ -1,4 +1,4 @@
-const BUILD = "2026-11-23 · r821 · score merge in LEDs";
+const BUILD = "2026-11-23 · r822 · fire animations, straight chips, longer sit";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

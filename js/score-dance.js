@@ -493,6 +493,13 @@ function dncTick(el){ if(!el) return; el.style.animation='none'; void el.offsetW
 // particle AND by the beat's own wait, or a beat banks its subtotal before its
 // particles have landed.
 function ptBaseFlight(){ return PARTICLE_CFG.flightMs || DANCE_CFG.pFlight; }
+// r822: a dance chip's whole trip at 1x: the flight, plus whatever TALLY_CFG.hold asks
+// past the 600ms the flight already gives up (TALLY_HOLD_CARVED, js/dance-clock.js).
+// Every dance site that pins a chip's duration reads this, so a number never lands
+// ahead of its chip. A prime's shortest trip grows in the same ratio.
+function dncChipBase(){ return ptBaseFlight() + Math.max(0, TALLY_CFG.hold - TALLY_HOLD_CARVED); }
+function dncPrimeMin(){ return DANCE_CFG.primeMinFlight * dncChipBase() / ptBaseFlight(); }
+let dncLastHold = 0;
 
 // ── Blip growth ────────────────────────────────────────────────────────────
 // Past the first `growStart` particles of a hand, every further one is `growStep`%
@@ -566,25 +573,38 @@ function ptFrames(dx, dy, scale){
   ];
 }
 // r772 (owner): a score chip appears AT its source, pops, sits there for `hold` ms,
-// then flies. The hold is carved out of `dur`, so the chip takes no longer than
-// before. The timing is linear and each stretch carries its own easing, or one
+// then flies. The timing is linear and each stretch carries its own easing, or one
 // ease over the whole flight would smear the hold into a slow drift.
-function ptHoldFrames(dx, dy, scale, hold, dur, bow){
+// r822 (owner: "serpentine... instead of relatively straight or on a slight curve"):
+// the flight is ONE gentle curve. r805 pushed each chip sideways at its midpoint,
+// every other chip the other way, through a single middle keyframe: a chip going
+// straight up went 54px right and came back (measured), and a stream of them wove
+// left and right. Now the path is a quadratic curve sampled in small steps, bulging
+// `curve` (a share of its length, TALLY_CFG.curve) to the SAME side for every chip,
+// with one ease over the whole trip (off slowly, in slowly).
+function ptHoldFrames(dx, dy, scale, hold, dur, curve){
   const C = PARTICLE_CFG, B = 'translate(-50%,-50%)';
   const pop = ((C.pop === undefined) ? 1.2 : C.pop) * scale;
-  const arc = C.arc || 0, mid = C.spin || 0;
+  const mid = C.spin || 0;
   const end = (C.spinEnd === undefined) ? 0 : C.spinEnd;
-  const h = Math.max(.05, Math.min(.6, hold / dur)), pIn = Math.min(h * .4, 90 / dur), m = h + (1 - h) * .45;
-  // r805: `bow` px sideways at the midpoint (across the line of flight), so two chips
-  // on one line do not ride on top of each other.
-  const L = Math.hypot(dx, dy) || 1, nx = -dy / L * (bow || 0), ny = dx / L * (bow || 0);
-  return [
+  const h = Math.max(.05, Math.min(.85, hold / dur)), pIn = Math.min(h * .4, 90 / dur);
+  // The control point: the midpoint pushed across the line of flight (a quadratic
+  // passes half way to its control point, so twice the bulge), plus the lob.
+  const k = (curve || 0) * 2, cx = dx * .5 - dy * k, cy = dy * .5 + dx * k - (C.arc || 0) * 2;
+  const s0 = (pop + scale) / 2, lerp = (a, b, t) => a + (b - a) * t, N = 12;
+  const kf = [
     { transform:`${B} scale(${.35*scale}) rotate(0deg)`, easing:'ease-out' },
     { transform:`${B} scale(${pop}) rotate(0deg)`, offset:pIn, easing:'ease-in-out' },
-    { transform:`${B} scale(${(pop+scale)/2}) rotate(0deg)`, offset:h, easing:'cubic-bezier(.5,0,.8,.6)' },
-    { transform:`${B} translate(${dx*.5 + nx}px,${dy*.5 - arc + ny}px) scale(${scale}) rotate(${mid}deg)`, offset:m, easing:'cubic-bezier(.2,.5,.4,1)' },
-    { transform:`${B} translate(${dx}px,${dy}px) scale(${.8*scale}) rotate(${end}deg)` },
+    { transform:`${B} scale(${s0}) rotate(0deg)`, offset:h },
   ];
+  for(let i = 1; i <= N; i++){
+    const u = i / N, e = u < .5 ? 2 * u * u : 1 - 2 * (1 - u) * (1 - u);
+    const x = 2 * (1 - e) * e * cx + e * e * dx, y = 2 * (1 - e) * e * cy + e * e * dy;
+    const sc = e < .5 ? lerp(s0, scale, e * 2) : lerp(scale, .8 * scale, (e - .5) * 2);
+    const rot = e < .5 ? mid * e * 2 : lerp(mid, end, (e - .5) * 2);
+    kf.push({ transform:`${B} translate(${x.toFixed(1)}px,${y.toFixed(1)}px) scale(${sc.toFixed(3)}) rotate(${rot.toFixed(1)}deg)`, offset: i === N ? 1 : +(h + (1 - h) * u).toFixed(4) });
+  }
+  return kf;
 }
 // The fade has its OWN linear clock (r531). Inside the flight's keyframes it rode the
 // flight's ease-out, which spends most of the real time on the last stretch of the
@@ -610,7 +630,7 @@ function ptLaunch(a, b, kind, label, color, dur, opts){
   const x = a.left + a.width/2,  y = a.top + a.height/2;
   const dx = (b.left + b.width/2) - x, dy = (b.top + b.height/2) - y;
   const held = o.hold > 0;
-  const frames = held ? ptHoldFrames(dx, dy, scale, o.hold, dur, o.bow) : ptFrames(dx, dy, scale), fades = ptFadeFrames(dur);
+  const frames = held ? ptHoldFrames(dx, dy, scale, o.hold, dur, o.curve) : ptFrames(dx, dy, scale), fades = ptFadeFrames(dur);
   const tw = { duration: dur, easing: held ? 'linear' : 'cubic-bezier(.3,.7,.4,1)', fill:'forwards' };
   const fw = { duration: dur, easing:'linear', fill:'forwards' };
   // GHOSTS. A rewind is the one payout that means "this already happened, and it
@@ -719,13 +739,13 @@ function dncFly(srcEl, boxEl, label, color, onLand, durOverride, kind, o){
   // has to reproduce calcScore exactly - what may vary is only what is drawn.
   const liveB = b.width > 0 && b.height > 0;
   if(!a || !a.width || !a.height) a = b;
-  const base = ptBaseFlight();
-  let dur = durOverride || (dncFF ? Math.max(60, base/DANCE_CFG.ff) : Math.max(60, base/dncPace()));
+  const base = dncChipBase();
+  let dur = durOverride || (dncFF ? Math.max(60, ptBaseFlight()/DANCE_CFG.ff) : Math.max(60, base/dncPace()));
   // The blip counter advances whether or not a plate is drawn, so a skipped one
   // does not shrink the next visible plate back down the growth curve.
   const _blip = dncBlipScale();
   // r772: the chip sits at its source first (TALLY_CFG.hold, the same share of any flight).
-  let _hold = dncFF ? 0 : dur * Math.min(.5, TALLY_CFG.hold / base), _bow = 0;
+  let _hold = dncFF ? 0 : dur * Math.min(.85, TALLY_CFG.hold / base);
   // r805 (owner): a chip appears NEAR THE MIDDLE of what spawned it, a little off centre
   // (a prime's ring further out, r781), at a spot that covers no chip already out by more
   // than half; and no two chips land at the same moment (ptStagger pushes a landing back).
@@ -735,12 +755,11 @@ function dncFly(srcEl, boxEl, label, color, onLand, durOverride, kind, o){
     a = ptSpawnSpot(a, sz, o && o.scatter > 0 ? Math.max(a.width, a.height) * (.42 + fxRandom() * .22) : Math.max(sz * .9, Math.min(a.width, a.height) * .5));
     const shift = ptStagger(dur);
     dur += shift; _hold += shift;
-    // Every other chip bows the other way across its line of flight.
-    _bow = (_ptLive.length % 2 ? -1 : 1) * sz * .6;
     ptLiveNote(a, b, sz, _hold, dur);
   }
+  dncLastHold = _hold;   // r822: what fired the chip stays lit this long (dncFire)
   if(liveB) ptLaunch(a, b, kind, label, color, dur,
-    { scale: _blip, animate: dncAnimate, timeout: dncTimeout, hold: _hold, bow: _bow });
+    { scale: _blip, animate: dncAnimate, timeout: dncTimeout, hold: _hold, curve: TALLY_CFG.curve / 100 });
   // This particle IS a payout tick - a card's pips, a Trick's pips or mult, a
   // Sleight firing. Bump AFTER dur is read so the speed-up lands on what is
   // still to come, not on the flight that earned it.
@@ -828,13 +847,54 @@ function dncChargeReal(el, n){ if(!el) return;
   el.style.setProperty('--dnc-jit', j.toFixed(2));
   if(!el.classList.contains('dnc-jitter')) el.classList.add('dnc-jitter');
   dncGlow(el, false); }
-// Release = stop jitter, springy pop + strong glow.
-function dncReleaseReal(el){ if(!el) return;
-  el.classList.remove('dnc-jitter'); el.style.removeProperty('--dnc-jit');
-  el.classList.remove('dnc-pop'); void el.offsetWidth;
-  el.style.setProperty('--dnc-mag', DANCE_CFG.trig.mag); el.style.setProperty('--dnc-dur', DANCE_CFG.trig.dur+'ms');
-  el.classList.add('dnc-pop'); dncGlow(el, true);
-  setTimeout(()=>{ if(el) el.classList.remove('dnc-pop'); }, DANCE_CFG.trig.dur+80); }
+// ── FIRING (r822, owner: "each of the cards and tricks need an animation when they fire") ──
+// The old looks were never switched off: a card swelled 12% for 0.42s and a Trick 21%
+// for 0.26s, as they had since r197. What changed is the chip. Since r772 / r805 it
+// pops up ON the thing that fired, at the same instant, and then sits there, so the
+// short swell under it was over before the eye left the chip (measured: nothing moving
+// for the rest of the sit). Now whatever fires JUMPS (bigger, brighter, a glow in the
+// chip's colour), STAYS raised and lit for as long as its chip sits on it, and drops
+// back with a small recoil as the chip leaves. WAAPI on the standalone scale /
+// translate properties, so it composes with whatever transform the element carries;
+// nothing is left on the element after.
+//   extend: the element is already lit (a card's second chip): keep it up, no new jump.
+const DNC_FIRE = {
+  card: { snap: 1.17, held: 1.08, lift: 7, bright: 1.3 },    // lift is % of its own height
+  ent:  { snap: 1.3,  held: 1.12, lift: 0, bright: 1.45 },
+  inMs: 90, settleMs: 130, outMs: 220, quick: 200,
+};
+function dncFire(el, hold, color, isCard){
+  if(!el || !el.isConnected || typeof el.animate !== 'function') return;
+  const F = isCard ? DNC_FIRE.card : DNC_FIRE.ent, col = color || '#f5c042';
+  const now = performance.now(), was = el._dncFire, live = !!(was && now < was.until - 30);
+  const h = Math.max(0, hold || 0), still = !!(typeof SETTINGS === 'object' && SETTINGS && SETTINGS.reducedMotion);
+  const until = now + h + DNC_FIRE.outMs;
+  if(live && isCard && until <= was.until + 30) return;          // already lit at least this long
+  // Start from where it is drawn now, so a re-fire never snaps back to rest first.
+  let from = { scale: '1', translate: '0 0', filter: 'brightness(1)', boxShadow: `0 0 0 0 ${col}00` };
+  if(live){ const cs = getComputedStyle(el); from = { scale: cs.scale === 'none' ? '1' : cs.scale, translate: cs.translate === 'none' ? '0 0' : cs.translate, filter: cs.filter === 'none' ? 'brightness(1)' : cs.filter, boxShadow: cs.boxShadow === 'none' ? from.boxShadow : cs.boxShadow }; }
+  if(was) was.anims.forEach(a => { try{ a.cancel(); }catch(e){} });
+  const pose = (s, l, b, g) => still ? { filter: `brightness(${b})`, boxShadow: g } : { scale: String(s), translate: `0 ${-l}%`, filter: `brightness(${b})`, boxShadow: g };
+  const rest = pose(1, 0, 1, `0 0 0 0 ${col}00`), snap = pose(F.snap, F.lift * 1.3, F.bright, `0 0 16px 5px ${col}cc`), held = pose(F.held, F.lift, 1 + (F.bright - 1) * .45, `0 0 9px 2px ${col}99`);
+  if(still) from = { filter: from.filter, boxShadow: from.boxShadow };
+  let kf, total;
+  if(h < 120){ total = DNC_FIRE.quick; kf = [from, Object.assign({ offset: .35 }, snap), rest]; }
+  else {
+    total = h + DNC_FIRE.outMs;
+    const tIn = (live && isCard) ? 0 : Math.min(DNC_FIRE.inMs, h * .3), tSet = Math.min(h * .7, tIn + DNC_FIRE.settleMs);
+    kf = [Object.assign({ easing: 'cubic-bezier(.2,.9,.3,1)' }, from)];
+    if(tIn > 0) kf.push(Object.assign({ offset: tIn / total, easing: 'ease-in-out' }, snap));
+    kf.push(Object.assign({ offset: tSet / total }, held), Object.assign({ offset: h / total, easing: 'ease-in' }, held),
+      Object.assign({ offset: (h + DNC_FIRE.outMs * .45) / total, easing: 'ease-out' }, pose(.96, -F.lift * .25, 1, `0 0 0 0 ${col}00`)), rest);
+  }
+  const a = (typeof dncAnimate === 'function' ? dncAnimate : (e, k, o) => e.animate(k, o))(el, kf, { duration: total, easing: 'linear' });
+  el._dncFire = { anims: a ? [a] : [], until: now + total };
+}
+// Release = stop jitter, then FIRE (r822): `hold` is how long its chip sits on it.
+// With no hold given (the payout's plates) it is the quick jump alone.
+function dncReleaseReal(el, hold, color){ if(!el) return;
+  el.classList.remove('dnc-jitter', 'dnc-pop'); el.style.removeProperty('--dnc-jit');
+  dncFire(el, hold, color, false); }
 function dncCleanupReal(){ dncRealEls.forEach(el=>{ if(!el) return;
   el.classList.remove('dnc-jitter','dnc-pop','dnc-pulse','dnc-flash'); el.style.removeProperty('--dnc-jit'); }); dncRealEls=[]; }
 // THE FLYING COPY (r503). One rule keeps the copy honest: everything that marks a
@@ -1772,7 +1832,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   const restAfter = si => (steps[si+1] && steps[si+1].prime) ? Math.max(18, DANCE_CFG.primeRest / Math.pow(2, primeK(steps[si+1]) - 1)) : DANCE_CFG.tickRest;
   // A prime's own flight is shortened to match. dncFly computes its own duration
   // when handed none, so an override has to divide by the pace itself.
-  const primeFlight = () => Math.max(60, ptBaseFlight() * DANCE_CFG.primeFlight / (dncFF ? DANCE_CFG.ff : dncPace()));
+  const primeFlight = () => Math.max(60, (dncFF ? ptBaseFlight() / DANCE_CFG.ff : dncChipBase() / dncPace()) * DANCE_CFG.primeFlight);
 
   const _rnd = (v,how) => how==='int' ? Math.round(v) : how==='dp1' ? Math.round(v*10)/10 : v;
   const showPips = extra => { if(pipsEl) pipsEl.textContent = fmtBig(Math.round(rp + (extra||0))); dncTick(pipsEl); };
@@ -1807,7 +1867,6 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   // `plate` (r738): false = no plate of its own (it rides another plate's label); a string = that label.
   const fireEvent = (ev, fallbackEl, subRef, awaitIt, inBeat, dur, defer, plate, fo) => {
     const el = dncEntEl(ev);
-    if(el) dncReleaseReal(el);
     const src = el || fallbackEl;
     const box = (ev.op==='pip+'||ev.op==='pip*') ? pipsBox : multBox;
     const land = () => {
@@ -1829,6 +1888,11 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
       const so = { prime: ev.prime ? (ev.primeN || 1) : 0, forced: !!ev.forced, id: ev.id, dull: !!(fo && fo.dull) && !el };
       if(el){ if(typeof sfxScoreTrick==='function') sfxScoreTrick(so); } else if(typeof sfxScoreCard==='function') sfxScoreCard(so); }
     const p = dncFly(src, box, typeof plate === 'string' ? plate : evLabel(ev), evColor(ev), defer ? null : land, dur, evKind(ev), { scatter: ev.prime ? (ev.primeN || 1) : 0 });
+    // r822: what fired stays raised and lit while its chip sits on it. A Trick, Knack or
+    // Sleight by its own chip; a card by any chip that leaves the card itself.
+    { const fc = (PARTICLE_CFG.colors && PARTICLE_CFG.colors[evKind(ev)]) || evColor(ev);
+      if(el) dncReleaseReal(el, dncLastHold, fc);
+      else { const outer = fallbackEl && fallbackEl.closest && fallbackEl.closest('.dnc-outer'); if(outer) dncFire(outer, dncLastHold, fc, true); } }
     return defer ? land : (awaitIt ? p : null);
   };
 
@@ -1862,7 +1926,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
       const ev = step.event;
       const anchor = (ev.from >= 0 && cardEls[slotOf(ev.from)]) ? cardEls[slotOf(ev.from)]
                    : ((ev.op==='pip+'||ev.op==='pip*') ? pipsBox : multBox);
-      await fireEvent(ev, anchor, { v:0 }, true, false, step.prime ? Math.max(Math.min(primeFlight(), DANCE_CFG.primeMinFlight), primeFlight() / Math.pow(2, primeK(step) - 1)) : undefined);
+      await fireEvent(ev, anchor, { v:0 }, true, false, step.prime ? Math.max(Math.min(primeFlight(), dncPrimeMin()), primeFlight() / Math.pow(2, primeK(step) - 1)) : undefined);
       await dwait(restAfter(si));
       continue;
     }
@@ -1879,7 +1943,9 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     for(let rep=0; rep<step.reps; rep++){
       if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
       if(flushed()){ beatsCut = true; break; }
-      dncActivate(cardEl);
+      // r822: the card fires as its beat opens (dncFire), and every chip that leaves it
+      // keeps it lit. A card with no chip of its own (a wild) still jumps here.
+      if(cardEl && cardEl.parentElement) dncFire(cardEl.parentElement, dncFF ? 0 : Math.max(60, dncChipBase() / dncPace()) * Math.min(.85, TALLY_CFG.hold / dncChipBase()), (PARTICLE_CFG.colors && PARTICLE_CFG.colors.pipAdd) || '#5a8fe0', true);
       const subRef = { v:0 };
       // The card's own pips lead, then everything it triggered, in order. The
       // leading pip is awaited so the beat reads as "card, then its consequences";
@@ -1908,7 +1974,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
       // the moment they arrive. Simultaneous on screen, strictly ordered in the
       // arithmetic.
       const beatDur = dncFF ? Math.max(60, ptBaseFlight()/DANCE_CFG.ff)
-                            : Math.max(60, ptBaseFlight()/dncPace());
+                            : Math.max(60, dncChipBase()/dncPace());
       // `once` events pay per CARD, not per scoring iteration (the per-card payer
       // table in calcScore - Get Even and friends read `cells.length`, not a
       // replay-weighted count). So a replayed card re-pops and re-fires
@@ -1955,7 +2021,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
       const marks = []; let _t = 0, _landed = 0;
       seq.forEach((q, i) => { const sp = Math.pow(2, q.k);
         if(i > 0 && gap > 0) _t += Math.max(18, gap / sp);
-        q.d = q.k ? Math.max(Math.min(beatDur, DANCE_CFG.primeMinFlight), beatDur / sp) : beatDur;   // a prime's flight halves each time, down to a floor it can still be seen at
+        q.d = q.k ? Math.max(Math.min(beatDur, dncPrimeMin()), beatDur / sp) : beatDur;   // a prime's flight halves each time, down to a floor it can still be seen at
         _landed = Math.max(_landed, _t + q.d);
         marks.push({ t: _t, q, go: true, i }); marks.push({ t: _landed, q, i }); });
       marks.sort((a, b) => a.t - b.t || (a.go ? 0 : 1) - (b.go ? 0 : 1) || a.i - b.i);

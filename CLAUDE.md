@@ -5832,3 +5832,33 @@ Measured in headless Chromium at 1440x820 (console, LED matrix on and off) and 4
 `?merge` and real hands: 48 x 12 x 1.5 twice landed 576, 864, 1,296 with the pips sound once and the
 Focus sound twice; the fly to SCORE began 590ms after the last landing; a 3-hand burst and a cut
 dance left no canvas, hidden value or gold class; no page errors, no timeline drift.
+
+## r822 - what fires shows it; chips fly one gentle curve; the chip sits twice as long (owner)
+- **Fire animations were never switched off.** Since r197 a card swelled 12% for 0.42s and a Trick
+  21% for 0.26s. Since r772 / r805 the chip pops up ON what fired at the same instant and then sits
+  there, so the swell was over under the chip before the eye left it. Now `dncFire(el, hold, color,
+  isCard)` (js/score-dance.js, `DNC_FIRE`): what fires jumps (card x1.17 and lifted 9% of its height,
+  Trick / Knack / Sleight x1.3, brighter, a glow in the chip's colour), STAYS raised and lit for as
+  long as its chip sits on it (`dncLastHold`, written by `dncFly`), and drops back with a small recoil
+  as the chip leaves. WAAPI on the standalone `scale` / `translate` plus `filter` and `box-shadow`,
+  through `dncAnimate` (pausable), nothing left on the element. A re-fire starts from the drawn pose;
+  a card's second chip only extends it. `dncReleaseReal(el, hold, color)` is the entity door (the
+  payout's plates pass no hold and get the quick jump); the card fires as its beat opens and from
+  every chip that leaves the card. Reduced motion keeps the light and drops the movement. The
+  `dnc-pop` / `dnc-pulse` / `dnc-flash` classes are no longer applied by the dance.
+- **Chips fly one gentle curve** (`ptHoldFrames`): r805's sideways `bow` (every other chip the other
+  way, through one middle keyframe) made a chip going straight up swing 54px right and back
+  (measured) and a stream of chips weave. The flight is now a quadratic curve in 12 steps with one
+  ease over the trip, bulging `TALLY_CFG.curve` (6)% of its length, always to the same side; 0 is a
+  straight line. Dev -> HUD & Display -> Score tally pacing -> Chip path curve.
+- **The chip sits 1200ms** (`TALLY_CFG.hold`, was 600). The first `TALLY_HOLD_CARVED` (600) ms come
+  out of the flight as before; the rest lengthens the chip's whole trip: `dncChipBase()` (flight +
+  hold - 600 = 2040ms at 1x) is what every dance site that pins a chip's duration reads (the beat,
+  primes, `dncFly`), so the travel is the same 840ms and a number never lands ahead of its chip. A
+  prime's floor grows in the same ratio (`dncPrimeMin`). A skip (fast forward) has no sit. The store
+  is overrides only, so a typed hold stays. **Cost:** each beat is about 0.55s longer at the default pace.
+Measured in headless Chromium at 1440x820 and 420x900 (Classic, dev mode on): a chip sat 660ms
+before and 1240 to 1440ms after; a straight-up flight's sideways travel went 54px to 5px past its
+target; a Trick read 144 -> 187px wide and a card 96 -> 112 while their chips sat, both back to rest
+with no animation left; a primed hand with a x mult and a replay, a 3-hand burst, reduced motion and
+SPEED UP + SKIP: scores landed on the banked totals, no timeline drift, no page errors. Golden: 838 match.

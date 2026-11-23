@@ -543,8 +543,10 @@
     <div style="font-family:'Crimson Pro',serif;font-size:11px;color:var(--cream-dim);margin-bottom:4px;">
       How a card's score chips leave it, and how far a long hand may speed itself up.
     </div>
-    <div class="dev-slider-row"><span>Chip sits at its source <b id="dev-tally-hold-val">600</b>ms</span>
-      <input id="dev-tally-hold" type="range" min="0" max="1200" value="600" step="10" oninput="devSetTally('hold', this.value)"></div>
+    <div class="dev-slider-row"><span>Chip sits at its source <b id="dev-tally-hold-val">1200</b>ms</span>
+      <input id="dev-tally-hold" type="range" min="0" max="2400" value="1200" step="20" oninput="devSetTally('hold', this.value)"></div>
+    <div class="dev-slider-row"><span>Chip path curve <b id="dev-tally-curve-val">6</b>% (0 = straight)</span>
+      <input id="dev-tally-curve" type="range" min="0" max="25" value="6" step="1" oninput="devSetTally('curve', this.value)"></div>
     <div class="dev-slider-row"><span>Gap between chips <b id="dev-tally-gap-val">140</b>ms</span>
       <input id="dev-tally-gap" type="range" min="0" max="400" value="140" step="10" oninput="devSetTally('gap', this.value)"></div>
     <div class="dev-row"><span style="font-size:11px;color:var(--cream-dim)">Chip order</span>
