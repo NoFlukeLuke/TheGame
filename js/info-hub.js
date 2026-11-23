@@ -485,7 +485,7 @@ const INFO_TOPICS = [
       'The dice and their throw sound are from the Boardgame Pack by Kenney (kenney.nl), CC0.',
       'The coin flip hits and rattle are cut from "Coin drop" by vinrax (opengameart.org), CC0.',
       'VT323 is by Peter Hull, under the SIL Open Font License.',
-      'The music is by Kevin MacLeod (incompetech.com), CC BY 4.0 (creativecommons.org/licenses/by/4.0): Your Call, Eternity, Presenterator, Delightful D, Digital Lemonade, Newer Wave, Getting it Done, Nowhere Land, Shiny Tech. The list is in assets/music/CREDITS.md.',
+      'The music is by Kevin MacLeod (incompetech.com), CC BY 4.0 (creativecommons.org/licenses/by/4.0): Your Call, Eternity, Presenterator, Delightful D, Digital Lemonade, Newer Wave, Getting it Done, Nowhere Land, Shiny Tech, and in the shop Dispersion Relation, Intractable, C-Funk, Semi-Funk, Private Eye, Spy Glass. The game plays them through a speaker filter. The list is in assets/music/CREDITS.md.',
     ] },
 ];
 
