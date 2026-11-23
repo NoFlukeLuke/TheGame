@@ -563,7 +563,7 @@ function curioFly(card, cell) {
   };
   a.onfinish = land; setTimeout(land, ms + 400);
 }
-// Growth Mindset (r750, working name): limit rewards twice as common in every
+// Insatiable (r750; named r820, id growth_mindset): limit rewards twice as common in every
 // reward roll (Flow's chain, the pick of three, the Balance Sheet, the shop's shelf).
 // The owner's other idea, a second random limit on every limit raise, is Knock-On.
 // r789: ADHD (Hyperfocus's unlock Knack): the grace Focus holds at a whole multiplier

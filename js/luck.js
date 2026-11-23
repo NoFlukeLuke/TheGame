@@ -195,7 +195,7 @@ function offerRecentNote(offers) {
 // Knack owed before a boss, no four-level limit / Knack guarantee or early-limit
 // guidance on the pick of three, no full-tray Trick improvement boost in Classic,
 // and Tricks for hands you cannot play yet weigh the same as any other. Entity
-// and protocol effects (Dexterous, Growth Mindset, departments, Luck) still apply.
+// and protocol effects (Dexterous, Insatiable, departments, Luck) still apply.
 function rewardAdaptiveOn() { return typeof SETTINGS === 'undefined' || !SETTINGS || SETTINGS.rewardAdaptive !== false; }
 function offerWeightMult(x) {
   let m = 1;

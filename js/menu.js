@@ -1,4 +1,4 @@
-const BUILD = "2026-11-23 · r819 · merge the finished-run stop";
+const BUILD = "2026-11-23 · r820 · Growth Mindset is Insatiable";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

@@ -4540,13 +4540,13 @@ Amplifier. Golden: 838 cases match. No page errors.
   Schedule's goals from Q3's first level, Flow's level goals after the 2nd boss and Flow's bosses 3 and 4
   are exactly twice the curve. Measured: Schedule level 19 29,500 -> 59,000, level 36 492,000 -> 984,000;
   Flow level 25 190,600 -> 381,150, boss 3 62,450 -> 124,900.
-- **Growth Mindset** (rare Knack `growth_mindset`, working name; Limitless's unlock in `PROTO_KNACKS`):
+- **Growth Mindset** (rare Knack `growth_mindset`, named **Insatiable** in r820; Limitless's unlock in `PROTO_KNACKS`):
   limit rewards twice as common (`limitOfferMult()`): Flow's chain `limits` odds, the pick of three's
   `limit` type, the Balance Sheet's `limit_up` tiles, the shop's Upgrades shelf. The owner's other idea (a
   second random limit on every raise) is the Knock-On Knack already (r523). Measured: pick types with it
   limit 21% (was 12%), Flow's chain limits weight 3.4 -> 6.2.
 - The owner kept the audit reading (an audit's first paying card pays nothing) and the protocol name
-  Hyperfocus beside the Hyper Focus Trick. Hyperfocus has no unlock Knack yet.
+  Hyperfocus beside the Hyper Focus Trick. (Hyperfocus's unlock Knack is ADHD, r789.)
 
 ## r751 - limit circles; key words fall on every change; flat trays; the discard falls in; pixel art preview (owner)
 - **Records -> Limits** (`recLimDots`, js/records.js): no bar. One circle per step up to the limit's max
@@ -5789,3 +5789,7 @@ ENDLESS opened the prize grid. Golden: 838 cases match. No page errors.
 
 ## r817 numbering
 Two sessions shipped r817 in parallel: the averages pass (with its r818 baseline) and the finished-run stop (on main). The merge that joined them is r819.
+
+## r820 - Growth Mindset is Insatiable (owner)
+Display name only (id `growth_mindset`, Limitless's protocol Knack): js/data/knacks.js, the handbook's
+protocols entry, comments. The r750 note's "no unlock Knack yet" for Hyperfocus is corrected (ADHD, r789).

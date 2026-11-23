@@ -357,7 +357,7 @@ function survivalWeightedType(pools, used) {
   if (!types.length) return null;
   // r741: Dexterous weighs Sleights 4x (dexSleightOfferMult, js/dexterous.js).
   const _w = t => SURVIVAL_PICK_WEIGHTS[t] * (t === 'sleight' && typeof dexSleightOfferMult === 'function' ? dexSleightOfferMult() : 1)
-                * (t === 'limit' && typeof limitOfferMult === 'function' ? limitOfferMult() : 1)   // r750: Growth Mindset
+                * (t === 'limit' && typeof limitOfferMult === 'function' ? limitOfferMult() : 1)   // r750: Insatiable (growth_mindset)
                 * (t === 'event' && typeof eventOfferMult === 'function' ? eventOfferMult() : 1);   // r795: Rewards Member
   const total = types.reduce((s, t) => s + _w(t), 0);
   let rng = Math.random() * total;

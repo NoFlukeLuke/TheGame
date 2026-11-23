@@ -225,7 +225,7 @@ function shopgDrawCats(prev) {
     const opts = Object.keys(SHOP_CATS).filter(c => !taken.has(c) && shopgCatViable(c));
     // r741: an even draw, except Dexterous weighs the Sleights shelf 4x (js/dexterous.js).
     const _wOf = c => (c === 'sleights' && typeof dexSleightOfferMult === 'function') ? dexSleightOfferMult()
-                    : (c === 'limits' && typeof limitOfferMult === 'function') ? limitOfferMult()   // r750: Growth Mindset
+                    : (c === 'limits' && typeof limitOfferMult === 'function') ? limitOfferMult()   // r750: Insatiable (growth_mindset)
                     : (c === 'cards' && typeof cardOfferMult === 'function') ? cardOfferMult() : 1;      // r783: Undersight protocol
     let _roll = Math.random() * opts.reduce((s, c) => s + _wOf(c), 0), _pick = opts[opts.length - 1];
     for (const c of opts) { _roll -= _wOf(c); if (_roll <= 0) { _pick = c; break; } }

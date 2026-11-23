@@ -131,7 +131,7 @@ const KNACK_POOL = [
   { id:'whiteout',       emoji:'🧹',  name:'Whiteout',         rarity:'rare',   desc:'When you play a hand, if one more card touching it would make a better hand, that card is played too.', tags:['board','hand','size'] },
   { id:'curio',          emoji:'🏺',  name:'Curio',            rarity:'rare',   desc:'At the start of each level, a card of the last rank you scored joins your deck, in a random suit with a random buff.', tags:['deck','other','start','rank'] },
   { id:'rewards_member', emoji:'🎲',  name:'Rewards Member',   rarity:'rare',   desc:'Events are 3 times as common in rewards.', tags:['other','reward'] },   // r795 (owner): locked until 15 events are filed (js/event-files.js)
-  { id:'growth_mindset', emoji:'📈',  name:'Growth Mindset',   rarity:'rare',   desc:'Limit rewards are twice as common', tags:['limit','other','reward'] },
+  { id:'growth_mindset', emoji:'📈',  name:'Insatiable',       rarity:'rare',   desc:'Limit rewards are twice as common', tags:['limit','other','reward'] },
   { id:'adhd',          emoji:'🧠',  name:'ADHD',             rarity:'rare',   desc:'Focus holds 3x as long at each whole multiplier (x2.0, x3.0...) before it fades', tags:['focus','other'] },   // r789: Hyperfocus's unlock
   { id:'measure_twice', emoji:'📏',  name:'Measure Twice',    rarity:'rare',   desc:'The speed bonus is half as strong, but stays the same for 10 seconds after a hand, then fades over 20 seconds', tags:['focus','other','clock'] },
   // ── r739: ROLE CHANGES. A Sleight's 5th improvement turns it into one of these (sleightRoleChange). Never offered

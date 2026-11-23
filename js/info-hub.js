@@ -387,7 +387,7 @@ const INFO_TOPICS = [
     body: [
       () => `Flow and the Schedule are played under a protocol, chosen on the run screen: ${PROTOCOLS.map(p => p.name).join(', ')}. A protocol changes a few rules. The mode stays the same.`,
       'Difficulty belongs to the protocol. A win in Flow or the Schedule unlocks the next tier of that protocol for both.',
-      'Winning a run of Dexterous, Precision, Limitless, Hyperfocus or Past Capacity unlocks its Knack (Ambidextrous, Measure Twice, Growth Mindset, ADHD, Curio), which can then be offered in any other run (ADHD in Hyperfocus too). Winning a run of Agentic unlocks a {trick}.',
+      'Winning a run of Dexterous, Precision, Limitless, Hyperfocus or Past Capacity unlocks its Knack (Ambidextrous, Measure Twice, Insatiable, ADHD, Curio), which can then be offered in any other run (ADHD in Hyperfocus too). Winning a run of Agentic unlocks a {trick}.',
       'Standard, Turbo, Agentic and Crunch are open from the start. Crunch is the Schedule\'s only. Dexterous, Precision, Limitless and Hyperfocus each open with a won run of the one before, in Flow or the Schedule.',
     ] },
   { id: 'mode_dexterous', group: 'modes', title: 'Dexterous',
