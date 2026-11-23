@@ -222,7 +222,7 @@ html.skin-machine #stage #focus-mult-readout {
   bottom: var(--focus-top, calc(8px + var(--focus-fill, 0) * (100% - 36px))) !important;   /* r585: on the top lit tick; r635: the gap and the shake are in --focus-top */
   translate: -50% 0; padding: 0 !important; font-size: 10px !important; letter-spacing: -.5px !important; pointer-events: none;
   transition: bottom .12s ease-out;
-  animation: none !important; white-space: nowrap; max-width: 100%;   /* r511: fits the gauge; its pulse grew it onto the housing */
+  animation: none !important; white-space: nowrap; width: max-content !important; max-width: none !important;   /* r511: fits the gauge; r817: its own width (left:50% halved the room, so a long number spilled right); focusReadoutFit shrinks it */
 }
 /* r635: rising, it jumps straight to the new top so the filling ticks never pass it. */
 html.skin-machine #stage #focus-meter-wrap.fr-rise #focus-mult-readout { transition: none !important; }

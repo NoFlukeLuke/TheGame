@@ -157,6 +157,18 @@ function syncFocusMeterState() {
 // the ticks up to its amplitude, so it clears that too.
 const FOCUS_READOUT_GAP = 2;   // px between the top lit tick (at its highest shake) and the readout
 function _focusOffY(el) { let y = 0; for (; el; el = el.offsetParent) y += el.offsetTop; return y; }
+// r817 (owner): the number never runs off the side of its gauge, whatever its length or the
+// skin. Steps the font down (inline, important, so it beats the skins) until the drawn text fits.
+function focusReadoutFit(el) {
+  const wrap = el && el.parentElement;
+  if (!wrap || !wrap.clientWidth) return;
+  el.style.removeProperty('font-size');
+  let px = parseFloat(getComputedStyle(el).fontSize) || 13;
+  const room = wrap.clientWidth - 2;
+  const w = () => Math.max(el.scrollWidth, el.offsetWidth);
+  for (let i = 0; i < 12 && px > 6 && w() > room; i++) { px *= 0.88; el.style.setProperty('font-size', px.toFixed(1) + 'px', 'important'); }
+}
+
 function focusPlaceReadout(total) {
   const wrap = document.getElementById('focus-meter-wrap');
   const node = focusNodeEls[Math.max(total, 1) - 1];
@@ -226,6 +238,7 @@ function updateFocusMultReadout(pulse = false) {
   if (!el) return;
   el.textContent = mult.toFixed(1);   // r805 (owner): the number alone, no x
   el.classList.toggle('fr-long', el.textContent.length > 3);   // r814: x10.0 and up is set smaller so it fits the phone's gauge
+  focusReadoutFit(el);
   const active = focusNodes > FOCUS_THRESHOLD;
   el.classList.toggle('active', active);
   el.classList.toggle('dim', !active);

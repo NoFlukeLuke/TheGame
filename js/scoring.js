@@ -1079,7 +1079,6 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   if (_pcPips.men_of_means) { bPipQ('men_of_means', _pcPips.men_of_means, 1); }
   if (_pcPips.gold_standard) { bPipQ('gold_standard', _pcPips.gold_standard, 1); }
   if (_pcMult.men_of_means) { bMultQ('men_of_means', _pcMult.men_of_means, 1); }
-  if (_pcMult.hyper_focus) { bMultQ('hyper_focus', _pcMult.hyper_focus, 1); }
   // King's Guard's mult is accumulated per card in the loop now, so it animates on
   // the K or J that earned it; same replay-weighted sum the _wc sweep produced.
   if (_kgMult) { bMultQ('king_guard', _kgMult, 1); }
@@ -1984,6 +1983,8 @@ function focusExtraApplies(handName, cells) {
       if (handHasFamily(_names, 'run') || (BAL.marathon.flush && handHasFamily(_names, 'flush')) || (BAL.marathon.sets && handHasFamily(_names, 'set'))) n += BAL.marathon.extra;
     }
     if (hasTrick('phoenix') && (clockPausedForHand() || handTriggersPause(handName, cells))) n++;
+    // Hyper Focus (r817, owner): while Focus is over `share` of its limit, the multiplier applies `extra` more times.
+    if (hasTrick('hyper_focus') && typeof focusCapNodes === 'function' && focusNodes > focusCapNodes() * TB('hyper_focus').share) n += TB('hyper_focus').extra || 1;
     if (hasTrick('kaleidoscope')) {
       // Four or more suits in the hand. Same counting the old +4 Focus effect used:
       // white counts as white, a combined card counts both suits, a wild counts none.

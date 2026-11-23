@@ -5735,3 +5735,34 @@ started the run; pause works again in the new run; no page errors.
 ## r814 numbering
 Two sessions shipped r814 in parallel: the round/level and Flow clock pass (above, with its r815
 baseline) and the end-screen PAUSE fix (above it, on main). The merge that joined them is r816.
+
+## r817 - the averages pass; Hyper Focus applies Focus again; the Focus number fits (owner)
+- **Owner's calls:** **Hyper Focus** (rare) no longer adds mult per card: while Focus is over `share` (50%)
+  of its limit, the Focus multiplier applies `extra` (1) more time (`focusExtraApplies`, js/scoring.js).
+  Ladder (`IMPROVE_PLAN`): 50 / 45 / 40 / 35 / 30%, v6 25% and twice more. Tags focus / hand / held.
+  **生きがい** (`wellspring`) is +1 mult per 10 Focus made this run (was 30) and common. It counts all
+  Focus made, before the cap (`focusGenGame`, in `addFocus`); the sim bot makes about 25-35 a level.
+- **My recommendations, applied (owner: "apply your other recommendations")**, toward each rarity's
+  average by bonus type (TRICK_AUDIT.md, the Trick Triage page). Common pips per card 18 to about 15:
+  Cash Cow Aces 42 -> 31, Right Place 25 -> 20, Express Lane / Face Value / Early Bird 20 -> 15, Get
+  Even 16 -> 15; Enriched +100 -> +60 a hand. Rare mult per card 12 to about 16: Esprit de Corps 15 ->
+  20, Equal Opportunity 14 -> 18, Odd One In 13 -> 18, Lie Down / Stand-Up 12 -> 16, Work-Life 10 ->
+  15. Crossroads' Focus 25 -> 10 (mult 25 kept). Company Time 15s -> 8s, and its sentence says what it
+  always did: a 5-card Flush. Epic: Corporate Culture x5 -> x3.5, Ornery x2 -> x1.75, Twinners x3 ->
+  x2, Água mole +20 -> +14 Focus, High Voltage / Live Wire x1.2 -> x1.5 (v6's second line too), Feelin
+  Lucky x1.25 -> x1.5, Rerun x1.25 -> x1.4, Growth curve starts x1.5, Partnered x1.5 -> x2, Red Water
+  Diamonds +25 -> +40 mult, Threepeat +40 mult / +13 Focus, Four Times a Zombie +40 / +40 / +13 Focus,
+  Compound +0.3 a hand. Legendary: Blackjack x3 -> x5, Five Stack +25 pips, Buried Treasure x1.25,
+  Relentless x0.1 a spade. Card-buff Tricks (TRICK_AUDIT's table): Middle Management +16, First
+  Impressions +10 (ladder +10), Board of Directors +20, UVP +10 / +10 (ladder +20), Matrix Management
+  +6, D6 2-12, Hallmark +25 / +25, Naturalist +10 (ladder doubled; its second buff +10 mult), Catalyst
+  +20 / +20 (ladder doubled), Pivot +20 mult. Fused Tricks keep their own rows. The ladders that wrote
+  a base number (`IMPROVE_PLAN`) now start from the new one. Literal sentences were regenerated from
+  the templates so the data file matches.
+- **The Focus number never leaves its gauge:** in console mode the readout was `left: 50%` with
+  `max-width: 100%`, so its box was half the gauge wide and a long number spilled to the right. It is
+  `width: max-content` now, and `focusReadoutFit` (js/focus.js) steps the font down until it fits, in
+  every skin. The number carries no x (r805; the console FOCUS box drops it too, r486). Measured at
+  1440x820, 420x900 and 375x667 at caps 20 to 100 and with a forced "123.4": inside every time.
+Golden: only the Tricks above move (and the trays that hold them); baseline in r818. A real hand with
+Hyper Focus over half Focus played with no timeline drift at 1440x820 and 420x900.

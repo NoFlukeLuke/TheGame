@@ -1,4 +1,4 @@
-const BUILD = "2026-11-23 · r816 · merge the end-screen PAUSE fix";
+const BUILD = "2026-11-23 · r817 · the averages pass; Hyper Focus applies Focus again";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

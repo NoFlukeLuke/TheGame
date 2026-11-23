@@ -2,21 +2,21 @@ const BAL = {
   rich_soil: { mult: 12 },   // r810 (owner): the common mult-per-card average; r767 6, was 3
   court_of_leaves: { pips: 3 },
   low_tide: { pips: 6 },
-  first_light: { worth: 42 },
+  first_light: { worth: 31 },   // r817 (owner, the averages pass): was 42 (an Ace +20 over its 11)
   power_two: { pips: 4 },
   ten_strong: { pips: 7 },
   king_guard: { pips: 8, mult: 8 },
   dark_matter: { pips: 5 },
-  face_value: { face_pips: 20 },
+  face_value: { face_pips: 15 },   // r817 (owner, the averages pass): was 20
   humble_roots: { pip_mult: 3 },
   summit: { pips_per_level: 2 },
   before_the_tide: { max_rank: 5 },   // r625: ranks at or under this pay their rank in Focus (improvements raise it)
   knave_power: { per_jack: 1.5 },   // r539 owner: x2 per Jack was x16 with four
-  rowcol_triple_pips: { flat_pips: 25 },
+  rowcol_triple_pips: { flat_pips: 20 },   // r817 (owner, the averages pass): was 25
   rowcol_mult: { mult: 15 },              // r623: was 5, typed in scoring.js
   // r646 line Tricks (owner). The 5th improvement marks a SECOND line at the base value: line2 / chance2 hold it (0 = none yet).
-  line_xpips:  { pip_mult: 1.2, line2: 0 },
-  line_xmult:  { mult_mult: 1.2, line2: 0 },
+  line_xpips:  { pip_mult: 1.5, line2: 0 },   // r817 (owner, the averages pass): was x1.2
+  line_xmult:  { mult_mult: 1.5, line2: 0 },   // r817 (owner, the averages pass): was x1.2
   obligatory:  { chance: 0.25, chance2: 0 },
   suggestive:  { chance: 0.35, chance2: 0 },
   coin_sword:  { credit_chance: 0.1, mult_chance: 0.2, credit_pct: 0.25, line2: 0 },
@@ -52,21 +52,21 @@ const BAL = {
   right_time:     { pause_seconds: 2 },
   study_hall:     { focus: 2, every: 2 },
   high_water:     { pause_per_set: 1 },
-  rowcol_perm_double: { perm_mult: 2 },
+  rowcol_perm_double: { perm_mult: 6 },   // r817 (owner, the averages pass): was 2
   wide_span_mult: { mult: 50 },
   hidden_pair: { pips: 12 },
   twin_sprouts: { pips: 15 },
-  enriched: { pips: 100 },
-  overgrowth: { pips_per_card: 20 },
+  enriched: { pips: 60 },   // r817 (owner, the averages pass): was 100
+  overgrowth: { pips_per_card: 15 },   // r817 (owner, the averages pass): was 20
   triple_threat: { pips: 20 },
-  early_bird: { pips_per_card: 20 },
+  early_bird: { pips_per_card: 15 },   // r817 (owner, the averages pass): was 20
   kindling: { mult_per_streak: 8 },
   spade_flood: { time_div: 1, time_mult: 1, suits: 0 },   // r625: suits 0 all spades / 1 all clubs or spades / 2 any club or spade; time_mult by IMPROVE_PLAN
   sands_of_time: { divisor: 2 },
   discard_pips: { mult_per: 4, mult_per_flow: 2 },   // r651 (owner): Flow pays the smaller one
   landfill: { mult_per: 1 },   // r651 (owner): per swapped or discarded card THIS GAME (landfillCount)
   magician: { mult_per_sleight: 6, solo_pips: 50 },   // r635: solo_pips while you own no Sleight
-  stand_up: { mult_per_card: 12 },   // r646 (owner): 10 -> 12
+  stand_up: { mult_per_card: 16 },   // r817 (owner, the averages pass): was 12
   scalper: { mult_mult_per_missing: 0.25 },
   down_and_back_in: { coins: 5, grant: 2 },   // r635: grant swaps or discards, alternating
   short_change: { coins: 1 },
@@ -78,7 +78,7 @@ const BAL = {
   quick_draw: { window_ms: 3000, cap_gain: 1, cap: 10, focus_cut: 0.25, sell_bonus: 6 },   // r708 owner: costs 25% of your Focus; sells for more at max
   expanse: { cap_gain: 1, cap: 10, keep_fraction: 0.5, sell_bonus: 6 },
   flow_state: { pips_per_card: 20 },   // r814 (owner): was 15
-  hyper_focus: { focus_mult: 5 },   // r814 (owner): was 2
+  hyper_focus: { share: 0.5, extra: 1 },   // r817 (owner, the averages pass): reworked: Focus applies again while over half its limit
   club_double: { base: 1 },
   night_owl: { mult_per_card: 16 },   // r767 (owner): was 10
   wildfire: { focus: 5 },
@@ -87,14 +87,14 @@ const BAL = {
   cuckoo: { hands_between: 2, per_replays: 5 },
   clean_sweep: { focus: 8, credits: 4 },
   obsessed:        { per_credits: 100 },
-  relentless:      { mult_per_spade: 0.05 },
-  buried_treasure: { luck_share: 0.5, credit_mult: 1.1 },
+  relentless:      { mult_per_spade: 0.1 },   // r817 (owner, the averages pass): was 0.05
+  buried_treasure: { luck_share: 0.5, credit_mult: 1.25 },   // r817 (owner, the averages pass): was x1.1
   patient_rulers:  { mult_mult: 1.5, extra_ranks: 0 },           // r625: the 5th improvement adds 3 random ranks (rolled on the Trick)
   even_better:     { chance: 0.66, pip_mult: 2.25, replay: 0 },   // r625: replay 1 = even cards replay (5th improvement)
   what_odds:       { mult_mult: 1.7, replay: 0 },
-  critical:        { mult_mult: 5, extra_family: 0 },             // r625: 5th improvement extends to sets or runs (rolled on the Trick)
-  twinners:        { pip_mult: 3, replay: 0 },
-  feelin_lucky:    { mult_mult: 1.25, ranks: 5, sell_cost_share: 0.3, rerolls: 3 },
+  critical:        { mult_mult: 3.5, extra_family: 0 },   // r817 (owner, the averages pass): was x5
+  twinners:        { pip_mult: 2, replay: 0 },   // r817 (owner, the averages pass): was x3
+  feelin_lucky:    { mult_mult: 1.5, ranks: 5, sell_cost_share: 0.3, rerolls: 3 },   // r817 (owner, the averages pass): was x1.25
   double_jeopardy: { pause_seconds: 15, cells: 2, prime_random: 0 },   // r625: prime_random from the 3rd improvement (IMPROVE_PLAN)
   aces_absorb: { chance: 0.5 },
   queens_upgrade: { queen_seconds: 30 },
@@ -107,46 +107,46 @@ const BAL = {
   sundial: { seconds: 8 },
   long_pause: { multiplier: 1.5 },
   snooze: { seconds: 10 },
-  kindred: { mult_per_card: 15 },
+  kindred: { mult_per_card: 20 },   // r817 (owner, the averages pass): was 15
   tidal_force: { mult_per_card: 15 },
-  rare_bloom: { perm_pips: 8 },
-  two_pair_mult: { focus: 20, window_ms: 30000, need_count: 3 },
+  rare_bloom: { perm_pips: 20 },   // r817 (owner, the averages pass): was 8
+  two_pair_mult: { focus: 14, window_ms: 30000, need_count: 3 },   // r817 (owner, the averages pass): was 20
   threes_run: { mult: 9 },
   lucky_three: { mult: 2 },
   light_touch: { mult: 30 },
   patience_reward: { mult_per_second: 3 },   // r624: mult = this x the seconds since the last hand; r812 (owner): 3 (was 2)
   echo_hand: { streak: 3 },   // r812 (owner): the streak length (this hand included) that replays every card; was 2
   first_play: { focus: 5 },
-  monochrome: { coins: 5, seconds: 10, mult: 25 },   // r625: pays mult too; IMPROVE_PLAN cycles the three
+  monochrome: { coins: 5, seconds: 10, mult: 40 },   // r817 (owner, the averages pass): mult was 25
   full_color: { mult_mult: 1.25 },   // r539 owner: x mult per card (was +16 pips +16 mult per card)
-  balanced_diet: { mult_per_card: 10 },
-  number_crunch: { mult_per_card: 14 },   // r810 (owner): was 8
+  balanced_diet: { mult_per_card: 15 },   // r817 (owner, the averages pass): was 10
+  number_crunch: { mult_per_card: 18 },   // r817 (owner, the averages pass): was 14
   cull: { focus_per_stock: 2, per: 2 },
-  even_score: { pips_per_card: 16 },
-  odd_squad: { mult_per_card: 13 },   // r810 (owner): was 7
+  even_score: { pips_per_card: 15 },   // r817 (owner, the averages pass): was 16
+  odd_squad: { mult_per_card: 18 },   // r817 (owner, the averages pass): was 13
   long_road: { mult_per_card: 10 },
   still_water: { mult_per_interval: 10, interval_seconds: 5 },   // r767 (owner): was 10; r814 (owner): back to 10 (15 was 3 a second)
   wild_heart: { primes: 1, extra_ranks: 0 },   // r625: primes per Ace; extra ranks are rolled on the Trick when improved
   same_kind: { mult_per_match: 2 },
   column_rush: { mult_per_card: 5 },
-  row_power: { mult_per_card: 12 },
+  row_power: { mult_per_card: 16 },   // r817 (owner, the averages pass): was 12
   groove:        { focus_per_2: 1 },
   assembly_line: { mult_per_prior: 2, mult_per_flow: 1, lines: 1 },   // r646 (owner): per card played from the line LAST round (last quarter in Flow); lines 2 = the 5th improvement's second line
   overtime:      { seconds_per_3: 1 },
   shift_change:  { consolation_credits: 15 },   // Shift Change event, when you hold under 2 Tricks
   feng_shui:     { pips_per_hand: 3 },
-  five_stack:    { pips: 15, mult: 20, focus_per_card: 1 },   // r767 (owner): was 20 / 5
+  five_stack:    { pips: 25, mult: 20, focus_per_card: 1 },   // r817 (owner, the averages pass): pips were 15
   little_guys:   { cap_gain: 1, cap: 15 },
   five_fodder:   { credits_per_card: 1 },   // r623: any valid hand discarded pays its size in credits
   five_second:   { pause_seconds: 5 },
   life_lessons:  { cap_gain: 1 },
-  wellspring:    { per_focus: 30, mult_per: 1 },   // r539 owner: per 30 Focus (was 10)
+  wellspring:    { per_focus: 10, mult_per: 1 },   // r817 (owner, the averages pass): per 10 Focus (was 30); common
   third_down:    { focus: 5 },   // r814 (owner): was 3
   ready_set_go:  { mult: 18 },
   third_charm:   { extra_replays: 2 },
   four_eyes:     { mult: 24 },
   four_by_four:  { pips: 24, chance: 0.44, queens: 0 },   // r635: a Knack; pips is the retired Trick's (saved runs only)
-  four_horseman: { pips: 24, mult: 24, focus: 8, pause: 8, picks: 1 },   // r625: picks 2 at the 5th improvement
+  four_horseman: { pips: 40, mult: 40, focus: 13, pause: 8, picks: 1 },   // r817 (owner, the averages pass): pips and mult were 24, Focus 8
   wait_four_it:  { pause: 2 },
   shaky_foundation: { mult: 18 },
   wave_amp:      { pips_per_streak: 15 },
@@ -169,16 +169,16 @@ const BAL = {
   greedy_boi:    { selection: 2 },      // +reward-grid selection size (knack)
   combo_score: { mult_per_type: 6 },
   full_house_streak: { focus: 15 },
-  blackjack_bonus: { pip_mult: 3 },
-  double_bloom: { mult_mult: 1.5 },
+  blackjack_bonus: { pip_mult: 5 },   // r817 (owner, the averages pass): was x3
+  double_bloom: { mult_mult: 2 },   // r817 (owner, the averages pass): was x1.5
   richter: { mult_mult: 3, focus: 10 },
   ripple: { chance: 0.66, chance2: 0 },   // r624: chance2 is a second replay rolled after a first success (improvements, IMPROVE_PLAN)
   river_run: { focus_per_card: 1 },
-  deluge: { seconds: 15 },
+  deluge: { seconds: 8 },   // r817 (owner, the averages pass): was 15; still a 5-card Flush only
   perfect_storm: { pip_mult: 5 },
   extinction: { mult_mult: 2 },
   lucky_sevens: { focus: 5 },
-  ninesong: { seconds: 9, mult: 27, focus: 9, all_chance: 0.2 },   // r625: all_chance = all three at once (silent; 0.35 at the 5th improvement)
+  ninesong: { seconds: 9, mult: 40, focus: 13, all_chance: 0.2 },   // r817 (owner, the averages pass): mult was 27, Focus 9
   royal_trio: { mult_mult: 2 },
   prime_time: { pips_per_card: 29 },
   shape_square: { focus: 16, mult: 24 },
@@ -188,14 +188,14 @@ const BAL = {
   marathon: { extra: 1, flush: 0, sets: 0 },  // r625: extra applications on runs; flush / sets extend them
   employee_month: { discards: 0, swaps: 0, carry: 0, prime_chance: 0, every: 0 },   // r802: all five are switched on by its ladder (IMPROVE_PLAN)
   undue_influence: { faces: 0 },              // r625: 1 = also pays the face cards in the hand
-  shape_cross: { focus: 25, mult: 25 },   // r624: the + shape pays mult as well
-  two_corners: { mult_mult: 2 },
+  shape_cross: { focus: 10, mult: 25 },   // r817 (owner, the averages pass): Focus was 25
+  two_corners: { mult_mult: 1.75 },   // r817 (owner, the averages pass): was x2
   correct_run: { pips: 80, mult: 20, focus: 10 },
-  tide_table: { mult_base: 1.25, mult_step: 0.5 },
+  tide_table: { mult_base: 1.5, mult_step: 0.5 },   // r817 (owner, the averages pass): starts at x1.5 (was x1.25)
   undertow: { pip_mult_base: 2, pip_mult_step: 0.5 },
   // ── r179 multiplier batch: ×pips / ×mult on triggers the pools had never used ──
   // (replays, a paused clock, credits held, buffed cards on the grid, Focus level)
-  rerun:       { pip_mult: 1.25 },
+  rerun:       { pip_mult: 1.4 },   // r817 (owner, the averages pass): was x1.25
   deep_breath: { pip_mult: 2 },
   interest:    { pip_mult_per_10_credits: 0.1, max_pip_mult: 3 },
   chorus:      { mult_mult: 1.5 },   // r637: on each replay's beat
@@ -244,20 +244,20 @@ const BAL = {
   shorthand:      { complexity_mult: 1.5 },
   governor:       { window_mult: 1.5 },
   // ── play/round-side: accumulators & permanent gains ──
-  first_fruits: { pips: 5, hands: 1 },   // r624: the first `hands` hands of a round (IMPROVE_PLAN alternates pips / hands)
-  heartwood: { pips: 5, mult: 5, cells: 1 },   // r625: cells 2 = a second secret cell (5th improvement)
-  fours_perm: { pips: 8 },
+  first_fruits: { pips: 10, hands: 1 },   // r817 (owner, the averages pass): was 5
+  heartwood: { pips: 10, mult: 10, cells: 1 },   // r817 (owner, the averages pass): was 5 / 5
+  fours_perm: { pips: 16 },   // r817 (owner, the averages pass): was 8
   fives_discard: { pips_per_five: 5 },
   nines_mult: { mult_per_nine: 2, added: 9, no_delete: 0 },   // r539 owner's rework: brings its own 9s; r625: no_delete at the 5th improvement
   tens_mult: { mult_per_milestone: 3 },   // r708 owner: To The Nines, +3 mult per 9 discarded or played
-  sixes_perm: { roll_min: 1, roll_max: 6, interval: 6 },
-  compound_mult: { mult_per_hand: 0.1 },
+  sixes_perm: { roll_min: 2, roll_max: 12, interval: 6 },   // r817 (owner, the averages pass): the roll x2 (was 1-6)
+  compound_mult: { mult_per_hand: 0.3 },   // r817 (owner, the averages pass): was 0.1
   // ── clock-mark Tricks ──
   ticktock: { focus: 4 },
   quarter_chime: { pips: 60 },
   minute_hand: { mult_mult: 2, interval_seconds: 30 },
   understudy: { interval_seconds: 30 },
-  hallmark:   { mult: 5, pips: 10, seconds: 3, force_scale: 1, force_cap_x: 8 },
+  hallmark:   { mult: 25, pips: 25, seconds: 3, force_scale: 1, force_cap_x: 8 },   // r817 (owner, the averages pass): the base buff (was 5 mult / 10 pips)
   turnover:   { idle_seconds: 45 },
   challenge_dial: { pct: 25 },   // r556: how far the dial turns the challenge chance, either way
   reserve: { open: 10, more: 5, cards: 3, buff_chance: 0.75 },   // r569: the Focus bar's double-tap (js/reserve.js)
@@ -348,9 +348,9 @@ const BAL = {
   the_ringer: { charges: 10, life_seconds: 60, second: 0, inert: 1 },
   fight_power: { charges: 9, use_seconds: 180 },
   dazed: { cost_coins: 5, cost_seconds: 10, free: 0, played: 0 },
-  pivot: { charges: 3, mult: 8, swaps: 1 },
+  pivot: { charges: 3, mult: 20, swaps: 1 },   // r817 (owner, the averages pass): was 8
   echo_play: { charges: 5, replays: 2 },
-  the_naturalist: { pips: 5, chance: 0, adj: 0 },
+  the_naturalist: { pips: 10, chance: 0, adj: 0 },   // r817 (owner, the averages pass): was 5
   syncopation: { seconds: 3 },
   rewind: { seconds_per_card: 2 },
   retake: { charges: 6, copies_a: 0, perm_a: 0, copies_b: 0, perm_b: 0 },
@@ -360,7 +360,7 @@ const BAL = {
   sandbag: { flat: 0, extra_per_member: 0.5 },
   procrastinate: { charges: 5, recharge: 0 },
   shredder: { charges: 3, deletes: 1 },
-  the_catalyst: { charges: 6, mult: 10, pips: 10, cost_seconds: 10 },
+  the_catalyst: { charges: 6, mult: 20, pips: 20, cost_seconds: 10 },   // r817 (owner, the averages pass): was 10 / 10
   the_wanderer: { charges: 5 },
   amplifier: { charges: 5, mult_per_level: 5 },
   shady_tree: { charges: 15 },
@@ -493,7 +493,7 @@ const DESC_TEMPLATES = {
   dark_matter: 'Corrupted cards in a hand add +{pips} pips each',
   combo_score: '+{mult_per_type} mult for every distinct hand type played this level',
   flow_state: 'While focus is ×1.5 or higher, score +{pips_per_card} pips per card',
-  hyper_focus: 'Each card scored adds mult equal to {focus_mult}x your Focus multiplier',
+  hyper_focus: 'While your Focus is over {share_pct}% of its limit, the Focus multiplier applies [[extra<2:a second time]][[extra>1:{extra} more times]]',
   low_tide: 'Cards below 6 score +{pips} pips',
   rowcol_triple_pips: 'Cards scored in a marked row or column score +{flat_pips} pips',
   first_fruits: 'Each card in the first [[hands>1:{hands} ]]hand[[hands>1:s]] each level permanently gains +{pips} pips',
@@ -546,7 +546,7 @@ const DESC_TEMPLATES = {
   rowcol_retrigger: 'Cards scored in a marked row or column have a {chance_pct}% chance to replay[[chance2:, then a {chance2_pct}% chance to replay again]]',
   coin_toss: 'At the start of each level, every Sleight has a {chance_pct}% chance to restore {charges} charge.',
   short_change: 'Each hand you play with fewer cards than your hand size earns {coins} credit.',
-  deluge: 'Flushes rewind the clock {seconds}s',
+  deluge: 'A 5-card Flush rewinds the clock {seconds}s',
   // r550: time wording. A rewind reads "rewind(s) the clock Ns", a pause "pause(s) the clock
   // for Ns", a card's buff adds "when scored". Templated so an improvement shows its number.
   high_water: 'Sets pause the clock for {pause_per_set}s for each Set played this level',

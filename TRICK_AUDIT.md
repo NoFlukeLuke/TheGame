@@ -125,3 +125,5 @@ GROWING buffs (+8 pips / +5 mult a score, `BAL.forge`), which are a different ki
 Sleights, for the same pass: The Naturalist +5 pips -> +10, The Catalyst +10 / +10 -> +20 / +20,
 Pivot +8 mult -> +20, The Naturalist's second buff +5 mult -> +10. The Bomb (+3 pips on the whole
 grid) unchanged.
+
+**r817: applied** (owner), with the averages pass in CLAUDE.md r817.
