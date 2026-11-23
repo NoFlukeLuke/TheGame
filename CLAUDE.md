@@ -5531,3 +5531,27 @@ after; a real hand through PLAY with the Trick: no timeline drift. The chain and
 Employee of the Month joins the list (838 cases). Its place in the Trick list moves the random line
 placement of the cases after it, so line Tricks' cases change with no scoring change (the 834 old
 cases matched with it held out, r802).
+
+## r804 - the score merge is LEDs: lit squares fly in a random order; the total rests 500ms (owner)
+- **LEDs** (`leds`, the default carry look; `auto` is LEDs; js/pmf-merge.js `_pmfLedCarry`). A number
+  leaving its tray, and the number the tray it lands in held, are both drawn as lit squares (the keys'
+  5x7 grid `kdGlyph`, sized and placed the way `ledDraw` draws a readout) on ONE canvas over
+  `#score-subboxes` (`.pmf-dots`, `_pmfDots`). The squares set off in a random order over 45% of the
+  carry and fly, stepped a whole square at a time, to the squares of the new number, taking its colour.
+  Both values are hidden from the first frame (`.pmf-dots-hide`; the LED matrix's canvas beside a
+  hidden value too), so no old number is left where it was; the tray shows its own figure again when
+  the last square lands. Too few old squares: the extra ones start from a random old square. Too
+  many: the spare ones fly to a random new square and go out. **Nothing shakes, lifts or pops** in
+  this look (no `pmf-jit-val`, no `_pmfPopVal`). The carry ends on a timer, not on frames (rAF stops
+  in a background tab); `_pmfDotsClear` runs from `pmfResetNow` and the split.
+- **Sounds:** PIPS landing in MULT plays `sfxPipsCombine` (catalog `pips_combine`, a row in every
+  pack: two dry clacks and a short note); Focus landing keeps `sfxFocusAgain(k)`. Every carry look
+  uses the pair (`pipsIn` in `_pmfCarry`); before, both played the Focus sound.
+- **The rest:** `pmfMergeIn` waits `PMF_CFG.rest` (500ms over the tally's pace, 120 at least) after
+  every look's fuse, so the total sits in its tray before `pmfFlyToScore`.
+- The look store is `lethe.pmfLook.v2` (a look chosen under v1 is dropped, so LEDs shows). Rise,
+  Stamp, Stream, Zap, Roll, Hold, Melt and One step stay in dev -> Aesthetics -> Score merge and `?merge`.
+Measured in headless Chromium at 1440x820 (console, LED matrix on and off) and 420x900 through
+`?merge` and real hands: 48 x 12 x 1.5 twice landed 576, 864, 1,296 with the pips sound once and the
+Focus sound twice; the fly to SCORE began 590ms after the last landing; a 3-hand burst and a cut
+dance left no canvas, hidden value or gold class; no page errors, no timeline drift.

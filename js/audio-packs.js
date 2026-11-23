@@ -180,6 +180,13 @@ const VEGAS_PACK = {
 
   // The Focus multiplier landing. A struck bell with the cabinet resonating under
   // it, so it is the one board sound with real low end.
+  // r804: pips into mult - two detents and a short bell pair, no thump (Focus going in has the thump).
+  pips_combine: () => {
+    vgDetent({ gain: 0.09, pitch: 1.0, verb: 0.08 });
+    vgDetent({ gain: 0.09, pitch: 1.3, delay: 0.06, verb: 0.08 });
+    vgBell(0, { dur: 0.5, gain: 0.1, delay: 0.12, verb: 0.3 });
+    vgBell(7, { dur: 0.4, gain: 0.06, delay: 0.13, verb: 0.3 });
+  },
   focus_beat: () => {
     dThump({ freq: 190, to: 58, dur: 0.34, gain: 0.2, sat: 0.6, verb: 0.2 });
     vgBell(7, { dur: 1.3, gain: 0.13, delay: 0.01, verb: 0.4 });
@@ -458,6 +465,13 @@ const HIGHROLLER_PACK = {
 
   // The multiplier arriving: a short rise that lands on a brass hit, so the chip
   // settling has something under it rather than just changing number.
+  // r804: pips into mult - two clicks and a short chime pair, no rise or brass.
+  pips_combine: () => {
+    dClick({ dur: 0.014, freq: 2200, q: 1.0, gain: 0.09, kind: 'white', verb: 0.05 });
+    dClick({ dur: 0.014, freq: 3000, q: 1.0, gain: 0.09, kind: 'white', verb: 0.05, delay: 0.06 });
+    hrChime(0, { dur: 0.6, gain: 0.08, delay: 0.12, verb: 0.35 });
+    hrChime(7, { dur: 0.5, gain: 0.05, delay: 0.13, verb: 0.35 });
+  },
   focus_beat: () => {
     hrRise({ dur: 0.26, gain: 0.075, from: 500, to: 4000, verb: 0.25 });
     hrHit({ gain: 0.17, delay: 0.26, size: 0.95, verb: 0.32 });
@@ -690,6 +704,12 @@ const NEON_PACK = {
 
   score_tick: () => neBlip(31, { dur: 0.016, gain: 0.035, duty: 0.1, verb: 0.05 }),
 
+  // r804: pips into mult - three blips climbing, no sweep or kick.
+  pips_combine: () => {
+    neBlip(0, { dur: 0.05, gain: 0.09, duty: 0.2, verb: 0.1 });
+    neBlip(7, { dur: 0.05, gain: 0.09, duty: 0.2, verb: 0.1, delay: 0.06 });
+    neBlip(12, { dur: 0.12, gain: 0.08, duty: 0.25, verb: 0.2, delay: 0.12 });
+  },
   focus_beat: () => {
     dSweep({ kind: 'noise', from: 700, to: 7000, dur: 0.2, gain: 0.06, q: 1.4, up: true, verb: 0.22 });
     neKick({ gain: 0.24, delay: 0.2, size: 1.1, verb: 0.14 });
@@ -900,6 +920,12 @@ const LOUNGE_PACK = {
 
   score_tick: () => loBrush({ dur: 0.014, gain: 0.07, freq: 3600, to: 2400, verb: 0.05 }),
 
+  // r804: pips into mult - two keys and their octave, no brush or thump.
+  pips_combine: () => {
+    loKey(0, { dur: 0.25, gain: 0.1, verb: 0.2 });
+    loKey(7, { dur: 0.25, gain: 0.1, delay: 0.06, verb: 0.2 });
+    loKey(12, { dur: 0.6, gain: 0.08, delay: 0.12, verb: 0.3 });
+  },
   focus_beat: () => {
     loBrush({ dur: 0.22, gain: 0.05, freq: 600, to: 3400, verb: 0.22 });
     loThump({ gain: 0.2, delay: 0.22, size: 1, verb: 0.26 });

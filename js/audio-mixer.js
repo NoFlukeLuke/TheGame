@@ -83,6 +83,7 @@ const SFX_MIX = {
   score_trick:   { bus: 'score', gap: 12 },
   entity_ping:   { bus: 'event', gap: 120 },
   focus_beat:    { bus: 'score', gain: 0.90 },
+  pips_combine:  { bus: 'score', gain: 0.90 },
   hand_scored:   { bus: 'score' },
   bonus_hand:    { bus: 'score', gain: 0.85 },
   m3_match:      { bus: 'score', gap: 20 },

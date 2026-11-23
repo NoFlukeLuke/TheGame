@@ -49,13 +49,15 @@ const PMF_CFG = {
   settle: 90,    // beat after a fuse, before the next step or the climb
   split:  300,   // fused chip back out to three
   hold:   260,   // console: a value fades and the next screen takes the number
+  rest:   500,   // r804 (owner): the hand's total sits in its tray this long before it flies to SCORE
 };
-const PMF_KEY = 'lethe.pmfLook.v1';
-// r721: five CARRY looks (a number leaves its tray and is carried into the next one) beside
+// r804: v2, so the LEDs look (the new default) replaces a look chosen under v1.
+const PMF_KEY = 'lethe.pmfLook.v2';
+// r804 (owner): LEDs is the default carry look (see _pmfLedCarry). r721: five more CARRY looks (a number leaves its tray and is carried into the next one) beside
 // the r592 fuses. 'auto' is Rise in every skin.
-const PMF_CARRY = ['rise', 'stamp', 'stream', 'zap', 'roll'];
+const PMF_CARRY = ['leds', 'rise', 'stamp', 'stream', 'zap', 'roll'];
 const PMF_LOOKS = ['auto', ...PMF_CARRY, 'hold', 'slide', 'one'];
-const PMF_LOOK_NAMES = { auto: 'Auto (Rise)', rise: 'Rise', stamp: 'Stamp', stream: 'Stream', zap: 'Zap', roll: 'Roll',
+const PMF_LOOK_NAMES = { auto: 'Auto (LEDs)', leds: 'LEDs', rise: 'Rise', stamp: 'Stamp', stream: 'Stream', zap: 'Zap', roll: 'Roll',
   hold: 'Hold', slide: 'Melt', one: 'One step' };
 const PMF_DEFAULT = 'auto';
 // Where a carry look ends: 'mid' (the MULT tray takes the product, then Focus is carried
@@ -80,7 +82,7 @@ function setPmfLook(v) {
 }
 function pmfLook() {
   if (pmfLookChoice !== 'auto') return pmfLookChoice;
-  return 'rise';
+  return 'leds';
 }
 
 let _pmfMerged = null;     // the fused chip element (created once, reused)
@@ -349,7 +351,7 @@ async function _pmfHold(handScore, pips, mult, speed, sig, p, o) {
 //   zap     a bolt of the number's colour jumps across; the tray scrambles, then locks.
 //   roll    it slides along the foot of the screen; the tray's number rolls up and out
 //           as the new one rolls up in, like an odometer.
-const PMF_CARRY_MS = { rise: 560, stamp: 600, stream: 640, zap: 420, roll: 480 };
+const PMF_CARRY_MS = { leds: 620, rise: 560, stamp: 600, stream: 640, zap: 420, roll: 480 };
 
 function _pmfFlier(src, wrap, text, scale) {
   const r = _pmfRel(src, wrap), cs = getComputedStyle(src);
@@ -371,6 +373,143 @@ function _pmfPopVal(el, big) {
 function _pmfSound(k) {
   if (typeof sfxFocusAgain === 'function') sfxFocusAgain(k);   // r781 (owner): every Focus application, the first included
   else if (typeof sfxFocusBeat === 'function') sfxFocusBeat();
+}
+
+// r804 (owner): PIPS going into MULT has its own sound; Focus going in keeps sfxFocusAgain.
+function _pmfSoundPips() {
+  if (typeof sfxPipsCombine === 'function') sfxPipsCombine();
+  else if (typeof sfxFocusBeat === 'function') sfxFocusBeat();
+}
+
+// ── LEDs (r804, owner): the numbers change the way the keys' words do ────────────
+// A number that leaves its tray is drawn as lit squares (the keys' 5x7 grid, js/key-dots.js,
+// sized and placed as the LED matrix draws a readout) on one canvas over #score-subboxes.
+// The squares of the number leaving AND of the number the tray held set off in a random
+// order and fly, stepped a whole square at a time, to the squares of the new number, taking
+// its colour on the way. Neither old number is left where it was: both values are hidden
+// (`.pmf-dots-hide`, the LED matrix's canvas with them) from the moment the squares stand
+// in for them. When the last square lands the tray shows its own figure again. Nothing
+// shakes, lifts or pops: only the squares move.
+let _pmfDots = null;   // { c, x, wrap, dpr, ox, oy, items, raf }
+function _pmfRGB(col) {
+  const m = String(col).match(/rgba?\(([^)]+)\)/); if (!m) return [255, 255, 255];
+  const v = m[1].split(/[\s,\/]+/).map(parseFloat);
+  return [v[0] || 0, v[1] || 0, v[2] || 0];
+}
+function _pmfTextRect(el) {
+  const hr = el.getBoundingClientRect();
+  try {
+    const r = document.createRange(); r.selectNodeContents(el);
+    const rs = [...r.getClientRects()].filter(x => x.width > 0 && x.height > 0);
+    if (!rs.length) return hr;
+    let L = Infinity, T = Infinity, R = -Infinity, B = -Infinity;
+    rs.forEach(x => { L = Math.min(L, x.left); T = Math.min(T, x.top); R = Math.max(R, x.right); B = Math.max(B, x.bottom); });
+    return { left: L, top: T, width: R - L, height: B - T };
+  } catch (e) { return hr; }
+}
+function _pmfDotLayer(wrap) {
+  if (_pmfDots && _pmfDots.wrap === wrap && _pmfDots.c.isConnected) return _pmfDots;
+  _pmfDotsClear();
+  const wr = wrap.getBoundingClientRect(), z = (wr.width / (wrap.offsetWidth || 1)) || 1, dpr = window.devicePixelRatio || 1;
+  const c = document.createElement('canvas'); c.className = 'pmf-dots'; c.setAttribute('aria-hidden', 'true');
+  c.width = Math.max(1, Math.round(wrap.clientWidth * z * dpr)); c.height = Math.max(1, Math.round(wrap.clientHeight * z * dpr));
+  wrap.appendChild(c);
+  _pmfDots = { c, x: c.getContext('2d'), wrap, dpr, ox: wr.left + wrap.clientLeft * z, oy: wr.top + wrap.clientTop * z, items: [], raf: 0 };
+  return _pmfDots;
+}
+function _pmfDotsClear() {
+  if (_pmfDots) { if (_pmfDots.raf) cancelAnimationFrame(_pmfDots.raf); try { _pmfDots.c.remove(); } catch (e) {} _pmfDots = null; }
+  document.querySelectorAll('.pmf-dots-hide').forEach(el => el.classList.remove('pmf-dots-hide'));
+}
+// A value's squares, in the layer's device px: the LED matrix's sizing (js/led-matrix.js
+// ledDraw), so with that switch on they sit on the squares already drawn.
+function _pmfDotsOf(L, el) {
+  const tr = _pmfTextRect(el), hr = el.getBoundingClientRect(), dpr = L.dpr;
+  const rgb = _pmfRGB(getComputedStyle(el).color);
+  const text = (el.textContent || '').replace(/\s+/g, ' ').trim().toUpperCase();
+  if (!text || !tr.width || typeof kdGlyph !== 'function') return { P: 2, dots: [], rgb };
+  const glyphs = [...text].map(ch => ch === ' ' ? null : kdGlyph(7, ch));
+  let cols = 0; glyphs.forEach((g, i) => { cols += (g ? g.w : 3) + (i < glyphs.length - 1 ? 1 : 0); });
+  let P = Math.floor(tr.height * dpr * .72 / 7);
+  const room = Math.max(hr.width, tr.width) * dpr;
+  if (cols && cols * P > room) P = Math.floor(room / cols);
+  P = Math.max(2, P);
+  const x0 = Math.round((tr.left + tr.width / 2 - L.ox) * dpr - cols * P / 2), y0 = Math.round((tr.top + tr.height / 2 - L.oy) * dpr - 7 * P / 2);
+  const dots = []; let gx = x0;
+  glyphs.forEach(g => {
+    if (g) g.rows.forEach((row, ry) => row.forEach((on, rx) => { if (on) dots.push({ x: gx + rx * P, y: y0 + ry * P }); }));
+    gx += ((g ? g.w : 3) + 1) * P;
+  });
+  return { P, dots, rgb };
+}
+function _pmfDotsTick() { if (_pmfDots && !_pmfDots.raf) _pmfDots.raf = requestAnimationFrame(_pmfDotsFrame); }
+function _pmfDotsFrame(now) {
+  const L = _pmfDots; if (!L) return;
+  L.raf = 0;
+  const x = L.x; x.clearRect(0, 0, L.c.width, L.c.height);
+  let more = false;
+  for (const it of L.items) {
+    const fly = it.x1 != null;
+    const t = fly ? Math.min(1, Math.max(0, (now - it.t0) / it.dur)) : 0;
+    if (fly && t < 1) more = true;
+    if (it.spawn && t <= 0) continue;     // a square the new number needs that no old square was left for
+    if (it.die && t >= 1) continue;       // a square the new number has no place for
+    let px = it.x0, py = it.y0, P = it.P0, rgb = it.rgb0;
+    if (fly && t > 0) {
+      const e = t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+      P = it.P0 + (it.P1 - it.P0) * e;
+      const st = Math.max(1, it.P1);     // stepped a whole square at a time, on the grid it lands on
+      px = it.x1 - Math.round((it.x1 - it.x0) * (1 - e) / st) * st;
+      py = it.y1 - Math.round((it.y1 - it.y0) * (1 - e) / st) * st;
+      rgb = [0, 1, 2].map(i => Math.round(it.rgb0[i] + (it.rgb1[i] - it.rgb0[i]) * e));
+    }
+    const gap = P >= 3 ? 1 : .5, D = Math.max(1, P - gap), col = `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`;
+    x.fillStyle = 'rgba(0,0,0,.5)'; x.fillRect(px - .5, py - .5, D + 1, D + 1);
+    x.shadowColor = col; x.shadowBlur = P * 1.3;
+    x.fillStyle = col; x.fillRect(px, py, D, D);
+    x.shadowBlur = 0; x.shadowColor = 'transparent';
+    x.fillStyle = 'rgba(255,255,255,.28)'; x.fillRect(px, py, D, D);
+  }
+  if (more) _pmfDotsTick();
+}
+// One carry in squares. Resolves true once dst shows `text` as its own figure again.
+async function _pmfLedCarry(wrap, src, dst, text, last, F, bail, sound) {
+  const L = _pmfDotLayer(wrap);
+  const A = _pmfDotsOf(L, src), B = _pmfDotsOf(L, dst);
+  // both numbers become squares where they stand; their own figures are gone from here on
+  const olds = [];
+  [A, B].forEach(S => S.dots.forEach(d => olds.push({ x0: d.x, y0: d.y, P0: S.P, rgb0: S.rgb })));
+  L.items = olds;
+  src.classList.add('pmf-dots-hide'); dst.classList.add('pmf-dots-hide');
+  _pmfDotsFrame(performance.now());
+  // the tray takes the new number, unseen, so its squares can be placed (the HUD's fitter
+  // resizes a long figure on a mutation, so measure after it has run)
+  dst.textContent = text;
+  if (last) dst.classList.add('pmf-hold-score');
+  await _pmfWait(0); if (bail()) return false;
+  const T = _pmfDotsOf(L, dst);
+  for (let i = olds.length - 1; i > 0; i--) { const j = Math.floor(fxRand() * (i + 1)); const t = olds[i]; olds[i] = olds[j]; olds[j] = t; }
+  const now = performance.now(), spread = F * .45, fly = F * .55;
+  const aim = (it, d) => { it.x1 = d.x; it.y1 = d.y; it.P1 = T.P; it.rgb1 = T.rgb; it.t0 = now + fxRand() * spread; it.dur = fly; return it; };
+  const items = [];
+  T.dots.forEach((d, i) => {
+    if (i < olds.length) items.push(aim(olds[i], d));
+    else if (olds.length) { const o = olds[Math.floor(fxRand() * olds.length)]; items.push(aim({ x0: o.x0, y0: o.y0, P0: o.P0, rgb0: o.rgb0, spawn: true }, d)); }
+    else items.push(aim({ x0: d.x, y0: d.y, P0: T.P, rgb0: T.rgb, spawn: true }, d));
+  });
+  for (let i = T.dots.length; i < olds.length; i++) {
+    if (T.dots.length) { items.push(aim(olds[i], T.dots[Math.floor(fxRand() * T.dots.length)])); olds[i].die = true; }
+  }
+  L.items = items;
+  if (typeof sfxScoreTick === 'function') sfxScoreTick();
+  _pmfDotsTick();
+  // a timer, not the frames, ends the carry: rAF stops in a background tab
+  await new Promise(res => { const id = setTimeout(res, F + 30); _pmfTimers.push({ id, res }); });
+  if (bail()) return false;
+  if (_pmfDots === L) { L.items = []; L.x.clearRect(0, 0, L.c.width, L.c.height); }
+  dst.classList.remove('pmf-dots-hide');
+  sound();
+  return true;
 }
 
 // The flights. Each moves the copy from the source to the destination's centre and resolves
@@ -485,7 +624,13 @@ async function _pmfCarry(handScore, pips, mult, speed, sig, p, o, look) {
   const flight = PMF_FLIGHT[look] || PMF_FLIGHT.rise;
 
   // One carry: src's number leaves, dst reads `text` once it has arrived.
-  const carry = async (src, dst, text, k, last, first) => {
+  // `pipsIn`: this is PIPS going into MULT (its own sound, r804).
+  const carry = async (src, dst, text, k, last, first, pipsIn) => {
+    if (look === 'leds') {
+      if (!(await _pmfLedCarry(wrap, src, dst, text, last, F, bail, () => pipsIn ? _pmfSoundPips() : _pmfSound(k)))) return false;
+      await _pmfWait(S);
+      return !bail();
+    }
     _pmfJitVal([src, dst], true);
     if (typeof sfxScoreTick === 'function') sfxScoreTick();
     await _pmfWait(first ? J : J * .6); if (bail()) return false;
@@ -499,7 +644,7 @@ async function _pmfCarry(handScore, pips, mult, speed, sig, p, o, look) {
       if (t != null) dst.textContent = t;
       if (last) dst.classList.add('pmf-hold-score');
       if (!quiet) _pmfPopVal(dst, big || last);
-      _pmfSound(k);
+      if (pipsIn) _pmfSoundPips(); else _pmfSound(k);
     };
     const n0 = _pmfFliers.length - 1;
     await flight({ fl, a, b, F, land, text, wrap, src, dst });
@@ -510,7 +655,7 @@ async function _pmfCarry(handScore, pips, mult, speed, sig, p, o, look) {
   };
 
   // ── step 1: PIPS into MULT ──
-  if (!(await carry(pv, mv, _pmfFmt(pips * mult), 1, false, true))) return false;
+  if (!(await carry(pv, mv, _pmfFmt(pips * mult), 1, false, true, true))) return false;
   if (times[0]) _pmfAnim(times[0], [{ opacity: 1 }, { opacity: .35 }], { duration: 200 / speed, fill: 'forwards' });
 
   // ── step 2: Focus, once per application ──
@@ -578,10 +723,17 @@ async function pmfMergeIn(handScore, opts) {
   p.boxes.forEach(b => b.classList.remove('subbox-pop'));
   const twoStep = typeof o.pips === 'number' && typeof o.mult === 'number';
   _pmfMode = twoStep ? pmfLook() : 'one';
-  if (PMF_CARRY.includes(_pmfMode)) return _pmfCarry(handScore, o.pips, o.mult, speed, sig, p, o, _pmfMode);
-  if (_pmfMode === 'hold') return _pmfHold(handScore, o.pips, o.mult, speed, sig, p, o);
-  if (_pmfMode === 'slide') return _pmfSlide(handScore, o.pips, o.mult, speed, sig, p, o);
-  return _pmfOne(handScore, speed, sig, p);
+  const gen = _pmfGen;
+  const ok = PMF_CARRY.includes(_pmfMode) ? await _pmfCarry(handScore, o.pips, o.mult, speed, sig, p, o, _pmfMode)
+    : _pmfMode === 'hold' ? await _pmfHold(handScore, o.pips, o.mult, speed, sig, p, o)
+    : _pmfMode === 'slide' ? await _pmfSlide(handScore, o.pips, o.mult, speed, sig, p, o)
+    : await _pmfOne(handScore, speed, sig, p);
+  if (!ok) return false;
+  // r804 (owner): the total sits where it landed before it flies to SCORE, so it can be read.
+  await _pmfWait(Math.max(120, PMF_CFG.rest / speed));
+  if (gen !== _pmfGen) return false;
+  if (sig && sig.aborted) { pmfResetNow(); return false; }
+  return true;
 }
 
 // The fused number FLIES to the SCORE total (r173). This is the beat the owner
@@ -656,6 +808,7 @@ async function pmfSplitOut(opts) {
     const pv = document.getElementById('pips-val'), mv = document.getElementById('mult-val'), fv = document.getElementById('focus-val');
     _pmfAnims.forEach(a => { try { a.cancel(); } catch (e) {} }); _pmfAnims = [];
     _pmfFliers.forEach(el => { try { el.remove(); } catch (e) {} }); _pmfFliers = [];
+    _pmfDotsClear();
     _pmfFCopies.concat(_pmfFSpent).forEach(el => { try { el.remove(); } catch (e) {} }); _pmfFCopies = []; _pmfFSpent = [];
     if (_pmfHoldSaved) { if (pv) pv.textContent = _pmfHoldSaved.pips; if (mv) mv.textContent = _pmfHoldSaved.mult; if (fv) fv.textContent = _pmfHoldSaved.focus; }
     if (fv) fv.classList.remove('pmf-hold-score');
@@ -675,6 +828,7 @@ function pmfResetNow() {
   _pmfAnims.forEach(a => { try { a.cancel(); } catch (e) {} }); _pmfAnims = [];
   pmfFocusCopiesClear();
   _pmfFliers.forEach(el => { try { el.remove(); } catch (e) {} }); _pmfFliers = [];
+  _pmfDotsClear();
   const tm = _pmfTimers; _pmfTimers = [];
   tm.forEach(t => { clearInterval(t.id); t.res(); });   // a cut carry's wait ends (its caller then sees the abort)
   // A cut hold or carry look puts the chips' own figures back.
@@ -750,7 +904,7 @@ function pmfLabOpen() {
     + `<div class="bl-row"><span class="bl-lab">RESOLVES IN</span><button class="bl-b" data-pmf-resolve="mid">MIDDLE</button><button class="bl-b" data-pmf-resolve="focus">FOCUS</button>`
     + `<span class="bl-lab">FOCUS APPLIES</span>${[1, 2, 3].map(n => `<button class="bl-b" data-n="${n}">×${n}</button>`).join('')}</div>`
     + `<div class="bl-row"><button class="bl-b bl-use" id="pl-use">USE THIS</button><button class="bl-b" id="pl-home" onclick="location.href='index.html'">EXIT</button></div>`
-    + `<div class="bl-note">Tap a look to play it on the score row (48 × 12 × 1.5). The first five carry a number from tray to tray; MIDDLE / FOCUS is where they end. USE THIS keeps the last one you played.</div>`;
+    + `<div class="bl-note">Tap a look to play it on the score row (48 × 12 × 1.5). LEDs to Roll carry a number from tray to tray; MIDDLE / FOCUS is where they end. USE THIS keeps the last one you played.</div>`;
   document.body.appendChild(p);
   const paint = () => {
     p.querySelector('.bl-now').textContent = 'now: ' + PMF_LOOK_NAMES[pmfLookChoice] + (PMF_CARRY.includes(pmfLook()) ? ' · ends in ' + (pmfResolve === 'focus' ? 'FOCUS' : 'MIDDLE') : '');
