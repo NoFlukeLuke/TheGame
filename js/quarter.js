@@ -109,6 +109,7 @@ function closeQuarter(q) {
 function rolloverQuarter(next) {
   const closed = (typeof actNumber === 'number') ? actNumber : 1;
   closeQuarter(closed);
+  if (typeof investmentSettle === 'function') investmentSettle();   // r805: an investment pays out as the quarter turns
 
   nodeInAct = 0;
   actNumber++;
@@ -125,7 +126,8 @@ function rolloverQuarter(next) {
   // the whole quarter instead of guessing at it. This and startGame are the two
   // places a quarter opens.
   if (typeof drawActBoss === 'function') drawActBoss();
-  showQuarterCard(closed, actNumber, next);
+  // r805: the investment's report comes right after the quarter card, before anything else.
+  showQuarterCard(closed, actNumber, () => (typeof investmentReportMaybe === 'function') ? investmentReportMaybe(next) : next());
 }
 
 // ── The card ────────────────────────────────────────────────────────────────

@@ -780,6 +780,7 @@ function gridPickRender(animateIn) {
   });
 
   gridPickRenderActions(animateIn);
+  if (typeof efiScan === 'function') requestAnimationFrame(() => efiScan(document.getElementById('grid')));   // r805: owned entities (an improve step) fly in
   gridPickAfterRender(gridEl, offers, onChoose);
   gridPickPaintSelection();
   if (_gpDeal) { gridDealTiles(_gpDeal); _gpDeal = null; }

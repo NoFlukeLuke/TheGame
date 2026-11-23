@@ -99,7 +99,7 @@ const SAVE_VARS = [
   'lastCalcMult', 'lastCalcFocus', 'lastPreHandFocus', 'lastPreFocusMult',
   // ── Entities owned ──
   'acquiredTricks', 'acquiredKnacks', 'trickTray',
-  'grantedSleightIds', 'altarEffects', 'sleightCapBonus', 'lockboxStash', 'entityTier',
+  'grantedSleightIds', 'altarEffects', 'investment', 'sleightCapBonus', 'lockboxStash', 'entityTier',
   'wildsUnbound', 'staticPips', 'staticMult',   // r579: Wild Cards and Static Bonus events
   'runDifficulty', 'hmRounds', 'hmSeen',
   'limitlessFlowFrom',                           // r749: Limitless's back half in Flow (js/protocols.js)        // r727: the run's difficulty tier; a deck horseman's rounds on the grid

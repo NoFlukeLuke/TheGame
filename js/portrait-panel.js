@@ -215,7 +215,8 @@ function portraitPreviewCardW(n, avail) {
   const wByHeight = Math.min(stripH * cfg.vFill, availH - DNC_CHROME) * cfg.aspect;
   // r515 (owner): stacked bars have the room, so a card is 90% of the bar's
   // height (no cardScale), still narrowed if the hand would not fit.
-  const stacked = document.body.classList.contains('pt-stacked') && host;
+  // r805: the stacked bars are the phone's only layout.
+  const stacked = !!host;
   return stacked
     ? Math.max(cfg.minW, Math.floor(Math.min(wByWidth, host.clientHeight * cfg.stackedFill * cfg.aspect)))
     : Math.max(cfg.minW, Math.floor(Math.min(wByWidth, wByHeight) * cfg.cardScale));

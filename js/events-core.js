@@ -68,6 +68,8 @@ const EVENT_REQUIRES = {
   // Needs a Trick to reorder / rehearse / reassign, or a trade to offer.
   crossroads:   () => buildCrossroadsTrades().length > 0,   // it has NO consolation: an empty build is a blank panel
   rehearsal:    () => (trickTray || []).length > 0,
+  // r805: credits to invest and nothing already held (js/investment.js).
+  altar:        () => typeof investmentOfferable === 'function' && investmentOfferable(),
   // r708: a Trick to permaprime; up to two others are cut (js/events.js, Restructuring).
   restructure:  () => restructureOfferable(),
   reassignment: () => (trickTray || []).length > 0,
@@ -272,7 +274,7 @@ const EVENT_META = {
   crossroads:  { name:'The Trade',       flavor:'Every offer here gives you something and takes something.' },
   gamble:      { name:'The Gamble',      flavor:'Pick blind. One of these is worth having.' },
   merchant:    { name:'Free Pick',       flavor:'Three pieces that fit what you are building. Take one, free.' },
-  altar:       { name:'The Investment',  flavor:'Pay now. It pays you back over the next few rounds.' },
+  altar:       { name:'The Investment',  flavor:'In now. Back when the next quarter opens.' },   // r805: js/investment.js
   spring:      { name:'Clean Up',        flavor:'Cut cards out of your deck, or undo a downside.' },
   twin_path:   { name:'Two and a Catch', flavor:'Two Tricks. One downside, and you cannot refuse it.' },
   forge:       { name:'Card Upgrade',    flavor:'A buff that grows every time it scores. Pick two cards; one of them gets it.' },
@@ -491,6 +493,8 @@ function evShow() {
   const ov = document.getElementById('event-overlay'); if (!ov) return;
   ov.classList.add('show');
   evConsolePlace();
+  // r805 (owner): what you own flies onto the event from its tray (js/entity-flyin.js).
+  if (typeof efiScan === 'function') requestAnimationFrame(() => requestAnimationFrame(() => efiScan(document.getElementById('event-body'))));
 }
 function evConsolePlace() {
   const ov = document.getElementById('event-overlay'), panel = document.getElementById('event-panel');

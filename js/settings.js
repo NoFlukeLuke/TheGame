@@ -221,21 +221,8 @@ const SETTINGS_DEF = [
     apply: v => { if (typeof camSetRoomStyle === 'function') camSetRoomStyle(v); } },
   // r646 (owner): the turning board pattern (r409, `boardPattern`) is gone, with
   // its element and its stylesheet rules; `#hypno-screen` stays as the CRT's floor.
-  // r486: the portrait trays (js/tray-zigzag.js, css/tray-zigzag.css).
-  { group: 'Display', id: 'trickTrayLayout', label: 'Trick tray on a phone',
-    hint: 'Zigzag: Tricks alternate up and down and take turns coming forward. Tilted: Tricks lean back side by side and take turns turning flat.',
-    type: 'select', default: 'zigzag', options: [['zigzag','Zigzag'], ['tilt','Tilted']],
-    apply: () => setTimeout(() => { if (typeof renderTrickTray === 'function') { try { renderTrickTray(); } catch (e) {} } }, 0) },
-  { group: 'Display', id: 'phoneTrays', label: 'Phone tray layout',
-    hint: 'Side by side: Tricks and the hand preview share one strip. Stacked: each gets a full-width bar, and the board is a little smaller.',
-    type: 'select', default: 'side', options: [['side','Side by side'], ['stacked','Stacked bars']],
-    apply: v => {
-      document.body.classList.toggle('pt-stacked', v === 'stacked');
-      setTimeout(() => {
-        try { window.dispatchEvent(new Event('resize')); } catch (e) {}
-        if (typeof renderTrickTray === 'function') { try { renderTrickTray(); } catch (e) {} }
-      }, 0);
-    } },
+  // r805 (owner): the phone's trays are two stacked bars, the only layout (css/phone-trays.css);
+  // the r486 Trick tray on a phone / Phone tray layout rows are gone.
   // r501: rows with `get` are views of a feature's own store (js/tray-pit.js,
   // js/stock-bulbs.js), not stored here, so the dev panel and Settings never disagree.
   { group: 'Display', id: 'consoleMode', label: 'Console mode',

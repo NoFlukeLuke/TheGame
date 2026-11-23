@@ -56,10 +56,10 @@ function runSelectRender() {
       `<div class="rs-body">` +
         `<div class="rs-sec"><div class="rs-label">MODE</div><div class="rs-modes">${modes}</div></div>` +
         `<div class="rs-sec"><div class="rs-label">PROTOCOL</div><div class="rs-protos">${protos}</div></div>` +
-        `<div class="rs-rules">${selOpen ? protocolSay(sel.id, base) : lockSay}</div>` +
+        `<div class="rs-rules">${selOpen ? protocolSay(sel.id, base) : lockSay}${_rsSeedOn ? '<span class="rs-seed-note">A seeded run unlocks nothing.</span>' : ''}</div>` +
         (selOpen
           ? `<div class="rs-sec"><div class="rs-label">DIFFICULTY</div><div class="rs-diff">${modeDiffHTML(protoKey(sel.id), base)}</div>` +
-            `<div class="rs-note">Difficulty belongs to the protocol: a win in Flow or the Schedule unlocks the next tier for both.${protoKnackLine(sel.id)}</div></div>`
+                `<div class="rs-note">Difficulty belongs to the protocol: a win in Flow or the Schedule unlocks the next tier for both.${protoKnackLine(sel.id)}</div></div>`
           : '') +
       `</div>` +
       `<div class="rs-keys"><button class="rs-key rs-back">BACK</button>${more}` +

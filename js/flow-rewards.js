@@ -1836,6 +1836,7 @@ function flowrBuildOffers(kind) {
       shuffle(pool.slice()).slice(0, 3).forEach(d => out.push(survivalMakeOption('limit', d)));
     } else if (kind === 'sleights') {
       const granted = _grantedSleightSet();
+      if (typeof ownedAllowIds === 'function') ownedAllowIds('sleight').forEach(id => granted.delete(id));   // r809: Old Tricks
       const pool = flowrFloorPool(SLEIGHT_POOL.filter(j => !survivalEntityBanned(j.id) && !granted.has(j.id) && sleightOfferable(j)), j => j.rarity || 'common');
       const used = new Set();
       for (let i = 0; i < 3 && used.size < pool.length; i++) {
@@ -2028,10 +2029,10 @@ const FLOWR_DECK_OPS = [
   // r567: a flag, not a number, so it is its own op rather than a buff row.
   { id: 'fodder', fodder: true, icon: '♻', name: 'Fodder',
     desc: 'Pick up to 3 touching cards, then APPLY. Each becomes Fodder: swapping or discarding it costs no time and no stock.' },
-  { id: 'pips',   buff: { key: 'pips',   range: [10, 15, 1],    word: 'pips'   }, icon: '➕', name: 'Pip Buff',
-    desc: 'Pick up to 3 touching cards, then APPLY. Buffed cards score +10 to +15 pips.' },
-  { id: 'mult',   buff: { key: 'mult',   range: [8, 12, 1],     word: 'mult'   }, icon: '✖', name: 'Mult Buff',
-    desc: 'Pick up to 3 touching cards, then APPLY. Buffed cards score +8 to +12 mult.' },
+  { id: 'pips',   buff: { key: 'pips',   range: [25, 25, 1],    word: 'pips'   }, icon: '➕', name: 'Pip Buff',
+    desc: 'Pick up to 3 touching cards, then APPLY. Buffed cards score +25 pips.' },
+  { id: 'mult',   buff: { key: 'mult',   range: [25, 25, 1],    word: 'mult'   }, icon: '✖', name: 'Mult Buff',
+    desc: 'Pick up to 3 touching cards, then APPLY. Buffed cards score +25 mult.' },
   { id: 'focus',  buff: { key: 'focus',  range: [1, 2, 1],      word: 'Focus'  }, icon: '◉', name: 'Focus Buff',
     desc: 'Pick up to 3 touching cards, then APPLY. Buffed cards grant +1 to +2 Focus when they score.' },
   { id: 'time',   buff: { key: 'time',   range: [1, 5, 1],      word: 's'      }, icon: '⏱', name: 'Time Buff',

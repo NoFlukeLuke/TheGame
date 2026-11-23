@@ -1,5 +1,5 @@
 const BAL = {
-  rich_soil: { mult: 6 },   // r767 (owner): was 3
+  rich_soil: { mult: 12 },   // r810 (owner): the common mult-per-card average; r767 6, was 3
   court_of_leaves: { pips: 3 },
   low_tide: { pips: 6 },
   first_light: { worth: 42 },
@@ -72,7 +72,7 @@ const BAL = {
   short_change: { coins: 1 },
   scavenger: { coins: 10 },
   edge_pips: { pips_per_card: 15 },
-  high_pair: { focus_per_card: 4 },   // r624: any hand with a pair in it and a 2 or 4
+  high_pair: { focus_per_card: 1 },   // r810 (owner): was 4, the rare per-card Focus rate is 1   // r624: any hand with a pair in it and a 2 or 4
   pair_pips: { pip_mult: 2 },
   heavy_hand: { pips_per_card: 20 },
   quick_draw: { window_ms: 3000, cap_gain: 1, cap: 10, focus_cut: 0.25, sell_bonus: 6 },   // r708 owner: costs 25% of your Focus; sells for more at max
@@ -114,15 +114,16 @@ const BAL = {
   threes_run: { mult: 9 },
   lucky_three: { mult: 2 },
   light_touch: { mult: 30 },
-  patience_reward: { mult_per_second: 2 },   // r624: mult = this x the seconds since the last hand
+  patience_reward: { mult_per_second: 3 },   // r624: mult = this x the seconds since the last hand; r812 (owner): 3 (was 2)
+  echo_hand: { streak: 3 },   // r812 (owner): the streak length (this hand included) that replays every card; was 2
   first_play: { focus: 5 },
   monochrome: { coins: 5, seconds: 10, mult: 25 },   // r625: pays mult too; IMPROVE_PLAN cycles the three
   full_color: { mult_mult: 1.25 },   // r539 owner: x mult per card (was +16 pips +16 mult per card)
   balanced_diet: { mult_per_card: 10 },
-  number_crunch: { mult_per_card: 8 },
+  number_crunch: { mult_per_card: 14 },   // r810 (owner): was 8
   cull: { focus_per_stock: 2, per: 2 },
   even_score: { pips_per_card: 16 },
-  odd_squad: { mult_per_card: 7 },
+  odd_squad: { mult_per_card: 13 },   // r810 (owner): was 7
   long_road: { mult_per_card: 10 },
   still_water: { mult_per_interval: 15, interval_seconds: 5 },   // r767 (owner): was 10
   wild_heart: { primes: 1, extra_ranks: 0 },   // r625: primes per Ace; extra ranks are rolled on the Trick when improved
@@ -269,7 +270,7 @@ const BAL = {
   // Card states (r278, js/card-states.js). Not an entity, so improve.js never
   // touches these - they are the states' own numbers, in one place.
   card_states: { review_up: 0.2, review_down: 0.5, roll_call_penalty: 15, fuse_seconds: 60 },
-  payout_pick: { pips: 12 },
+  payout_pick: { pips: 25 },
   second_hand: { pips: 30, mult: 20 },
   hourglass: { chance: 0.5, interval_seconds: 60 },
   sediment: { interval_seconds: 10, pips_per_interval: 10 },
@@ -603,6 +604,7 @@ const DESC_TEMPLATES = {
   high_pair: 'Hands containing a pair and a 2 or 4 add +{focus_per_card} Focus per card',
   ripple: 'Cards adjacent in rank to another card in the hand have a {chance_pct}% chance to replay[[chance2:, then a {chance2_pct}% chance to replay again]]',
   patience_reward: 'Adds mult equal to {mult_per_second}x the seconds passed since the last hand was played',
+  echo_hand: 'Same-hand streaks of {streak} or more replay each card',
   first_play: "The round's first hand adds +{focus} Focus; each hand after adds 1 less, down to 0",
   still_water: 'Score +{mult_per_interval} mult for every {interval_seconds} seconds elapsed without using a swap',
   swift: '+{mult_per_interval} mult for every {interval_seconds} seconds elapsed this round',

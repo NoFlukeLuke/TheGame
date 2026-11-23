@@ -1,4 +1,4 @@
-const BUILD = "2026-11-23 · r804 · PAUSE cannot open under the end screen";
+const BUILD = "2026-11-23 · r814 · PAUSE cannot open under the end screen";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

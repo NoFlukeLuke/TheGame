@@ -82,15 +82,20 @@ const DANCE_CFG = {
 // over this one. `colors` are keyed by the particle kind (see evKind).
 const PARTICLE_CFG = {
   shape: 'diamond',          // diamond | square | circle | pill | none
-  size: 40,                  // px, the plate
-  font: 25.5,                // px, the label
-  round: 0, borderW: 0, borderLight: 0, glow: 30,
+  // r805 (owner): on theme with the console. The plate is BLACK like the cards, its
+  // outline and its number in the chip's colour (pips blue, mult red), the number in
+  // the score's font (css/dance.css). Smaller than before (40 -> 30), and it starts
+  // smaller still (ptFrames / ptHoldFrames open at .35).
+  size: 30,                  // px, the plate
+  font: 24,                  // px, the label
+  round: 0, borderW: 2, borderLight: 0, glow: 10,
+  plate: '#0a0a0d',          // the fill; the kind's colour is the outline and the ink
   ink: '#ffffff',
   // ── The flight itself (r233). These used to be dumped by the preview and read
   // by nobody: dncFly hardcoded its own keyframes, so a tuning session in
   // particle-preview.html could not reach the game. They are live now.
   flightMs: 1440,            // ms at 1x pace
-  pop: 1.8,                  // scale at the launch pop
+  pop: 1.05,                 // scale at the launch pop (r805: barely past its size; it opens at .35)
   arc: 0,                    // px of lob; 0 is a straight line
   spin: 30,                  // peak rotation, reached at the HALFWAY point
   spinEnd: -5,               // where it settles by the landing
@@ -100,7 +105,7 @@ const PARTICLE_CFG = {
   // number is read, so a currency that would be mistaken for another one gets
   // its own shape or its own ink rather than one more shade of the same family.
   shapes: { credits: 'circle' },      // coins are round, because coins are round
-  inks:   { time: '#000000' },        // the clock plate is white, so its ink is black
+  inks:   { time: '#f4f4f4' },        // r805: every plate is black; the clock's outline and ink are white
   // ── Ghost trail. A rewind is the one payout that means "this already happened,
   // and it is happening again", so it is the one that gets an after-image: N
   // copies of the plate lagging behind the real one, each fainter than the last.
@@ -119,10 +124,10 @@ const PARTICLE_CFG = {
   // r610 (owner): 15% less growth, 2.5 -> 2.125 (40 payouts: x2.09).
   growStart: 5, growStep: 2.125, growMax: 3,
   colors: {
-    pipAdd:  '#2f6bd8',      // pips are blue, the PIPS chip's own border colour
-    pipMul:  '#0e2a5d',      // a multiply is the same hue, deeper
-    multAdd: '#c0202c',      // mult is red, the MULT chip's colour
-    multMul: '#6c0f13',
+    pipAdd:  '#4f8df5',      // pips are blue, the PIPS chip's own colour (r805: outline and ink on black)
+    pipMul:  '#8fb8ff',      // a multiply is the same hue, lighter
+    multAdd: '#e8404c',      // mult is red, the MULT chip's colour
+    multMul: '#ff8a7a',
     focus:   '#8a4fd0',
     credits: '#c9a84c',
     time:    '#ffffff',
@@ -524,7 +529,7 @@ function ptOrientScale(){
   return (st && st.classList.contains('landscape')) ? DANCE_CFG.pScaleLand : DANCE_CFG.pScalePort;
 }
 function ptPlateEl(kind, label, scale, color, icon){
-  const C = PARTICLE_CFG, bg = (C.colors && C.colors[kind]) || color || '#d4a857';
+  const C = PARTICLE_CFG, col = (C.colors && C.colors[kind]) || color || '#d4a857', bg = C.plate || col;
   const zs = DANCE_CFG.pScaleMul * ptOrientScale() * scale;
   const el = document.createElement('div');
   el.className = 'dnc-particle pt-' + ptShape(kind);
@@ -539,8 +544,8 @@ function ptPlateEl(kind, label, scale, color, icon){
   el.style.setProperty('--pt-round', C.round + 'px');
   el.style.setProperty('--pt-bw', C.borderW + 'px');
   el.style.setProperty('--pt-bg', bg);
-  el.style.setProperty('--pt-bc', _ptLighten(bg, C.borderLight));
-  el.style.setProperty('--pt-ink', ptInk(kind));
+  el.style.setProperty('--pt-bc', C.plate ? col : _ptLighten(bg, C.borderLight));
+  el.style.setProperty('--pt-ink', C.plate ? ((C.inks && C.inks[kind]) || col) : ptInk(kind));
   el.style.setProperty('--pt-glow', C.glow + 'px');
   return el;
 }
@@ -554,7 +559,7 @@ function ptFrames(dx, dy, scale){
   const arc = C.arc || 0, mid = C.spin || 0;
   const end = (C.spinEnd === undefined) ? 0 : C.spinEnd;
   return [
-    { transform:`${B} scale(${.5*scale}) rotate(0deg)` },
+    { transform:`${B} scale(${.35*scale}) rotate(0deg)` },
     { transform:`${B} translate(${dx*.12}px,${dy*.12 - arc*.5}px) scale(${pop}) rotate(${mid*.5}deg)`, offset:.22 },
     { transform:`${B} translate(${dx*.5}px,${dy*.5 - arc}px) scale(${scale}) rotate(${mid}deg)`, offset:.5 },
     { transform:`${B} translate(${dx}px,${dy}px) scale(${.8*scale}) rotate(${end}deg)` },
@@ -564,17 +569,20 @@ function ptFrames(dx, dy, scale){
 // then flies. The hold is carved out of `dur`, so the chip takes no longer than
 // before. The timing is linear and each stretch carries its own easing, or one
 // ease over the whole flight would smear the hold into a slow drift.
-function ptHoldFrames(dx, dy, scale, hold, dur){
+function ptHoldFrames(dx, dy, scale, hold, dur, bow){
   const C = PARTICLE_CFG, B = 'translate(-50%,-50%)';
   const pop = ((C.pop === undefined) ? 1.2 : C.pop) * scale;
   const arc = C.arc || 0, mid = C.spin || 0;
   const end = (C.spinEnd === undefined) ? 0 : C.spinEnd;
   const h = Math.max(.05, Math.min(.6, hold / dur)), pIn = Math.min(h * .4, 90 / dur), m = h + (1 - h) * .45;
+  // r805: `bow` px sideways at the midpoint (across the line of flight), so two chips
+  // on one line do not ride on top of each other.
+  const L = Math.hypot(dx, dy) || 1, nx = -dy / L * (bow || 0), ny = dx / L * (bow || 0);
   return [
-    { transform:`${B} scale(${.5*scale}) rotate(0deg)`, easing:'ease-out' },
+    { transform:`${B} scale(${.35*scale}) rotate(0deg)`, easing:'ease-out' },
     { transform:`${B} scale(${pop}) rotate(0deg)`, offset:pIn, easing:'ease-in-out' },
     { transform:`${B} scale(${(pop+scale)/2}) rotate(0deg)`, offset:h, easing:'cubic-bezier(.5,0,.8,.6)' },
-    { transform:`${B} translate(${dx*.5}px,${dy*.5 - arc}px) scale(${scale}) rotate(${mid}deg)`, offset:m, easing:'cubic-bezier(.2,.5,.4,1)' },
+    { transform:`${B} translate(${dx*.5 + nx}px,${dy*.5 - arc + ny}px) scale(${scale}) rotate(${mid}deg)`, offset:m, easing:'cubic-bezier(.2,.5,.4,1)' },
     { transform:`${B} translate(${dx}px,${dy}px) scale(${.8*scale}) rotate(${end}deg)` },
   ];
 }
@@ -602,7 +610,7 @@ function ptLaunch(a, b, kind, label, color, dur, opts){
   const x = a.left + a.width/2,  y = a.top + a.height/2;
   const dx = (b.left + b.width/2) - x, dy = (b.top + b.height/2) - y;
   const held = o.hold > 0;
-  const frames = held ? ptHoldFrames(dx, dy, scale, o.hold, dur) : ptFrames(dx, dy, scale), fades = ptFadeFrames(dur);
+  const frames = held ? ptHoldFrames(dx, dy, scale, o.hold, dur, o.bow) : ptFrames(dx, dy, scale), fades = ptFadeFrames(dur);
   const tw = { duration: dur, easing: held ? 'linear' : 'cubic-bezier(.3,.7,.4,1)', fill:'forwards' };
   const fw = { duration: dur, easing:'linear', fill:'forwards' };
   // GHOSTS. A rewind is the one payout that means "this already happened, and it
@@ -634,6 +642,64 @@ function ptLaunch(a, b, kind, label, color, dur, opts){
   return el;
 }
 
+// ── Where a chip appears, and when it lands (r805, owner) ───────────────────
+// _ptLive is every chip in flight: where it sits, where it is going, when it set off,
+// its hold and its length, so a new chip can keep clear of them (never covering one
+// by more than half) and land at its own moment (ptStagger). Estimates only: the
+// flight's easing is not replayed, a chip is taken as still through its hold and then
+// moving straight to its box.
+const PT_SPACE = { tries: 12, cover: .5, landGap: 260, maxShift: 420, many: 6 };
+let _ptLive = [];
+function ptLiveNote(a, b, size, hold, dur){
+  const now = performance.now();
+  _ptLive = _ptLive.filter(p => now < p.t0 + p.dur + 40);
+  _ptLive.push({ x: a.left + a.width/2, y: a.top + a.height/2, dx: (b.left + b.width/2) - (a.left + a.width/2), dy: (b.top + b.height/2) - (a.top + a.height/2), size, t0: now, hold, dur });
+}
+function ptLiveAt(p, now){
+  const t = now - p.t0; if(t <= p.hold) return [p.x, p.y];
+  const k = Math.min(1, (t - p.hold) / Math.max(1, p.dur - p.hold));
+  return [p.x + p.dx * k, p.y + p.dy * k];
+}
+// How much of a chip of `size` at (x, y) a live chip covers, 0..1 (square boxes).
+function ptCover(x, y, size, now){
+  let worst = 0;
+  _ptLive.forEach(p => {
+    const [px, py] = ptLiveAt(p, now), s = (size + p.size) / 2;
+    const ox = Math.max(0, s - Math.abs(px - x)), oy = Math.max(0, s - Math.abs(py - y));
+    const m = Math.min(size, p.size);   // against the smaller of the two: a small chip inside a big one IS covered
+    worst = Math.max(worst, (ox * oy) / (m * m));
+  });
+  return worst;
+}
+// A spot near the middle of rect `a`, up to `rad` off it, clear of the live chips.
+// With more than PT_SPACE.many chips out the rule is let go (there is no clear spot).
+function ptSpawnSpot(a, size, rad){
+  const now = performance.now(), cx = a.left + a.width/2, cy = a.top + a.height/2;
+  const live = _ptLive.filter(p => now < p.t0 + p.dur).length;
+  let best = null;
+  for(let i = 0; i < PT_SPACE.tries; i++){
+    const ang = fxRandom() * Math.PI * 2, r = i === 0 ? rad * .4 : rad * (.5 + fxRandom() * .5);
+    const x = cx + Math.cos(ang) * r, y = cy + Math.sin(ang) * r;
+    const c = live > PT_SPACE.many ? 0 : ptCover(x, y, size, now);
+    if(!best || c < best.c) best = { x, y, c };
+    if(c <= (live > PT_SPACE.many ? 1 : PT_SPACE.cover) && i >= 1) break;
+  }
+  return { left: best.x - a.width/2, top: best.y - a.height/2, width: a.width, height: a.height };
+}
+// Push this chip's landing back until it is PT_SPACE.landGap clear of every other landing.
+function ptStagger(dur){
+  const now = performance.now();
+  let land = now + dur, shift = 0;
+  for(let guard = 0; guard < 12; guard++){
+    const hit = _ptLive.find(p => Math.abs((p.t0 + p.dur) - land) < PT_SPACE.landGap);
+    if(!hit) break;
+    const d = (hit.t0 + hit.dur + PT_SPACE.landGap) - land;
+    if(shift + d > PT_SPACE.maxShift) break;
+    shift += d; land += d;
+  }
+  return shift;
+}
+
 function dncFly(srcEl, boxEl, label, color, onLand, durOverride, kind, o){
   let a=srcEl?srcEl.getBoundingClientRect():null; const b=boxEl.getBoundingClientRect();
   // BELT AND BRACES FOR THE (0,0) LAUNCH (r304). danceEntityEl now refuses a dead
@@ -653,22 +719,28 @@ function dncFly(srcEl, boxEl, label, color, onLand, durOverride, kind, o){
   // has to reproduce calcScore exactly - what may vary is only what is drawn.
   const liveB = b.width > 0 && b.height > 0;
   if(!a || !a.width || !a.height) a = b;
-  // r772: a pips chip sits on the left of its source and a mult chip on the right (as the
-  // PIPS and MULT boxes do), so two chips from one card or one Trick do not cover each other.
-  else if(!dncFF && kind){ const sx = a.width * (kind.startsWith('pip') ? -.2 : kind.startsWith('mult') ? .2 : 0);
-    if(sx) a = { left: a.left + sx, top: a.top, width: a.width, height: a.height }; }
-  // r781 (owner): a prime's chips sit at random places round the Trick, so a run of them rings it.
-  if(o && o.scatter > 0 && a !== b && !dncFF){ const ang = fxRandom() * Math.PI * 2, rad = Math.max(a.width, a.height) * (.42 + fxRandom() * .22);
-    a = { left: a.left + Math.cos(ang) * rad, top: a.top + Math.sin(ang) * rad, width: a.width, height: a.height }; }
   const base = ptBaseFlight();
-  const dur = durOverride || (dncFF ? Math.max(60, base/DANCE_CFG.ff) : Math.max(60, base/dncPace()));
+  let dur = durOverride || (dncFF ? Math.max(60, base/DANCE_CFG.ff) : Math.max(60, base/dncPace()));
   // The blip counter advances whether or not a plate is drawn, so a skipped one
   // does not shrink the next visible plate back down the growth curve.
   const _blip = dncBlipScale();
   // r772: the chip sits at its source first (TALLY_CFG.hold, the same share of any flight).
-  const _hold = dncFF ? 0 : dur * Math.min(.5, TALLY_CFG.hold / base);
+  let _hold = dncFF ? 0 : dur * Math.min(.5, TALLY_CFG.hold / base), _bow = 0;
+  // r805 (owner): a chip appears NEAR THE MIDDLE of what spawned it, a little off centre
+  // (a prime's ring further out, r781), at a spot that covers no chip already out by more
+  // than half; and no two chips land at the same moment (ptStagger pushes a landing back).
+  if(a !== b && !dncFF){
+    // The footprint of a diamond is its box turned 45 degrees: 1.45x the plate.
+    const sz = PARTICLE_CFG.size * DANCE_CFG.pScaleMul * ptOrientScale() * _blip * 1.45;
+    a = ptSpawnSpot(a, sz, o && o.scatter > 0 ? Math.max(a.width, a.height) * (.42 + fxRandom() * .22) : Math.max(sz * .9, Math.min(a.width, a.height) * .5));
+    const shift = ptStagger(dur);
+    dur += shift; _hold += shift;
+    // Every other chip bows the other way across its line of flight.
+    _bow = (_ptLive.length % 2 ? -1 : 1) * sz * .6;
+    ptLiveNote(a, b, sz, _hold, dur);
+  }
   if(liveB) ptLaunch(a, b, kind, label, color, dur,
-    { scale: _blip, animate: dncAnimate, timeout: dncTimeout, hold: _hold });
+    { scale: _blip, animate: dncAnimate, timeout: dncTimeout, hold: _hold, bow: _bow });
   // This particle IS a payout tick - a card's pips, a Trick's pips or mult, a
   // Sleight firing. Bump AFTER dur is read so the speed-up lands on what is
   // still to come, not on the flight that earned it.
@@ -1639,7 +1711,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   // event, because both are part of what the hand is worth before anything fires.
   let rp = (typeof _ledger.basePips === 'number') ? _ledger.basePips : basePips;
   let rm = (typeof _ledger.baseMult === 'number') ? _ledger.baseMult : baseMult;
-  if(pipsEl) pipsEl.textContent=rp; if(multEl) multEl.textContent=(rm%1===0)?rm:rm.toFixed(1);
+  if(pipsEl) pipsEl.textContent=fmtBig(rp); if(multEl) multEl.textContent=fmtBig(rm, v => (v%1===0)?String(v):v.toFixed(1));   // r806: letters from 100k
   if(focusEl) focusEl.textContent=_fmtFocus(preHandFocus);   // FOCUS starts at the hand's pre-scoring multiplier
   // Did this hand's own Focus change the multiplier? Answered here so the beat
   // below and the settle further down agree on it.
@@ -1703,8 +1775,8 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   const primeFlight = () => Math.max(60, ptBaseFlight() * DANCE_CFG.primeFlight / (dncFF ? DANCE_CFG.ff : dncPace()));
 
   const _rnd = (v,how) => how==='int' ? Math.round(v) : how==='dp1' ? Math.round(v*10)/10 : v;
-  const showPips = extra => { if(pipsEl) pipsEl.textContent = Math.round(rp + (extra||0)); dncTick(pipsEl); };
-  const showMult = () => { if(multEl) multEl.textContent = fmtM(rm); dncTick(multEl); };
+  const showPips = extra => { if(pipsEl) pipsEl.textContent = fmtBig(Math.round(rp + (extra||0))); dncTick(pipsEl); };
+  const showMult = () => { if(multEl) multEl.textContent = fmtBig(rm, fmtM); dncTick(multEl); };   // r806: letters from 100k
   // A x lands on the chip it multiplies, so it is read as an operation on that
   // number rather than as one more addend. Pips fly gold, mult violet, a multiply
   // in the hotter shade of its own colour.

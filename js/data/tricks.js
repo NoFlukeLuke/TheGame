@@ -21,7 +21,7 @@ const TRICK_POOL = [
   // ── Pairs / sets ──
   { id:'kindred',        name:'Esprit de Corps',               tier:'rare',    desc:'Sets score +15 mult per card in the largest set', tags:['mult','card','set','scores'] },
   { id:'double_bloom',   name:'Partnered',           tier:'epic',      desc:'Hands containing a pair (pair, 2 pair, full house) score ×1.5 mult', tags:['xmult','hand','set','scores','named'] },
-  { id:'high_pair',      name:'Twynergy',           tier:'common',      desc:'Hands containing a pair and a 2 or 4 add +4 Focus per card', tags:['focus','card','set','rank','named'] },
+  { id:'high_pair',      name:'Twynergy',           tier:'common',      desc:'Hands containing a pair and a 2 or 4 add +1 Focus per card', tags:['focus','card','set','rank','named'] },
   { id:'rare_bloom',     name:'Board of Directors',             tier:'epic',      desc:'Four of a Kind permanently buffs its 4 cards +8 pips each', tags:['deck','pips','hand','set','scaling','scores','named'] },
   { id:'full_house_streak', name:'Booked', tier:'epic',  desc:'Full Houses score +15 Focus', tags:['focus','hand','set'] },
   { id:'pair_pips',      name:'Joint Venture',          tier:'common',    desc:'Two Pair scores ×2 pips', tags:['xpips','hand','set','scores','named'] },
@@ -48,7 +48,7 @@ const TRICK_POOL = [
   { id:'before_the_tide', name:'The Grindset',             tier:'epic',      desc:'Each rank 5 or lower card scored adds its rank in Focus', tags:['focus','card','rank'] },
   { id:'royal_trio',     name:'Nepo, Baby',      tier:'epic',      desc:'A hand containing a King and one other Royal scores ×2 mult', tags:['xmult','hand','rank','scores'] },
   // ── Per-card pip bonuses ──
-  { id:'rich_soil',      name:'Perk Package',           tier:'common',    desc:'All cards score +6 mult', tags:['mult','card','scores'] },
+  { id:'rich_soil',      name:'Perk Package',           tier:'common',    desc:'All cards score +12 mult', tags:['mult','card','scores'] },
   { id:'first_fruits',   name:'First Impressions',        tier:'rare',      desc:'Each card in the first hand each round permanently gains +5 pips', tags:['deck','pips','card','scaling','scores','start'] },
   { id:'sapling',        name:'Sapling',             tier:'rare',      retired:true, desc:'Each level, 3 cards permanently gain +5 pips', tags:['deck','pips','other','level','scaling','scores'] },   // r624 (owner): out of the pool
   // ── Timing ──
@@ -56,7 +56,7 @@ const TRICK_POOL = [
   { id:'night_owl',      name:'Night Owl',           tier:'common',    desc:'Hands played in the last third of the round score +16 mult per card', tags:['mult','card','clock','scores'] },
   { id:'closing_time',   name:'Crunch',     tier:'common',    desc:'In the last third of a round, each scored card replays', tags:['replay','card','clock','scores'] },
   { id:'quick_draw',     name:'Quick Draw',          tier:'common',    desc:"Hands played within 3 seconds of the previous hand remove 25% of your Focus and add +1 to your Focus limit (max +10). When max bonus is reached, +6 to sell value. If sold, keep half the bonus you've reached", tags:['focus','hand','clock','scaling','cost'] },
-  { id:'patience_reward', name:'The Heron',          tier:'rare',      desc:'Adds mult equal to 2x the seconds passed since the last hand was played', tags:['mult','hand','clock','scores'] },
+  { id:'patience_reward', name:'The Heron',          tier:'rare',      desc:'Adds mult equal to 3x the seconds passed since the last hand was played', tags:['mult','hand','clock','scores'] },
   { id:'first_play',     name:'Head Start',          tier:'rare',    desc:"The round's first hand adds +5 Focus; each hand after adds 1 less, down to 0", tags:['focus','hand'] },
   { id:'still_water',    name:'Eagle Eye',           tier:'rare',      desc:'Score +15 mult for every 5 seconds elapsed without using a swap', tags:['mult','hand','clock','scores'] },
   { id:'frozen_moment',  name:'The Falcon',          tier:'epic',      desc:'Hands played while the clock is paused add +10 Focus', tags:['focus','hand','pause'] },
@@ -82,7 +82,7 @@ const TRICK_POOL = [
   // ── Streaks ──
   { id:'kindling',       name:'Tried and True',            tier:'common',    desc:'Same-hand streaks score +8 mult × the streak count', tags:['mult','hand','streak','scores'] },
   { id:'wildfire',       name:'加油',            tier:'rare',      desc:'Reaching a hand-type streak of 3 adds +5 Focus', tags:['focus','hand','streak'] },
-  { id:'echo_hand',      name:'Same Old',              tier:'common',    desc:'Playing the same hand type as the previous hand replays each card', tags:['replay','card','streak','scores'] },
+  { id:'echo_hand',      name:'Same Old',              tier:'common',    desc:'Same-hand streaks of 3 or more replay each card', tags:['replay','card','streak','scores'] },
   // ── Suit conditions ──
   { id:'club_double',    name:'Hard Labour',         tier:'legendary',    tags:['pips','card','suit','scores'], desc:'Each club scored this round adds more and more pips: doubles each time, starting at 1' },
   { id:'monochrome',     name:'Red Water Diamonds',      tier:'epic',      desc:'Hands containing exclusively hearts AND diamonds score +25 mult, grant +5 credits, and cost 10 seconds', tags:['mult','credits','hand','suit','scores','cost'] },
@@ -93,9 +93,9 @@ const TRICK_POOL = [
   { id:'ninesong',       name:'Threepeat',           tier:'epic',      desc:"If the hand's pip total is divisible by 3, one of the following happens: rewind the clock 9s, +27 mult, +9 Focus, or all three", tags:['time','mult','focus','hand','scores','chance'] },
   { id:'prime_time',     name:'Prime Time',          tier:'rare',      desc:'Prime-ranked cards (A,2,3,5,7) score +29 pips', tags:['pips','card','rank','scores'] },
   { id:'even_score',     name:'Get Even',            tier:'common',    desc:'Even-ranked cards score +16 pips', tags:['pips','card','rank','scores'] },
-  { id:'odd_squad',      name:'Odd One In',          tier:'rare',      desc:'Odd-ranked cards score +7 mult', tags:['mult','card','rank','scores'] },
+  { id:'odd_squad',      name:'Odd One In',          tier:'rare',      desc:'Odd-ranked cards score +13 mult', tags:['mult','card','rank','scores'] },
   // ── Rank diversity ──
-  { id:'number_crunch',  name:'Equal Opportunity',           tier:'rare',      desc:'Hands with 4+ different ranks score +8 mult per card', tags:['mult','card','rank','scores'] },
+  { id:'number_crunch',  name:'Equal Opportunity',           tier:'rare',      desc:'Hands with 4+ different ranks score +14 mult per card', tags:['mult','card','rank','scores'] },
   // ── Position ──
   { id:'rowcol_triple_pips', name:'Right Place',     tier:'common',    tags:['pips','card','position','scores','line'], desc:'Cards scored in a marked row or column score +25 pips' },
   { id:'rowcol_mult',    name:'Power Line',          tier:'common',    tags:['mult','card','position','scores','line'], desc:'Cards scored in a marked row or column score +15 mult' },
@@ -104,7 +104,7 @@ const TRICK_POOL = [
   { id:'right_time',     name:'Right Time',          tier:'rare',      tags:['time','card','position','line'], desc:'Cards scored in a marked row or column pause the clock for 2s' },
   { id:'study_hall',     name:'Study Hall',          tier:'rare',      tags:['focus','card'], desc:'Every 2 cards scored adds +2 Focus' },
   { id:'rowcol_perm_double', name:'Matrix Management',        tier:'epic',      tags:['deck','mult','card','position','scaling','scores'], desc:'Cards scored at the intersection of a row effect and a column effect permanently gain +2 mult' },
-  { id:'shape_square',   name:'Hands of Blue',       tier:'epic',      tags:['mult','focus','hand','position','scores'], desc:'A 2×2 shaped hand scores +24 mult and adds +16 Focus' },
+  { id:'shape_square',   name:'Hands of Blue',       tier:'rare',      tags:['mult','focus','hand','position','scores'], desc:'A 2×2 shaped hand scores +24 mult and adds +16 Focus' },
   { id:'shape_cross',    name:'Crossroads',          tier:'rare',      tags:['mult','focus','hand','position','size','scores'], desc:'A 5 card + shaped hand adds +25 Focus and +25 mult' },
   { id:'shape_line',     name:'Straight Shot',       tier:'epic',      tags:['mult','hand','position','size','scores'], desc:"5-card hands played in a straight line add every card's pip value (including buffs) to mult" },
   { id:'corner_retrigger', name:'Cornered',          tier:'rare',      tags:['xpips','card','position','clock','scores'], desc:'Corner cards score ×pips equal to the whole minutes left on the clock' },

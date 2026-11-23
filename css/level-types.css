@@ -77,7 +77,13 @@
 #grid .q-pill.q-final { animation: qPillFlash 1.1s ease-out; }
 
 /* HUD: the goal bar becomes one meter per line, in the lines' colours. */
-#score-progress-bar-wrap.q-lines { background: none; overflow: visible; height: 6px; }
+#score-progress-bar-wrap.q-lines { background: none; overflow: visible; height: 14px; }   /* r805: tall enough for the goals */
+/* r805 (owner): the relay's sections print their goals, short, in the bar's gold. */
+#score-progress-bar-wrap .q-seg-lbl { position: absolute; top: 0; bottom: 0; display: flex; align-items: center; justify-content: center;
+  font-family: 'VT323 Local', 'VT323', monospace; font-size: 12px; line-height: 1; color: var(--gold, #ffce2b); pointer-events: none;
+  text-shadow: 0 0 2px #000, 0 0 3px #000; }
+#score-progress-bar-wrap .q-seg-lbl.q-done { opacity: .5; }
+#score-progress-bar-wrap.q-relay { min-height: 12px; }
 #score-progress-bar-wrap.q-lines #score-progress-bar { display: none; }
 #score-progress-bar-wrap .q-meters { display: flex; gap: 4px; width: 100%; height: 100%; }
 #score-progress-bar-wrap .q-meter {
@@ -89,6 +95,11 @@
   background: var(--qc); box-shadow: 0 0 6px var(--qc); transition: right .12s linear;
 }
 #score-progress-bar-wrap .q-meter.q-done { outline: 1px solid var(--qc); }
+/* r805 (owner): each meter prints its goal, short, in its colour, over the fill. */
+#score-progress-bar-wrap .q-meter-lbl { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-family: 'VT323 Local', 'VT323', monospace; font-size: 13px; line-height: 1; color: var(--qc); pointer-events: none;
+  text-shadow: 0 0 2px #000, 0 0 3px #000, 0 0 4px #000; }
+#score-progress-bar-wrap .q-meter.q-done .q-meter-lbl { color: #0a0804; text-shadow: none; }
 #score-progress-bar-wrap .q-meter.q-sweep { animation: qMeterIn .45s ease-out both; }
 @keyframes qMeterIn { from { transform: scaleX(0); filter: brightness(2.5); } to { transform: none; filter: none; } }
 #score-progress-bar-wrap .q-meter.q-flash { animation: qMeterFlash .9s ease-out; }

@@ -507,3 +507,16 @@ html.skin-machine #stage.landscape #selected-cards.dnc-active .dnc-row.hand { mi
 html.skin-machine #stage #flowr-bg { --fbg-pad: 0px; box-shadow: none !important; border-color: transparent !important; }
 html.skin-machine #stage:not(.landscape) #flowr-bg { --fbg-head: 0px; top: 50%; }
 html.skin-machine #grid > #flowr-counter { z-index: 30 !important; }   /* under #grid::after (40), the door */
+
+/* r805 (owner): the Focus readout reads the number alone (focus.js), brighter, outlined in black so
+   it holds over the lit fill, and no wider than the gauge. The phone's gauge is 34 design px. */
+html.skin-machine #stage #focus-mult-readout {
+  font-size: 13px !important; letter-spacing: 0 !important; color: #ffe9b0 !important; opacity: 1 !important;
+  text-shadow: 0 0 2px #000, 0 0 3px #000, 1px 1px 0 #000, -1px -1px 0 #000, 0 0 9px rgba(255,200,90,.85) !important;
+}
+html.skin-machine #stage #focus-mult-readout.dim { opacity: .92 !important; }
+html.skin-machine #stage #focus-mult-readout.active { color: #d9ffe9 !important; }
+
+/* r805: with Line Quotas the goal screen is the meters, each printing its own goal; the 0/3 text would sit over them. */
+html.skin-machine #stage #score-right:has(#score-progress-bar-wrap.q-lines) #goal-display,
+html.skin-machine #stage #score-center:has(#score-progress-bar-wrap.q-lines) #goal-display { visibility: hidden; }

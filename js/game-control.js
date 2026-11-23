@@ -24,7 +24,7 @@ function pauseGame(hideGrid = true) {
   if (isPaused) return;
   // No run has started yet (the main menu), so there is no menu to open either.
   if (!gameStartTime) return;
-  // r804: the run is over. The finale covers the board, so the pause menu would open
+  // r814: the run is over. The finale covers the board, so the pause menu would open
   // UNDER it and its clear overlay would take every tap meant for PLAY AGAIN / HOME.
   if (typeof finaleOpen === 'function' && finaleOpen()) return;
   // A running 3-2-1 counts as something to pause: the round timer has not started yet,
@@ -547,6 +547,7 @@ function startGame() {
   // ladder (r175). Pins hold payload objects with live buy() functions, which is
   // why they are NOT in SAVE_VARS - the Mart is shut at every save point anyway.
   altarEffects    = [];
+  if (typeof investmentReset === 'function') investmentReset();   // r805
   sleightNextHandDouble = false;
   sleightLegacyMult    = false;
   sleightAmplifierMult = 0;

@@ -380,7 +380,8 @@ const INFO_TOPICS = [
   { id: 'seeds', group: 'modes', title: 'Seeds',
     body: [
       'Every run plays on a seed. The end of run screen shows it, with COPY.',
-      'To play a seed, turn SEED on at the foot of the run screen and type it. The same seed deals the same opening board, bosses and reward grids. What you play changes the rest.',
+      'To play a seeded run, turn SEED on at the foot of the run screen and type the seed. The same seed deals the same opening board, bosses and reward grids. What you play changes the rest.',
+      'A seeded run counts for nothing: no unlocks, win tokens, difficulty tiers or event files.',
     ] },
   { id: 'mode_protocols', group: 'modes', title: 'Protocols',
     body: [

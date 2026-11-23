@@ -177,7 +177,7 @@ function _pmfEnsureMerged(wrap) {
 }
 
 const _pmfWait = ms => new Promise(r => setTimeout(r, ms));
-const _pmfFmt = n => Math.round(n).toLocaleString();
+const _pmfFmt = n => fmtBig(n, v => Math.round(v).toLocaleString());   // r806: letters from 100k
 function _pmfAnim(el, kf, t) { const a = el.animate(kf, t); _pmfAnims.push(a); return a; }
 function _pmfJit(els, on) { els.forEach(b => { if (!b) return; b.classList.remove('pmf-jitter'); if (on) { void b.offsetWidth; b.classList.add('pmf-jitter'); } }); }
 function _pmfJitVal(els, on) { els.forEach(b => { if (!b) return; b.classList.remove('pmf-jit-val'); if (on) { void b.offsetWidth; b.classList.add('pmf-jit-val'); } }); }

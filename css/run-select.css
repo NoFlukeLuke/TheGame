@@ -91,3 +91,6 @@
 .rs-key.rs-seed.on { color: var(--am-hi); border-color: var(--am); }
 .rs-seed-in { flex: 1 1 auto; min-width: 0; height: 30px; background: transparent; border: 1px solid var(--am); border-radius: 2px; color: var(--am-hi); font: inherit; font-size: 18px; letter-spacing: 2px; padding: 0 8px; text-transform: uppercase; outline: none; }
 .rs-seed-in::placeholder { color: var(--am-dim); }
+
+/* r808: the typed-seed note, under the protocol's rules (always on the glass) */
+.rs-seed-note { display: block; color: var(--am-hi); margin-top: 3px; }

@@ -641,7 +641,7 @@ function _generateRewardContent() {
           picks.forEach(cd => enhanceCardKey(cardId(cd), { [op.buff.key]: v }));
           noteMessage(`${op.icon} ${lbl} on ${picks.length} card${picks.length === 1 ? '' : 's'}`, 'var(--gold)'); } };
     }
-    return bless('✨', 'Blessed Card', 'rare', { pips: 12 });
+    return bless('✨', 'Blessed Card', 'rare', { pips: 25 });
   }
   function makeLimitUpPayload() {
     // EVERY LIMIT HAS ITS OWN STEP, and this tile used to ignore all of them: it
@@ -705,9 +705,11 @@ function _generateRewardContent() {
       case 'swap':    return { icon: '⚡', label: '+1 Swap',      tier: 'common',
                                desc: `Next round swaps: ${_proj.swaps} → ${_proj.swaps + 1}`,
                                apply: () => { nextRoundSwapDelta += 1; noteMessage('+1 swap next round', 'var(--gold)'); } };
-      case 'time':    return { icon: '⏱', label: '+15s Round',   tier: 'common',
-                               desc: `Next round starts with +15s`,
-                               apply: () => { nextRoundSecondsDelta += 15; noteMessage('+15s next round', 'var(--gold)'); } };
+      // r805 (owner): +10s in Flow, +15s elsewhere.
+      case 'time':  { const _ts = (typeof flowActive === 'function' && flowActive()) ? 10 : 15;
+                      return { icon: '⏱', label: `+${_ts}s Round`,   tier: 'common',
+                               desc: `Next round starts with +${_ts}s`,
+                               apply: () => { nextRoundSecondsDelta += _ts; noteMessage(`+${_ts}s next round`, 'var(--gold)'); } }; }
       case 'coins':   return { icon: '💰', label: 'Windfall',     tier: 'common',
                                desc: `Gain 8 coins (${coins} → ${coins + 8}).`,
                                apply: () => { coins += 8; updateCoinsUI(); noteMessage('+8 coins', 'var(--gold)'); } };
@@ -1225,6 +1227,7 @@ function renderRewardTiles(animateIn = false) {
       div.style.height = CARD_H + 'px';
       div.dataset.r = r; div.dataset.c = c;
       div.dataset.floatKey = `reward-${r}-${c}`;   // keeps this tile's float phase across re-renders
+      if (p._improve && p.id) div.dataset.entId = p.id;   // r805: an improve tile shows something you own (js/entity-flyin.js)
       div.innerHTML = buildRewardTileInner(p);
       div.onclick = () => onRewardCellClick(r, c);
       // Every tile with a description gets the hover tooltip - including card-face
@@ -1283,6 +1286,7 @@ function renderRewardTiles(animateIn = false) {
   } else if (rewardOnGrid) {
     startRewardFloat();
   }
+  if (typeof efiScan === 'function') requestAnimationFrame(() => efiScan(gridEl));   // r805: owned entities fly in from their trays
 }
 
 // Reward tiles drift with the same barely-there float as the shop (js/float-anim.js).

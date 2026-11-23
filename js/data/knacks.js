@@ -70,7 +70,7 @@ const KNACK_POOL = [
   // Natural Scaling is per HAND TYPE now, so a family's growth sits in whichever
   // hand you actually play. This pools it: every hand in a family reads the best
   // bonus in that family. It REPLACES the hand's own bonus, never adds to it.
-  { id:'old_tricks',      emoji:'🎩',  name:'Old Tricks',       rarity:'epic',   desc:'Tricks, Knacks and Sleights you already own can appear in the company store. Buying one improves the original, or adds a second copy.', tags:['other','shop'] },   // r799: reworked (js/owned-offers.js)
+  { id:'old_tricks',      emoji:'🎩',  name:'Old Tricks',       rarity:'epic',   desc:'Tricks, Knacks and Sleights you already own can be offered in the company store and in reward picks. Taking one improves the original, or adds a second copy.', tags:['other','shop','reward'] },   // r799: reworked (js/owned-offers.js)
   // ── Passenger knack (r201) ──
   // A hand normally has to use every card you select; a spare makes it not a hand,
   // and the spare is billed as a penalty card. This lifts that.
@@ -127,6 +127,8 @@ const KNACK_POOL = [
   // ── r748: the PROTOCOL Knacks (js/protocols.js). Locked until a run of the protocol is won. ──
   { id:'ambidextrous',  emoji:'🃏',  name:'Ambidextrous',     rarity:'rare',   desc:'Every Sleight is dealt a rank and a suit. Sleights count as cards in a hand and do their thing when played. Sleights are twice as common in rewards', tags:['board','other','sleights'] },
   { id:'attention_to_detail', emoji:'🔍', name:'Attention to Detail', rarity:'rare', startOnly:true, desc:'Tricks that pay for a card\'s rank, suit, buffs or position pay 50% more', tags:['pips','mult','other','rank','suit','position'] },
+  // r805 (owner): Whiteout. The hook is whiteoutAugment (js/play-hand.js), after Roll Call.
+  { id:'whiteout',       emoji:'🧹',  name:'Whiteout',         rarity:'rare',   desc:'When you play a hand, if one more card touching it would make a better hand, that card is played too.', tags:['board','hand','size'] },
   { id:'curio',          emoji:'🏺',  name:'Curio',            rarity:'rare',   desc:'At the start of each round, a card of the last rank you scored joins your deck, in a random suit with a random buff.', tags:['deck','other','start','rank'] },
   { id:'rewards_member', emoji:'🎲',  name:'Rewards Member',   rarity:'rare',   desc:'Events are 3 times as common in rewards.', tags:['other','reward'] },   // r795 (owner): locked until 15 events are filed (js/event-files.js)
   { id:'growth_mindset', emoji:'📈',  name:'Growth Mindset',   rarity:'rare',   desc:'Limit rewards are twice as common', tags:['limit','other','reward'] },

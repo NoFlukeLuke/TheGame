@@ -35,6 +35,9 @@
 //   opts.itemW / itemH  a symbol's box in stage px
 
 const SLOT = {
+  fitShare: .88,      // r805 (owner): the cabinet grows to this share of its room (a buffer stays either side)
+  fitMax: 2.2,        // ...never past this many times its built size
+
   faceMin: 12,        // fewest faces on a drum
   base: 1800,         // first reel's spin, ms (r764: 1500 -> 1800)
   stagger: 440,       // each later reel stops this much later (r764: 380 -> 440)
@@ -42,6 +45,7 @@ const SLOT = {
   startGap: 55,       // reels let go this far apart
   kick: 0.22,         // the pull back up before the spin, in faces
   kickMs: 140,
+  openHold: 160, openStep: 110, openTail: 80,   // r807: the opening: empty reels shown, the fly-in, then a reel lights every openStep
   over: 0.3,          // the stop runs this far past, in faces
   settleMs: 380,
   blurMax: 5,         // stage px of blur at full speed
@@ -77,8 +81,57 @@ function evSlotMachine(parent, opts) {
         <div class="evt-slot-glass"></div>
       </div>
     </div>`;
+  // r805 (owner): the cabinet is built at its item size, then ZOOMED to fill SLOT.fitShare of
+  // the room it sits in (the body can be hidden when it is built, so it measures again on
+  // the next frames and on a resize). zoom scales the drums' 3D transforms with everything else.
+  const cab = host.querySelector('.evt-slot-cab');
+  let _fitTries = 0;
+  const fit = () => {
+    // The host shrink-wraps the cabinet (the body centres it), so the room is the body's.
+    const room = (host.parentElement && host.parentElement.clientWidth) || host.clientWidth || 0;
+    if (!room) { if (++_fitTries < 30) requestAnimationFrame(fit); return; }
+    cab.style.zoom = 1;
+    const nat = cab.offsetWidth || 1;
+    const z = Math.max(1, Math.min(SLOT.fitMax, (room * SLOT.fitShare) / nat));
+    cab.style.zoom = z.toFixed(3);
+  };
+  requestAnimationFrame(fit);
+  window.addEventListener('resize', fit);
   const reelEls = [...host.querySelectorAll('.evt-reel')];
   reelEls[reelEls.length - 1].classList.add('evt-reel-last');
+  // r807 (owner): with opts.fillFrom (a function returning the source elements: your tray
+  // chips, RECORDS for cards) the reels start BLANK. The OPENING fills them: once the window
+  // is on screen (the body may be hidden when the machine is built) copies fly from the
+  // sources into it (css/entity-flyin.css), then the reels light one after another, left to
+  // right, each with the brake's flash. `ready` resolves then; the events keep PULL off
+  // until it does. r805 filled on the first pull instead.
+  const _fillWin = host.querySelector('.evt-slot-window');
+  let _readyRes; const ready = new Promise(r => { _readyRes = r; });
+  if (o.fillFrom) {
+    reelEls.forEach(r => r.classList.add('evt-blank'));
+    let tries = 0;
+    const lightReels = () => {
+      const slow = (typeof animSlow === 'function') ? animSlow() : 1;
+      reelEls.forEach((r, k) => setTimeout(() => {
+        r.classList.remove('evt-blank');
+        r.classList.remove('evt-reel-land'); void r.offsetWidth; r.classList.add('evt-reel-land');
+        _etSfx('sfxSlotStop', 0.45 + k * 0.15);
+        if (k === reelEls.length - 1) setTimeout(_readyRes, SLOT.openTail * slow);
+      }, k * SLOT.openStep * slow));
+    };
+    const open = () => {
+      if (!host.isConnected) { if (++tries < 400) requestAnimationFrame(open); return; }
+      const rect = _fillWin.getBoundingClientRect();
+      if (!rect.width) { if (++tries < 400) requestAnimationFrame(open); return; }
+      if (_etFast()) { reelEls.forEach(r => r.classList.remove('evt-blank')); _readyRes(); return; }
+      const slow = (typeof animSlow === 'function') ? animSlow() : 1;
+      setTimeout(() => {
+        const srcs = (typeof o.fillFrom === 'function') ? o.fillFrom() : o.fillFrom;
+        if (typeof efiBurst === 'function' && srcs && srcs.length) efiBurst(srcs, _fillWin.getBoundingClientRect(), 7, lightReels); else lightReels();
+      }, SLOT.openHold * slow);
+    };
+    requestAnimationFrame(open);
+  } else _readyRes();
   drums.forEach((d, k) => {
     d.el = reelEls[k];
     d.drum = d.el.querySelector('.evt-drum');
@@ -280,7 +333,7 @@ function evSlotMachine(parent, opts) {
     host.querySelectorAll('.evt-winline, .evt-slot-banner, .evt-slot-coin').forEach(el => el.remove());
     host.classList.remove('evt-slot-won', 'evt-big3', 'evt-huge');
   }
-  return { el: host, spin, flash, celebrate, scan, clear };
+  return { el: host, spin, flash, celebrate, scan, clear, ready };
 }
 
 // ── sounds ──
