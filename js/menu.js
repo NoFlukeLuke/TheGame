@@ -1,4 +1,4 @@
-const BUILD = "2026-11-23 · r823 · Growth Mindset is Insatiable";
+const BUILD = "2026-11-23 · r824 · side projects preview";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

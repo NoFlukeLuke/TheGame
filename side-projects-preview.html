@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Side projects preview</title>
+<!-- r824: a LOOK preview for the owner (Schedule chunk 4), nothing is wired to the game.
+     Five ways the Schedule could show a SIDE PROJECT (two linked rounds, the second in
+     the next slot), and the costs, rewards and walk-away penalties to pick from.
+     Standalone: no game script loads. Picks are kept in this browser only. -->
+<style>
+@font-face { font-family: 'VT323 Local'; src: url('fonts/vt323-latin-400.woff2') format('woff2'); font-display: block; }
+:root {
+  --am: #ffb02e; --am-hi: #ffd98a; --am-dim: #9a6f2a; --am-ink: #0a0d06;
+  --lv: #94ecb0; --ch: #ff7656; --au: #ff8fb8; --mi: #cde37e; --sh: #ffe066; --rw: #a4c6ff;
+  --ev: #d6a8ff; --li: #82dccb; --my: #fff1d8; --bo: #ff5c5c; --sp: #ffd98a;
+  --pay: #94ecb0; --cost: #ff7656;
+}
+html, body { margin: 0; background: #1b1915; color: #ddd; font-family: 'VT323 Local', 'VT323', monospace; }
+body { padding: 18px 16px 40px; }
+h1 { font-size: 24px; font-weight: normal; margin: 0 0 4px; letter-spacing: 1px; color: #e8dcc0; }
+h3 { font-size: 20px; font-weight: normal; margin: 26px 0 6px; letter-spacing: 1px; color: #e8dcc0; }
+p.note { margin: 0 0 12px; font-size: 17px; color: #a89c84; max-width: 980px; line-height: 1.2; }
+p.note b { color: #e8dcc0; font-weight: normal; }
+.bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 10px 0 14px; font-size: 17px; color: #a89c84; }
+.bar button, .bar select {
+  font: inherit; font-size: 16px; letter-spacing: 1px; padding: 5px 12px 4px; border-radius: 3px;
+  color: var(--am); background: transparent; border: 1px solid var(--am-dim); cursor: pointer;
+}
+.bar select { color: var(--am-hi); background: #26231e; max-width: 100%; }
+.bar button.on { color: var(--am-ink); background: var(--am); border-color: var(--am-hi); }
+.wrap { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 16px; }
+.card { background: #26231e; border: 1px solid #3a362e; border-radius: 6px; padding: 10px; min-width: 0; }
+.card h2 { margin: 0 0 4px; font-size: 19px; font-weight: normal; color: #e8dcc0; letter-spacing: 1px; }
+.card p { margin: 0 0 8px; font-size: 15px; color: #a89c84; min-height: 54px; line-height: 1.15; }
+
+/* the board's amber glass */
+.screen {
+  position: relative; width: 100%; max-width: 360px; margin: 0 auto; box-sizing: border-box; overflow: hidden;
+  border-radius: 6px; padding: 6px;
+  background: radial-gradient(ellipse at center, #17240f 0%, #0a0d06 82%);
+  box-shadow: inset 0 0 24px rgba(0,0,0,.8), inset 0 0 0 1px rgba(76,107,47,.46), inset 0 0 0 3px rgba(0,0,0,.55);
+  color: var(--am); text-shadow: 0 0 6px rgba(255,176,46,.45); font-size: 14px; line-height: 1.05;
+}
+.screen::after { content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 20; background: repeating-linear-gradient(#0000 0 2px, #0003 2px 3px); mix-blend-mode: multiply; }
+
+/* the list: a time gutter and four lanes; slot rows then the review */
+.list { position: relative; display: grid; grid-template-columns: 52px repeat(4, 1fr); grid-auto-rows: 70px; gap: 4px; }
+.list .gut { grid-column: 1; display: flex; flex-direction: column; justify-content: center; align-items: flex-end; padding-right: 4px; color: var(--am-dim); font-size: 13px; }
+.list .gut b { font-weight: normal; color: var(--am); font-size: 15px; }
+.list .gut.now b { color: var(--am-hi); }
+.t { --c: var(--am); position: relative; min-width: 0; box-sizing: border-box; padding: 4px 4px 3px; border: 1px solid color-mix(in srgb, var(--c) 30%, transparent);
+  background: color-mix(in srgb, var(--c) 7%, transparent); border-radius: 3px; color: var(--c); display: flex; flex-direction: column; justify-content: flex-start; overflow: hidden; }
+.t .mk { white-space: nowrap; }
+.t .w { text-transform: uppercase; letter-spacing: .3px; font-size: 14px; white-space: nowrap; }
+.t .s { color: var(--am-hi); font-size: 12px; white-space: nowrap; }
+.t.lv { --c: var(--lv); } .t.ch { --c: var(--ch); } .t.au { --c: var(--au); } .t.mi { --c: var(--mi); } .t.sh { --c: var(--sh); }
+.t.ev { --c: var(--ev); } .t.li { --c: var(--li); } .t.my { --c: var(--my); }
+.t.blank { border: 1px dotted rgba(154,111,42,.35); background: none; align-items: center; justify-content: center; color: var(--am-dim); }
+.t.done { opacity: .55; } .t.done .w { text-decoration: line-through; }
+.t.missed { opacity: .4; }
+.rev { grid-column: 2 / span 4; border: 3px double color-mix(in srgb, var(--bo) 60%, transparent); color: var(--bo); border-radius: 3px; display: flex; align-items: center; justify-content: space-between; padding: 0 8px; font-size: 15px; }
+.rev .q { color: var(--am-hi); }
+.rev .q.up { color: var(--cost); }
+.cost { color: var(--cost); font-size: 12px; white-space: nowrap; }
+.pay { color: var(--pay); font-size: 12px; white-space: nowrap; }
+.sp-off .cost, .sp-off .pay { opacity: .35; }
+
+/* A. BRACKET: a bracket in the time gutter across the two slots */
+.a-br { position: absolute; left: 1px; width: 5px; border: 2px solid var(--sp); border-right: none; border-radius: 3px 0 0 3px; box-shadow: 0 0 6px -1px var(--sp); }
+.a-br .lab { position: absolute; left: -2px; top: 50%; transform: translate(-50%, -50%) rotate(-90deg); transform-origin: center; display: none; }
+.a-cnt { position: absolute; writing-mode: vertical-rl; transform: rotate(180deg); color: var(--sp); font-size: 11px; letter-spacing: .5px; white-space: nowrap; }
+.t.a-on { border-left: 3px solid var(--sp); }
+
+/* B. BAND: a hatched band across the top of both tiles */
+.t.b-on { padding-top: 12px; border-color: color-mix(in srgb, var(--sp) 70%, transparent); }
+.t.b-on::before { content: attr(data-band); position: absolute; left: 0; right: 0; top: 0; height: 11px; font-size: 10px; line-height: 11px; letter-spacing: .6px; padding-left: 3px; color: var(--am-ink); text-shadow: none;
+  background: repeating-linear-gradient(-45deg, var(--sp) 0 5px, color-mix(in srgb, var(--sp) 70%, #000) 5px 8px); white-space: nowrap; overflow: hidden; }
+
+/* C. TAGS: stamped 1/2 and 2/2 in the tile's corner */
+.t.c-on { border-color: color-mix(in srgb, var(--sp) 60%, transparent); }
+.c-tag { position: absolute; right: 2px; top: 2px; font-size: 11px; line-height: 1; padding: 2px 3px 1px; color: var(--sp); border: 1px solid var(--sp); transform: rotate(-6deg); background: #0a0d06; box-shadow: 0 0 5px -1px var(--sp); }
+.c-tag.stamped { color: var(--am-ink); background: var(--sp); }
+
+/* D. THREAD: a dotted line from the first tile down to the second, a knot with the count */
+.d-thread { position: absolute; width: 0; border-left: 2px dotted var(--sp); filter: drop-shadow(0 0 3px var(--sp)); }
+.d-knot { position: absolute; transform: translate(-50%, -50%); font-size: 11px; padding: 1px 4px 0; color: var(--am-ink); background: var(--sp); border-radius: 8px; white-space: nowrap; text-shadow: none; }
+.t.d-on { border-color: color-mix(in srgb, var(--sp) 60%, transparent); }
+
+/* E. FRAME: one frame round both tiles, a tab on top */
+.e-frame { position: absolute; border: 2px solid var(--sp); border-radius: 4px; box-shadow: 0 0 8px -2px var(--sp), inset 0 0 8px -4px var(--sp); pointer-events: none; }
+.e-tab { position: absolute; left: 4px; top: -9px; font-size: 11px; line-height: 1; padding: 2px 4px 1px; background: #0a0d06; color: var(--sp); white-space: nowrap; letter-spacing: .4px; }
+
+/* states shared by every look */
+.st-done .a-br, .st-done .e-frame { --sp: var(--pay); }
+.st-done .d-thread, .st-done .d-knot { --sp: var(--pay); }
+.st-gone .a-br, .st-gone .e-frame, .st-gone .d-thread, .st-gone .d-knot, .st-gone .t.b-on::before, .st-gone .c-tag { --sp: var(--cost); }
+.st-gone .t.b-on, .st-gone .t.c-on, .st-gone .t.d-on { --sp: var(--cost); }
+.st-done .t.b-on, .st-done .t.c-on, .st-done .t.d-on, .st-done .c-tag { --sp: var(--pay); }
+
+/* the info line under each mock, as the toolbar would print it */
+.info { margin-top: 6px; min-height: 34px; font-size: 14px; color: var(--am-hi); line-height: 1.15; }
+.info .k { color: var(--sp); }
+
+/* the pick lists */
+table.pick { border-collapse: collapse; width: 100%; max-width: 980px; font-size: 16px; }
+table.pick td, table.pick th { text-align: left; vertical-align: top; padding: 4px 8px 3px; border-bottom: 1px solid #3a362e; }
+table.pick th { font-weight: normal; color: #a89c84; font-size: 15px; }
+table.pick td.short { color: var(--am-hi); white-space: nowrap; }
+table.pick td.n { color: #6f6656; width: 20px; }
+table.pick td.what { color: #d8ccb0; }
+table.pick tr.kept td { background: rgba(255,176,46,.08); }
+table.pick td.kp { width: 60px; }
+table.pick label { cursor: pointer; color: var(--am); white-space: nowrap; }
+table.pick input { accent-color: #ffb02e; transform: scale(1.2); margin-right: 5px; }
+.tbl { overflow-x: auto; }
+.mine { color: #ffe066; }
+#out { display: none; white-space: pre-wrap; margin-top: 10px; padding: 10px; background: #0a0d06; color: var(--am-hi); border: 1px solid var(--am-dim); border-radius: 4px; font-size: 16px; max-width: 960px; }
+@media (max-width: 560px) { table.pick td.short { white-space: normal; } }
+</style>
+</head>
+<body>
+<h1>SIDE PROJECTS · a preview</h1>
+<p class="note">Nothing in the game changes yet. A <b>side project</b> is two linked rounds (an account, priority, audit or 1-on-1), the second in the next slot. About <b>1 quarter in 4</b> has one, <b>2 a run at most</b>. Book the first: its <b>cost</b> starts. Book and clear the second: the cost ends and it <b>pays</b>. Walk away after the first: the cost you paid, plus a <b>penalty</b>. Never book the first: nothing happens.</p>
+<p class="note">Below: five ways to show it on the list (pick one), then the costs, rewards and penalties (tick the ones to keep, then COPY MY PICKS and paste them back to me).</p>
+
+<div class="bar">
+  <span>Show the side project</span>
+  <button data-st="idle" class="on">NOT STARTED</button>
+  <button data-st="run">FIRST HALF BOOKED</button>
+  <button data-st="done">CLEARED</button>
+  <button data-st="gone">WALKED AWAY</button>
+</div>
+<div class="bar">
+  <span>with the cost</span> <select id="selCost"></select>
+  <span>and the reward</span> <select id="selPay"></select>
+</div>
+
+<div class="wrap" id="looks"></div>
+
+<h3>COSTS · while the side project runs</h3>
+<p class="note">They start when you book the first half and end when you clear the second. The short form is what the tile would print.</p>
+<div class="tbl"><table class="pick" id="tCost"></table></div>
+
+<h3>REWARDS · for clearing both</h3>
+<p class="note">Paid when the second half is cleared.</p>
+<div class="tbl"><table class="pick" id="tPay"></table></div>
+
+<h3>PENALTIES · for walking away after the first half</h3>
+<p class="note">On top of the cost already paid. Leaving the second half's slot without booking it walks away.</p>
+<div class="tbl"><table class="pick" id="tPen"></table></div>
+
+<div class="bar" style="margin-top:16px">
+  <button id="copy" class="on">COPY MY PICKS</button>
+  <button id="clear">CLEAR TICKS</button>
+  <span id="copied"></span>
+</div>
+<div id="out"></div>
+
+<script>
+const COSTS = [
+  ['GOAL +15%', 'Both rounds ask 15% more.'],
+  ['-20s', 'Both rounds start 20 seconds short.'],
+  ['-1 SWAP -1 DISCARD', 'One swap and one discard fewer in both rounds.'],
+  ['HAND -1', 'Selection Size is one smaller in both rounds.'],
+  ['FOCUS ½', 'Focus builds half as fast in both rounds.'],
+  ['TRICKS 1-2 OFF', 'The Tricks in tray slots 1 and 2 do nothing in both rounds.'],
+  ['NO PAYOUT', 'The first round pays no credits at its payout (no interest, no Early Finish Bonus).'],
+  ['HALF A BOSS', 'Both rounds carry a boss effect at half strength, like a 1-on-1.'],
+  ['+3 STONES', 'Three stones go in the deck until the side project ends.'],
+  ['2x TIME', 'Every swap and discard costs twice its seconds in both rounds.'],
+];
+const PAYS = [
+  ['EPIC TRICK', 'Pick 1 of 3 Tricks, epic or better.'],
+  ['+1 LIMIT', 'Raise a limit of your choice by one (the Limit Break offer screen).'],
+  ['PERMAPRIME', 'Permaprime a Trick of your choice: it fires once more every time, for good.'],
+  ['+2 TIERS', 'Improve an entity of your choice twice.'],
+  ['BENEFITS', 'A Benefits Package (the prize grid) straight after the round.'],
+  ['RARE KNACK', 'Pick 1 of 3 Knacks, rare or better.'],
+  ['L¢40', '40 credits.'],
+  ['REVIEW -15%', 'This quarter’s review asks 15% less.'],
+  ['EPIC SLEIGHT', 'Pick 1 of 3 Sleights, epic or better.'],
+  ['+1 TRICK SLOT', 'One more Trick slot, for good.'],
+];
+const PENS = [
+  ['REVIEW +10%', 'This quarter’s review asks 10% more.'],
+  ['-L¢20', 'Lose 20 credits (down to 0).'],
+  ['-1 TIER', 'A random improved entity loses an improvement.'],
+  ['CURSED CARD', 'A random deck card is cursed.'],
+  ['COST STAYS', 'The cost lasts until the review.'],
+];
+const LOOKS = [
+  ['A', 'BRACKET', 'A bracket in the time column joins the two slots, with the count. The tiles keep their usual look apart from a mark on the left edge. Quietest.'],
+  ['B', 'BAND', 'A hatched band across the top of both tiles reads PROJECT 1/2 and 2/2, with the cost on the first and the reward on the second. Loudest.'],
+  ['C', 'TAGS', 'A stamped 1/2 and 2/2 in each tile’s corner. A tag is stamped solid once its half is booked. Works when the two halves sit in different lanes.'],
+  ['D', 'THREAD', 'A dotted line runs from the first half down to the second, with a knot that holds the count. Shows the link even across lanes.'],
+  ['E', 'FRAME', 'One frame round both tiles with a tab on top. The clearest grouping, but both halves must sit in the same lane.'],
+];
+
+let ST = 'idle', costI = 0, payI = 0;
+const store = (() => { try { return JSON.parse(localStorage.getItem('lethe.spPreview.v1') || '{}'); } catch (e) { return {}; } })();
+const save = () => { try { localStorage.setItem('lethe.spPreview.v1', JSON.stringify(store)); } catch (e) {} };
+store.keep = store.keep || {};
+
+// The mock quarter: slot rows of four lanes; the side project is lane 1 of slots 2 and 3.
+const ROWS = [
+  ['09:00', [['lv', '▶', 'ACCOUNT', 'GOAL 1,500', 'done'], ['blank'], ['lv', '▶', 'ACCOUNT', 'GOAL 2,000', 'done'], ['ev', '✧', 'EVENT', '']]],
+  ['11:00', [['lv', '▶', 'ACCOUNT', 'GOAL 2,500', 'sp1'], ['ev', '✧', 'EVENT', ''], ['blank'], ['sh', '$', 'MART', 'L¢12']]],
+  ['13:00', [['ch', '!', 'PRIORITY', 'GOAL 3,500', 'sp2'], ['lv', '▶', 'ACCOUNT', 'GOAL 3,000'], ['my', '?', '???', ''], ['blank']]],
+  ['15:00', [['mi', '⚔', '1-ON-1', 'GOAL 4,500'], ['blank'], ['li', '+', 'RAISE', '+1 LIMIT'], ['ev', '✧', 'EVENT', '']]],
+];
+const QUOTA = 5500;
+
+function countTxt() {
+  return ST === 'idle' ? '2 TO GO' : ST === 'run' ? '1 TO GO' : ST === 'done' ? 'PAID' : 'DROPPED';
+}
+function infoTxt() {
+  const c = COSTS[costI], p = PAYS[payI];
+  if (ST === 'idle') return `<span class="k">SIDE PROJECT:</span> book this, then the PRIORITY below it. Costs ${c[0]} until then. Pays ${p[0]}.`;
+  if (ST === 'run') return `<span class="k">SIDE PROJECT 1/2:</span> ${c[0]} is on. Book and clear the PRIORITY in slot 3 for ${p[0]}.`;
+  if (ST === 'done') return `<span class="k">SIDE PROJECT DONE:</span> ${p[0]} paid.`;
+  return `<span class="k">SIDE PROJECT DROPPED:</span> ${PENS[0][0]}.`;
+}
+
+function tileHTML(t, look, half) {
+  if (t[0] === 'blank') return '<div class="t blank">· · ·</div>';
+  const [cls, ico, word, stake, tag] = t;
+  let st = tag === 'done' ? ' done' : '';
+  let mark = '[ ]';
+  if (tag === 'done') mark = '[x]';
+  if (half === 1 && ST !== 'idle') { mark = '[x]'; st = ' done'; }
+  if (half === 2 && ST === 'done') { mark = '[x]'; st = ' done'; }
+  if (half === 2 && ST === 'gone') { mark = '[-]'; st = ' missed'; }
+  let extra = '', on = '', band = '';
+  if (half) {
+    on = ' ' + look.toLowerCase() + '-on';
+    const line = half === 1 ? `<span class="cost">${COSTS[costI][0]}</span>` : `<span class="pay">${PAYS[payI][0]}</span>`;
+    if (look === 'B') band = ` data-band="PROJECT ${half}/2"`;
+    if (look === 'C') extra += `<span class="c-tag${(half === 1 && ST !== 'idle') || (half === 2 && ST === 'done') ? ' stamped' : ''}">${half}/2</span>`;
+    extra += line;
+  }
+  return `<div class="t ${cls}${st}${on}" data-half="${half || ''}"${band}><span class="mk">${mark} ${ico}</span><span class="w">${word}</span><span class="s">${stake}</span>${extra}</div>`;
+}
+
+function lookHTML(L) {
+  const [id] = L;
+  let h = '<div class="list">';
+  ROWS.forEach((r, i) => {
+    h += `<div class="gut${i === 1 ? ' now' : ''}"><b>${r[0]}</b>SLOT ${i + 1}</div>`;
+    r[1].forEach(t => h += tileHTML(t, id, t[4] === 'sp1' ? 1 : t[4] === 'sp2' ? 2 : 0));
+  });
+  const q = ST === 'gone' ? Math.round(QUOTA * 1.1) : QUOTA;
+  h += `<div class="gut"><b>17:00</b>REVIEW</div><div class="rev"><span>☠ THE HOLLOW</span><span class="q${ST === 'gone' ? ' up' : ''}">QUOTA ${q.toLocaleString()}${ST === 'gone' ? ' (+10%)' : ''}</span></div>`;
+  h += '</div>';
+  return h;
+}
+
+// Overlays measured from the drawn tiles (bracket, thread, frame).
+function overlay(screen, id) {
+  const list = screen.querySelector('.list');
+  const a = list.querySelector('[data-half="1"]'), b = list.querySelector('[data-half="2"]');
+  if (!a || !b) return;
+  const top = a.offsetTop, bot = b.offsetTop + b.offsetHeight;
+  if (id === 'A') {
+    const br = document.createElement('div'); br.className = 'a-br';
+    br.style.top = top + 'px'; br.style.height = (bot - top) + 'px';
+    const cn = document.createElement('div'); cn.className = 'a-cnt'; cn.textContent = countTxt();
+    list.append(cn); cn.style.top = (top + (bot - top - cn.offsetHeight) / 2) + 'px'; cn.style.left = '8px';
+    list.append(br, cn);
+  }
+  if (id === 'D') {
+    const x = a.offsetLeft + a.offsetWidth * .74;
+    const th = document.createElement('div'); th.className = 'd-thread';
+    th.style.left = x + 'px'; th.style.top = (a.offsetTop + a.offsetHeight - 2) + 'px'; th.style.height = (b.offsetTop - a.offsetTop - a.offsetHeight + 4) + 'px';
+    const k = document.createElement('div'); k.className = 'd-knot'; k.textContent = countTxt();
+    k.style.left = x + 'px'; k.style.top = (a.offsetTop + a.offsetHeight + (b.offsetTop - a.offsetTop - a.offsetHeight) / 2) + 'px';
+    list.append(th, k);
+  }
+  if (id === 'E') {
+    const f = document.createElement('div'); f.className = 'e-frame';
+    f.style.left = (a.offsetLeft - 3) + 'px'; f.style.top = (top - 3) + 'px';
+    f.style.width = (a.offsetWidth + 2) + 'px'; f.style.height = (bot - top + 2) + 'px';
+    f.innerHTML = `<span class="e-tab">SIDE PROJECT · ${countTxt()}</span>`;
+    list.append(f);
+  }
+}
+
+function render() {
+  const box = document.getElementById('looks');
+  box.innerHTML = LOOKS.map(L => `<div class="card"><h2>${L[0]}. ${L[1]}</h2><p>${L[2]}</p><div class="screen st-${ST}" data-look="${L[0]}">${lookHTML(L)}<div class="info">${infoTxt()}</div></div></div>`).join('');
+  box.querySelectorAll('.screen').forEach(s => overlay(s, s.dataset.look));
+}
+
+function tableHTML(rows, key) {
+  return '<tr><th></th><th>KEEP</th><th>ON THE TILE</th><th>WHAT IT DOES</th></tr>' + rows.map((r, i) => {
+    const k = key + i, on = !!store.keep[k];
+    return `<tr class="${on ? 'kept' : ''}"><td class="n">${i + 1}</td><td class="kp"><label><input type="checkbox" data-k="${k}"${on ? ' checked' : ''}>keep</label></td><td class="short">${r[0]}</td><td class="what">${r[1]}</td></tr>`;
+  }).join('');
+}
+function tables() {
+  document.getElementById('tCost').innerHTML = tableHTML(COSTS, 'c');
+  document.getElementById('tPay').innerHTML = tableHTML(PAYS, 'p');
+  document.getElementById('tPen').innerHTML = tableHTML(PENS, 'n');
+}
+
+document.querySelectorAll('[data-st]').forEach(b => b.onclick = () => {
+  ST = b.dataset.st;
+  document.querySelectorAll('[data-st]').forEach(x => x.classList.toggle('on', x === b));
+  render();
+});
+const sc = document.getElementById('selCost'), sp = document.getElementById('selPay');
+sc.innerHTML = COSTS.map((c, i) => `<option value="${i}">${c[0]}</option>`).join('');
+sp.innerHTML = PAYS.map((c, i) => `<option value="${i}">${c[0]}</option>`).join('');
+sc.onchange = () => { costI = +sc.value; render(); };
+sp.onchange = () => { payI = +sp.value; render(); };
+document.addEventListener('change', e => {
+  const k = e.target.dataset && e.target.dataset.k; if (!k) return;
+  if (e.target.checked) store.keep[k] = 1; else delete store.keep[k];
+  save(); e.target.closest('tr').classList.toggle('kept', e.target.checked);
+});
+document.getElementById('clear').onclick = () => { store.keep = {}; save(); tables(); };
+document.getElementById('copy').onclick = async () => {
+  const pick = (rows, key) => rows.map((r, i) => store.keep[key + i] ? `${i + 1}. ${r[0]}` : null).filter(Boolean);
+  const c = pick(COSTS, 'c'), p = pick(PAYS, 'p'), n = pick(PENS, 'n');
+  const txt = `Side projects, my picks\nCosts: ${c.join(', ') || 'none'}\nRewards: ${p.join(', ') || 'none'}\nPenalties: ${n.join(', ') || 'none'}\nLook: `;
+  const out = document.getElementById('out'); out.style.display = 'block'; out.textContent = txt;
+  let ok = false;
+  try { await navigator.clipboard.writeText(txt); ok = true; } catch (e) {}
+  document.getElementById('copied').textContent = ok ? 'Copied. Add the look letter after "Look:".' : 'Copy the text below.';
+};
+tables(); render();
+if (document.fonts) document.fonts.ready.then(render);
+addEventListener('resize', render);
+</script>
+</body>
+</html>

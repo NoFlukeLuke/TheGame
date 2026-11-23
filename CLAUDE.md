@@ -5865,3 +5865,10 @@ SPEED UP + SKIP: scores landed on the banked totals, no timeline drift, no page 
 ## r823 - Growth Mindset is Insatiable (owner)
 Display name only (id `growth_mindset`, Limitless's protocol Knack): js/data/knacks.js, the handbook's
 protocols entry, comments. The r750 note's "no unlock Knack yet" for Hyperfocus is corrected (ADHD, r789).
+
+## r824 - side projects preview (Schedule chunk 4, owner)
+`side-projects-preview.html` (standalone, nothing wired): five ways to show a side project on the
+list (bracket, band, tags, thread, frame) across four states, and 10 costs, 10 rewards and 5
+walk-away penalties to tick (`lethe.spPreview.v1`, this browser only; COPY MY PICKS). Owner's rules
+so far: two linked rounds (account, priority, audit or 1-on-1), the second in the next slot,
+about 25% of quarters, 2 a run at most, both shapes, a penalty on top for walking away.
