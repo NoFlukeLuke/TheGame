@@ -531,6 +531,7 @@ function startGame() {
   acquiredTricks = [];
   acquiredKnacks  = [];
   freeRangeInitApplied = false;   // r779: Jeitinho's one-time swap limit
+  headCountInitApplied = false;   // r831
   tempoInitApplied = false;   // Tempo's one-time limit-set can run again for a fresh run
   knackBossGrowth = { extra_swaps: 0, extra_discards: 0, curator: 0 };   // js/limits.js
   editorRanks = {};   // js/rank-editor.js

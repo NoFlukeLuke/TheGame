@@ -11,7 +11,7 @@ const KNACK_POOL = [
   { id:'vulture',       emoji:'🐦',  name:'The Vulture',      rarity:'epic',   desc:'Cards discarded during a level’s first pause permanently gain a 3s pause (cannot stack from this source)', tags:['deck','time','card','discard','pause','scaling'] },
   { id:'mockingbird',   emoji:'🧳',  name:'Well-Rounded',         rarity:'rare',   desc:'Every 4 hands you play without a same-type streak grants +1 swap and +1 discard', tags:['stock','hand','streak'] },
   // ── Queue-view knacks (r329, js/queue-views.js) ──
-  { id:'head_count',      emoji:'🔢',  name:'Head Count',       rarity:'common', desc:'The Sleight queue (the button on your Trick tray) shows how many cards sit in front of each Sleight.', tags:['info','other','sleights'] },
+  { id:'head_count',      emoji:'🔢',  name:'Head Count',       rarity:'common', desc:'When taken, restores all charges to all Sleights. The Sleight queue (the button on your Trick tray) shows how many cards sit in front of each Sleight.', tags:['info','charges','other','sleights'] },
   { id:'card_counter',    emoji:'🂠',  name:'看板',     rarity:'rare',   desc:'Double-tap the hand preview tray to see the draw queue: the next cards in draw order, left to right.', tags:['info','other'] },
   { id:'advance_notice',  emoji:'📋',  name:'Advance Notice',   rarity:'rare',   desc:'While you hold it, its tooltip names the boss waiting at the end of the NEXT quarter. Sell it and a different boss takes that slot.', tags:['info','other','boss'] },
   { id:'contingency',     emoji:'🛡️',  name:'Contingency Plan', rarity:'rare',   desc:'Boss effects are 10% weaker - timed effects tick 10% less often, and everything else is 10% smaller.', tags:['shield','other','boss'] },

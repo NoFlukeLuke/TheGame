@@ -264,6 +264,7 @@ let lighthouseFlip = 0;         // alternator driving lighthouseColumn each roun
 let tempoElapsed = 0;           // Tempo knack: round-seconds banked toward the next swap/discard drip
 let tempoNextIsSwap = true;     // Tempo knack: the drip alternates swap → discard → swap
 let freeRangeInitApplied = false;   // r779: Jeitinho's one-time swap limit has been set this run
+let headCountInitApplied = false;   // r831: Head Count's one-time recharge has run for this copy
 let tempoInitApplied = false;   // Tempo knack: its one-time limit-set has run this game (reset on new game)
 let stopwatchActive = false;    // Stopwatch sleight: clock frozen until the next hand's scoring animation ends
 let stopwatchTimer = null;      // interval draining the Stopwatch second-budget while frozen

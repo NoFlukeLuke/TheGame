@@ -1,4 +1,4 @@
-const BUILD = "2026-11-24 · r830 · the music warbles and ticks at the level's end";
+const BUILD = "2026-11-24 · r831 · Head Count restores every Sleight's charges when taken";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

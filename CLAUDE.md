@@ -5941,3 +5941,12 @@ Settings -> Audio -> Music at the level's end (`musicEdge`: both / warble / off;
 420x900 (Flow): 40s left w .11, 25s w .42 with ticks 1s apart, 8s w .83 ticks 0.5s apart, held
 clock froze it and stopped ticks, shop clean, Warble-only and Off, speaker off still warbles and
 ticks; no page errors. An offline render of a level's last 45s peaked at 0.71.
+
+## r831 - Head Count restores every Sleight's charges when taken (owner)
+`applyHeadCountOnce` (js/limits.js, from `updateKnackList` beside Tempo and Jeitinho): every owned
+Sleight with a charge count (board and both piles) goes to its cap (`sleightCapOf`); infinite ones
+are left alone. Once per take: `headCountInitApplied` (SAVE_VARS, reset in startGame) clears when the
+Knack leaves, so a copy taken again refills again. A quiet notice and the chip's burst say how many.
+The sentence leads with it; tag `charges` added. Measured at 1440x820 and 420x900: three Sleights at
+1 charge went to 5 / 10 / 9 on taking it, a later `updateKnackList` changed nothing, sold and retaken
+refilled again; no page errors.
