@@ -73,7 +73,6 @@ const IMPROVE_MUL = new Set([
 //   ENTITY_IMPROVEMENTS.md, "Improve option 1", is the source of truth.
 const IMPROVE_STEP = {
   first_light:    { worth: 10 },        // Aces worth 21; the sheet says +10, not +21
-  rising_tide:    { mult_min: 1, mult_max: 1 },   // r539: each level's roll, 1-3 -> 2-4 -> ...
   face_value:     { face_pips: 5 },     // face cards 15; the sheet says +5
   king_guard:     { pips: 10 },         // +10 pips is option 1; the +2 mult is option 2
   extra_discards: { max: 1 },           // Harvest grants 2; repeating it whole is too strong
@@ -148,6 +147,7 @@ const IMPROVE_PLAN = {
   // Lie Up (r828): +15 pips and +15 mult per card a tier to the 4th; the 5th lets the shape bend 3 times
   lie_up:           t => ({ pips_per_card: 25 + 15 * Math.min(4, t), mult_per_card: 25 + 15 * Math.min(4, t), bends: t >= 5 ? 3 : 2 }),
   // r649: +2 mult a tier to the 4th; the 5th counts credit changes anywhere instead
+  rising_tide:      t => ({ mult: 5 + t, pips: t >= 5 ? 1 : 0 }),   // r850 (owner): +1 an upgrade; v6 pips too
   middle_man:       t => ({ mult_per: 3 + 2 * Math.min(t, 4), anywhere: t >= 5 ? 1 : 0 }),
   // ── r625, the owner's epic sheet ──
   // one more prime, then one more rolled rank, alternating; the 5th does both

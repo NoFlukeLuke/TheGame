@@ -160,11 +160,11 @@ const TRICK_POOL = [
   { id:'bonus_structure',  name:'Bonus Structure',  tier:'rare',   desc:'', tags:['credits','other','level'] },
   { id:'expense_account',  name:'Expense Account',  tier:'epic',   desc:'', tags:['mult','hand','scores','scaling'] },
   { id:'insurance_policy', name:'Insurance Policy', tier:'epic',   desc:'', tags:['replay','card','scores','chance','held'] },
-  { id:'fire_sale',        name:'Firesale',         tier:'rare',   desc:'Scales +0.25 mult every time you spend or lose a credit.', tags:['mult','hand','shop','scores','scaling'] },
+  { id:'fire_sale',        name:'Firesale',         tier:'rare',   desc:'Scales +0.25 mult for every credit lost or spent.', tags:['mult','hand','shop','scores','scaling'] },
   { id:'trade_in',         name:'Trade In',         tier:'rare',   desc:'', tags:['tricks','other','shop','cost'] },
   { id:'four_oh_one',      name:'401',              tier:'rare',   desc:'Scales ×0.2 mult or ×0.2 pips, at random, every time you sell a Trick, Knack or Sleight.', tags:['xmult','xpips','hand','shop','scores','scaling'] },
   { id:'middle_man',     name:'Middle Man',          tier:'rare',    desc:'Scales +3 mult every time you gain or lose credits during play', tags:['mult','hand','scores','scaling'] },
-  { id:'rising_tide',    name:'inflation',         tier:'rare',    desc:'Scales +5 to +10 mult every time you pass a level', tags:['mult','hand','level','scores','scaling','chance'] },
+  { id:'rising_tide',    name:'inflation',         tier:'rare',    desc:'Scales +5 mult x the quarter every time you pass a level', tags:['mult','hand','level','scores','scaling','chance'] },
   // ── Accumulating ──
   { id:'compound_mult',  name:'Compound',            tier:'epic',      desc:'Scales +0.3 mult every time you play a hand', tags:['mult','hand','scores','scaling'] },
   { id:'acorns',         name:'Pé-de-Meia',              tier:'rare',      tags:['focus','hand','scaling'], desc:'Scales +0.025 Focus every time a card scores, starting at +0; adds its whole-number Focus each hand' },

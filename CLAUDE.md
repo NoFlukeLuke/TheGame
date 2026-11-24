@@ -6210,3 +6210,13 @@ To the Clouds lead with their scaling sentence, then "Adds 9 9s to your deck". ç
 ## r849 - Wild Side drops "this run" (owner)
 "Scales +6 mult every time you take a negative reward tile". Wording only; it still counts tiles taken
 from the run's start (`negativeTilesTakenRun`).
+
+## r850 - inflation scales by the quarter; Firesale's wording (owner)
+- **inflation** (`rising_tide`): each level passed adds `BAL.rising_tide.mult` (5) x the quarter mult
+  (`runQuarterNow()`, js/qrl.js: `qrlQuarter` without the cap at 4, so Endless keeps counting; Flow's
+  is the review being worked toward). Was a 5-10 roll. Ladder (`IMPROVE_PLAN`): 5 6 7 8 9, v6 10 and
+  `pips` 1, so each level also adds the same figure x the quarter in pips (`risingTidePips`, SAVE_VARS,
+  reset in startGame and on pickup; paid with the mult in its `handAdd`). The r539 `IMPROVE_STEP` row is gone.
+- **Firesale** reads "Scales +0.25 mult for every credit lost or spent."
+Measured at 1440x820 and 420x900 through `?lab`: a Q1 level-up +5, a Q3 one +15 (20); v2-v6 sentences
+6 / 7 / 8 / 9 / 10 with pips; a v6 Q2 level-up +20 mult +20 pips; the tooltip led with both. Golden: 838 match.

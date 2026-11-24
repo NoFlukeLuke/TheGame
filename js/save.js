@@ -122,7 +122,7 @@ const SAVE_VARS = [
   'activeHands', 'unlockedHands', 'handsPendingUnlock', 'handTypesRound',
   '_comboAnnounced', '_comboHinted',
   // ── Trick / knack accumulators ──
-  'bonusMult_fives', 'bonusMult_nines', 'risingTideMult', 'middleManMult', 'deluxeOffers', 'bonusMult_tens', 'bonusMult_compound', 'spadesRelentless', 'relentlessBonus', 'relentlessLvN', 'relentlessLv',
+  'bonusMult_fives', 'bonusMult_nines', 'risingTideMult', 'risingTidePips', 'middleManMult', 'deluxeOffers', 'bonusMult_tens', 'bonusMult_compound', 'spadesRelentless', 'relentlessBonus', 'relentlessLvN', 'relentlessLv',
   'bonusFocus_acorns', 'bonusMult_morebetter', 'bonusPips_fengshui',
   'safetyNetUsed', 'negativeTilesTakenRun',
   '_perMinuteFired', 'handsPlayedGame', 'rowColBonuses', 'positionAxisNext',

@@ -1,4 +1,4 @@
-const BUILD = "2026-11-24 · r849 · Wild Side drops this run";
+const BUILD = "2026-11-24 · r850 · inflation scales by the quarter; Firesale wording";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

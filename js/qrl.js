@@ -34,6 +34,11 @@ function qrlQuarter() {
   if (ACTIVE_MODE && ACTIVE_MODE.flow) return Math.min(4, (typeof survivalBossesBeaten === 'number' ? survivalBossesBeaten : 0) + 1);
   return Math.max(1, Math.min(4, actNumber || 1));
 }
+// r850: the run's quarter, not capped at 4 (inflation reads it in Endless too).
+function runQuarterNow() {
+  if (ACTIVE_MODE && ACTIVE_MODE.flow) return (typeof survivalBossesBeaten === 'number' ? survivalBossesBeaten : 0) + 1;
+  return Math.max(1, actNumber || 1);
+}
 // A run past Q4 (r682, owner): no limit at all, in every mode.
 function qrlEndlessOff() {
   return (typeof endlessRun !== 'undefined' && !!endlessRun) || (typeof survivalEndless !== 'undefined' && !!survivalEndless);

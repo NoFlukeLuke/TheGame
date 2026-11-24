@@ -19,7 +19,7 @@
 fxDefine('well_adjusted',  { handAdd: () => ({ pip: BAL.well_adjusted.pips, mult: BAL.well_adjusted.mult }) });
 fxDefine('serenity',       { handAdd: x => !handIsLine(x.cells) ? { mult: BAL.serenity.mult } : null });
 fxDefine('penny_perfect',  { handAdd: () => { const p = pennyPerfectBonus(); return { pip: p.pips, mult: p.mult }; } });
-fxDefine('rising_tide',    { handAdd: () => risingTideMult > 0 ? { mult: risingTideMult } : null });
+fxDefine('rising_tide',    { handAdd: () => (risingTideMult > 0 || risingTidePips > 0) ? { pip: risingTidePips || 0, mult: risingTideMult } : null });
 fxDefine('middle_man',     { handAdd: () => middleManMult > 0 ? { mult: middleManMult } : null });
 // r722 (js/money.js): credits moved this level and last; credits spent, for the run.
 fxDefine('expense_account', { handAdd: () => ({ mult: expenseAccountMult() }) });
