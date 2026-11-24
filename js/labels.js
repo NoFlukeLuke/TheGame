@@ -103,13 +103,11 @@ const CREDIT_SYM = 'L¢';
 function creditsTxt(n) { return CREDIT_SYM + n; }
 // r806 (owner): a figure too big for its box reads in letters from 100,000 up: 100k,
 // 346k, 1.2m, 12m, 3.2b. Under that it reads as `small` says (the caller's own style).
-// r841 (owner): letters all the way up the short scale. k thousand, m million, b billion,
-// t trillion, then Qa quadrillion (1e15), Qi quintillion, Sx sextillion, Sp septillion,
-// Oc octillion, No nonillion, Dc decillion (1e33), Ud Dd Td Qad Qid Sxd Spd Ocd Nod
-// (undecillion to novemdecillion) and Vg vigintillion (1e63). Past that, powers of ten (2.3e66).
-// The LED font prints them upper case (QA, DC...). One table: FMT_BIG_UNITS.
-const FMT_BIG_UNITS = ['k', 'm', 'b', 't', 'Qa', 'Qi', 'Sx', 'Sp', 'Oc', 'No', 'Dc',
-  'Ud', 'Dd', 'Td', 'Qad', 'Qid', 'Sxd', 'Spd', 'Ocd', 'Nod', 'Vg'];
+// r841 / r842 (owner): letters up the short scale to decillion. k thousand, m million,
+// b billion, t trillion, then Qa quadrillion (1e15), Qi quintillion, Sx sextillion,
+// Sp septillion, Oc octillion, No nonillion, Dc decillion (1e33). Past decillion, powers of
+// ten (1e36, 2.3e40). The LED font prints them upper case (QA, DC...). One table: FMT_BIG_UNITS.
+const FMT_BIG_UNITS = ['k', 'm', 'b', 't', 'Qa', 'Qi', 'Sx', 'Sp', 'Oc', 'No', 'Dc'];
 function fmtBig(n, small) {
   n = +n || 0;
   const a = Math.abs(n), sg = n < 0 ? '-' : '';

@@ -6118,3 +6118,7 @@ novemdecillion) and Vg (vigintillion, 1e63); past that, powers of ten (1e66). A 
 to 1000 moves up a unit (999.6k reads 1m). The LED font prints them upper case (QA, DC, TD).
 `scoreTxtParse` reads every unit back (capped at the largest number JS holds). SCORE and GOAL still
 print every digit under a trillion (`SCORE_SHORT_FROM`).
+
+## r842 - letters stop at decillion (owner)
+`FMT_BIG_UNITS` ends at Dc (1e33); from 1e36 numbers read as powers of ten (1e36, 2.3e40).
+r841's Ud to Vg are gone.
