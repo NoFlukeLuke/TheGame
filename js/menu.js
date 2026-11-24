@@ -1,4 +1,4 @@
-const BUILD = "2026-11-24 · r834 · Straight Shot rare; square boxes; LED scoring numbers on desktop; Free Hand 20s";
+const BUILD = "2026-11-24 · r835 · merge: side projects with square boxes, LED numbers, Free Hand 20s";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

@@ -357,6 +357,7 @@ if (typeof requestAnimationFrame === 'function') requestAnimationFrame(focusFxLo
 function addFocus(amount, srcId, srcSource) {
   if (!amount || amount <= 0) return;
   if (typeof hyperfocusOn === 'function' && hyperfocusOn()) amount *= HYPERFOCUS.gain;   // r749: Hyperfocus
+  if (typeof spFocusScale === 'function') { amount = spFocusScale(amount); if (amount <= 0) return; }   // r834: a side project's FOCUS ½
   if (typeof stackedActive === 'function' && stackedActive()) return;   // r730: Stacked has no Focus
   if (srcId && typeof entityEffectFX === 'function') entityEffectFX('focus', amount, { id: srcId, source: srcSource });
   focusGenGame += amount; focusGenRound += amount; // total Focus generated (any source) - Wellspring / Feedback Loop
