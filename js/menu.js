@@ -1,4 +1,4 @@
-const BUILD = "2026-11-24 · r836 · Logistics Assistant no longer refuses during a tally; Relay and huge numbers draw right";
+const BUILD = "2026-11-24 · r837 · merge: Surveyor / tally fix with Logistics, Relay screen and big numbers";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

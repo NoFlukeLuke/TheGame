@@ -94,8 +94,9 @@ const KNACK_POOL = [
   { id:'yoked',           emoji:'🐂',  name:'Overachiever',            rarity:'epic',   desc:'Buffs your cards gain are twice as strong. Upgrading this makes every buff your cards hold 25% stronger; the 5th upgrade doubles them.', tags:['pips','mult','xpips','xmult','card','buffed','scores'] },
   { id:'martyr',          emoji:'⚰️',  name:'Martyr',           rarity:'common', desc:'Discarding a non-discard Sleight restores 1 charge to all Sleights on the grid.', tags:['other','sleights','discard','charges'] },
   // ── Position knacks (r102) - control which line a position Trick marks ──
-  { id:'surveyor',        emoji:'📐',  name:'Surveyor',         rarity:'common', desc:'When you gain a position Trick, you choose which column it marks.', tags:['other','tricks','position','line'] },
-  { id:'leveler',         emoji:'📏',  name:'Leveler',          rarity:'common', desc:'When you gain a position Trick, you choose which row it marks.', tags:['other','tricks','position','line'] },
+  // r830 (owner): ONE Knack. Surveyor chooses a row or a column; Leveler is retired (a saved run keeps it).
+  { id:'surveyor',        emoji:'📐',  name:'Surveyor',         rarity:'common', desc:'When you gain a position Trick, you choose which row or column it marks.', tags:['other','tricks','position','line'] },
+  { id:'leveler',         emoji:'📏',  name:'Leveler',          rarity:'common', retired:true, desc:'When you gain a position Trick, you choose which row it marks.', tags:['other','tricks','position','line'] },
   { id:'separation_anxiety', emoji:'🔗', name:'Separation Anxiety', rarity:'rare', desc:'When an inseparable Trick triggers, 10% chance to prime the Tricks beside it.', tags:['retrigger','other','tricks','chance'] },   // r651: offered only with a fused Trick in the tray
   { id:'district',        emoji:'🏙️',  name:'Undistricted',          rarity:'common', desc:'Position Tricks may share a row or column instead of spreading onto separate lines.', tags:['other','tricks','position','line'] },
   // ── Tempo / repair knacks (r120) ──

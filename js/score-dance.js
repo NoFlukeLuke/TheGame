@@ -2087,6 +2087,22 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
     if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
     if(!beatsCut && flushed()){ beatsCut = true; _lq.length = 0; }
   }
+  // r830 (owner): the numbers resolve only once every chip is off the screen. The queue
+  // above empties the moment the last chip's number lands, while that chip is still drawn
+  // (it is removed 60ms later, a rewind's trailing copies later still), so wait for every
+  // plate to go (at most 2.5s of dance time), then rest TALLY_CFG.settle.
+  if(!beatsCut && !dncFF && !skipBeats){
+    const _t0 = dncClock();
+    while(document.querySelector('.dnc-particle') && dncClock() - _t0 < 2500){
+      await dncWait(30);
+      if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
+      if(flushed()){ beatsCut = true; break; }
+    }
+    if(!beatsCut && TALLY_CFG.settle > 0){
+      await dwait(TALLY_CFG.settle);
+      if(aborted()){ dncFinishAbort(stage,isGoalHand,myGen); return; }
+    }
+  }
   dncBeatsDone = true;   // from here the preview's SKIP is the fast forward
 
   // Nothing should still be jittering - entities pop and settle now rather than
