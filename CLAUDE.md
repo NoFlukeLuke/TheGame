@@ -5966,3 +5966,6 @@ Measured in headless Chromium at 1440x820 and 420x900: marks for 9 / 15 / 29 / 3
 sentence following; El Tiempo es Oro in Flow at 5:00 read ÷ 3 (100 pips), Classic ÷ 2; no "improv" left
 on a run's screen; no page errors. Golden: only Odd One In, Enriched and the trays holding them move;
 baseline in r832.
+
+## r832 - golden baseline rewritten for r831
+Only Odd One In, Enriched and the trays holding them moved.
