@@ -66,7 +66,7 @@ function goalBannerGrid(opts) {
   if (!el) { el = document.createElement('div'); el.id = 'gb-grid'; grid.appendChild(el); }
   else if (el.parentElement !== grid) grid.appendChild(el);
   const goalWord = (typeof lexTerm === 'function') ? lexTerm('goal') : 'GOAL';
-  const num = (typeof roundGoal === 'number') ? roundGoal.toLocaleString() : '';
+  const num = (typeof roundGoal === 'number') ? scoreTxt(roundGoal) : '';
   el.className = opts.kicker ? 'gb-boss' : '';
   el.innerHTML = `<div class="gbg-k">${opts.kicker ? opts.kicker : 'LEVEL'}</div><div class="gbg-l">&gt; ${goalWord} CLEARED${num ? '\n  ' + num : ''}</div>`;
   const line = el.querySelector('.gbg-l');
@@ -92,7 +92,7 @@ function showGoalBanner(opts) {
   if (ttl) ttl.textContent = ((typeof lexTerm === 'function') ? lexTerm('goal') : 'GOAL') + ' CLEARED';
   el.classList.toggle('gb-boss', !!opts.kicker);
   const num = document.getElementById('goal-banner-num');
-  if (num) num.textContent = (typeof roundGoal === 'number' ? roundGoal.toLocaleString() : '');
+  if (num) num.textContent = (typeof roundGoal === 'number' ? scoreTxt(roundGoal) : '');
 
   // Centre on the board. Falls back to the viewport centre if the grid has no box
   // (a mode with the board taken over by an overlay).

@@ -161,7 +161,7 @@ function _ptLighten(hex, pct){
 let danceInterruptMode = (function(){ try { return localStorage.getItem('danceInterrupt') || 'ff'; } catch(e){ return 'ff'; } })();
 function setDanceInterruptMode(m){ if(!['cut','ff','resolve'].includes(m)) m='ff'; danceInterruptMode=m; try { localStorage.setItem('danceInterrupt', m); } catch(e){} }
 let _lastDanceStart = 0; // for the spam valve: rapid re-interrupts skip the flourish
-function _scoreDisplayed(){ const el=document.getElementById('score-total-num'); if(!el) return 0; const n=parseInt((el.textContent||'0').replace(/[^0-9-]/g,''),10); return isNaN(n)?0:n; }
+function _scoreDisplayed(){ const el=document.getElementById('score-total-num'); if(!el) return 0; return scoreTxtParse(el.textContent); }   // r839: reads 640t / 6.4e20 too
 // ── RAPID-FIRE HANDOFF (r173) ───────────────────────────────────────────────
 // Submitting a hand while another is dancing used to cut the old one and quietly
 // snap a number onto the score. What the player saw was the score sitting still
@@ -193,7 +193,7 @@ let _dncOutHandScore = 0;      // the currently-dancing hand's own score, for th
 
 async function danceHandoffToScore(tier, outHandScore, fromVal, toVal, sig) {
   const scoreEl = document.getElementById('score-total-num');
-  const land = () => { if (scoreEl) scoreEl.textContent = toVal.toLocaleString(); };
+  const land = () => { if (scoreEl) scoreEl.textContent = scoreTxt(toVal); };
   const speed = tier === 'snap' ? 3.2 : 1.6;
   // Fuse the chips onto the outgoing hand's score, then throw them at the total.
   let flew = false;
@@ -216,7 +216,7 @@ async function danceHandoffToScore(tier, outHandScore, fromVal, toVal, sig) {
       if (done) return;
       if (sig && sig.aborted) { clearTimeout(guard); bail(); return; }
       const t = Math.max(0, Math.min(((now||performance.now()) - start)/dur, 1)), e = 1 - Math.pow(1-t, 3);
-      if (scoreEl) scoreEl.textContent = Math.round(fromVal + (toVal-fromVal)*e).toLocaleString();
+      if (scoreEl) scoreEl.textContent = scoreTxt(fromVal + (toVal-fromVal)*e);
       if (typeof sfxScoreTick === 'function' && fxRandom() < 0.4) sfxScoreTick();
       if (t < 1) requestAnimationFrame(tk); else { clearTimeout(guard); finish(); }
     })(performance.now());
@@ -2138,8 +2138,9 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
       '| seeded', _ledger.basePips, 'x', _ledger.baseMult, '|', timeline.map(e=>`${e.card>=0?'c'+e.card:'H'} ${e.id} ${e.op} ${e.value}`).join(' , '));
   }
   rp = _finalPips; rm = _finalMult;
-  if(pipsEl) pipsEl.textContent = Math.round(_finalPips);
-  if(multEl) multEl.textContent = fmtM(Math.round(_finalMult*10)/10);
+  // r839: the same short form as the walk (fmtBig); the raw digits overflowed the box past 100k.
+  if(pipsEl) pipsEl.textContent = fmtBig(Math.round(_finalPips));
+  if(multEl) multEl.textContent = fmtBig(Math.round(_finalMult*10)/10, fmtM);
 
   // ── PMF merge ── all three chips have landed on their totals, so they stop
   // being three numbers and become one: this hand's score. Jitter, fuse, then
@@ -2158,7 +2159,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   // ── SCORE climb ──
   // r729: the rising score held at the total before the winning hand; its climb takes the box now.
   if(isGoalHand && typeof scoreRiseYield==='function') scoreRiseYield(scoreBefore);
-  if(scoreEl && !_riseOwns()) scoreEl.textContent=scoreBefore.toLocaleString();
+  if(scoreEl && !_riseOwns()) scoreEl.textContent=scoreTxt(scoreBefore);
   const climb = skipBeats ? 140
               : (dncFF ? Math.max(120, DANCE_CFG.scoreClimb/DANCE_CFG.ff) : Math.max(120, DANCE_CFG.scoreClimb/dncPace()));
   let goalFlashed=false;
@@ -2168,7 +2169,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
       // and a negative tt made the cubic dip the number below the old score.
       const tt=Math.max(0,Math.min((now-st)/climb,1)), e=1-Math.pow(1-tt,3);
       const cur=Math.round(scoreBefore+(scoreAfter-scoreBefore)*e);
-      if(!_riseOwns()){ dncShowScore = cur; if(scoreEl) scoreEl.textContent=cur.toLocaleString(); }
+      if(!_riseOwns()){ dncShowScore = cur; if(scoreEl) scoreEl.textContent=scoreTxt(cur); }
       if(typeof roundQuotaClimb==='function') roundQuotaClimb(e);   // LINES fill with the tally (js/level-types.js)
       if(isGoalHand && !goalFlashed && (roundQuota ? tt>=1 : cur>=roundGoal)){ goalFlashed=true; if(typeof flashRoundEnd==='function') flashRoundEnd(); }
       if(typeof sfxScoreTick==='function' && fxRandom()<0.35) sfxScoreTick();
@@ -2185,7 +2186,7 @@ async function playPreviewDance(result, toRemove, isGoalHand = false){
   // r694 (owner): the hand's cards fall out of the bottom of the tray (not the goal hand's:
   // its round is over and the screen changes). The goal hand clears at once, as before.
   if(isGoalHand){ stage.classList.remove('dnc-active'); dncStageClear(stage); }
-  if(scoreEl && !_riseOwns()) scoreEl.textContent=scoreAfter.toLocaleString();
+  if(scoreEl && !_riseOwns()) scoreEl.textContent=scoreTxt(scoreAfter);
   showComboFloats(hand, handCells, result);
   const scoreBoxEl=document.getElementById('score-mid');
   if(scoreBoxEl){ scoreBoxEl.classList.remove('box-popping'); void scoreBoxEl.offsetWidth; scoreBoxEl.classList.add('box-popping'); }

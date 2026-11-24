@@ -1,4 +1,4 @@
-const BUILD = "2026-11-24 · r839 · a met goal always ends the level; a Relay shows progress at once";
+const BUILD = "2026-11-24 · r840 · merge: the goal net and Relay progress (r839) with main's r839";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
