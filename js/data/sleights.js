@@ -70,6 +70,12 @@ const SLEIGHT_POOL = [
   { id:'nest_egg',   name:'Nest Egg',   emoji:'💰', rarity:'rare', activation:'passive',    durability:'infinite', defaultRank:null, defaultSuit:null, tags:['credits','other','shop','scaling'], desc:'' },
   { id:'loan_shark', name:'Loan Shark', emoji:'💸', rarity:'rare', activation:'passive',    durability:'infinite', defaultRank:null, defaultSuit:null, tags:['pips','mult','credits','hand','scores','cost'], desc:'' },
   { id:'bogo',       name:'BOGO',       emoji:'🎁', rarity:'epic', activation:'double_tap', durability:3,          defaultRank:null, defaultSuit:null, tags:['board','other','position','buffed','credits'], desc:'' },
+  // r841 (owner): five Sleights (js/fall-sleights.js). Bogart and Corporate Ladder are DRAGGING: never in a level's opening deal.
+  { id:'franchised', name:'Franchised', emoji:'🏪', rarity:'rare', activation:'on_play', durability:4, defaultRank:null, defaultSuit:null, tags:['deck','hand','chance'], desc:'' },
+  { id:'bogart', name:'Bogart', emoji:'🚬', rarity:'common', activation:'passive', durability:4, defaultRank:null, defaultSuit:null, dragging:true, tags:['board','other','suit','position','chance'], desc:'' },
+  { id:'corp_ladder', name:'Corporate Ladder', emoji:'🧗', rarity:'common', activation:'passive', durability:4, defaultRank:null, defaultSuit:null, dragging:true, tags:['board','other','run','position','buffed'], desc:'' },
+  { id:'identity_crisis', name:'Identity Crisis', emoji:'🎭', rarity:'rare', activation:'on_swap', durability:5, defaultRank:null, defaultSuit:null, tags:['deck','other','swap','chance'], desc:'' },
+  { id:'org_chart', name:'Org Chart', emoji:'🗂️', rarity:'rare', activation:'passive', durability:5, defaultRank:null, defaultSuit:null, tags:['replay','card','position','sleights','scores'], desc:'' },
   // r676 (owner; CHALLENGE_REWARDS.md section 7): becomes a random Sleight each round (js/changing.js). Working name.
   { id:'floater',    name:'Floater',      emoji:'🌀', rarity:'epic',   activation:'passive', durability:6, defaultRank:null, defaultSuit:null, tags:['other','chance'], desc:'' },
   // ── Focus-capacity sleights (r104) ──

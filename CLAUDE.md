@@ -6110,3 +6110,45 @@ form PIPS / MULT and the fused chip already used. `scoreTxtParse` reads any of t
 (`_scoreDisplayed`). The odometer (js/score-rise.js) writes plain text past 1e12 instead of
 wheels. The dance's reconcile writes PIPS / MULT through fmtBig (it wrote raw digits, which the LED
 copy crushed into a line that read as a minus sign). A new SCORE or GOAL write uses `scoreTxt`.
+
+## r841 - Dragging; five Sleights; Fodder reaches its neighbours (`js/fall-sleights.js`, owner)
+- **Dragging** (a card condition; keyword `dragging`): never in a level's opening deal. A Sleight row
+  with `dragging: true` has it (`cardDragging(card)`; `card._dragging` for a plain card, nothing sets it
+  yet). `dragDealSweep()` runs after every deal (`initGridData`, top of `startNewRoundDealAnims`): each
+  Dragging card on the board goes back into the draw pile at a random place and the pile's next card
+  takes its cell. A Dragging Sleight's sentence ends "Dragging." so the keyword tooltip shows.
+- **Fall Sleights.** `removeAndFall` brackets its data write with `fallSleightSnap()` /
+  `fallSleightAfter(snap)`: one that ENTERS reads the card under it (`_bogSuit` / `_ladRank`, printed in
+  the board card's corner, `fallSleightNote`); one that FALLS acts on the cards beside every row it passed
+  (the row it lands in included), then reads again. On the bottom row it is marked `_dragOut` and
+  `fallSleightDrain` (the fall's tail) spends a charge, cycles it and slides it out (`removeAndFall` mode
+  `'dragout'`). **Bogart** (common, 4): each passed card has 20% to take the suit it read; +15% / +1
+  charge alternating, v6 both. **Corporate Ladder** (common, 4; my name, the owner gave none): passed
+  cards become temp cards +10 pips +10 mult, one rank a row from the rank it read, upward, or downward
+  when upward would run out; originals go to the back of the draw pile; +1 charge / +10 buff
+  alternating, v6 two columns a side (`reach`). Only ordinary cards are changed (no wilds, Sleights, stones).
+- **Franchised** (rare, on_play, 4): after the hand scores, each other card in it has 25% to become a
+  copy (face and buffs, `copyCardBuffs`) of the first card selected. 40% / 5 / 55% / 6 charges; v6
+  (`stacked`): a temp copy of the Sleight takes its hole through Backfill's queue
+  (`cardStateBackfillQueue`); a temp copy makes no copy. `discardToPlayed` drops a temp Sleight.
+- **Identity Crisis** (rare, on_swap, 5; the owner's "Midlife Crisis" is already a Trick's name): swapped
+  with a card, 30% to give it a second rank, a second suit or both (unprinted: 40 / 40 / 20). A charge
+  every swap, no once-a-level lock. v2 +2 charges, v3 50%, v4 the suit is the one the oldest Trick, Knack
+  or Sleight names (`identitySuit`: tray, then Knacks, then Sleights), v5 +2 charges, v6 70% and the rank
+  is one above (v5 and v6 are mine).
+- **Org Chart** (rare, passive, 5; my name and charges): a card scored in its row or column replays once
+  per Sleight on the grid (`orgChartReplays`, replay source `org` in calcScore, QRL-limited); a hand it
+  replayed in spends a charge (`orgChartSpend`, playHand).
+- **Fodder** (owner): `cellIsFodder(r, c)` is the read for swaps and discards: the card is Fodder or a
+  card orthogonally beside it is. `cardIsFodder` still says whether a card carries the mark.
+- Icons: shop, cigar, stairs-goal, duality-mask, organigram (sheet 169 cells).
+- Card conditions today: the 7 card states (Backfill, Fleeting, Deadline, Callback, Review, Scavenger,
+  Roll Call), Fodder, Temp, Dragging; the old curses Leaden / Taxing / Snared are offered nowhere.
+  Proposed, not built: always in the opening deal, Pinned (stays in its cell when played), primes the
+  Tricks it triggers.
+Measured in a served headless Chromium at 1440x820 and 420x900: every v1 and v6 sentence; a Bogart dealt
+to the board was swept into the pile; one at row 0 read hearts, fell two rows and turned the four cards
+beside them to hearts (chance forced to 1), then at the bottom row left with 3 charges and no hole; the
+Ladder reading a 10 made 10 10 / J J temp cards at +10 / +10; Franchised turned two Kings into the first
+King and left a temp copy with 3 charges; Identity Crisis gave a second suit for one swap and one charge;
+Org Chart 162 -> 648 with one Sleight, 1,458 with two, a charge spent. Golden: 838 match. No page errors.

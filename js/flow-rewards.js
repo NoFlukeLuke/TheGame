@@ -2030,7 +2030,7 @@ const FLOWR_DECK_OPS = [
     desc: 'Select a card, then APPLY. 1-3 cards next to it become copies of it.' },
   // r567: a flag, not a number, so it is its own op rather than a buff row.
   { id: 'fodder', fodder: true, icon: '♻', name: 'Fodder',
-    desc: 'Pick up to 3 touching cards, then APPLY. Each becomes Fodder: swapping or discarding it costs no time and no stock.' },
+    desc: 'Pick up to 3 touching cards, then APPLY. Each becomes Fodder: swapping or discarding it, or a card beside it, costs no time and no stock.' },
   { id: 'pips',   buff: { key: 'pips',   range: [25, 25, 1],    word: 'pips'   }, icon: '➕', name: 'Pip Buff',
     desc: 'Pick up to 3 touching cards, then APPLY. Buffed cards score +25 pips.' },
   { id: 'mult',   buff: { key: 'mult',   range: [25, 25, 1],    word: 'mult'   }, icon: '✖', name: 'Mult Buff',

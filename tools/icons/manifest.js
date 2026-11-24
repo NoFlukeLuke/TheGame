@@ -153,6 +153,12 @@ const ICONS = [
   { glyph: '🎁', icon: 'delapouite/present',      color: 'gold'   },  // Deluxe Subscription (knack)
   { glyph: '🏺', icon: 'delapouite/porcelain-vase', color: 'gold' },  // Curio (knack, r777)
   { glyph: '🐂', icon: 'lorc/bull',               color: 'brown'  },  // Yoked (knack)
+  // r841 (owner): five Sleights (js/fall-sleights.js)
+  { glyph: '🏪', icon: 'delapouite/shop',         color: 'green'  },  // Franchised
+  { glyph: '🚬', icon: 'delapouite/cigar',        color: 'brown'  },  // Bogart
+  { glyph: '🧗', icon: 'delapouite/stairs-goal',  color: 'gold'   },  // Corporate Ladder
+  { glyph: '🎭', icon: 'lorc/duality-mask',       color: 'violet' },  // Identity Crisis
+  { glyph: '🗂️', icon: 'delapouite/organigram',   color: 'cyan'   },  // Org Chart
   { glyph: '🖐️', icon: 'open-palm',         color: 'cream'  },  // Free Hand
   { glyph: '✌️', icon: 'high-five',         color: 'cream'  },  // Double Down
   // Reward tiles (js/reward-grid.js)

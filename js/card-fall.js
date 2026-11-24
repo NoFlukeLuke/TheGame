@@ -186,7 +186,7 @@ function renderCardAppearance(card, r, c, {
 
   const innerHTML = `
     ${curseDef ? `<div class="curse-badge" title="${curseDef.name}: ${curseDef.desc}">${curseDef.icon}<span class="curse-left">${curse.left}</span></div>` : ''}
-    ${(typeof cardIsFodder === 'function' && cardIsFodder(card)) ? `<div class="fodder-badge" title="Fodder: swap or discard it free${card._fodderTemp && !permFodder[cardId(card)] ? ' (until it leaves the board)' : ''}">♻</div>` : ''}
+    ${(typeof cardIsFodder === 'function' && cardIsFodder(card)) ? `<div class="fodder-badge" title="Fodder: swap or discard it, or a card beside it, free${card._fodderTemp && !permFodder[cardId(card)] ? ' (until it leaves the board)' : ''}">♻</div>` : ''}
     ${combinedLabel}${_coin}${_pxf}${_pxa}
     ${isWild
         // The Fog hides RANKS, and a wild has none to hide - so it is drawn in
@@ -315,6 +315,7 @@ function _fallTail() {
   if (typeof freshStartDrain === 'function') freshStartDrain();
   if (typeof crAfterFall === 'function') crAfterFall();   // falls / hits on fall-type challenge cards
   if (typeof crDrain === 'function') crDrain();   // a solved challenge card leaves, the next arrives
+  if (typeof fallSleightDrain === 'function') fallSleightDrain();   // r841: a fall Sleight on the bottom row leaves
   if (queued === 'play') { dbgEvent('info', 'executing queued play'); playHand(); }
   else if (queued === 'discard') { dbgEvent('info', 'executing queued discard'); runQueuedDiscard(); }
   else if (discardCarryArm) { discardCarryArm = false; if (selected.length) scheduleAutoSubmit(); }
@@ -432,7 +433,12 @@ async function removeAndFall(removingCells, mode = 'play') {
   const visibleLeaving = leaving.filter(el => { const o = el.style.opacity; if (o !== '' && +o === 0) { el.remove(); return false; } return true; });
   let leaveMs = 0;
   if (visibleLeaving.length) {
-    if (mode === 'anvil' && typeof anvilExit === 'function') {
+    if (mode === 'dragout') {
+      // r841 (js/fall-sleights.js): a fall Sleight slides straight on out of the bottom.
+      visibleLeaving.forEach(el => { el.style.transition = 'none'; el.style.zIndex = '20'; const h = el.offsetHeight || 80;
+        el.animate([{ translate: '0 0' }, { translate: `0 ${h * 1.8}px` }], { duration: 260, easing: 'linear', fill: 'forwards' }); setTimeout(() => el.remove(), 280); });
+      leaveMs = 100;
+    } else if (mode === 'anvil' && typeof anvilExit === 'function') {
       // r722 (js/anvil.js): the crushed card is pressed flat, a leaving anvil drops out the bottom.
       visibleLeaving.forEach(el => { el.style.transition = 'none'; const ms = anvilExit(el); setTimeout(() => el.remove(), ms); });
       leaveMs = 180;
@@ -521,6 +527,7 @@ async function removeAndFall(removingCells, mode = 'play') {
   // picked before this fall may move to another cell, and a cell may be left empty.
   const _selCards = selected.map(([r,c]) => gridData[r]?.[c] || null);
   const _swapCard = swapPending ? (gridData[swapPending[0]]?.[swapPending[1]] || null) : null;
+  const _fsSnap = (typeof fallSleightSnap === 'function') ? fallSleightSnap() : null;   // r841: where the fall Sleights are before the write
   // Update gridData NOW so selection during the fall is accurate
   removingCells.forEach(([r,c]) => { gridData[r][c] = null; });
   for (let col = 0; col < gridCols; col++) {
@@ -539,6 +546,8 @@ async function removeAndFall(removingCells, mode = 'play') {
 
   // Deck dry and the board thin: the Reshuffle card drops into a hole the deck could not fill.
   if (mode !== 'match3' && typeof reshuffleMaybeDeal === 'function') { const _rs = reshuffleMaybeDeal(); if (_rs) newCards.push(_rs); }
+
+  if (_fsSnap && typeof fallSleightAfter === 'function') fallSleightAfter(_fsSnap);   // r841: Bogart, Corporate Ladder act on what they passed
 
   // Settle challenge card into the first empty cell of its column (data is now final)
   if (challengeCard) {
