@@ -5992,3 +5992,19 @@ Trick, a Knack and a shop sell tile each rang once, flew one copy and left none 
 
 ## r831-r832 numbering
 Two sessions shipped r831 and r832 in parallel: the upgrade wording, card marks and numbers (with its r832 baseline) and main's Head Count / selling changes. The merge that joined them is r833.
+
+## r834 - Straight Shot rare; square boxes; LED scoring numbers on a desktop; Free Hand 20s (owner)
+- **Straight Shot** (`shape_line`) is rare (was epic). **Free Hand** lasts 20s (`BAL.free_hand.seconds`,
+  was 10; its improvement step is still +10s).
+- **Console boxes are plain squares** (js/corners.js): `CORNERS.notch` 0 and no `corner-shape`, so
+  r820's 3px notch is gone and every rounded corner in console mode is a square corner. The flat
+  look outside console mode keeps its 4px rounding; circles, pills and cards are untouched.
+- **Scoring numbers are LED on a desktop** (js/led-matrix.js): SCORE, GOAL, PIPS, MULT and FOCUS
+  (`score: 1` rows of `LED_TARGETS`) are drawn as lit squares whenever `#stage.landscape`, whatever
+  the LED matrix switch says (`ledWants(t)`); the switch still adds the cards, clock, level and
+  credits, and a phone is unchanged with it off. `ledScan` runs always and drops a readout that is
+  no longer wanted (`ledDrop`), so turning the device swaps it within 700ms. The `.led-host` /
+  `.led-c` / `.led-parent` CSS no longer needs `html.led-on`.
+Measured in a served headless Chromium at 1440x820 and 420x900: #grid, PLAY, the score screen and
+the Tricks tray read a 0px corner with no corner-shape; the five scoring readouts carried a canvas
+on desktop and none on the phone; golden 838 match; no page errors.

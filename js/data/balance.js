@@ -262,7 +262,7 @@ const BAL = {
   challenge_dial: { pct: 25 },   // r556: how far the dial turns the challenge chance, either way
   reserve: { open: 10, more: 5, cards: 3, buff_chance: 0.75 },   // r569: the Focus bar's double-tap (js/reserve.js)
   // r571: the Focus knacks (js/focus-knacks.js)
-  free_hand:    { focus: 10, seconds: 10 },
+  free_hand:    { focus: 10, seconds: 20 },
   charged_card: { focus: 10 },
   shuffle_up:   { focus: 10 },
   double_down:  { focus: 10, hands: 3 },

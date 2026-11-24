@@ -43,7 +43,7 @@ const KNACK_POOL = [
   // r556 (owner): a dial you turn by double-tapping the chip. challengeDial (js/challenge-round.js) holds its direction.
   { id:'challenge_dial',  emoji:'🎚️',  name:'Juggernaut',   rarity:'rare',   desc:'Challenge cards show up 25% more often. Double-tap this to make them 25% rarer instead, and back.', tags:['luck','other','challenge'] },
   // ── Focus knacks (r571): what a double-tap on the Focus bar does. One at a time (js/focus-knacks.js). ──
-  { id:'free_hand',       emoji:'🖐️',  name:'Free Hand',        rarity:'rare',   desc:'Double-tap the Focus bar: spend 10 Focus and swaps and discards cost no time and no stock for 10 seconds. Replaces the Reserve.', tags:['stock','other','swap','discard','cost'] },
+  { id:'free_hand',       emoji:'🖐️',  name:'Free Hand',        rarity:'rare',   desc:'Double-tap the Focus bar: spend 10 Focus and swaps and discards cost no time and no stock for 20 seconds. Replaces the Reserve.', tags:['stock','other','swap','discard','cost'] },
   { id:'charged_card',    emoji:'🔋',  name:'Morning Brew',     rarity:'rare',   desc:'Double-tap the Focus bar: spend 10 Focus and the first card of your next hand takes a random buff. Replaces the Reserve.', tags:['deck','other','scaling','chance','cost'] },
   { id:'shuffle_up',      emoji:'🔀',  name:'Shuffle Up',       rarity:'common', desc:'Double-tap the Focus bar: spend 10 Focus and every card on the board changes place. Replaces the Reserve.', tags:['board','other','cost'] },
   { id:'double_down',     emoji:'✌️',  name:'Double Down',      rarity:'epic',   desc:'Double-tap the Focus bar: spend 10 Focus and Focus applies twice for your next 3 hands. Replaces the Reserve.', tags:['focus','other','cost','scores'] },

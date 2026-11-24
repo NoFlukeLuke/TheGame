@@ -106,7 +106,7 @@ const TRICK_POOL = [
   { id:'rowcol_perm_double', name:'Matrix Management',        tier:'epic',      tags:['deck','mult','card','position','scaling','scores'], desc:'Cards scored at the intersection of a row effect and a column effect permanently gain +6 mult' },
   { id:'shape_square',   name:'Hands of Blue',       tier:'rare',      tags:['mult','focus','hand','position','scores'], desc:'A 2×2 shaped hand scores +24 mult and adds +16 Focus' },
   { id:'shape_cross',    name:'Crossroads',          tier:'rare',      tags:['mult','focus','hand','position','size','scores'], desc:'A 5 card + shaped hand adds +25 Focus and +25 mult' },
-  { id:'shape_line',     name:'Straight Shot',       tier:'epic',      tags:['mult','hand','position','size','scores'], desc:"5-card hands played in a straight line add every card's pip value (including buffs) to mult" },
+  { id:'shape_line',     name:'Straight Shot',       tier:'rare',      tags:['mult','hand','position','size','scores'], desc:"5-card hands played in a straight line add every card's pip value (including buffs) to mult" },
   { id:'corner_retrigger', name:'Cornered',          tier:'rare',      tags:['xpips','card','position','clock','scores'], desc:'Corner cards score ×pips equal to the whole minutes left on the clock' },
   { id:'two_corners',    name:'Ornery',              tier:'epic',      tags:['xmult','card','position','scores'], desc:'Corner cards score ×1.75 mult' },
   { id:'edge_pips',      name:'On the Edge',         tier:'common',    tags:['pips','card','position','scores'], desc:'Cards scored on an edge score +15 pips' },

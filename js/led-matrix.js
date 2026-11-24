@@ -11,15 +11,15 @@
 // The canvas is the readout's SIBLING, never its child: a child would be counted in the
 // readout's scrollWidth, and the HUD's fitters (chipValFit) shrank the text to nothing.
 // The rolling SCORE (js/score-rise.js) is read from its roll while it owns the box.
-// Store `lethe.ledMatrix.v1` holds 'on' only.
+// Store `lethe.ledMatrix.v1` holds 'on' only. r834: the scoring numbers are LED on a desktop whatever the switch says.
 const LED_KEY = 'lethe.ledMatrix.v1';
 let ledMatrixOn = (() => { try { return localStorage.getItem(LED_KEY) === 'on'; } catch (e) { return false; } })();
 function ledOn() { return ledMatrixOn; }
 // The readouts it draws. `ink` is the colour when the host's own is transparent
 // (console mode hides the clock's text under its flip clock).
 const LED_TARGETS = [
-  { sel: '#score-total-num' }, { sel: '#goal-display' },
-  { sel: '#pips-val' }, { sel: '#mult-val' }, { sel: '#focus-val' },
+  { sel: '#score-total-num', score: 1 }, { sel: '#goal-display', score: 1 },
+  { sel: '#pips-val', score: 1 }, { sel: '#mult-val', score: 1 }, { sel: '#focus-val', score: 1 },
   { sel: '#clock', ink: '#ffb02e' },
   { sel: '.rp-act' }, { sel: '.rp-lv' }, { sel: '.rp-lnum' }, { sel: '#level-display' },
   { sel: '.ci-main' },
@@ -28,6 +28,12 @@ const LED_CFG = { ink: .72, gap: 1, minP: 2, glow: .9 };   // ink: the glyph's 7
 const _led = new Map();      // host -> state
 let _ledRaf = 0;
 
+// r834 (owner): on a desktop (landscape) the scoring numbers (score, goal, PIPS / MULT / FOCUS)
+// are always drawn this way; the switch adds the cards, the clock, the level and the credits.
+function ledLandscape() { const s = document.getElementById('stage'); return !!(s && s.classList.contains('landscape')); }
+function ledWants(t) { return ledMatrixOn || (!!t.score && ledLandscape()); }
+function ledDrop(el) { const st = _led.get(el); if (!st) return; st.mo && st.mo.disconnect(); st.c.remove(); el.classList.remove('led-host'); _led.delete(el); }
+
 function setLedMatrix(on) {
   ledMatrixOn = !!on;
   try { ledMatrixOn ? localStorage.setItem(LED_KEY, 'on') : localStorage.removeItem(LED_KEY); } catch (e) {}
@@ -35,18 +41,14 @@ function setLedMatrix(on) {
 }
 function ledApply() {
   document.documentElement.classList.toggle('led-on', ledMatrixOn);
-  if (!ledMatrixOn) {
-    _led.forEach((st, el) => { st.mo && st.mo.disconnect(); st.c.remove(); el.classList.remove('led-host'); });
-    document.querySelectorAll('.led-parent').forEach(p => p.classList.remove('led-parent'));
-    _led.clear();
-  } else ledScan();
+  ledScan();
   if (typeof pxArtApply === 'function') pxArtApply();   // the card background class, and a re-render so the cards take or lose their faces
 }
 
 // Find the hosts (screens come and go: the corner block, the phone's top bar).
 function ledScan() {
-  if (!ledMatrixOn) return;
   LED_TARGETS.forEach(t => document.querySelectorAll(t.sel).forEach(el => {
+    if (!ledWants(t)) { ledDrop(el); return; }
     if (_led.has(el)) { ledMount(_led.get(el)); return; }
     const c = document.createElement('canvas'); c.className = 'led-c'; c.setAttribute('aria-hidden', 'true');
     el.classList.add('led-host');
@@ -147,5 +149,5 @@ function ledDraw(st) {
 }
 
 window.addEventListener('resize', () => { _led.forEach(st => st.sig = ''); ledQueue(); });
-setInterval(() => { if (ledMatrixOn) ledScan(); }, 700);
+setInterval(ledScan, 700);
 if (document.body) ledApply(); else document.addEventListener('DOMContentLoaded', ledApply);

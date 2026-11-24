@@ -14,7 +14,8 @@
 // corners (the stock's steps, r639 / r762), and the dev panel is left alone.
 // A new rounded corner needs nothing: it is picked up from its stylesheet. A corner
 // set from JS (an inline style) is not.
-const CORNERS = { notch: 3, round: 4 };
+// r834 (owner): console corners are plain squares (notch 0, no corner-shape); r820's 3px notch is gone.
+const CORNERS = { notch: 0, round: 4 };
 
 function _cornerKind(v) {
   v = (v || '').trim();
@@ -72,7 +73,7 @@ function _cornerRule(rule) {
   if (kinds.every(k => k === 'zero')) return null;
   if (kinds.includes('inherit')) {
     // a layer that takes its box's corners (a screen's glass dome): the shape follows too
-    return { con: `corner-shape: inherit !important;`, flat: '' };
+    return null;   // r834: square boxes, nothing to inherit
   }
   let con = '', flat = '';
   _CORNER_PROPS.forEach((p, i) => {
@@ -81,7 +82,7 @@ function _cornerRule(rule) {
     con += `${p}: ${Math.min(px, CORNERS.notch)}px !important;`;
     flat += `${p}: ${Math.min(px, CORNERS.round)}px !important;`;
   });
-  return { con: con + 'corner-shape: notch !important;', flat };
+  return { con, flat };
 }
 
 function _cornerWalk(rules, out, wrap) {

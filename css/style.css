@@ -771,7 +771,7 @@
      are standing in for it is hidden, and the LED matrix's canvas beside it too. */
   #score-subboxes > .pmf-dots { position: absolute; left: 0; top: 0; width: 100%; height: 100%; z-index: 8; pointer-events: none; image-rendering: pixelated; }
   #score-subboxes .subbox-val.pmf-dots-hide { visibility: hidden !important; }
-  html.led-on #score-subboxes .subbox-val.pmf-dots-hide + .led-c { visibility: hidden !important; }
+  #score-subboxes .subbox-val.pmf-dots-hide + .led-c { visibility: hidden !important; }
   /* r708: Focus copies, one per extra application, staggered behind the figure (js/pmf-merge.js). */
   #focus-box.pmf-fc-host { position: relative; }
   #focus-box .subbox-val.pmf-fcopy-front { position: relative; z-index: 2; }

@@ -1,4 +1,4 @@
-const BUILD = "2026-11-24 · r833 · merge Head Count and the till";
+const BUILD = "2026-11-24 · r834 · Straight Shot rare; square boxes; LED scoring numbers on desktop; Free Hand 20s";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
