@@ -122,7 +122,7 @@ function riseHandBack(shown) {
   const held = typeof shown === 'number';
   if (typeof dncShowScore !== 'undefined') dncShowScore = held ? shown : null;
   const el = riseEl();
-  if (el) { el.classList.remove('odo'); const s = (held ? shown : score).toLocaleString(); el.textContent = s; el.dataset.displayVal = s; }
+  if (el) { el.classList.remove('odo'); const s = scoreTxt(held ? shown : score); el.textContent = s; el.dataset.displayVal = s; }
   if (typeof updateScoreUI === 'function') updateScoreUI();
 }
 
@@ -189,6 +189,9 @@ function riseBuild(el, target) {
   el.innerHTML = html;
 }
 function riseDraw(el) {
+  // r839: from a trillion the box reads the short form (scoreTxt), so there are no wheels:
+  // the text climbs as the roll runs.
+  if (rise.target >= SCORE_SHORT_FROM) { el.classList.remove('odo'); el.textContent = scoreTxt(Math.max(0, rise.cur)); return; }
   if (!el.classList.contains('odo')) el.classList.add('odo');
   if (String(Math.floor(rise.target)).length !== rise.n) riseBuild(el, rise.target);
   const v = Math.max(0, rise.cur);

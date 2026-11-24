@@ -6081,3 +6081,11 @@ Measured in a served headless Chromium at 1440x820 and 420x900: Logistics double
 PLAY (falling, tallying) and again mid-tally printed no refusal and made 2 swaps (charges 12 -> 10);
 a Relay at 1e16 a hand showed SCORE inside its screen, MULT 1E15, the three sections with no text
 over them, and ended on the third hand into the reward pick. Golden: 838 match. No page errors.
+
+## r839 - scores past a trillion (owner's bug)
+`scoreTxt(n)` (js/labels.js) is the one way SCORE and GOAL print a number: every digit with
+separators under `SCORE_SHORT_FROM` (1e12), fmtBig's short form from there (1t, 640t, 6.4e20), the
+form PIPS / MULT and the fused chip already used. `scoreTxtParse` reads any of them back
+(`_scoreDisplayed`). The odometer (js/score-rise.js) writes plain text past 1e12 instead of
+wheels. The dance's reconcile writes PIPS / MULT through fmtBig (it wrote raw digits, which the LED
+copy crushed into a line that read as a minus sign). A new SCORE or GOAL write uses `scoreTxt`.

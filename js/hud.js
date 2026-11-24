@@ -87,7 +87,7 @@ function updateScoreUI() {
   if (!between && !riseOwns) animateDigitEl(document.getElementById('score-total-num'), shownScore);
   const scoreDisplayEl = document.getElementById('score-total-num');
   if (scoreDisplayEl && scoreDisplayEl.style.visibility !== 'hidden' && !riseOwns) {
-    scoreDisplayEl.textContent = shownScore.toLocaleString();
+    scoreDisplayEl.textContent = scoreTxt(shownScore);
   }
   const _rq = (typeof roundQuota !== 'undefined') ? roundQuota : null;
   const pct = (_rq && typeof roundQuotaFrac === 'function') ? roundQuotaFrac() : Math.min(live / Math.max(1, roundGoal), 1);
@@ -98,12 +98,12 @@ function updateScoreUI() {
   if (_q && _q.kind === 'relay') {
     const _n = _q.bars.length, _i = Math.min(_q.idx, _n - 1);
     if (goalLabel) goalLabel.textContent = `${goalWord} ${Math.min(_q.idx + 1, _n)}/${_n}`;
-    document.getElementById('goal-display').textContent = _q.idx >= _n ? 'DONE' : `${_q.prog.toLocaleString()}/${_q.bars[_i].toLocaleString()}`;
+    document.getElementById('goal-display').textContent = _q.idx >= _n ? 'DONE' : `${scoreTxt(_q.prog)}/${scoreTxt(_q.bars[_i])}`;
   } else if (_q && _q.kind === 'lines') {
     if (goalLabel) goalLabel.textContent = 'LINES';
     if (typeof roundQuotaPaintHud === 'function') roundQuotaPaintHud();   // count + per-line meters
   } else {
-    document.getElementById('goal-display').textContent = roundGoal.toLocaleString();
+    document.getElementById('goal-display').textContent = scoreTxt(roundGoal);
   }
   document.getElementById('level-display').textContent = level;
   updateCoinsUI();

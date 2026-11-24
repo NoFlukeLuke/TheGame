@@ -115,6 +115,21 @@ function fmtBig(n, small) {
   return (n < 0 ? '-' : '') + s + u[1];
 }
 
+// r839 (owner: past a trillion SCORE and GOAL broke): the one way SCORE and GOAL print a
+// number. Under a trillion every digit with separators (as before); from a trillion up
+// fmtBig's short form (1.2t, 640t, then 6.4e20), the same form PIPS / MULT / the fused
+// chip show, so a hand's number does not change shape when it lands in SCORE.
+const SCORE_SHORT_FROM = 1e12;
+function scoreTxt(n) { n = +n || 0; return Math.abs(n) >= SCORE_SHORT_FROM ? fmtBig(n) : Math.round(n).toLocaleString(); }
+// Read a number back from any of those forms ('12,345', '640t', '6.4e20').
+function scoreTxtParse(s) {
+  s = String(s || '').replace(/[^0-9.eEkmbt-]/g, '').toLowerCase();
+  const m = s.match(/^(-?[0-9.]+)(?:e(-?\d+)|([kmbt]))?$/); if (!m) return 0;
+  const v = parseFloat(m[1]); if (isNaN(v)) return 0;
+  if (m[2] != null) return v * Math.pow(10, +m[2]);
+  return v * ({ k: 1e3, m: 1e6, b: 1e9, t: 1e12 }[m[3]] || 1);
+}
+
 // r721: the inside of a screen's skip key (css/screen-skip.css): pixel triangles drawn as
 // rects (a ▶ glyph turns into an emoji on a phone), a bar after them for a skip.
 function skipKeyHTML(label, bar) {

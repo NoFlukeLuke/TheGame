@@ -4,7 +4,7 @@ function animateDigitEl(el, value) {
   if (!el) return;
   // r806 (owner): the PIPS / MULT / FOCUS boxes read letters from 100,000 up (fmtBig).
   const _abbr = el.id === 'pips-val' || el.id === 'mult-val' || el.id === 'focus-val';
-  const str = typeof value === 'number' ? (_abbr ? fmtBig(value, v => v.toLocaleString()) : value.toLocaleString()) : String(value);
+  const str = typeof value === 'number' ? (_abbr ? fmtBig(value, v => v.toLocaleString()) : el.id === 'score-total-num' ? scoreTxt(value) : value.toLocaleString()) : String(value);
   if (el.textContent === str) return;
   if (SCROLL_DIGIT_IDS.has(el.id)) {
     scrollDigitEl(el, str);

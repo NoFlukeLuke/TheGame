@@ -153,7 +153,7 @@ function bossApproachWipe(fromScore) {
       const p = Math.min(1, (performance.now() - t0) / cfg.wipeMs);
       // Ease-out so the number dives immediately and settles on zero.
       const e = 1 - Math.pow(1 - p, 3);
-      if (num) num.textContent = Math.round(from * (1 - e)).toLocaleString();
+      if (num) num.textContent = scoreTxt(from * (1 - e));
       if (bar) bar.style.width = Math.round((1 - e) * 100) + '%';
       if (p < 1) requestAnimationFrame(step);
       else {
