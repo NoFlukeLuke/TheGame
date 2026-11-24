@@ -1,4 +1,4 @@
-const BUILD = "2026-11-23 · r824 · shop jazz; every track plays through a small speaker";
+const BUILD = "2026-11-24 · r825 · the music warbles and ticks at the level's end";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

@@ -145,23 +145,37 @@ function musicSpeakerChain(ctx, input, output) {
 }
 
 // Route the element into the graph (once), then wire speaker or bypass.
+// r825: the warble (a modulated delay, below) sits first, always in the path once
+// routed. The ticks join at the volume, AFTER the speaker: its compressor pressed
+// them under the music (measured 0 to 3 dB over it in their own band). They are
+// already a small speaker's sound (2 to 3 kHz). Routed when the speaker OR the
+// level's end is wanted.
+//   element -> warble delay -> (speaker chain | bypass) -> volume
+//   ticks ----------------------------------------------------^
 function musicSpeakerApply() {
   if (!_musicEl) return;
   if (!_spk) {
-    if (!musicSpeakerOn()) return;   // never routed until the speaker is wanted
+    if (!musicSpeakerOn() && musicEdgeMode() === 'off') return;   // never routed until wanted
     let ctx; try { ctx = getAudioCtx(); } catch (e) { return; }
     if (!ctx || !ctx.createMediaElementSource) return;
     try {
       const src = ctx.createMediaElementSource(_musicEl);
       const vol = ctx.createGain(); vol.connect(ctx.destination);
-      _spk = { ctx, src, vol, chain: null, wired: null };
+      const wob = musicWarbleBuild(ctx);
+      src.connect(wob.delay);
+      const ticks = ctx.createGain(); ticks.gain.value = 1;
+      _spk = { ctx, src, vol, wob, ticks, chain: null, wired: null };
     } catch (e) { console.warn('[music] speaker unavailable', e); return; }
   }
   const want = musicSpeakerOn() ? 'on' : 'off';
   if (_spk.wired === want) { applyMusicVolume(); return; }
-  try { _spk.src.disconnect(); } catch (e) {}
-  if (want === 'on') { if (!_spk.chain) _spk.chain = musicSpeakerChain(_spk.ctx, _spk.src, _spk.vol); else _spk.src.connect(_spk.chain.first); }
-  else _spk.src.connect(_spk.vol);
+  try { _spk.wob.delay.disconnect(); } catch (e) {}
+  try { _spk.ticks.disconnect(); } catch (e) {}
+  if (want === 'on') {
+    if (!_spk.chain) _spk.chain = musicSpeakerChain(_spk.ctx, _spk.wob.delay, _spk.vol);
+    else _spk.wob.delay.connect(_spk.chain.first);
+  } else _spk.wob.delay.connect(_spk.vol);
+  _spk.ticks.connect(_spk.vol);
   _spk.wired = want;
   applyMusicVolume();
 }
@@ -473,3 +487,114 @@ function musicClockTick() {
 // Always on: it is one comparison a quarter second, and it must also see a
 // setting change (off -> 1x) and a run ending with no track loaded yet.
 setInterval(musicClockTick, MUSIC_CLOCK_TICK);
+
+// ── THE LEVEL'S END: TAPE WARBLE AND TICKS (r825, owner) ─────────────────────
+// Near the end of a level the music starts to go wrong. From MUSIC_EDGE.warbleFrom
+// seconds left the track WARBLES like a worn tape: the element's sound runs through
+// a short delay whose length two slow, uneven sine waves (wow) and one fast one
+// (flutter) push back and forth, which bends the pitch up and down. It deepens to
+// full at 0:00 (`w` = (1 - left / warbleFrom) ^ curve). From tickFrom seconds a
+// clock TICKS under it, tick then tock, once a second, twice a second from fastFrom,
+// louder as the clock runs down. The ticks are built in the music's own graph and
+// join it at its volume, so they follow the music volume and stop with it.
+// Same clock and same rules as the clock ramp above: a held clock (shop, event,
+// pause menu) holds the warble where it is and stops the ticks; a finished level
+// lets the warble go (Flow holds it through its level-ups, as the rate); the menu
+// and the shop are clean. Settings -> Audio -> Music at the level's end
+// (musicEdge: 'both' / 'warble' / 'off'). Pitch swing at full warble: about 1.2%
+// from the wow (2 pi f x depth) plus 1% from the second wow, ~40 cents at the peak.
+const MUSIC_EDGE = {
+  warbleFrom: 45, curve: 1.3, tickFrom: 30, fastFrom: 10,
+  baseMs: 15, wowHz: 0.55, wowMs: 3.5, wow2Hz: 0.83, wow2Ms: 2, flutHz: 6.5, flutMs: 0.08,
+  tickVol: 0.32, tickVolEnd: 0.6, lookahead: 0.6,
+};
+let _edgeW = 0, _edgeNext = 0, _edgeN = 0, _edgeTicking = false, _edgeNoise = null;
+
+function musicEdgeMode() {
+  const m = (typeof SETTINGS !== 'undefined') ? SETTINGS.musicEdge : 'both';
+  return (m === 'off' || m === 'warble') ? m : 'both';
+}
+function musicEdgeSet(cfg) { Object.assign(MUSIC_EDGE, cfg || {}); }
+
+function musicWarbleBuild(ctx) {
+  const c = MUSIC_EDGE;
+  const delay = ctx.createDelay(0.1); delay.delayTime.value = c.baseMs / 1000;
+  const lfo = (hz, ms) => {
+    const o = ctx.createOscillator(); o.frequency.value = hz;
+    const g = ctx.createGain(); g.gain.value = 0;
+    o.connect(g); g.connect(delay.delayTime); o.start();
+    return { o, g, ms };
+  };
+  return { delay, lfos: [lfo(c.wowHz, c.wowMs), lfo(c.wow2Hz, c.wow2Ms), lfo(c.flutHz, c.flutMs)] };
+}
+
+// Seconds left on a live level clock, 'hold' while it is held or between Flow's
+// levels, null when there is no level end to play (menu, shop, a finished level).
+function musicEdgeLeft() {
+  if (_musicScene !== 'game') return null;
+  if (typeof roundSeconds !== 'number' || typeof roundStartSeconds !== 'number' || !(roundStartSeconds > 0)) return null;
+  if (typeof runIsOver === 'function' && runIsOver()) return null;
+  const over = (typeof roundEnded !== 'undefined' && roundEnded) || (typeof roundInterval !== 'undefined' && !roundInterval);
+  if (over) return ((typeof survivalActive === 'function') && survivalActive()) ? 'hold' : null;
+  if ((typeof gameTimerPaused !== 'undefined' && gameTimerPaused) || (typeof pipeTimerPaused !== 'undefined' && pipeTimerPaused)) return 'hold';
+  // A clock that never ends the level (untimed Stacked, a custom 'no limit') has no end
+  // to play; Flow's quarter clock does (the review comes at 0:00), and so does a boss window.
+  const flow = (typeof flowActive === 'function') && flowActive();
+  const boss = (typeof bossActive !== 'undefined') && bossActive;
+  if (!flow && !boss && typeof modeHasNoRoundClock === 'function' && modeHasNoRoundClock()) return null;
+  return Math.max(0, roundSeconds);
+}
+
+function musicEdgeNoise(ctx) {
+  if (_edgeNoise && _edgeNoise.sampleRate === ctx.sampleRate) return _edgeNoise;
+  const n = Math.floor(ctx.sampleRate * 0.03), b = ctx.createBuffer(1, n, ctx.sampleRate), d = b.getChannelData(0);
+  for (let i = 0; i < n; i++) d[i] = (((typeof fxRandom === "function") ? fxRandom() : Math.random()) * 2 - 1) * Math.pow(1 - i / n, 3);
+  return (_edgeNoise = b);
+}
+
+// One tick (k even) or tock (odd) at audio time t, level v; into `out`.
+function musicEdgeTickAt(ctx, out, t, k, v) {
+  const tock = k % 2 === 1;
+  const src = ctx.createBufferSource(); src.buffer = musicEdgeNoise(ctx);
+  const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = tock ? 2100 : 3200; bp.Q.value = 2.5;
+  const g = ctx.createGain(); g.gain.value = v * 3;
+  src.connect(bp); bp.connect(g); g.connect(out); src.start(t); src.stop(t + 0.04);
+  // A small wooden body under the click.
+  const o = ctx.createOscillator(); o.type = 'triangle'; o.frequency.value = tock ? 820 : 1150;
+  const og = ctx.createGain(); og.gain.setValueAtTime(0, t);
+  og.gain.linearRampToValueAtTime(v * 0.9, t + 0.002); og.gain.exponentialRampToValueAtTime(0.0001, t + 0.045);
+  o.connect(og); og.connect(out); o.start(t); o.stop(t + 0.06);
+}
+
+function musicEdgeTick() {
+  if (!_spk || !_spk.wob) return;
+  const ctx = _spk.ctx, now = ctx.currentTime, c = MUSIC_EDGE, mode = musicEdgeMode();
+  const left = musicEdgeLeft();
+  // Warble depth.
+  let w = _edgeW;
+  if (mode === 'off' || left === null) w = 0;
+  else if (left !== 'hold') w = Math.pow(Math.max(0, Math.min(1, 1 - left / c.warbleFrom)), c.curve);
+  if (Math.abs(w - _edgeW) > 0.001 || (w === 0 && _edgeW !== 0)) {
+    _edgeW = w;
+    for (const l of _spk.wob.lfos) l.g.gain.setTargetAtTime(w * l.ms / 1000, now, 0.25);
+  }
+  // Ticks.
+  const tick = mode === 'both' && typeof left === 'number' && left <= c.tickFrom && left > 0 &&
+               musicIsPlaying() && ctx.state === 'running';
+  if (!tick) {
+    if (_edgeTicking) { _edgeTicking = false; _spk.ticks.gain.setTargetAtTime(0, now, 0.01); }
+    return;
+  }
+  if (!_edgeTicking) {
+    _edgeTicking = true; _edgeNext = now + 0.05; _edgeN = 0;
+    _spk.ticks.gain.cancelScheduledValues(now); _spk.ticks.gain.setValueAtTime(1, now);
+  }
+  const period = left <= c.fastFrom ? 0.5 : 1;
+  const v = c.tickVol + (c.tickVolEnd - c.tickVol) * (1 - left / c.tickFrom);
+  if (_edgeNext < now) _edgeNext = now + 0.02;
+  while (_edgeNext < now + c.lookahead) {
+    musicEdgeTickAt(ctx, _spk.ticks, _edgeNext, _edgeN++, v);
+    _edgeNext += period;
+  }
+}
+setInterval(musicEdgeTick, MUSIC_CLOCK_TICK);

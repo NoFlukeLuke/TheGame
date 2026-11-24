@@ -5888,3 +5888,22 @@ protocols entry, comments. The r750 note's "no unlock Knack yet" for Hyperfocus 
   chain); opening the shop played Dispersion Relation at 1x; closing it went back to Your Call at the
   second it left; the setting switched the chain off and on with the track playing; no page errors.
 
+
+## r825 - the music warbles and ticks at the level's end (owner)
+js/music.js, `MUSIC_EDGE`. From `warbleFrom` (45) seconds left the track WARBLES like a worn tape:
+the element's sound runs through a short delay (`musicWarbleBuild`: 15ms) whose length two slow
+sine waves (wow, 0.55 and 0.83 Hz, 3.5 and 2 ms) and a fast one (flutter, 6.5 Hz, 0.08 ms) push
+back and forth, scaled by w = (1 - left / 45) ^ 1.3 (about 40 cents of swing at 0:00). From
+`tickFrom` (30) a clock TICKS, tick then tock, once a second, twice a second from `fastFrom` (10),
+`tickVol` 0.32 rising to 0.6 (`musicEdgeTickAt`, synthesised: bandpassed noise over a small
+triangle body, scheduled 0.6s ahead on the audio clock). The ticks join at the music's volume
+gain, AFTER the speaker: through its compressor they sat 0 to 3 dB over the music in their own
+band. `musicEdgeLeft()` is the one rule: a held clock holds the warble and stops the ticks; a
+finished level lets go (Flow holds, as the rate does); menu, shop and an untimed clock get none;
+Flow's quarter clock and a boss window count. The element is routed into Web Audio when the
+speaker OR this is wanted (`musicSpeakerApply`). Ticks play only while the music plays.
+Settings -> Audio -> Music at the level's end (`musicEdge`: both / warble / off; default both).
+`musicEdgeSet({...})` tunes it from the console. Measured in Chromium at 1440x820 (Classic) and
+420x900 (Flow): 40s left w .11, 25s w .42 with ticks 1s apart, 8s w .83 ticks 0.5s apart, held
+clock froze it and stopped ticks, shop clean, Warble-only and Off, speaker off still warbles and
+ticks; no page errors. An offline render of a level's last 45s peaked at 0.71.
