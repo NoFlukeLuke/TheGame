@@ -179,8 +179,10 @@ function cardBuffLines(k, card) {
 // nothing to read - a card cannot grant Focus when it scores today. Adding one is
 // a row in this table plus the store and the site that pays it.
 const CARD_BAND_FAMILIES = [
-  { id: 'pips',   corner: 'tl', per: 5, color: '#3a6fca', lite: '#a9c8f7', dark: '#16305c', of: (k, card) => permPips[k] || 0 },
-  { id: 'mult',   corner: 'tr', per: 5, color: '#c0392b', lite: '#f2ada4', dark: '#5c1a13', of: (k, card) => permMult[k] || 0 },
+  // r831 (owner): pips and mult show a band per 10, rounded down (29 is two, 30 three), and the
+  // whole corner in the colour at `solidAt` (50) and up.
+  { id: 'pips',   corner: 'tl', per: 10, solidAt: 50, color: '#3a6fca', lite: '#a9c8f7', dark: '#16305c', of: (k, card) => permPips[k] || 0 },
+  { id: 'mult',   corner: 'tr', per: 10, solidAt: 50, color: '#c0392b', lite: '#f2ada4', dark: '#5c1a13', of: (k, card) => permMult[k] || 0 },
   // Seconds, one corner, two marks (r551, owner: the card must say which kind).
   // REWIND (permTime: Card Market, Time Buff, Temporal Rift) keeps r299's black:
   // the payout vocabulary makes time WHITE (PARTICLE_CFG.colors.time) and r296
@@ -289,8 +291,9 @@ const CARD_BAND_PLUS_SIZE = CARD_BAND_PLUS_HALF / CARD_BAND_PLUS_REACH / 100;  /
 // for the +4 pips The Bench hands out, which reads as the buff not having landed,
 // and a part-band drawn thin enough to mean "and a bit" comes out sub-pixel at
 // the sizes this is drawn at. So any buff at all is at least one band.
+// r831 (owner): ROUNDED DOWN now (29 pips is two bands, 30 three), still at least one.
 function cardBandCount(v, per) {
-  return v > 0 ? Math.max(1, Math.round(v / per)) : 0;
+  return v > 0 ? Math.max(1, Math.floor(v / per + 1e-9)) : 0;
 }
 
 // A BAND IS ONE FLAT COLOUR (r302, owner's call - the lighter centre line is
@@ -350,14 +353,20 @@ function cardBandsHTML(card, inkOf) {
   if (!card || !card.rank) return '';
   const k = cardId(card), faceL = cardBandLuma(cardFaceColor(card)), byCorner = {};
   CARD_BAND_FAMILIES.forEach(f => {
-    const n = cardBandCount(f.of(k, card) || 0, f.per);
+    const v = f.of(k, card) || 0;
+    const n = cardBandCount(v, f.per);
     if (!n) return;
     const ink = inkOf ? inkOf(f) : cardBandInk(f, faceL);
     const slot = byCorner[f.corner] || (byCorner[f.corner] = { bands: [], ink });
+    if (f.solidAt && v >= f.solidAt) { slot.solid = ink; return; }   // r831: the whole corner in the colour
     for (let i = 0; i < n; i++) slot.bands.push({ ink });
   });
   return Object.keys(byCorner).map(corner => {
     const slot = byCorner[corner];
+    if (slot.solid) {   // r831: a solid wedge out to the bands' own budget, so it never reaches the rank or suit
+      const a = CARD_BAND_ANGLE[corner], e = CARD_BAND_LIMIT;
+      return `<div class="card-bands card-bsolid" style="--cb:linear-gradient(${a}deg, ${slot.solid} 0%, ${slot.solid} ${e}%, transparent ${e}%)"></div>`;
+    }
     let list = slot.bands, plus = '';
     if (list.length > CARD_BAND_MAX) {
       list = list.slice(0, CARD_BAND_PLUS_BANDS);

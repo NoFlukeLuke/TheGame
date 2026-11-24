@@ -70,7 +70,7 @@ const KNACK_POOL = [
   // Natural Scaling is per HAND TYPE now, so a family's growth sits in whichever
   // hand you actually play. This pools it: every hand in a family reads the best
   // bonus in that family. It REPLACES the hand's own bonus, never adds to it.
-  { id:'old_tricks',      emoji:'🎩',  name:'Old Tricks',       rarity:'epic',   desc:'Tricks, Knacks and Sleights you already own can be offered in the company store and in reward picks. Taking one improves the original, or adds a second copy.', tags:['other','shop','reward'] },   // r799: reworked (js/owned-offers.js)
+  { id:'old_tricks',      emoji:'🎩',  name:'Old Tricks',       rarity:'epic',   desc:'Tricks, Knacks and Sleights you already own can be offered in the company store and in reward picks. Taking one upgrades the original, or adds a second copy.', tags:['other','shop','reward'] },   // r799: reworked (js/owned-offers.js)
   // ── Passenger knack (r201) ──
   // A hand normally has to use every card you select; a spare makes it not a hand,
   // and the spare is billed as a penalty card. This lifts that.
@@ -90,8 +90,8 @@ const KNACK_POOL = [
   { id:'stacked',         emoji:'📚',  name:'Stacked',          rarity:'rare',   desc:'Every 30s, each Sleight on the grid has a 25% chance to prime the Trick in the tray slot of its column.', tags:['retrigger','other','sleights','position','clock','chance'] },
   { id:'very_rewarding',  emoji:'🎁',  name:'Very Rewarding',   rarity:'rare',   desc:'Challenge cards pay their reward twice.', tags:['other','challenge'] },
   { id:'green_station',   emoji:'🔌',  name:'Resourcefulness',    rarity:'rare',   desc:'Sleights have a 30% chance to get a charge back at the end of each level. A Sleight at 0 charges is not destroyed: it sits out of the deck until it has a charge again.', tags:['other','sleights','chance','charges','level'] },
-  { id:'deluxe_subscription', emoji:'🎁', name:'Deluxe Subscription', rarity:'common', desc:'Tricks and Sleights you are offered have a 15% chance to come improved.', tags:['luck','other','reward','shop','chance'] },
-  { id:'yoked',           emoji:'🐂',  name:'Overachiever',            rarity:'epic',   desc:'Buffs your cards gain are twice as strong. Improving this makes every buff your cards hold 25% stronger; the 5th improvement doubles them.', tags:['pips','mult','xpips','xmult','card','buffed','scores'] },
+  { id:'deluxe_subscription', emoji:'🎁', name:'Deluxe Subscription', rarity:'common', desc:'Tricks and Sleights you are offered have a 15% chance to come upgraded.', tags:['luck','other','reward','shop','chance'] },
+  { id:'yoked',           emoji:'🐂',  name:'Overachiever',            rarity:'epic',   desc:'Buffs your cards gain are twice as strong. Upgrading this makes every buff your cards hold 25% stronger; the 5th upgrade doubles them.', tags:['pips','mult','xpips','xmult','card','buffed','scores'] },
   { id:'martyr',          emoji:'⚰️',  name:'Martyr',           rarity:'common', desc:'Discarding a non-discard Sleight restores 1 charge to all Sleights on the grid.', tags:['other','sleights','discard','charges'] },
   // ── Position knacks (r102) - control which line a position Trick marks ──
   { id:'surveyor',        emoji:'📐',  name:'Surveyor',         rarity:'common', desc:'When you gain a position Trick, you choose which column it marks.', tags:['other','tricks','position','line'] },

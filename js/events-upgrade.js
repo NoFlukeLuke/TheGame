@@ -197,7 +197,7 @@ function renderDraw() {
   eventState.drawEnts   = ents;
   eventState.drawDone   = false;
   const need = Math.min(DRAW_PICKS, ents.length), steps = BAL.the_draw.steps;
-  body.appendChild(evNote(`Pick ${need}. The reel lands on one of them at random and improves it <b>${steps === 2 ? 'twice' : steps + ' times'}</b>.`));
+  body.appendChild(evNote(`Pick ${need}. The reel lands on one of them at random and upgrades it <b>${steps === 2 ? 'twice' : steps + ' times'}</b>.`));
 
   // The pinned tally: one box per pick, filled with the pick's name.
   const count = document.createElement('div');
@@ -280,7 +280,7 @@ function confirmDraw() {
     // is the single step, and it refuses past IMPROVE_MAX_TIER on its own.
     for (let i = 0; i < BAL.the_draw.steps; i++) improveEntity(winner.id);
     const t = (typeof entityTierOf === 'function') ? entityTierOf(winner.id) : 0;
-    showMessage(`${winner.name} improved · tier ${t}`, 'var(--gold)');
+    showMessage(`${winner.name} upgraded · tier ${t}`, 'var(--gold)');
     const btn = document.getElementById('event-confirm');
     if (btn) { btn.textContent = 'TAKE IT'; btn.disabled = false; }
   });
@@ -303,7 +303,7 @@ function spinDrawWheel(picks, winner, done) {
   m.el.classList.add('evt-slot-draw');
   // r764: a longer spin than the slot events, then the winner is lit and held a beat.
   m.spin([picks.indexOf(winner)], { len: 1.6 }).then(() => m.celebrate([[[1, 0]]])).then(() => {
-    body.appendChild(evNote(`<b>${winner.name}</b> improved twice.`));
+    body.appendChild(evNote(`<b>${winner.name}</b> upgraded twice.`));
     done();
   });
 }

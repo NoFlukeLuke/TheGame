@@ -535,21 +535,21 @@ function _generateRewardContent() {
     const delta = (prev && prev.after !== prev.before && typeof improveDeltaHTML === 'function')
                     ? improveDeltaHTML(prev.before, prev.after) : null;
     return {
-      icon: ICON[type] || '\u2605', label: 'Improve: ' + pick.name,
+      icon: ICON[type] || '\u2605', label: 'Upgrade: ' + pick.name,
       // <br>, not \n: .rtt-desc has no `white-space: pre-line`, so a newline
       // renders as a space and the tier line runs into the sentence.
       desc: delta
               ? `<b>${pick.name}${tierTxt}</b><br>${delta}`
               : (prev && prev.after !== prev.before)
                 ? `${pick.name}${tierTxt}\n${prev.before}\n\u2193\n${prev.after}`
-                : `Improve your ${NOUN[type]} ${pick.name}${tierTxt}`,
+                : `Upgrade your ${NOUN[type]} ${pick.name}${tierTxt}`,
       tier: 'rare', entity: type, rarity: pick.rarity || 'rare', _improve: true,
       apply: () => {
         if (typeof improveEntity !== 'function' || !improveEntity(pick.id)) {
-          showMessage(`${pick.name} could not be improved`, 'var(--red)');
+          showMessage(`${pick.name} could not be upgraded`, 'var(--red)');
           return;
         }
-        noteMessage(`\u2191 ${pick.name} improved`, 'var(--gold)');
+        noteMessage(`\u2191 ${pick.name} upgraded`, 'var(--gold)');
         if (typeof renderTrickTray === 'function') renderTrickTray();
         if (typeof updateKnackList  === 'function') updateKnackList();
       }

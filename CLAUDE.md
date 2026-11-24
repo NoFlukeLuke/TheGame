@@ -5941,3 +5941,28 @@ Settings -> Audio -> Music at the level's end (`musicEdge`: both / warble / off;
 420x900 (Flow): 40s left w .11, 25s w .42 with ticks 1s apart, 8s w .83 ticks 0.5s apart, held
 clock froze it and stopped ticks, shop clean, Warble-only and Off, speaker off still warbles and
 ticks; no page errors. An offline render of a level's last 45s peaked at 0.71.
+
+## r831 - "improve" reads "upgrade"; card marks a band per 10; the owner's numbers
+- **Wording (owner):** every player-facing improve / improves / improved / improvement reads upgrade /
+  upgrades / upgraded / upgrade (79 strings, the r814 sweep's rules; Spin to Improve is **Spin to
+  Upgrade**, Flow's IMPROVE step reads UPGRADE). Code names (`improveEntity`, `IMPROVE_PLAN`, the
+  `improve` kind ids) are unchanged; dev panel text left alone. **A new player-facing line says
+  "upgrade".**
+- **Card marks** (`CARD_BAND_FAMILIES`, js/deck-grid.js): pips and mult draw a band per 10 (`per`),
+  ROUNDED DOWN with at least one (`cardBandCount`: 29 is two, 30 three); at `solidAt` (50) and up the
+  whole corner is the colour (`.card-bsolid`, a wedge out to `CARD_BAND_LIMIT`, so it never reaches the
+  rank or suit). Time keeps 5 a band, replays 1, both now rounded down.
+- **Numbers (owner):** Enriched +100 and Crossroads +25 Focus stay (r817's cuts undone); Odd One In
+  +19 (odd); D6 rolls 6-18; In the Black is rare; Cornered reads the whole clock in Flow too (r814's cap
+  gone); El Tiempo es Oro divides by `flow_divisor` (3) in Flow, uncapped (`sandsDivisor`; its sentence
+  carries "(÷ 3 in Flow)", which `flowWordApply` turns into ÷ 3 in Flow and drops elsewhere). **Hyper
+  Focus's ladder alternates** a lower bar and one more application: 50% x1, 45% x1, 45% x2, 40% x2,
+  40% x3, v6 35% x4.
+- **Fixed:** a Trick left out of the offer pool (locked on this browser, a tour's grant) took no
+  upgrade ladder and kept its v1 sentence when owned: `improvableIds`, `applyBalDescriptions`,
+  `syncOwnedEntityDescs` and `improvePreview` read `TRICK_POOL_ALL` now.
+Measured in headless Chromium at 1440x820 and 420x900: marks for 9 / 15 / 29 / 30 / 49 pips-or-mult read
+1 / 1 / 2 / 3 / 4 bands and 50 solid; Hyper Focus by real `improveEntity` 45% x1 ... 35% x4 with the
+sentence following; El Tiempo es Oro in Flow at 5:00 read ÷ 3 (100 pips), Classic ÷ 2; no "improv" left
+on a run's screen; no page errors. Golden: only Odd One In, Enriched and the trays holding them move;
+baseline in r832.

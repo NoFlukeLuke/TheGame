@@ -400,7 +400,7 @@ const MAP_KIND_META = {
                 blurb: `A level with a raised goal and one extra ask. Pays credits and ${gridName('reward', { a: true })}.` },
   // r690: a priority account whose ask is a boss handicap (CHALLENGE_DEFS' `mini`).
   mini:       { icon: '⚔\uFE0E', name: '1-ON-1', full: 'One-on-One', cls: 'mk-mini',
-                blurb: 'A level with a raised goal and a review\u2019s handicap at half strength. Pays credits and an improvement you pick.' },
+                blurb: 'A level with a raised goal and a review\u2019s handicap at half strength. Pays credits and an upgrade you pick.' },
   // r444: half the challenge tiles are an AUDIT instead - a challenge round
   // (js/challenge-round.js). Same tile kind; `t.audit` picks the face.
   audit:      { icon: '⚑\uFE0E', name: 'AUDIT', full: 'Audit', cls: 'mk-audit',
@@ -446,7 +446,7 @@ function mapTileDesc(t, legalIds) {
     case 'level':      return `Play a level.${goal} Clear it for the payout and a pick of three.`;
     case 'challenge':  if (t.audit) return MAP_KIND_META.audit.blurb + goal;
                        return (t.challenge ? t.challenge.label + ' ' : '')
-      + `${G} +${Math.round(((t.challenge?.goalMult || 1.2) - 1) * 100)}%.${goal} Pays +${t.challenge?.credits || 0} credits and ` + (mapTileIsMini(t) ? 'an improvement you pick (1 of 3).' : `${gridName('reward', { a: true })} (a path of up to ${mapRewardPath()}).`);
+      + `${G} +${Math.round(((t.challenge?.goalMult || 1.2) - 1) * 100)}%.${goal} Pays +${t.challenge?.credits || 0} credits and ` + (mapTileIsMini(t) ? 'an upgrade you pick (1 of 3).' : `${gridName('reward', { a: true })} (a path of up to ${mapRewardPath()}).`);
     case 'shop':       return `The company store. Buy Tricks, Sleights, Knacks and upgrades. You hold ${coins} credits.`;
     case 'reward':     return `A ${limits.grid_rows.current}x${limits.grid_cols.current} ${gridName('reward')}. Take a connected path of up to ${mapRewardPath()} tiles.`;
     case 'event':      return (t.eventId && typeof eventShownDoes === 'function') ? eventShownDoes(t.eventId) : (t.eventFlavor || 'Something happens.');

@@ -369,7 +369,7 @@ const CRR = {
   // ── HARD ──
   improve: {
     face: ['1', 'PICK', '⬆'],
-    say: t => t ? 'pick 1 of 3 improvements' : 'a random improvement',
+    say: t => t ? 'pick 1 of 3 upgrades' : 'a random upgrade',
     can: () => typeof evImprovables === 'function' && evImprovables().length > 0,
     give(t) {
       if (t) return crrScreen('improve');
@@ -378,12 +378,12 @@ const CRR = {
       if (typeof syncOwnedEntityDescs === 'function') syncOwnedEntityDescs();
       return ` (${e.name})`;
     },
-    penSay: 'an improvement taken back', penTo: 'tricks', penLabel: '-1 TIER',
+    penSay: 'an upgrade taken back', penTo: 'tricks', penLabel: '-1 TIER',
     penCan: () => _crrImproved().length > 0,
     take() {
       const e = _crrRand(_crrImproved()), was = entityTierOf(e.id);
       downgradeEntity(e.id, { anim: true });
-      return `${e.name} lost an improvement (v${was + 1}.0 to v${was}.0)`;
+      return `${e.name} lost an upgrade (v${was + 1}.0 to v${was}.0)`;
     },
   },
   limit: {

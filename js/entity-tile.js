@@ -57,7 +57,7 @@ function entityTileInner(p, { mystery = false } = {}) {
   // IMPROVEMENT IS v2 (r376, owner's call). `entityTier` counts improvements
   // APPLIED, so the printed version is that count plus one - it was printing
   // the count, which read as a twice-improved Trick being "v2".
-  const tierBadge = _tier > 0 ? `<div class="rwd-tier" title="Improved ${_tier}x">v${_tier + 1}.0</div>` : '';
+  const tierBadge = _tier > 0 ? `<div class="rwd-tier" title="Upgraded ${_tier}x">v${_tier + 1}.0</div>` : '';
 
   if (kind === 'knack')
     return `<div class="rwd-diamond"><span class="rwd-diamond-emoji">${emGlyph(p.emoji || p.icon || '♛')}</span></div>` + tierBadge;

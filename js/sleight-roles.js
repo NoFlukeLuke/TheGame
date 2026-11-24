@@ -219,7 +219,7 @@ function keeperRoundEnd() {
   if (BAL.keeper.improve && typeof improveEntity === 'function') {
     const ids = [...new Set([].concat(...gridData.map(row => (row || []).filter(cd => cd && cd._isSleight && cd !== k).map(cd => cd.sleightId))))].filter(id => canImprove(id));
     const id = ids[Math.floor(Math.random() * ids.length)];
-    if (id) { improveEntity(id); noteMessage(`📌 Keeper improved ${SLEIGHT_POOL.find(s => s.id === id)?.name || id}`, 'var(--gold)'); }
+    if (id) { improveEntity(id); noteMessage(`📌 Keeper upgraded ${SLEIGHT_POOL.find(s => s.id === id)?.name || id}`, 'var(--gold)'); }
   }
 }
 

@@ -36,7 +36,7 @@ function ownedCopyBlock(type, id) {
   if (typeof trickTrayFull === 'function' && trickTrayFull()) return 'no free Trick slot';
   return null;
 }
-function ownedImproveBlock(id) { return (typeof canImprove === 'function' && canImprove(id)) ? null : 'it cannot be improved further'; }
+function ownedImproveBlock(id) { return (typeof canImprove === 'function' && canImprove(id)) ? null : 'it cannot be upgraded further'; }
 function ownedOfferable(type, id) { return !ownedCopyBlock(type, id) || !ownedImproveBlock(id); }
 
 // The owned entities a shelf of `type` may show: [{ def, id }].
@@ -112,7 +112,7 @@ function ownedAsk(type, def, done) {
   const ctl = (typeof boardScreenOpen === 'function') ? boardScreenOpen({
     head: `> ${String(def.name).toUpperCase()}`, cls: 'oo-screen', zIndex: 10002,
     html: `<div class="oo-say"><span class="oo-t">You've purchased an entity you already own.</span></div>` +
-      opt(1, 'Take additional copy?', b1) + opt(2, 'Improve the original.', b2) +
+      opt(1, 'Take additional copy?', b1) + opt(2, 'Upgrade the original.', b2) +
       (typing ? `<label class="oo-in"><span>&gt;</span><input type="text" maxlength="5" spellcheck="false" autocomplete="off" placeholder="type one or two"></label>` : ''),
   }) : null;
   if (!ctl) { done(b2 ? 1 : 2); return; }

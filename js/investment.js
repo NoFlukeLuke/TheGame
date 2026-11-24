@@ -58,8 +58,8 @@ function renderAltar() {
   body.appendChild(all);
   const cands = investTrickCandidates();
   const tr = makeChoiceEl({ icon: '📈', rarity: 'epic', name: 'Invest a Trick', cls: 'inv-opt',
-    desc: cands.length ? `A Trick and an amount. The Trick is off until Q${q + 1} opens. Every level that starts before then it has ${INVEST.trickPerCoin}% per credit to improve.`
-                       : 'No Trick of yours can improve.',
+    desc: cands.length ? `A Trick and an amount. The Trick is off until Q${q + 1} opens. Every level that starts before then it has ${INVEST.trickPerCoin}% per credit to upgrade.`
+                       : 'No Trick of yours can upgrade.',
     onClick: () => { if (cands.length) pick('trick'); } });
   tr.dataset.kind = 'trick';
   if (!cands.length) tr.classList.add('inv-off');
@@ -127,7 +127,7 @@ function investmentRoundStart() {
     inv.ups++;
     if (typeof improveEntity === 'function') improveEntity(inv.trickId);
     if (typeof entityPing === 'function') entityPing('trick', inv.trickId);
-    noteMessage(`${inv.name} improved (invested)`);
+    noteMessage(`${inv.name} upgraded (invested)`);
   }
 }
 
@@ -153,7 +153,7 @@ function investmentSettle() {
       if (typeof improveEntity === 'function') improveEntity(inv.trickId);
     }
     rep = { kind: 'trick', name: inv.name, trickId: inv.trickId, credits: inv.credits, ups: inv.ups, rounds: inv.rounds };
-    noteMessage(`Investment: ${inv.name} is back` + (inv.ups ? `, improved ${inv.ups === 1 ? 'once' : inv.ups + ' times'}` : ''));
+    noteMessage(`Investment: ${inv.name} is back` + (inv.ups ? `, upgraded ${inv.ups === 1 ? 'once' : inv.ups + ' times'}` : ''));
     if (typeof renderTrickTray === 'function') renderTrickTray();
   }
   if (typeof updateCoinsUI === 'function') updateCoinsUI();
@@ -175,7 +175,7 @@ function investmentReportMaybe(done) {
     lines.push(`&gt; RETURNED ${creditsTxt(rep.amount)}`);
   } else {
     lines.push(`${esc(rep.name.toUpperCase())} · ${creditsTxt(rep.credits)} · ${rep.rounds} LEVEL${rep.rounds === 1 ? '' : 'S'}`);
-    lines.push(rep.ups ? `IMPROVED ${rep.ups === 1 ? 'ONCE' : rep.ups === 2 ? 'TWICE' : rep.ups + ' TIMES'}` : 'NOT IMPROVED');
+    lines.push(rep.ups ? `UPGRADED ${rep.ups === 1 ? 'ONCE' : rep.ups === 2 ? 'TWICE' : rep.ups + ' TIMES'}` : 'NOT UPGRADED');
     lines.push(`&gt; ${esc(rep.name.toUpperCase())} IS BACK`);
   }
   const html = `<div class="inv-wrap">${lines.map((l, i) => `<div class="inv-line${i === lines.length - 1 ? ' inv-last' : ''}">${l}</div>`).join('')}</div>`;

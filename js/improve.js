@@ -186,7 +186,7 @@ const IMPROVE_PLAN = {
   // +11% chance, +0.4x, alternating; the 5th does both and even cards replay
   even_better:      t => ({ chance: 0.66 + 0.11 * [0, 1, 1, 2, 2, 3][t], pip_mult: 2.25 + 0.4 * [0, 0, 1, 1, 2, 3][t], replay: t >= 5 ? 1 : 0 }),
   what_odds:        t => ({ mult_mult: 1.7 + 0.35 * t, replay: t >= 5 ? 1 : 0 }),
-  hyper_focus:      t => ({ share: [0.5, 0.45, 0.4, 0.35, 0.3, 0.25][t], extra: t >= 5 ? 2 : 1 }),   // r817: the bar needs less; v6 applies twice more
+  hyper_focus:      t => ({ share: [0.5, 0.45, 0.45, 0.4, 0.4, 0.35][t], extra: [1, 1, 2, 2, 3, 4][t] }),   // r831 (owner): alternate a lower bar and one more application; v6 both
   critical:         t => ({ mult_mult: 3.5 + t, extra_family: t >= 5 ? 1 : 0 }),
   twinners:         t => ({ pip_mult: 2 + t, replay: t >= 5 ? 1 : 0 }),
   // one more application, then flushes, then more applications; sets at the 5th
@@ -392,7 +392,9 @@ function entityTierOf(id) { return (entityTier && entityTier[id]) || 0; }
 // because the mode entity filter rewrites TRICK_POOL in place at startGame.
 function improvableIds() {
   const out = new Set();
-  [typeof TRICK_POOL !== 'undefined' ? TRICK_POOL : [],
+  // r831: every Trick row, not the offer pool: a Trick the pool leaves out (locked here, a tour's
+  // grant) still takes its ladder when it is owned.
+  [typeof TRICK_POOL_ALL !== 'undefined' ? TRICK_POOL_ALL : (typeof TRICK_POOL !== 'undefined' ? TRICK_POOL : []),
    typeof KNACK_POOL !== 'undefined' ? KNACK_POOL : [],
    typeof SLEIGHT_POOL !== 'undefined' ? SLEIGHT_POOL : []].forEach(p => p.forEach(e => out.add(e.id)));
   return out;
@@ -481,6 +483,8 @@ function flowWordApply() {
     const base = (e._qDesc != null && e.desc === e._qDesc) ? e._lvDesc : e.desc;   // a regenerated sentence replaces the old base
     let d = base;
     if (flow) for (const [re, to] of FLOW_QUARTER_PHRASES) d = d.replace(re, to);
+    // r831: a sentence may carry its Flow number as "(÷ 3 in Flow)": Flow reads that number, elsewhere it goes.
+    d = flow ? d.replace(/÷ [\d.]+ \(÷ ([\d.]+) in Flow\)/g, '÷ $1') : d.replace(/ \(÷ [\d.]+ in Flow\)/g, '');
     if (d === base) { if (e._qDesc != null) { e.desc = base; delete e._qDesc; delete e._lvDesc; } return; }
     e._lvDesc = base; e._qDesc = d; e.desc = d;
   }));
@@ -501,7 +505,7 @@ function v6NameApply(e) {
 // the tray and the Knack row keep quoting the pre-improvement number.
 function syncOwnedEntityDescs() {
   const from = id => {
-    for (const p of [typeof TRICK_POOL !== 'undefined' ? TRICK_POOL : [],
+    for (const p of [typeof TRICK_POOL_ALL !== 'undefined' ? TRICK_POOL_ALL : (typeof TRICK_POOL !== 'undefined' ? TRICK_POOL : []),   // r831: every row
                      typeof KNACK_POOL !== 'undefined' ? KNACK_POOL : [],
                      typeof SLEIGHT_POOL !== 'undefined' ? SLEIGHT_POOL : []]) {
       const hit = p.find(e => e.id === id);
@@ -654,7 +658,7 @@ function pickImproveTarget(type) {
 // steps (r752): how many improvements ahead to read (Spin to Improve gives two).
 function improvePreview(id, steps) {
   const src = () => {
-    for (const p of [typeof TRICK_POOL !== 'undefined' ? TRICK_POOL : [],
+    for (const p of [typeof TRICK_POOL_ALL !== 'undefined' ? TRICK_POOL_ALL : (typeof TRICK_POOL !== 'undefined' ? TRICK_POOL : []),   // r831: every row
                      typeof KNACK_POOL !== 'undefined' ? KNACK_POOL : [],
                      typeof SLEIGHT_POOL !== 'undefined' ? SLEIGHT_POOL : []]) {
       const hit = p.find(e => e.id === id);

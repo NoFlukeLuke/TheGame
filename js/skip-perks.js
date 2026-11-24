@@ -83,8 +83,8 @@ const LUNCH_PERKS = {
     give() { return crrGrant('cardbuff', 0, { live: false }); },
   },
   improve: {
-    noun: 'a random improvement',
-    say: 'a random improvement', short: '+1 TIER',
+    noun: 'a random upgrade',
+    say: 'a random upgrade', short: '+1 TIER',
     can: () => CRR.improve.can(0),
     give() { return crrGrant('improve', 0, { live: false }); },
   },
@@ -99,8 +99,8 @@ const LUNCH_PERKS = {
     },
   },
   pick: {
-    noun: 'an improvement of your choice',
-    say: 'an improvement of your choice', short: '+1 TIER (PICK)',
+    noun: 'an upgrade of your choice',
+    say: 'an upgrade of your choice', short: '+1 TIER (PICK)',
     can: () => CRR.improve.can(1),
     give() { return crrGrant('improve', 1, { live: false }); },
   },

@@ -173,9 +173,9 @@ const INSIGHTS = [
     body: 'A new {trick} will be refused until you make room. Tap one in the tray and sell it.',
     when: () => typeof trickTrayFull === 'function' && trickTrayFull() },
 
-  { id: 'improve', screen: 'any', title: 'That one has been improved',
+  { id: 'improve', screen: 'any', title: 'That one has been upgraded',
     anchor: ['#trick-tray-list'],
-    body: 'The v2.0 stamp is its version. Its numbers are bigger, and the gold bands on the object count the improvements.',
+    body: 'The v2.0 stamp is its version. Its numbers are bigger, and the gold bands on the object count the upgrades.',
     when: () => typeof entityTier !== 'undefined'
              && Object.values(entityTier).some(v => (v || 0) > 0) },
 
@@ -268,7 +268,7 @@ const INSIGHTS = [
 
   { id: 'mini_boss', screen: 'any', title: 'A one-on-one',
     anchor: ['#goal-display'],
-    body: 'A review\'s modifier at half strength, on a raised {GOAL}. Clearing it pays credits and an improvement you pick.',
+    body: 'A review\'s modifier at half strength, on a raised {GOAL}. Clearing it pays credits and an upgrade you pick.',
     when: () => typeof miniBossActive !== 'undefined' && miniBossActive },
 ];
 

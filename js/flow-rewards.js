@@ -123,7 +123,7 @@ const FLOWR_KINDS = {
   deck:     { label: () => 'DECK EDIT',  short: 'DECK',     color: '#4aa3e0' },
   sleights: { label: () => flowrEntityWord('sleight', true),  short: () => flowrEntityWord('sleight', true), color: '#c07aee' },
   limits:   { label: () => 'LIMITS',     short: 'LIMITS',   color: '#d4a017' },
-  improve:  { label: () => 'IMPROVE',    short: 'IMPROVE',  color: '#e0813a' },
+  improve:  { label: () => 'UPGRADE',    short: 'UPGRADE',  color: '#e0813a' },
   knacks:   { label: () => flowrEntityWord('knack', true),    short: () => flowrEntityWord('knack', true),   color: '#ff6fa5' },
   tricks:   { label: () => flowrEntityWord('trick', true),    short: () => flowrEntityWord('trick', true),   color: '#e8dd54' },
   shop:     { label: () => 'SHOP',       short: 'SHOP',     color: '#ff9a3d' },
@@ -1972,7 +1972,7 @@ function flowrGrantOffer(opt) {
   if (opt.type === 'improve') {
     const tier = improveEntity(opt.id);
     if (typeof syncOwnedEntityDescs === 'function') syncOwnedEntityDescs();
-    noteMessage(`⬆ ${opt.name} improved to v${tier}.0`, '#e0813a');
+    noteMessage(`⬆ ${opt.name} upgraded to v${tier}.0`, '#e0813a');
     try { sfxSuccess?.(); } catch (e) {}
     return;
   }

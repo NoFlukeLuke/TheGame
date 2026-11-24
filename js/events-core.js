@@ -291,7 +291,7 @@ const EVENT_META = {
   market:      { name:'Card Market',     flavor:'Buy cards now, put them on the board when you want them.' },
   deck_trim:   { name:'Deck Trim',       flavor:'' },
   reassignment:{ name:'Trade a Trick',   flavor:'' },
-  the_draw:    { name:'Spin to Improve', flavor:'' },
+  the_draw:    { name:'Spin to Upgrade', flavor:'' },
   the_floor:   { name:'Card Slots',      flavor:'' },
   clean_slate: { name:'Clean Slate',      flavor:'' },
   the_payline: { name:'Entity Slots',    flavor:'' },

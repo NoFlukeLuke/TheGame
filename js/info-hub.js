@@ -221,10 +221,10 @@ const INFO_TOPICS = [
       '{Knacks} are never duplicated and never expire. Tap one to read it, or to sell it.',
     ] },
 
-  { id: 'improve', group: 'owned', title: 'Improvement tiers - the v2.0 stamp',
+  { id: 'improve', group: 'owned', title: 'Upgrade tiers - the v2.0 stamp',
     body: [
-      '{Tricks}, {Knacks} and {Sleights} can be IMPROVED, which makes their numbers bigger. A +5 bonus climbs 5, 10, 15, 20, 25, 40 across five improvements.',
-      'The tier is stamped on the object as a version number, and a gold band is added across its corner for each improvement.',
+      '{Tricks}, {Knacks} and {Sleights} can be UPGRADED, which makes their numbers bigger. A +5 bonus climbs 5, 10, 15, 20, 25, 40 across five upgrades.',
+      'The tier is stamped on the object as a version number, and a gold band is added across its corner for each upgrade.',
       'The printed description follows the number.',
     ] },
 
@@ -326,7 +326,7 @@ const INFO_TOPICS = [
   { id: 'skip_cost', group: 'schedule', title: 'R&R',
     body: [
       'Leave a slot after taking only one obligation and you earn R&R: one perk, the department\'s own more often than the rest. Tap R&R on the bar to see the likely one.',
-      'The perks: Sleight charges, a chance at a permaprime (a Trick fires once more every time, for good), a swap and a discard for good, a longer path on the next grid, card buffs, an improvement, or credits.',
+      'The perks: Sleight charges, a chance at a permaprime (a Trick fires once more every time, for good), a swap and a discard for good, a longer path on the next grid, card buffs, an upgrade, or credits.',
     ] },
 
   { id: 'departments', group: 'schedule', title: 'Departments',
@@ -362,7 +362,7 @@ const INFO_TOPICS = [
   { id: 'mini_boss', group: 'pressure', title: 'Priority accounts',
     body: [
       `A priority account is an ordinary level with a RAISED {GOAL} and one extra requirement. Clearing it pays ${gridName('reward', { a: true })}; meeting the requirement pays credits too.`,
-      'A one-on-one is a review\u2019s modifier at half strength. It pays credits and an improvement you pick, not ' + gridName('reward', { a: true }) + '.',
+      'A one-on-one is a review\u2019s modifier at half strength. It pays credits and an upgrade you pick, not ' + gridName('reward', { a: true }) + '.',
       'Missing the requirement loses its credits, not the level.',
     ] },
 
@@ -375,7 +375,7 @@ const INFO_TOPICS = [
       `Obligations: client accounts (levels), priority accounts (hard levels), one-on-ones (a review\u2019s modifier at half strength), audits (challenge cards), the shop, events and raise requests (Limit Break). IT\u2019s quarter adds incentive programs (${gridName('reward', { plural: true })}).`,
       `An unconfirmed obligation (???) is a level, an audit, a priority account, an event, a one-on-one or ${gridName('reward', { a: true })}. You find out when you commit to it.`,
       'A level\'s goal is set by its slot. The review\'s goal is fixed when the schedule is drawn.',
-      () => `Clearing a level offers a pick of three. Weights per offer: ${typeof GUIDED_PICK_WEIGHTS !== 'undefined' ? `{trick} ${GUIDED_PICK_WEIGHTS.trick}, {sleight} ${GUIDED_PICK_WEIGHTS.sleight}, {knack} ${GUIDED_PICK_WEIGHTS.knack}, event ${GUIDED_PICK_WEIGHTS.event}` : ''}. A priority account pays ${gridName('reward', { a: true })} instead; a one-on-one pays an improvement you pick. An audit pays its challenge cards\u2019 rewards and nothing more.`,
+      () => `Clearing a level offers a pick of three. Weights per offer: ${typeof GUIDED_PICK_WEIGHTS !== 'undefined' ? `{trick} ${GUIDED_PICK_WEIGHTS.trick}, {sleight} ${GUIDED_PICK_WEIGHTS.sleight}, {knack} ${GUIDED_PICK_WEIGHTS.knack}, event ${GUIDED_PICK_WEIGHTS.event}` : ''}. A priority account pays ${gridName('reward', { a: true })} instead; a one-on-one pays an upgrade you pick. An audit pays its challenge cards\u2019 rewards and nothing more.`,
     ] },
   { id: 'seeds', group: 'modes', title: 'Seeds',
     body: [

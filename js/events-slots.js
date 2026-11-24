@@ -172,7 +172,7 @@ function renderPayline() {
   const syms = ents.map(e => ({ key: e.id, ent: e, html: `<div class="sl-ent">${entityTileHTML({ entity: e.kind, id: e.id, emoji: e.emoji, label: e.name }, e.rarity || 'common', { tip: false })}</div>` }));
   s.plStrips = [0, 1, 2].map(() => paylineStrip(syms));
   s.plChance = paylineWinChance(ents.length);
-  body.appendChild(evNote('Three alike in a row, a column or a diagonal improves that entity.'));
+  body.appendChild(evNote('Three alike in a row, a column or a diagonal upgrades that entity.'));
   s.plMachine = evSlotMachine(body, { reels: s.plStrips, payRow: null, itemW: 54, itemH: 60,
     fillFrom: () => ents.map(e => (typeof efiSourceEl === 'function') ? efiSourceEl(e.kind, e.id) : null).filter(Boolean) });   // r807: your entities fly in from their trays as the event opens
   if (typeof fitRewardName === 'function') requestAnimationFrame(() => s.plMachine.el.querySelectorAll('.rwd-name').forEach(fitRewardName));
@@ -208,7 +208,7 @@ function paylinePull() {
   // Tease when two reels already hold a line's first two symbols and the last decides it.
   const tease = lines.length > 0 || PAYLINE_LINES.some(l => l[0][1] === 0 && l[1][1] === 1 && grid[l[0][0]][0].key === grid[l[1][0]][1].key);
   s.plMachine.spin(stops, { tease }).then(() =>
-    s.plMachine.scan(PAYLINE_LINES, won, { big: `${lines.length} LINES · IMPROVE x2`, huge: `${lines.length} LINES · IMPROVE x5` })
+    s.plMachine.scan(PAYLINE_LINES, won, { big: `${lines.length} LINES · UPGRADE x2`, huge: `${lines.length} LINES · UPGRADE x5` })
   ).then(() => {
     if (!lines.length) { s.plBusy = false; paylineSync(); return; }
     s.plWins++;
@@ -218,7 +218,7 @@ function paylinePull() {
       for (let i = 0; i < mult && canImprove(e.id); i++) { improveEntity(e.id); got.set(e, (got.get(e) || 0) + 1); }
     });
     if (typeof syncOwnedEntityDescs === 'function') syncOwnedEntityDescs();
-    if (!got.size) s.plOut.appendChild(evNote('Already at its last improvement.'));
+    if (!got.size) s.plOut.appendChild(evNote('Already at its last upgrade.'));
     got.forEach((n, e) => {
       const res = document.createElement('div'); res.className = 'evt-big win';
       res.textContent = `${e.name.toUpperCase()} · v${entityTierOf(e.id) + 1}.0${n > 1 ? ` · +${n}` : ''}`;
