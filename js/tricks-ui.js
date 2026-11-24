@@ -27,11 +27,12 @@ function trickLiveDesc(trick) {
     const B = (typeof BAL !== 'undefined') ? BAL : {};
     const live = (typeof gameTimerPaused === 'undefined') ? true : !gameTimerPaused;
     const el   = clockElapsed();   // seconds elapsed this round
-    const now      = (v) => `${base} (now ${v})`;                 // always-meaningful
-    const roundNow = (v) => `${base} ${live ? `(now ${v})` : '(N/A)'}`; // round-scoped
+    // r846 (owner): the current amount leads the sentence.
+    const now      = (v) => `(now ${v}) ${base}`;                 // always-meaningful
+    const roundNow = (v) => `${live ? `(now ${v})` : '(N/A)'} ${base}`; // round-scoped
     switch (trick.id) {
-      case 'move_as_one': { const q = moveAsOneQualifying(); return `${base} (${q.keys.length ? 'keyword: ' + q.keys.join(', ') : 'no keyword shared by 3 yet'})`; }
-      case 'feelin_lucky': return `${base} (ranks: ${(trick._luckyRanks || []).join(' ') || 'rolled when taken'} · ${trick._luckyFixed ? 'fixed' : feelinLuckyRerollsLeft(trick) + ' rerolls left'})`;
+      case 'move_as_one': { const q = moveAsOneQualifying(); return `(${q.keys.length ? 'keyword: ' + q.keys.join(', ') : 'no keyword shared by 3 yet'}) ${base}`; }
+      case 'feelin_lucky': return `(ranks: ${(trick._luckyRanks || []).join(' ') || 'rolled when taken'} · ${trick._luckyFixed ? 'fixed' : feelinLuckyRerollsLeft(trick) + ' rerolls left'}) ${base}`;
       // ── permanent accumulators / level / owned-based (always a number) ──
       case 'fives_discard':  return now(`+${bonusMult_fives || 0} pips`);
       case 'nines_mult':     return now(`+${bonusMult_nines || 0} mult`);

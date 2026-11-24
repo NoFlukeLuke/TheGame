@@ -1,4 +1,4 @@
-const BUILD = "2026-11-24 · r845 · scaling Trick sentences in one voice";
+const BUILD = "2026-11-24 · r846 · +N every time X; current amount leads the tooltip";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

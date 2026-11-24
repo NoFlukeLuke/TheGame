@@ -6145,3 +6145,14 @@ counts the whole run, taken or not, reads "+N for every ___ this run" (The Hummi
 生きがい: `pauseInstanceGame`, `negativeTilesTakenRun`, `focusGenGame` all count from the run's start).
 "permanently" and "scaling" are gone from them. Wild Side has a template now. Templates only, no number
 changed. Golden: 838 match.
+
+## r846 - "+N every time X"; the current amount leads a Trick's tooltip (owner)
+- **Wording (owner's pick over r845's two patterns):** a Trick that grows reads "+N every time X"
+  (Firesale, 401, inflation, Compound, To The Nines, Nickel Saved, Cloud Nine, To the Clouds, Middle
+  Man, More Better, Feng Shui, Pé-de-Meia, The Hummingbird, Wild Side, Relentless). A whole-run count
+  keeps "this run". 生きがい keeps "+N for every 10 Focus made this run". Templates and the pool's
+  literal sentences match.
+- **The current amount comes first** (`trickLiveDesc`, js/tricks-ui.js): "(now +4.2 mult) +0.3 mult
+  every time you play a hand"; a level-scoped Trick outside a live level leads with "(N/A)"; Move as
+  One and Feelin Lucky lead with their own brackets. Relentless lost "No effect until it passes x1":
+  the bracket shows x1.00 until it does.

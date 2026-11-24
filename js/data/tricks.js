@@ -64,7 +64,7 @@ const TRICK_POOL = [
   { id:'cuckoo',         name:'The Cuckoo',          tier:'epic',      desc:'Every other hand pauses the clock for 1s for every 5 replays triggered this level', tags:['time','hand','replays'] },
   { id:'double_jeopardy', name:'Double Jeopardy',    tier:'epic',      desc:'2 cells are secretly marked at level start; the first time you score from those cells, pause the clock for 15s', tags:['time','card','position'] },
   { id:'woodpecker',     name:'The Woodpecker',      tier:'rare',      desc:'Marks a random cell every 30 seconds; a card scored from the marked cell replays 2x', tags:['replay','card','position','clock','scores'] },
-  { id:'hummingbird',    name:'The Hummingbird',     tier:'rare',      desc:'+3 mult for every clock pause or rewind this run', tags:['mult','hand','pause','scores','scaling'] },
+  { id:'hummingbird',    name:'The Hummingbird',     tier:'rare',      desc:'+3 mult every time the clock is paused or rewound this run', tags:['mult','hand','pause','scores','scaling'] },
   { id:'albatross',      name:'The Albatross',       tier:'rare',      desc:'+10 pips for every second the clock has spent paused this level', tags:['pips','hand','pause','scores'] },
   { id:'vulture',        name:'The Vulture',         tier:'epic',      retired:true, desc:'Cards discarded during a level’s first pause permanently gain a 3s pause (cannot stack from this source)', tags:['deck','time','card','discard','pause','scaling'] },
   // ── Clock-mark Tricks (fire as the round clock passes static timestamps) ──
@@ -131,7 +131,7 @@ const TRICK_POOL = [
   { id:'advanced_interrogation', name:'Advanced Interrogation', tier:'epic', fused:true, acts:['line_xmult','obligatory'], tags:['xmult','retrigger','card','position','tricks','chance','scores','line'], desc:"Cards scored in a marked row or column score ×1.2 mult and have a 25% chance to force-trigger the Trick in the tray slot of that line's number" },
   { id:'love_of_money',  name:'Love of Money',       tier:'epic',      fused:true, acts:['obsessed','interest'], tags:['xmult','xpips','card','suit','held','scores'], desc:'Each heart applies x mult equal to 1 + (credits / 100); score ×1 pips, +0.1 for every 10 credits you hold, up to ×3' },
   { id:'penny_perfect',  name:'Penny Perfect',       tier:'epic',      fused:true, retired:true, tags:['pips','mult','hand','discard','scaling','scores'], desc:'Every 9 cards discarded or played permanently adds +5 pips and +3 mult to this trick' },
-  { id:'to_the_clouds',  name:'To the Clouds',       tier:'epic',      fused:true, acts:['tens_mult','nines_mult'], tags:['deck','mult','hand','rank','discard','scores','scaling','cost'], desc:'Adds 9 9s to your deck. Each 9 scored adds +2 mult to this trick, and each 9 discarded or played +3 more. A 9 that scores or is discarded is destroyed; when none are left, this trick deletes itself' },
+  { id:'to_the_clouds',  name:'To the Clouds',       tier:'epic',      fused:true, acts:['tens_mult','nines_mult'], tags:['deck','mult','hand','rank','discard','scores','scaling','cost'], desc:'Adds 9 9s to your deck. +2 mult every time a 9 scores, and +3 more every time you discard or play a 9. A 9 that scores or is discarded is destroyed; when none are left, this trick deletes itself' },
   { id:'cornery',        name:'Cornery',             tier:'epic',      fused:true, acts:['two_corners','corner_retrigger'], tags:['xmult','xpips','card','position','clock','scores'], desc:'Corner cards score ×2 mult and ×pips equal to the whole minutes left on the clock' },
   { id:'hurricane',      name:'Hurricane',           tier:'epic',      fused:true, acts:['overgrowth','long_road'], tags:['pips','mult','card','run','scores'], desc:'Runs score +20 pips and +10 mult per card' },
   { id:'riptide',        name:'Riptide',             tier:'epic',      fused:true, acts:['tide_table','undertow'], tags:['xmult','xpips','hand','run','scores'], desc:'Runs score ×1.25 mult, +×0.5 per Run scored this level, and ×2 pips, +×0.5 per card beyond 3' },
@@ -149,7 +149,7 @@ const TRICK_POOL = [
   { id:'serenity',       name:'Serenity',            tier:'epic',      fused:true, tags:['mult','focus','hand','position','scores'], desc:'A hand that is not a straight line scores +50 mult and adds +25 Focus' },
   { id:'working_class',  name:'Working Class',       tier:'epic',      fused:true, acts:['club_double','landfill'], tags:['pips','mult','card','suit','discard','swap','scaling','scores'], desc:'Each club scored this level adds more and more pips: doubles each time, starting at 1; score +4 mult for every swapped or discarded card this game' },
   { id:'overtime',       name:'Overtime',            tier:'rare',      tags:['time','hand','position','line'],  desc:'Every hand rewinds the clock 1s for every 3 cards you have scored from its marked row or column this level. The count resets each level.' },
-  { id:'feng_shui',      name:'Feng Shui',           tier:'epic',      tags:['pips','hand','position','scores','scaling'],  desc:'Each hand scored with a row or column effect adds +3 pips to this' },
+  { id:'feng_shui',      name:'Feng Shui',           tier:'epic',      tags:['pips','hand','position','scores','scaling'],  desc:'+3 pips every time you score a hand with a row or column effect' },
   { id:'clean_sweep',    name:'Clean Sweep',         tier:'rare',      tags:['focus','credits','hand','position'],           desc:'Use every cell of any row or column within two hands to add +8 Focus and +4 credits' },
   // ── Level scaling ──
   // r676 (owner; CHALLENGE_REWARDS.md section 7): becomes a random Trick each round (js/changing.js). Working name.
@@ -160,18 +160,18 @@ const TRICK_POOL = [
   { id:'bonus_structure',  name:'Bonus Structure',  tier:'rare',   desc:'', tags:['credits','other','level'] },
   { id:'expense_account',  name:'Expense Account',  tier:'epic',   desc:'', tags:['mult','hand','scores','scaling'] },
   { id:'insurance_policy', name:'Insurance Policy', tier:'epic',   desc:'', tags:['replay','card','scores','chance','held'] },
-  { id:'fire_sale',        name:'Firesale',         tier:'rare',   desc:'', tags:['mult','hand','shop','scores','scaling'] },
+  { id:'fire_sale',        name:'Firesale',         tier:'rare',   desc:'+0.25 mult every time you spend or lose a credit.', tags:['mult','hand','shop','scores','scaling'] },
   { id:'trade_in',         name:'Trade In',         tier:'rare',   desc:'', tags:['tricks','other','shop','cost'] },
-  { id:'four_oh_one',      name:'401',              tier:'rare',   desc:'', tags:['xmult','xpips','hand','shop','scores','scaling'] },
-  { id:'middle_man',     name:'Middle Man',          tier:'rare',    desc:'Each credit gain or loss during play adds +3 mult to this', tags:['mult','hand','scores','scaling'] },
-  { id:'rising_tide',    name:'inflation',         tier:'rare',    desc:'Each level you pass adds +5 to +10 mult to this', tags:['mult','hand','level','scores','scaling','chance'] },
+  { id:'four_oh_one',      name:'401',              tier:'rare',   desc:'×0.2 mult or ×0.2 pips, at random, every time you sell a Trick, Knack or Sleight.', tags:['xmult','xpips','hand','shop','scores','scaling'] },
+  { id:'middle_man',     name:'Middle Man',          tier:'rare',    desc:'+3 mult every time you gain or lose credits during play', tags:['mult','hand','scores','scaling'] },
+  { id:'rising_tide',    name:'inflation',         tier:'rare',    desc:'+5 to +10 mult every time you pass a level', tags:['mult','hand','level','scores','scaling','chance'] },
   // ── Accumulating ──
-  { id:'compound_mult',  name:'Compound',            tier:'epic',      desc:'Each hand played scales this trick +0.3 mult', tags:['mult','hand','scores','scaling'] },
-  { id:'acorns',         name:'Pé-de-Meia',              tier:'rare',      tags:['focus','hand','scaling'], desc:'Each card scored scales this trick +0.025 Focus, starting at +0; adds its whole-number Focus each hand' },
+  { id:'compound_mult',  name:'Compound',            tier:'epic',      desc:'+0.3 mult every time you play a hand', tags:['mult','hand','scores','scaling'] },
+  { id:'acorns',         name:'Pé-de-Meia',              tier:'rare',      tags:['focus','hand','scaling'], desc:'+0.025 Focus every time a card scores, starting at +0; adds its whole-number Focus each hand' },
   { id:'plan_ahead',     name:'Plan Ahead',          tier:'rare',      tags:['focus','hand'], desc:'Every 3rd hand adds Focus equal to 2x your average hands per level' },
-  { id:'fives_discard',  name:'Nickel Saved',        tier:'rare',      tags:['pips','hand','rank','discard','scores','scaling'], desc:'Each 5 discarded or played scales this trick +5 pips' },
-  { id:'nines_mult',     name:'Cloud Nine',          tier:'epic',      tags:['deck','mult','hand','rank','discard','scores','scaling','cost'], desc:'Adds 9 9s to your deck. Each 9 scored adds +2 mult to this. A 9 that scores or is discarded is destroyed; when none are left, this trick deletes itself' },
-  { id:'tens_mult',      name:'To The Nines',        tier:'rare',      tags:['mult','hand','rank','discard','scores','scaling'], desc:'Each 9 discarded or played scales this trick +3 mult' },
+  { id:'fives_discard',  name:'Nickel Saved',        tier:'rare',      tags:['pips','hand','rank','discard','scores','scaling'], desc:'+5 pips every time you discard or play a 5' },
+  { id:'nines_mult',     name:'Cloud Nine',          tier:'epic',      tags:['deck','mult','hand','rank','discard','scores','scaling','cost'], desc:'Adds 9 9s to your deck. +2 mult every time a 9 scores. A 9 that scores or is discarded is destroyed; when none are left, this trick deletes itself' },
+  { id:'tens_mult',      name:'To The Nines',        tier:'rare',      tags:['mult','hand','rank','discard','scores','scaling'], desc:'+3 mult every time you discard or play a 9' },
   { id:'sixes_perm',     name:'D6',                  tier:'epic',      tags:['deck','pips','mult','card','scaling','scores','chance'], desc:'Every 6th card scored permanently gains a random +6–18 pips or mult' },
   { id:'fours_perm',     name:'Middle Management',   tier:'common',    tags:['deck','pips','card','size','scaling','scores'], desc:'4-card hands permanently give the 4th card +16 pips' },
   { id:'twos_retrigger', name:'Double Take',         tier:'rare',      tags:['retrigger','card','rank','tricks'], desc:'Each 2 scored force triggers your rightmost Trick (other than this one)' },
@@ -189,12 +189,12 @@ const TRICK_POOL = [
   { id:'combo_score',    name:'Hybrid Approach',         tier:'common',    desc:'+6 mult for every distinct hand type played this level', tags:['mult','hand','scores'] },
   { id:'move_as_one',    name:'Move as One',         tier:'epic',      retired:true, tags:['retrigger','hand','tricks'], desc:'If 2+ of your Tricks share a keyword, a random Trick sharing that keyword scores its effect a second time each time all of them are triggered' },
   // ── Reward-grid meta (r128) ──
-  { id:'more_better',    name:'More Better',         tier:'rare',      tags:['mult','hand','reward','scores','scaling'], desc:`Each ${gridName('reward')} where you select 3+ tiles adds +12 mult to this` },
+  { id:'more_better',    name:'More Better',         tier:'rare',      tags:['mult','hand','reward','scores','scaling'], desc:'+12 mult every time you select 3+ tiles on a Balance Sheet' },
   { id:'rain_check',     name:'Rain Check',          tier:'epic',      retired:true, tags:['time','other','reward'],           desc:'Skipping a reward: the next level starts with +30s (in Flow, rewind the clock 30s)' },
   // ── Time / position (r128) ──
   { id:'temporal_rift',  name:'Temporal Rift',       tier:'epic',      tags:['retrigger','card','position','tricks'], desc:'A card scored where a row and column effect intersect force triggers the Trick in position 3' },
   // ── Risk / negative-tile scaling (r129) ──
-  { id:'wild_side',      name:'Wild Side',           tier:'common',      tags:['mult','hand','reward','scores','scaling'],    desc:'+6 mult for every negative reward tile you take this run' },
+  { id:'wild_side',      name:'Wild Side',           tier:'common',      tags:['mult','hand','reward','scores','scaling'],    desc:'+6 mult every time you take a negative reward tile this run' },
   { id:'wait_for_it',    name:'Wait For Iiiit',      tier:'epic',      retired:true, tags:['replay','card','reward','level','scores','scaling','chance'],  desc:'Each negative reward tile taken this run gives every scored card a +3% chance to replay. In Flow: each level-up that pays a single reward gives +5% instead, Luck aside' },
   // ── Focus ──
   { id:'meditation',     name:'Meditation',          tier:'rare',    retired:true, tags:['focus','other'], desc:'Focus decays 2 seconds slower' },
@@ -238,7 +238,7 @@ const TRICK_POOL = [
   // ── r359: the 9.23 sheet's new Tricks ──
   { id:'obsessed',        name:'Obsessed',           tier:'legendary', tags:['xmult','card','suit','scores','held'], desc:'Each heart applies x mult equal to 1 + (credits / 100). 50 credits = x1.5' },
   { id:'buried_treasure', name:'Buried Treasure',    tier:'legendary', tags:['credits','card','suit','chance','held'], desc:'Each scored diamond has a chance equal to half your Luck to apply x1.25 to your credits' },
-  { id:'relentless',      name:'Relentless',         tier:'legendary', tags:['xmult','card','suit','scores','scaling'], desc:'Scored spades scale this trick +x0.1 mult each. The scaling drops by 0.01 for each spade scored, never under 0.01, and resets to x0.1 each new level (replays count). Each spade scores x mult equal to the total. No effect until it passes x1' },
+  { id:'relentless',      name:'Relentless',         tier:'legendary', tags:['xmult','card','suit','scores','scaling'], desc:'+x0.1 mult every time a spade scores. That amount drops by 0.01 for each spade scored, never under 0.01, and resets to x0.1 each new level (replays count). Each spade scores x mult equal to the total' },
   { id:'patient_rulers',  name:'True Leader',     tier:'epic',      tags:['xmult','card','rank','pause','scores'],   desc:'If you have paused or rewound the clock this level, face cards score x1.5 mult' },
   { id:'even_better',     name:'Even Better',        tier:'epic',      tags:['xpips','card','rank','scores','chance'],   desc:'Even-ranked cards have a 66% chance to score x2.25 pips' },
   { id:'what_odds',       name:'Never Tell Me',  tier:'epic',      tags:['xmult','card','rank','scores'],          desc:'Odd-ranked cards score x1.7 mult' },
