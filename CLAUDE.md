@@ -6156,3 +6156,8 @@ changed. Golden: 838 match.
   every time you play a hand"; a level-scoped Trick outside a live level leads with "(N/A)"; Move as
   One and Feelin Lucky lead with their own brackets. Relentless lost "No effect until it passes x1":
   the bracket shows x1.00 until it does.
+
+## r847 - scaling Tricks lead with "Scales" (owner)
+The r846 sentences start with the word: "Scales +0.3 mult every time you play a hand". Cloud Nine and
+To the Clouds lead with their scaling sentence, then "Adds 9 9s to your deck". 生きがい reads "Scales
++1 mult for every 10 Focus made this run". Templates and literal sentences match. Golden: 838 match.

@@ -1,4 +1,4 @@
-const BUILD = "2026-11-24 · r846 · +N every time X; current amount leads the tooltip";
+const BUILD = "2026-11-24 · r847 · scaling Tricks lead with Scales";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
