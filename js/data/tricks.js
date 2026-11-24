@@ -123,7 +123,7 @@ const TRICK_POOL = [
   { id:'suggestive',     name:'根回し',          tier:'epic',      tags:['retrigger','card','position','tricks','chance','line'], desc:"Cards scored in a marked row or column have a 35% chance to prime the Trick in the tray slot of that line's number" },
   { id:'coin_sword',     name:'Coin and the Sword',  tier:'rare',      tags:['credits','mult','card','position','chance','scores','line'], desc:'Cards scored in a marked row or column have a 10% chance to pay credits equal to the hand size and a 20% chance to score mult equal to 25% of your credits' },
   // ── r646 INSEPARABLE (js/inseparable.js): two owned Tricks fuse into one. Never offered; fused: true. ──
-  { id:'lie_up',         name:'Lie Up',              tier:'epic',      fused:true, tags:['mult','hand','position','scores'], desc:'Hands with cards from only one row or only one column score +24 mult' },
+  { id:'lie_up',         name:'Lie Up',              tier:'epic',      fused:true, tags:['pips','mult','card','position','scores'], desc:'Hands whose shape bends 2 times or fewer score +25 pips and +25 mult per card' },
   // r651 (owner): 21 more. `acts` = the fused Trick stands in for both parts (hasTrick, their BAL row through TB(), their line); the rest have their own scoring.
   { id:'well_adjusted',  name:'Well Adjusted',       tier:'rare',      fused:true, tags:['pips','mult','hand','scores'], desc:'Every hand scores +20 pips and +20 mult' },
   { id:'right_place_time', name:'Right Place & Time', tier:'epic',     fused:true, acts:['rowcol_triple_pips','right_time'], tags:['pips','time','card','position','scores','line'], desc:'Cards scored in a marked row or column score +25 pips and pause the clock for 2s' },

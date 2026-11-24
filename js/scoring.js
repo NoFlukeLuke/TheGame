@@ -357,6 +357,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     suitCount:  new Set(_natCards.map(c => cardColorSuit(c))).size,
     allSameCol: cells.every(([, cc]) => cc === cells[0][1]),
     allSameRow: cells.every(([rr]) => rr === cells[0][0]),
+    cells,
     isFlush:    handName === 'Flush',
     rankCount:  new Set(_natCards.map(c => c.rank)).size,
     primeCount: _natCards.filter(c => ['A','2','3','5','7'].includes(c.rank)).length,
@@ -1085,6 +1086,8 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   if (_pcMult.column_rush) { bMultQ('column_rush', _pcMult.column_rush, 1); }
   if (_pcMult.row_power) { bMultQ('row_power', _pcMult.row_power, 1); }
   if (_pcMult.stand_up) { bMultQ('stand_up', _pcMult.stand_up, 1); }
+  if (_pcPips.lie_up) { bPipQ('lie_up', _pcPips.lie_up, 1); }
+  if (_pcMult.lie_up) { bMultQ('lie_up', _pcMult.lie_up, 1); }
   if (_pcMult.rich_soil) { bMultQ('rich_soil', _pcMult.rich_soil, 1); }
   if (_pcPips.heavy_hand) { bPipQ('heavy_hand', _pcPips.heavy_hand, 1); }
   if (_pcPips.prime_time) { bPipQ('prime_time', _pcPips.prime_time, 1); }
@@ -1906,11 +1909,29 @@ function pennyPerfectBonus() {
 function handIsLine(cells) {
   return new Set(cells.map(([r]) => r)).size === 1 || new Set(cells.map(([, c]) => c)).size === 1;
 }
-// Lie Up (r646): the hand sits in no more than `span` rows OR no more than `span` columns.
-function lieUpShape(cells) {
-  const rows = new Set(cells.map(([r]) => r)).size, cols = new Set(cells.map(([, c]) => c)).size;
-  return rows <= BAL.lie_up.span || cols <= BAL.lie_up.span;
+// r828: how many times a hand's shape turns. The cells (positions; a Stacked pulled
+// card shares its surface cell's) must make one unbranched path: a line is 0, an L 1,
+// an S, Z or U 2. A branch (T, plus) or a loop (a 2x2) is not a path: Infinity.
+function handBends(cells) {
+  const pos = [...new Map(cells.map(([r, c]) => [r + ',' + c, [r, c]])).values()];
+  if (pos.length < 3) return 0;
+  const key = new Set(pos.map(([r, c]) => r + ',' + c));
+  const nbrs = ([r, c]) => [[r - 1, c], [r + 1, c], [r, c - 1], [r, c + 1]].filter(([a, b]) => key.has(a + ',' + b));
+  if (pos.some(p => nbrs(p).length > 2)) return Infinity;
+  const ends = pos.filter(p => nbrs(p).length === 1);
+  if (ends.length !== 2) return Infinity;
+  let prev = null, cur = ends[0], dir = null, bends = 0, seen = 1;
+  for (;;) {
+    const next = nbrs(cur).find(([a, b]) => !prev || a !== prev[0] || b !== prev[1]);
+    if (!next) break;
+    const d = (next[0] - cur[0]) + ',' + (next[1] - cur[1]);
+    if (dir !== null && d !== dir) bends++;
+    dir = d; prev = cur; cur = next; seen++;
+  }
+  return seen === pos.length ? bends : Infinity;
 }
+// Lie Up (r646; r828 per card): the hand's shape bends no more than BAL.lie_up.bends times.
+function lieUpShape(cells) { return handBends(cells) <= BAL.lie_up.bends; }
 // Magician (r646, owner): the pips side pays only while you own no Sleight (r623 asked
 // for it to be the only Trick in the tray).
 function magicianNoSleights() { return ownedSleightCount() === 0; }

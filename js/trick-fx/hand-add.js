@@ -15,7 +15,6 @@
 // Coin and the Sword, Straight Shot) stays in calcScore until the card loop moves.
 // ══════════════════════════════════════════════
 // Lie Up (r646, INSEPARABLE: Lie Down + Stand-Up): one row or one column; v6 no more than 2 of either.
-fxDefine('lie_up',         { handAdd: x => lieUpShape(x.cells) ? { mult: BAL.lie_up.mult } : null });
 // r651 fused Tricks with a rule of their own (the rest stand in for their parts through `acts`).
 fxDefine('well_adjusted',  { handAdd: () => ({ pip: BAL.well_adjusted.pips, mult: BAL.well_adjusted.mult }) });
 fxDefine('serenity',       { handAdd: x => !handIsLine(x.cells) ? { mult: BAL.serenity.mult } : null });

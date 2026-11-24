@@ -20,8 +20,8 @@ const BAL = {
   obligatory:  { chance: 0.25, chance2: 0 },
   suggestive:  { chance: 0.35, chance2: 0 },
   coin_sword:  { credit_chance: 0.1, mult_chance: 0.2, credit_pct: 0.25, line2: 0 },
-  // r646 INSEPARABLE: Lie Down + Stand-Up. span 1 = one row or one column; 2 (the 5th improvement) = no more than 2 of either.
-  lie_up:      { mult: 24, span: 1 },
+  // r646 INSEPARABLE: Lie Down + Stand-Up. r828: per card, when the hand's shape bends no more than `bends` times (the 5th improvement: 3).
+  lie_up:      { pips_per_card: 25, mult_per_card: 25, bends: 2 },   // r828 (owner): was +24 mult a hand on one row or column
   // r651 (owner): the 21 fused Tricks. An `acts` row holds BOTH parts' keys (their code reads it through TB()).
   well_adjusted: { pips: 20, mult: 20 },
   right_place_time: { flat_pips: 25, pause_seconds: 2 },
@@ -485,7 +485,7 @@ const DESC_TEMPLATES = {
   obligatory: "Cards scored in a marked row or column have a {chance_pct}% chance to force-trigger the Trick in the tray slot of that line's number[[chance2:; a second line at {chance2_pct}%]]",
   suggestive: "Cards scored in a marked row or column have a {chance_pct}% chance to prime the Trick in the tray slot of that line's number[[chance2:; a second line at {chance2_pct}%]]",
   coin_sword: 'Cards scored in a marked row or column have a {credit_chance_pct}% chance to pay credits equal to the hand size and a {mult_chance_pct}% chance to score mult equal to {credit_pct_pct}% of your credits[[line2:; a second line at the base odds]]',
-  lie_up: 'Hands with cards from [[span<2:only one row or only one column]][[span>1:no more than 2 rows or no more than 2 columns]] score +{mult} mult',
+  lie_up: 'Hands whose shape bends {bends} times or fewer score +{pips_per_card} pips and +{mult_per_card} mult per card',
   overtime:      "Every hand rewinds the clock {seconds_per_3}s for every 3 cards you have scored from this Trick's marked row or column. Resets each level.",
   feng_shui: 'Permanently scores +{pips_per_hand} pips for each hand scored with a positional buff (row or column effects)',
   sands_of_time: 'Score +pips equal to time remaining ÷ {divisor}',

@@ -1,4 +1,4 @@
-const BUILD = "2026-11-23 · r827 · Lie Down and Stand-Up +20 mult per card";
+const BUILD = "2026-11-24 · r828 · Lie Up: +25 pips +25 mult per card, 2 bends or fewer";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
