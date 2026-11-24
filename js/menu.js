@@ -1,4 +1,4 @@
-const BUILD = "2026-11-24 · r841 · Dragging; Franchised, Bogart, Corporate Ladder, Identity Crisis, Org Chart; Fodder reaches its neighbours";
+const BUILD = "2026-11-24 · r847 · merge: Dragging and five Sleights (its branch's r841) with main's r846";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

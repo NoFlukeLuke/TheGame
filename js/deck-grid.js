@@ -547,6 +547,8 @@ let middleManMult     = 0;   // Middle Man (r649): mult earned by credit changes
 let bonusMult_tens    = 0;
 let bonusMult_compound  = 0;   // Compound Trick: +0.1 per hand played
 let spadesRelentless   = 0;   // Relentless Trick: spades scored since it was taken (r367)
+// r844: Relentless's built-up x mult, and this level's spade count (each spade adds 0.01 less, floor 0.01).
+let relentlessBonus = 0, relentlessLvN = 0, relentlessLv = 0;
 let bonusFocus_acorns   = 0;   // Acorns Trick: +0.05 Focus per scored card (per game); grants floor each hand
 let handsPlayedGame     = 0;   // cumulative hands played this game (Plan Ahead average); reset on new game
 let bonusMult_morebetter = 0;  // More Better Trick: +4 mult per reward grid where 3+ tiles were selected (per game)

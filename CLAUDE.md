@@ -6111,6 +6111,55 @@ form PIPS / MULT and the fused chip already used. `scoreTxtParse` reads any of t
 wheels. The dance's reconcile writes PIPS / MULT through fmtBig (it wrote raw digits, which the LED
 copy crushed into a line that read as a minus sign). A new SCORE or GOAL write uses `scoreTxt`.
 
+## r841 - letters up to vigintillion (owner)
+`fmtBig` (js/labels.js) reads the short scale from one table, `FMT_BIG_UNITS`: k m b t, Qa Qi Sx Sp
+Oc No Dc (quadrillion to decillion, 1e15-1e33), Ud Dd Td Qad Qid Sxd Spd Ocd Nod (undecillion to
+novemdecillion) and Vg (vigintillion, 1e63); past that, powers of ten (1e66). A figure that rounds
+to 1000 moves up a unit (999.6k reads 1m). The LED font prints them upper case (QA, DC, TD).
+`scoreTxtParse` reads every unit back (capped at the largest number JS holds). SCORE and GOAL still
+print every digit under a trillion (`SCORE_SHORT_FROM`).
+
+## r842 - letters stop at decillion (owner)
+`FMT_BIG_UNITS` ends at Dc (1e33); from 1e36 numbers read as powers of ten (1e36, 2.3e40).
+r841's Ud to Vg are gone.
+
+## r843 - Relentless x0.05 a spade (owner)
+`BAL.relentless.mult_per_spade` 0.1 -> 0.05 (r817 had raised it). The owner is weighing a per-level
+falling step instead (0.10, 0.09, 0.08... starting over each level): it gives more than a flat 0.05
+until the 11th spade of one level, equal there, less from the 12th. Not built.
+
+## r844 - Relentless: each spade in a level adds 0.01 less (owner)
+Built from r843's note. `relentlessBonus` (SAVE_VARS) is the x mult a spade scores (no effect until it
+passes x1). Each spade scored adds `relentlessStepNow()`: `BAL.relentless.mult_per_spade` (0.1) for a
+level's first, `step` (0.01) less for each after it in that level (`relentlessLvN` / `relentlessLv`), never
+under `floor` (0.01); replays count, a flush layer counts each spade twice. A level is `level`, so in
+Flow each level-up starts the step over. Grown in scalingCount; the tray line prints the next step.
+A pre-r844 save starts the bonus at 0. Measured at 1440x820 and 420x900: hands of three suited spades
+added 0.45, 0.12, then 0.06 a hand; the next level's first spade 0.1; no drift. Golden: 838 match.
+
+## r845 - the scaling Tricks speak one way (owner)
+A Trick that grows from the moment it is taken reads "Each ___ adds +N to this" (Firesale, 401,
+inflation, More Better, Cloud Nine, Middle Man, Feng Shui) or, to compare, "Each ___ scales this
+trick +N" (Compound, To The Nines, Nickel Saved, Pe-de-Meia, Relentless in the owner's words). One that
+counts the whole run, taken or not, reads "+N for every ___ this run" (The Hummingbird, Wild Side,
+生きがい: `pauseInstanceGame`, `negativeTilesTakenRun`, `focusGenGame` all count from the run's start).
+"permanently" and "scaling" are gone from them. Wild Side has a template now. Templates only, no number
+changed. Golden: 838 match.
+
+## r846 - "+N every time X"; the current amount leads a Trick's tooltip (owner)
+- **Wording (owner's pick over r845's two patterns):** a Trick that grows reads "+N every time X"
+  (Firesale, 401, inflation, Compound, To The Nines, Nickel Saved, Cloud Nine, To the Clouds, Middle
+  Man, More Better, Feng Shui, Pé-de-Meia, The Hummingbird, Wild Side, Relentless). A whole-run count
+  keeps "this run". 生きがい keeps "+N for every 10 Focus made this run". Templates and the pool's
+  literal sentences match.
+- **The current amount comes first** (`trickLiveDesc`, js/tricks-ui.js): "(now +4.2 mult) +0.3 mult
+  every time you play a hand"; a level-scoped Trick outside a live level leads with "(N/A)"; Move as
+  One and Feelin Lucky lead with their own brackets. Relentless lost "No effect until it passes x1":
+  the bracket shows x1.00 until it does.
+
+## r841-r847 numbering
+The Dragging / five Sleights pass (below) was built as r841 while main shipped its own r841 to r846 (above). The merge that joined them is r847.
+
 ## r841 - Dragging; five Sleights; Fodder reaches its neighbours (`js/fall-sleights.js`, owner)
 - **Dragging** (a card condition; keyword `dragging`): never in a level's opening deal. A Sleight row
   with `dragging: true` has it (`cardDragging(card)`; `card._dragging` for a plain card, nothing sets it

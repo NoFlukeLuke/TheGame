@@ -17,10 +17,15 @@ fxDefine('full_color',     { cardXMult: x => (!x.ghost && x.h.suitCount === 4 &&
 fxDefine('patient_rulers', { cardXMult: x => ((rkHas('patient_rulers', x.rank) || (ownedTrickObj('patient_rulers')?._prRanks || []).includes(x.rank))
   && (pausesThisRound > 0 || rewindsThisRound > 0)) ? BAL.patient_rulers.mult_mult : null });
 fxDefine('obsessed',       { cardXMult: x => (x.card.suit === '♥' && coins > 0) ? 1 + coins / TB('obsessed').per_credits : null });
-// Relentless (r367): x(0.05 per spade scored since taking it), never below x1.
+// Relentless (r367 / r844): x the bonus built up since taking it (relentlessBonus, grown in scalingCount),
+// no effect until it passes x1. What the next spade adds this level:
+function relentlessStepNow() {
+  const B = TB('relentless'), n = (relentlessLv === level) ? relentlessLvN : 0;
+  return Math.max(B.floor, Math.round((B.mult_per_spade - B.step * n) * 100) / 100);
+}
 fxDefine('relentless',     { cardXMult: x => {
   if (x.card.suit !== '♠') return null;
-  const f = Math.round(spadesRelentless * BAL.relentless.mult_per_spade * 100) / 100;
+  const f = Math.round(relentlessBonus * 100) / 100;
   return f > 1 ? f : null;
 } });
 fxDefine('feelin_lucky',   { cardXMult: x => { const rk = ownedTrickObj('feelin_lucky')?._luckyRanks; return (rk && rk.includes(x.rank)) ? BAL.feelin_lucky.mult_mult : null; } });

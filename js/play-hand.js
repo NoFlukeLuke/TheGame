@@ -1188,8 +1188,16 @@ function scalingCount(hand, handCells, reps) {
     for (const x of _cells) {
       const card = x.card;
       if (card._isSleight || card._isStone || isWildCard(card)) continue;
-      spadesRelentless += x.n * ((card.suit === '♠') + (card.suit2 === '♠'));   // r392: a double spade counts twice
+      const hits = x.n * ((card.suit === '♠') + (card.suit2 === '♠'));   // r392: a double spade counts twice
+      spadesRelentless += hits;
+      // r844 (owner): a level's first spade adds mult_per_spade, each one after it `step` less, never under `floor`.
+      for (let i = 0; i < hits; i++) {
+        if (relentlessLv !== level) { relentlessLv = level; relentlessLvN = 0; }
+        relentlessBonus += relentlessStepNow();
+        relentlessLvN++;
+      }
     }
+    relentlessBonus = Math.round(relentlessBonus * 100) / 100;
   }
   // Hard Labour: the round ladder climbs by this hand's club scores (incl. replays).
   if (hasTrick('club_double')) clubsScoredRound += clubHitsPending;

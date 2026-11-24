@@ -103,31 +103,40 @@ const CREDIT_SYM = 'L¢';
 function creditsTxt(n) { return CREDIT_SYM + n; }
 // r806 (owner): a figure too big for its box reads in letters from 100,000 up: 100k,
 // 346k, 1.2m, 12m, 3.2b. Under that it reads as `small` says (the caller's own style).
+// r841 / r842 (owner): letters up the short scale to decillion. k thousand, m million,
+// b billion, t trillion, then Qa quadrillion (1e15), Qi quintillion, Sx sextillion,
+// Sp septillion, Oc octillion, No nonillion, Dc decillion (1e33). Past decillion, powers of
+// ten (1e36, 2.3e40). The LED font prints them upper case (QA, DC...). One table: FMT_BIG_UNITS.
+const FMT_BIG_UNITS = ['k', 'm', 'b', 't', 'Qa', 'Qi', 'Sx', 'Sp', 'Oc', 'No', 'Dc'];
 function fmtBig(n, small) {
   n = +n || 0;
-  const a = Math.abs(n);
+  const a = Math.abs(n), sg = n < 0 ? '-' : '';
   if (a < 1e5) return small ? small(n) : String(Math.round(n));
-  // r836: past a trillion the letters run out: t, then powers of ten (2.3e18).
-  if (a >= 1e15) { const e = Math.floor(Math.log10(a)); let m = Math.round(a / Math.pow(10, e) * 10) / 10, x = e; if (m >= 10) { m = 1; x++; } return (n < 0 ? '-' : '') + m + 'e' + x; }
-  const u = a >= 1e12 ? [1e12, 't'] : a >= 1e9 ? [1e9, 'b'] : a >= 1e6 ? [1e6, 'm'] : [1e3, 'k'];
-  const v = a / u[0];
-  const s = v < 10 ? (Math.round(v * 10) / 10).toString() : String(Math.round(v));
-  return (n < 0 ? '-' : '') + s + u[1];
+  let i = Math.floor(Math.log10(a) / 3) - 1;   // 0 = k
+  const fmt = v => v < 10 ? (Math.round(v * 10) / 10) : Math.round(v);
+  let v = fmt(a / Math.pow(1000, i + 1));
+  if (v >= 1000) { i++; v = fmt(a / Math.pow(1000, i + 1)); }   // 999.6k reads 1m, not 1000k
+  if (i < FMT_BIG_UNITS.length) return sg + v + FMT_BIG_UNITS[i];
+  const e = Math.floor(Math.log10(a)); let m = Math.round(a / Math.pow(10, e) * 10) / 10, x = e;
+  if (m >= 10) { m = 1; x++; }
+  return sg + m + 'e' + x;
 }
 
 // r839 (owner: past a trillion SCORE and GOAL broke): the one way SCORE and GOAL print a
 // number. Under a trillion every digit with separators (as before); from a trillion up
-// fmtBig's short form (1.2t, 640t, then 6.4e20), the same form PIPS / MULT / the fused
+// fmtBig's short form (1.2t, 640t, 6.4Sx...), the same form PIPS / MULT / the fused
 // chip show, so a hand's number does not change shape when it lands in SCORE.
 const SCORE_SHORT_FROM = 1e12;
 function scoreTxt(n) { n = +n || 0; return Math.abs(n) >= SCORE_SHORT_FROM ? fmtBig(n) : Math.round(n).toLocaleString(); }
 // Read a number back from any of those forms ('12,345', '640t', '6.4e20').
 function scoreTxtParse(s) {
-  s = String(s || '').replace(/[^0-9.eEkmbt-]/g, '').toLowerCase();
-  const m = s.match(/^(-?[0-9.]+)(?:e(-?\d+)|([kmbt]))?$/); if (!m) return 0;
+  s = String(s || '').replace(/[^0-9.a-zA-Z-]/g, '');
+  const m = s.match(/^(-?[0-9.]+)(?:[eE](-?\d+)|([a-zA-Z]+))?$/); if (!m) return 0;
   const v = parseFloat(m[1]); if (isNaN(v)) return 0;
-  if (m[2] != null) return v * Math.pow(10, +m[2]);
-  return v * ({ k: 1e3, m: 1e6, b: 1e9, t: 1e12 }[m[3]] || 1);
+  if (m[2] != null) return Math.min(Number.MAX_VALUE, v * Math.pow(10, +m[2]));
+  if (!m[3]) return v;
+  const i = FMT_BIG_UNITS.findIndex(u => u.toLowerCase() === m[3].toLowerCase());
+  return Math.min(Number.MAX_VALUE, i < 0 ? v : v * Math.pow(1000, i + 1));
 }
 
 // r721: the inside of a screen's skip key (css/screen-skip.css): pixel triangles drawn as
