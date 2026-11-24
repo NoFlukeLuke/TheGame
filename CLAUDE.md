@@ -6206,3 +6206,7 @@ Org Chart 162 -> 648 with one Sleight, 1,458 with two, a charge spent. Golden: 8
 The r846 sentences start with the word: "Scales +0.3 mult every time you play a hand". Cloud Nine and
 To the Clouds lead with their scaling sentence, then "Adds 9 9s to your deck". 生きがい reads "Scales
 +1 mult for every 10 Focus made this run". Templates and literal sentences match. Golden: 838 match.
+
+## r849 - Wild Side drops "this run" (owner)
+"Scales +6 mult every time you take a negative reward tile". Wording only; it still counts tiles taken
+from the run's start (`negativeTilesTakenRun`).

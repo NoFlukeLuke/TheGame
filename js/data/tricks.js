@@ -194,7 +194,7 @@ const TRICK_POOL = [
   // ── Time / position (r128) ──
   { id:'temporal_rift',  name:'Temporal Rift',       tier:'epic',      tags:['retrigger','card','position','tricks'], desc:'A card scored where a row and column effect intersect force triggers the Trick in position 3' },
   // ── Risk / negative-tile scaling (r129) ──
-  { id:'wild_side',      name:'Wild Side',           tier:'common',      tags:['mult','hand','reward','scores','scaling'],    desc:'Scales +6 mult every time you take a negative reward tile this run' },
+  { id:'wild_side',      name:'Wild Side',           tier:'common',      tags:['mult','hand','reward','scores','scaling'],    desc:'Scales +6 mult every time you take a negative reward tile' },
   { id:'wait_for_it',    name:'Wait For Iiiit',      tier:'epic',      retired:true, tags:['replay','card','reward','level','scores','scaling','chance'],  desc:'Each negative reward tile taken this run gives every scored card a +3% chance to replay. In Flow: each level-up that pays a single reward gives +5% instead, Luck aside' },
   // ── Focus ──
   { id:'meditation',     name:'Meditation',          tier:'rare',    retired:true, tags:['focus','other'], desc:'Focus decays 2 seconds slower' },

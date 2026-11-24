@@ -1,4 +1,4 @@
-const BUILD = "2026-11-24 · r848 · scaling Tricks lead with Scales; merge main r847";
+const BUILD = "2026-11-24 · r849 · Wild Side drops this run";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

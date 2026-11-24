@@ -615,7 +615,7 @@ const DESC_TEMPLATES = {
   still_water: 'Score +{mult_per_interval} mult for every {interval_seconds} seconds elapsed without using a swap',
   swift: '+{mult_per_interval} mult for every {interval_seconds} seconds elapsed this level',
   woodpecker: 'Marks a random cell every {interval_seconds} seconds; a card scored from the marked cell replays {retrigger_count}x[[chance_extra:, with a {chance_extra_pct}% chance of one more every time]]',
-  wild_side: 'Scales +{mult_per} mult every time you take a negative reward tile this run',
+  wild_side: 'Scales +{mult_per} mult every time you take a negative reward tile',
   hummingbird: 'Scales +{mult_per_pause} mult every time the clock is paused or rewound this run',
   albatross: '+{pips_per_second} pips for every second the clock has spent paused this level',
   quarter_chime: 'Every time the clock passes a multiple of 15s, your next hand scores +{pips} pips',
