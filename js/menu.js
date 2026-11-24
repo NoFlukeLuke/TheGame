@@ -1,4 +1,4 @@
-const BUILD = "2026-11-24 · r840 · merge: the goal net and Relay progress (r839) with main's r839";
+const BUILD = "2026-11-24 · r841 · big numbers read letters up to vigintillion";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

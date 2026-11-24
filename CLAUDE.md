@@ -6110,3 +6110,11 @@ form PIPS / MULT and the fused chip already used. `scoreTxtParse` reads any of t
 (`_scoreDisplayed`). The odometer (js/score-rise.js) writes plain text past 1e12 instead of
 wheels. The dance's reconcile writes PIPS / MULT through fmtBig (it wrote raw digits, which the LED
 copy crushed into a line that read as a minus sign). A new SCORE or GOAL write uses `scoreTxt`.
+
+## r841 - letters up to vigintillion (owner)
+`fmtBig` (js/labels.js) reads the short scale from one table, `FMT_BIG_UNITS`: k m b t, Qa Qi Sx Sp
+Oc No Dc (quadrillion to decillion, 1e15-1e33), Ud Dd Td Qad Qid Sxd Spd Ocd Nod (undecillion to
+novemdecillion) and Vg (vigintillion, 1e63); past that, powers of ten (1e66). A figure that rounds
+to 1000 moves up a unit (999.6k reads 1m). The LED font prints them upper case (QA, DC, TD).
+`scoreTxtParse` reads every unit back (capped at the largest number JS holds). SCORE and GOAL still
+print every digit under a trillion (`SCORE_SHORT_FROM`).
