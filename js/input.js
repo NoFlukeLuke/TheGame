@@ -151,7 +151,7 @@ function doSwap(r1, c1, r2, c2) {
   const _pivotCell = pivotForSwap(r1, c1, r2, c2);
   const freeThisSwap = swapTouchesLivePivot(r1, c1, r2, c2) || sleightFreeSwapPending;
   // r567: a swap that moves a Fodder card costs no stock and no time (it still counts as a swap).
-  const _fodderSwap = (typeof cardIsFodder === 'function' && (cardIsFodder(gridData[r1]?.[c1]) || cardIsFodder(gridData[r2]?.[c2])))
+  const _fodderSwap = (typeof cellIsFodder === 'function' && (cellIsFodder(r1, c1) || cellIsFodder(r2, c2)))
                    || (typeof freeHandActive === 'function' && freeHandActive());   // r571: Free Hand's window
   // r739: the Recycler's free swaps and discards (js/sleight-roles.js), spent below once the swap happens.
   const _recFree = !freeThisSwap && !_fodderSwap && typeof recyclerFreeLeft !== 'undefined' && recyclerFreeLeft > 0;
@@ -335,7 +335,7 @@ function doSwapMulti(cells) {
   if (typeof bossInteractBlocked === 'function' && bossInteractBlocked('swap')) return;
   const n = cells.length;
   const cardOf = ([r, c]) => gridData[r]?.[c];
-  const _fodder = cells.some(cl => typeof cardIsFodder === 'function' && cardIsFodder(cardOf(cl)))
+  const _fodder = cells.some(cl => typeof cellIsFodder === 'function' && cellIsFodder(cl[0], cl[1]))
                || (typeof freeHandActive === 'function' && freeHandActive());
   const _free = sleightFreeSwapPending;
   const _recFree = !_free && !_fodder && typeof recyclerFreeLeft !== 'undefined' && recyclerFreeLeft > 0;

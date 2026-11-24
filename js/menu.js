@@ -1,4 +1,4 @@
-const BUILD = "2026-11-24 · r847 · scaling Tricks lead with Scales";
+const BUILD = "2026-11-24 · r848 · scaling Tricks lead with Scales; merge main r847";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

@@ -47,7 +47,8 @@ function doDiscard() {
   // the discard limit", so it must not be stopped by that limit either.
   // r567: a selection of nothing but Fodder costs no stock, so it is never refused for stock.
   const _freeHand = typeof freeHandActive === 'function' && freeHandActive();   // r571: Free Hand's window
-  const _allFodder = _freeHand || (typeof cardIsFodder === 'function' && selected.every(([r, c]) => cardIsFodder(gridData[r]?.[c])));
+  const _fodCards = new Set(selected.filter(([r, c]) => cellIsFodder(r, c)).map(([r, c]) => gridData[r][c]));   // r841: Fodder and the cards beside it
+  const _allFodder = _freeHand || _fodCards.size === selected.length;
   // r739: the Recycler's free swaps and discards (js/sleight-roles.js).
   const _recFree = !_allFodder && typeof recyclerFreeLeft !== 'undefined' && recyclerFreeLeft > 0;
   if (discards <= 0 && !hasKnack('hoarder') && !_allFodder && !_recFree) {
@@ -131,7 +132,7 @@ function doDiscard() {
   // Spoiled (id hoarder): discards don't count against limit (but cost 2× time below)
   // r567: Fodder takes no stock either, when every card thrown away is Fodder.
   const _own = discardedCards.filter(c => !_carried.has(c));   // r647: carried cards pay nothing
-  const _fodderN = _freeHand ? _own.length : ((typeof cardIsFodder === 'function') ? _own.filter(cardIsFodder).length : 0);
+  const _fodderN = _freeHand ? _own.length : _own.filter(c => _fodCards.has(c)).length;
   if (_recFree) { recyclerFreeLeft--; noteMessage(`♻️ Recycler: free discard (${recyclerFreeLeft} left)`); }
   else if (!hasKnack('hoarder') && _fodderN < _own.length) discards--;
   // Discard time cost: the difficulty tier's flat figure (r727; it was 3s PER CARD).

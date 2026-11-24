@@ -268,6 +268,12 @@ const IMPROVE_PLAN = {
   capacitor: t => ({ charges: [5, 6, 6, 6, 7, 7][t], seconds: [10, 10, 9, 9, 9, 8][t], per: [1, 1, 1, 2, 2, 2][t] }),
   siphon: t => ({ charges: [4, 4, 5, 5, 5, 6][t], focus_cost: [15, 12, 12, 12, 9, 6][t], mult: [4, 4, 4, 5, 5, 6][t] }),
   rule_ranks: t => ({ charges: [6, 7, 7, 7, 8, 9][t], ranks: [2, 2, 4, 4, 4, 6][t], replays: [1, 1, 1, 2, 2, 3][t] }),
+  // r841 (owner; js/fall-sleights.js)
+  franchised: t => ({ charges: [4, 4, 5, 5, 6, 6][t], chance: [0.25, 0.4, 0.4, 0.55, 0.55, 0.55][t], stacked: t >= 5 ? 1 : 0 }),
+  bogart: t => ({ charges: [4, 4, 5, 5, 6, 7][t], chance: [0.2, 0.35, 0.35, 0.5, 0.5, 0.65][t] }),
+  corp_ladder: t => ({ charges: [4, 5, 5, 6, 6, 6][t], buff: [10, 10, 20, 20, 30, 30][t], reach: t >= 5 ? 2 : 1 }),
+  identity_crisis: t => ({ charges: [5, 7, 7, 7, 9, 9][t], chance: [0.3, 0.3, 0.5, 0.5, 0.5, 0.7][t], entity: t >= 3 ? 1 : 0, above: t >= 5 ? 1 : 0 }),
+  org_chart: t => ({ charges: [5, 6, 7, 8, 9, 12][t] }),
   rule_evens: t => ({ charges: [5, 6, 6, 7, 7, 8][t], focus: [2, 2, 4, 4, 6, 6][t], credits: t >= 5 ? 2 : 0 }),
   rule_faces: t => ({ charges: [5, 6, 6, 7, 7, 7][t], seconds: [2, 2, 4, 4, 4, 4][t], role: t >= 4 ? 1 : 0 }),
   rule_faces_k: () => ({}),   // a role-change Knack never improves (it arrives at v6)

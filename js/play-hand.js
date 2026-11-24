@@ -463,6 +463,7 @@ function playHand() {
     const _rc = typeof ruleEvenCredits === 'function' ? ruleEvenCredits(_scoredCells, _handRetrigByCell) : 0;   // r739
     if (_rc > 0) grantEntityCoins(_rc, 'sleight', 'rule_evens');
   }
+  if (typeof orgChartSpend === 'function') orgChartSpend(_scoredCells);   // r841: Org Chart, a charge a hand it replayed in
   // r739: Soul Mirror costs seconds when its rank scores (once a hand), and Whetstone sharpens on played cards beside it.
   if (typeof soulMirrorCharge === 'function') soulMirrorCharge(_scoredCells);
   if (typeof feedWhetstones === 'function') feedWhetstones(playedCells.filter(([r, c]) => !gridData[r]?.[c]?._isSleight || gridData[r][c].sleightId !== 'whetstone'));

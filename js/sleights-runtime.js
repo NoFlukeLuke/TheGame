@@ -85,6 +85,7 @@ function sleightFaceHTML(card, def, usesStr) {
        + (card && card._ruleRanks ? `<div class="sleight-rule">${card._ruleRanks.join(' ')}</div>` : '')   // r675: the ranks it named
        + (card && card._recHand ? `<div class="sleight-rule">${(typeof crHandShort === 'function' ? crHandShort(card._recHand) : card._recHand).toUpperCase()}</div>` : '')   // r739: the Recycler's hand
        + (card && card._thetaLanded ? `<div class="sleight-rule">L¢${card._thetaBank || 0}</div>` : '')   // r739: Theta's bank
+       + (typeof fallSleightNote === 'function' ? fallSleightNote(card) : '')   // r841: what a fall Sleight read
        + (card && card._floater ? `<div class="sleight-float">${emGlyph('🌀')}</div>` : '')   // r676: a Floater in its form this round
        + `<div class="sleight-card-uses">${usesStr}</div>`;
 }
@@ -552,6 +553,7 @@ function fireSleightsOnPlay(selectedCells, handCells, hand) {
     if (def.id === 'shortcut' && handCells.length !== 4) return;
     // Retake (r647): every card played with it, and itself, goes back into the DRAW
     // pile (discardToPlayed reads retakeCards); from v3, copies of played cards join it.
+    if (def.id === 'franchised') { franchisedFire(card, r, c, selectedCells); consumeSleightCharge(card, r, c); return; }   // r841
     if (def.id === 'retake') {
       selectedCells.forEach(([sr, sc]) => { const cd = gridData[sr]?.[sc]; if (cd) retakeCards.add(cd); });
       retakeCopies(selectedCells);
@@ -615,6 +617,7 @@ function fireSleightsOnSwap(r1, c1, r2, c2) {
     const def = sleightDef(card);
     if (!def || def.activation !== 'on_swap') return;
     if (!sleightCanActivateThisRound(card)) return;
+    if (def.id === 'identity_crisis') { identityCrisisFire(card, r, c, gridData[or2]?.[oc2]); return; }   // r841: every swap, a charge each, no level lock
     if (def.id === 'lightning_rod') {
       const other = gridData[or2]?.[oc2];
       if (other && !other._isSleight && !other._isTrick && other.rank) {

@@ -39,7 +39,7 @@ const KNACK_POOL = [
   { id:'free_range_t',    emoji:'🦅',  name:'Jeitinho',       rarity:'rare',   desc:'Can swap any two non-adjacent cards. When taken, sets your swap limit to 2.', tags:['stock','other','swap','cost'] },
   { id:'understudy',      emoji:'🎭',  name:'Understudy',       rarity:'rare',   desc:'Every 30 seconds one of your Tricks is primed.', tags:['retrigger','other','clock','tricks'] },
   { id:'hallmark',        emoji:'🔖',  name:'Hallmark',         rarity:'rare',   desc:'Once a level a card on the board is marked. Score it and it takes a random buff: +25 mult, +25 pips, an extra replay, rewind the clock 3s, pause the clock for 3s, or a trick primed or forced.', tags:['deck','card','position','scaling','chance'] },
-  { id:'turnover',        emoji:'♻️',  name:'Turnover',         rarity:'rare',   desc:'Any card you leave alone for 45 seconds becomes Fodder until it leaves the board: swapping or discarding it costs no time and no stock.', tags:['stock','other','clock','swap','discard'] },
+  { id:'turnover',        emoji:'♻️',  name:'Turnover',         rarity:'rare',   desc:'Any card you leave alone for 45 seconds becomes Fodder until it leaves the board: swapping or discarding it, or a card beside it, costs no time and no stock.', tags:['stock','other','clock','swap','discard'] },
   // r556 (owner): a dial you turn by double-tapping the chip. challengeDial (js/challenge-round.js) holds its direction.
   { id:'challenge_dial',  emoji:'🎚️',  name:'Juggernaut',   rarity:'rare',   desc:'Challenge cards show up 25% more often. Double-tap this to make them 25% rarer instead, and back.', tags:['luck','other','challenge'] },
   // ── Focus knacks (r571): what a double-tap on the Focus bar does. One at a time (js/focus-knacks.js). ──

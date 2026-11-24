@@ -30,6 +30,12 @@ function cardIsFodder(card) {
   if (!card || !card.rank || card._isSleight || card._isStone || card._isTrick) return false;
   return !!(card._fodderTemp || permFodder[cardId(card)]);
 }
+// r841 (owner): Fodder reaches its neighbours. A cell swaps and discards free when
+// its card is Fodder or a card orthogonally beside it is.
+function cellIsFodder(r, c) {
+  if (!gridData[r]?.[c]) return false;
+  return cardIsFodder(gridData[r][c]) || [[r - 1, c], [r + 1, c], [r, c - 1], [r, c + 1]].some(([a, b]) => cardIsFodder(gridData[a]?.[b]));
+}
 // Seconds this card puts BACK on the clock when it scores (the Card Market's time
 // card, r211). It is a rewind, not a pause: it goes through rewindTime() like
 // every other clock gain, so it respects rewindCeiling() and shows the ⏪ floater.
@@ -129,8 +135,8 @@ function cardBuffLines(k, card) {
   if (pf) lines.push(`+${pf} Focus when played`);
   const pc = (typeof permCoins !== 'undefined' && permCoins[k]) || 0;   // r392: the coin card
   if (pc) lines.push(`+${pc} credits when played`);
-  if (permFodder[k]) lines.push('Fodder: swap or discard it free');
-  else if (card && card._fodderTemp) lines.push('Fodder until it leaves the board: swap or discard it free');
+  if (permFodder[k]) lines.push('Fodder: swap or discard it, or a card beside it, free');
+  else if (card && card._fodderTemp) lines.push('Fodder until it leaves the board: swap or discard it, or a card beside it, free');
   // These go straight into a tooltip's innerHTML and into the shop's card list,
   // neither of which runs the prose lexicon - so a card's grid tooltip said
   // "pips" while the tile that granted the buff said "work" (r198's rule, r294's
@@ -821,6 +827,7 @@ function discardToPlayed(card) {
   // (unless fully consumed, in which case they're dropped; Green Station keeps
   // them, dormant, r647).
   if (card._isSleight) {
+    if (card._temp) { updateDeckHud(); return; }   // r841: a temp copy of a Sleight (Franchised v6) is gone when it leaves
     if (card._usesLeft === 'infinite' || card._usesLeft > 0 || (typeof greenStationKeeps === 'function' && greenStationKeeps())) {
       // _faceRank/_faceSuit ride along so a Sleight keeps the same printed card
       // face across a deck cycle (this rebuild is a fixed field list - anything
@@ -1056,6 +1063,7 @@ function initGridData() {
   }
   drawPile = fullDeck.slice(cellCount); // remaining cards become the round's draw stack
   playedPile = [];
+  if (typeof dragDealSweep === 'function') dragDealSweep();   // r841: a Dragging card is never in the opening deal
 }
 
 // Deal a fresh 5×5 grid mid-game, drawing from existing deck pools

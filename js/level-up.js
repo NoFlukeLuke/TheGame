@@ -473,6 +473,7 @@ const DEAL_JITTER_MS  = 70;
 function startNewRoundDealAnims() {
   const gridEl = document.getElementById('grid');
   if (!gridEl) return;
+  if (typeof dragDealSweep === 'function') dragDealSweep();   // r841: a Dragging card is never in a level's opening deal
   // The board pattern (r409) is back before the cards fall onto it, rather than
   // popping in under them at the render() that ends the deal.
 

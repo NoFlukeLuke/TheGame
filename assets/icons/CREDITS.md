@@ -87,6 +87,10 @@ to a 32px grid and recoloured by `tools/icons/build.js`.
 - 🎁 present
 - 🏺 porcelain-vase
 - 🏪 shop
+- 🚬 cigar
+- 🧗 stairs-goal
+- 🗂️ organigram
+- 🏪 shop
 - 💸 pay-money
 - 📉 chart
 - 🕳 hole
@@ -155,6 +159,7 @@ to a 32px grid and recoloured by `tools/icons/build.js`.
 - 💵 cash
 - 🔐 padlock
 - 🐂 bull
+- 🎭 duality-mask
 - ✌️ high-five
 - ☠ skull-crossed-bones
 - ✖ cross-mark
