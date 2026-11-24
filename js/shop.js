@@ -41,6 +41,7 @@ function sellTrick(trick) {
   if (typeof focusGrowerSold === 'function') focusGrowerSold(trick);   // r708: Expanse / Quick Draw keep half
   coins += v; updateCoinsUI();
   noteMessage(`Sold ${trick.name} · +${v} credits`, 'var(--gold)');
+  if (typeof saleFx === 'function') saleFx(v);   // r832: cha-ching; the chip leaves as SOLD
   if (typeof moneyAfterSale === 'function') moneyAfterSale('trick', trick, v);   // r722: 401, Buyback
   if (typeof hideTrickTooltip === 'function') hideTrickTooltip();
   if (typeof renderTrickTray === 'function') renderTrickTray();
@@ -55,6 +56,7 @@ function sellKnack(knack) {
   const v = (typeof moneySalePrice === 'function') ? moneySalePrice(knackSellValue()) : knackSellValue();   // r722: Nest Egg
   coins += v; updateCoinsUI();
   noteMessage(`Sold ${knack.name} · +${v} credits`, 'var(--gold)');
+  if (typeof saleFx === 'function') saleFx(v);   // r832
   if (typeof moneyAfterSale === 'function') moneyAfterSale('knack', knack, v);   // r722: 401
   if (typeof hideKnackTooltip === 'function') hideKnackTooltip();
   if (typeof updateKnackList === 'function') updateKnackList();

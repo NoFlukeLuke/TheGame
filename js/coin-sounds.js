@@ -95,3 +95,15 @@ function sfxPayoutCoin(k = 0, n = 1, id) {
   const c = PAYOUT_COINS[id && PAYOUT_COINS[id] ? id : payoutCoinId()];
   c.play(k, k >= n - 1, c.level || 1);
 }
+
+// r832 (owner): a sale rings the till. The drawer kicks open (a low clack and a short slide),
+// then the bell twice, a fifth apart: cha-ching. Catalog row 'sale'.
+function sfxSale() {
+  const f = dHz(24, PC_ROOT);
+  dClick({ dur: 0.016, freq: 2400, q: 1.4, gain: 0.14, kind: 'metal', rate: 1.5 });
+  dWood({ freq: 210, dur: 0.07, gain: 0.13, delay: 0.004, soft: 0.25 });
+  dNoise({ kind: 'pink', dur: 0.07, gain: 0.05, type: 'bandpass', freq: 1500, q: 2, delay: 0.02 });
+  dMetal({ freq: f, set: 'ring', dur: 0.3, gain: 0.15, delay: 0.07, verb: 0.15, tilt: 0.7 });
+  dMetal({ freq: f * 1.5, set: 'ring', dur: 0.95, gain: 0.17, delay: 0.19, verb: 0.25, tilt: 0.7 });
+  dMetal({ freq: f * 3, set: 'ring', dur: 0.4, gain: 0.05, delay: 0.2, verb: 0.2 });
+}

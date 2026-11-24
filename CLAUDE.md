@@ -5950,3 +5950,15 @@ Knack leaves, so a copy taken again refills again. A quiet notice and the chip's
 The sentence leads with it; tag `charges` added. Measured at 1440x820 and 420x900: three Sleights at
 1 charge went to 5 / 10 / 9 on taking it, a later `updateKnackList` changed nothing, sold and retaken
 refilled again; no page errors.
+
+## r832 - a sale rings the till; the sold thing is thrown to the credits (owner)
+`saleFx(paid, from)` (js/tray-fx.js) is called by every sell door: `sellTrick`, `sellKnack`
+(js/shop.js) and the shop's sell board (`doShopSell`). It plays `sfxSale` (js/coin-sounds.js,
+catalog `sale`, event bus: the drawer's clack, then the bell twice a fifth apart) and marks the sale;
+the tray chip lost in the next 400ms leaves through `traySoldFly` instead of `trayEntitySink`: the
+copy pops up, turns gold, tips and is thrown to the credits readout shrinking to nothing
+(`SALE_FLY_MS` 620 x the animation speed), with the price flying beside it as a plate (`efxFly`).
+The shop's sell board passes its tile as `from` and flies that. Reduced motion: the sound and the
+plate only. Trade In and Feelin Lucky's reroll are not sales and stay silent. **A new sell door
+calls `saleFx`** (beside `moneySalePrice` / `moneyAfterSale`). Measured at 1440x820 and 420x900: a
+Trick, a Knack and a shop sell tile each rang once, flew one copy and left none behind; no page errors.

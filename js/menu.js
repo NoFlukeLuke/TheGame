@@ -1,4 +1,4 @@
-const BUILD = "2026-11-24 · r831 · Head Count restores every Sleight's charges when taken";
+const BUILD = "2026-11-24 · r832 · selling rings the till; the sold thing is thrown to the credits";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
