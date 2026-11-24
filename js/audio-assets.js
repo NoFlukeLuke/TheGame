@@ -95,6 +95,7 @@ const SFX_CATALOG = [
   { id: 'slot_stop',     fn: 'sfxSlotStop',        group: 'Economy', label: 'Slot reel: stops', args: [1] },
   { id: 'payout_coin',   fn: 'sfxPayoutCoin',      group: 'Economy', label: 'Payout coin', args: [3, 6],
     note: 'The payout count-up. Settings -> Audio -> Payout coin picks which (js/coin-sounds.js).' },
+  { id: 'sale',          fn: 'sfxSale',            group: 'Economy', label: 'Sale: cha-ching' },
   { id: 'shop_open',     fn: 'sfxShopOpen',        group: 'Economy', label: 'Shop opens' },
   { id: 'reward_good',   fn: 'sfxRewardGood',      group: 'Economy', label: 'Reward - good' },
   { id: 'reward_bad',    fn: 'sfxRewardBad',       group: 'Economy', label: 'Reward - bad' },

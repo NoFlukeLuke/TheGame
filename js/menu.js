@@ -1,4 +1,4 @@
-const BUILD = "2026-11-24 · r832 · golden baseline for r831";
+const BUILD = "2026-11-24 · r833 · merge Head Count and the till";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

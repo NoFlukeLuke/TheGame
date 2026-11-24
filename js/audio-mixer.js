@@ -93,6 +93,7 @@ const SFX_MIX = {
   // ── event ──
   coin:          { bus: 'event' },
   payout_coin:   { bus: 'event' },
+  sale:          { bus: 'event' },
   dice_throw:    { bus: 'event', gain: 0.9 },
   coin_flick:    { bus: 'event' },
   coin_hit:      { bus: 'event', gain: 0.6 },   // a -8 dBFS click, brought near the old coin ping's peak

@@ -1148,9 +1148,12 @@ function doShopSell(r, c) {
     shopGridItems = buildShopSellStock(); renderShopGrid(); return;
   }
   const paid = typeof moneySalePrice === 'function' ? moneySalePrice(p.price) : p.price;
+  // r832: the sold tile is thrown to the credits readout (read before the board is rebuilt)
+  const _st = document.querySelector(`#grid .shop-tile[data-r="${r}"][data-c="${c}"]`);
+  const _from = _st ? { rect: _st.getBoundingClientRect(), w: _st.offsetWidth, html: _st.innerHTML, cls: _st.className } : null;
   coins += paid; updateCoinsUI();
   try { p.sell(); } catch (e) { console.error('[SHOP] sell failed', e); }
-  try { sfxRewardGood?.(); } catch (e) {}
+  if (typeof saleFx === 'function') saleFx(paid, _from || {}); else { try { sfxRewardGood?.(); } catch (e) {} }
   noteMessage(`Sold ${p.label} - +${creditsTxt(paid)}`, 'var(--gold)');
   if (typeof moneyAfterSale === 'function') moneyAfterSale(p.entity, p.trick || null, paid);   // r722: 401, Buyback
   shopGridItems = buildShopSellStock();   // refresh owned view

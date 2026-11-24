@@ -326,6 +326,41 @@ function trayEntitySink(rect, html, cls, zoom) {
   a.onfinish = () => c.remove(); setTimeout(() => c.remove(), 700);
 }
 
+// r832 (owner): a SALE. `saleFx(paid, from)` rings the till (sfxSale) and marks the sale, so the
+// chip the tray is about to lose leaves as SOLD instead of sinking: the copy pops up gold, tips,
+// and is thrown to the credits readout, shrinking as it goes, with the price as a plate beside it.
+// `from` ({ rect, w, html, cls }) flies a tile that is not a tray chip (the shop's sell board).
+let _saleAt = 0, _salePaid = 0;
+function saleFx(paid, from) {
+  try { if (typeof sfxSale === 'function') sfxSale(); } catch (e) {}
+  if (from && from.rect) { traySoldFly(from.rect, from.html, from.cls, (from.rect.width / (from.w || 1)) || 1, paid); return; }
+  _saleAt = performance.now(); _salePaid = paid || 0;
+}
+const SALE_FLY_MS = 620;
+function traySoldFly(rect, html, cls, zoom, paid) {
+  if (!rect || !rect.width) return;
+  const tgt = typeof efxTargetEl === 'function' ? efxTargetEl('credits') : null;
+  if (paid > 0 && typeof efxFly === 'function') efxFly({ getBoundingClientRect: () => rect }, 'credits', '+' + (typeof creditsTxt === 'function' ? creditsTxt(paid) : paid), 'var(--gold)');
+  if (document.body.classList.contains('reduced-motion')) return;
+  const c = document.createElement('div');
+  c.className = cls; c.innerHTML = html;
+  c.style.cssText = `position:fixed;left:${rect.left / zoom}px;top:${rect.top / zoom}px;width:${rect.width / zoom}px;height:${rect.height / zoom}px;zoom:${zoom};margin:0;z-index:400;pointer-events:none;`;
+  document.body.appendChild(c);
+  let dx = 0, dy = -rect.height * .6;
+  if (tgt) { const b = tgt.getBoundingClientRect(); dx = (b.left + b.width / 2 - rect.left - rect.width / 2) / zoom; dy = (b.top + b.height / 2 - rect.top - rect.height / 2) / zoom; }
+  const lift = -Math.max(10, rect.height / zoom * .22), tip = dx >= 0 ? 14 : -14;
+  const gold = 'sepia(1) saturate(3) hue-rotate(-12deg) brightness(1.35)';
+  const k = typeof animSlow === 'function' ? animSlow() : 1;
+  const a = c.animate([
+    { translate: '0 0', scale: '1', rotate: '0deg', opacity: 1, filter: 'brightness(1)' },
+    { translate: `0 ${lift}px`, scale: '1.16', rotate: `${-tip * .4}deg`, opacity: 1, filter: 'brightness(1.5)', offset: .2, easing: 'cubic-bezier(.5,0,.9,.6)' },
+    { translate: `0 ${lift}px`, scale: '1.1', rotate: `${-tip * .4}deg`, opacity: 1, filter: gold, offset: .34, easing: 'cubic-bezier(.5,0,.8,.5)' },
+    { translate: `${dx * .55}px ${dy * .55 + lift}px`, scale: '.55', rotate: `${tip}deg`, opacity: 1, filter: gold, offset: .75 },
+    { translate: `${dx}px ${dy}px`, scale: '.12', rotate: `${tip * 2}deg`, opacity: 0, filter: gold }],
+    { duration: SALE_FLY_MS * k, fill: 'forwards' });
+  a.onfinish = () => c.remove(); setTimeout(() => c.remove(), SALE_FLY_MS * k + 200);
+}
+
 // Wrap a tray's renderer: diff the owned ids across the render.
 function trayWatch(fnName, listSel, itemSel, idKey, trayId, owned) {
   const orig = window[fnName]; if (typeof orig !== 'function' || orig._tfxWrapped) return;
@@ -342,7 +377,9 @@ function trayWatch(fnName, listSel, itemSel, idKey, trayId, owned) {
       const added = [...now].filter(id => !prev.has(id)), gone = [...prev].filter(id => !now.has(id));
       added.forEach(id => { const ch = list && list.querySelector(`${itemSel}[data-${idKey.replace(/[A-Z]/g, m => '-' + m.toLowerCase())}="${id}"]`); trayEntityLand(ch); });
       gone.forEach(id => { const b = before.get(id); if (!b) return;
-        trayEntitySink(b.r, b.html, b.cls, (b.r.width / (b.w || 1)) || 1); });
+        const z = (b.r.width / (b.w || 1)) || 1;
+        if (performance.now() - _saleAt < 400) { _saleAt = 0; traySoldFly(b.r, b.html, b.cls, z, _salePaid); }   // r832: sold, not sunk
+        else trayEntitySink(b.r, b.html, b.cls, z); });
       if (added.length) trayFxKick(tray, 'in'); else if (gone.length) trayFxKick(tray, 'out');
     }
     trayHeldPaint();

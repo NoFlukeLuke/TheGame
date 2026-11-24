@@ -269,7 +269,7 @@ PAYS / SCOPE / WHEN / HOW, rules in its header). Each row's `tags:` is below. Re
 | move_as_one | Move as One | If 2+ of your Tricks share a keyword, a random Trick sharing that keyw | retrigger hand tricks |
 | rain_check | Rain Check | Skipping a reward: the next round starts with +30s (in Flow, rewind th | time other reward |
 | wait_for_it | Wait For Iiiit | Each negative reward tile taken this run gives every scored card a +3% | replay card reward level scores scaling chance |
-| head_count | Head Count | The Sleight queue (the button on your Trick tray) shows how many cards | info other sleights |
+| head_count | Head Count | When taken, restores all charges to all Sleights. The Sleight queue (the button on your Trick tray) shows how many cards | info charges other sleights |
 | card_counter | Card Counter | Double-tap the hand preview to see the draw queue: the next cards in d | info other |
 | advance_notice | Advance Notice | While you hold it, its tooltip names the boss waiting at the end of th | info other boss |
 | contingency | Contingency Plan | Boss effects are 10% weaker - timed effects tick 10% less often, and e | shield other boss |

@@ -314,6 +314,25 @@ function applyFreeRangeLimitOnce() {
   if (typeof swaps === 'number') swaps = Math.min(swaps, n);
 }
 
+// r831 (owner): Head Count restores every Sleight's charges when it is taken (board and both
+// piles; a Sleight with infinite charges is left alone). Once per take: the flag clears when the
+// Knack leaves, so a copy taken again refills again. `headCountInitApplied` is in SAVE_VARS.
+function applyHeadCountOnce() {
+  if (typeof hasKnack !== 'function') return;
+  if (!hasKnack('head_count')) { headCountInitApplied = false; return; }
+  if (headCountInitApplied) return;
+  headCountInitApplied = true;
+  if (typeof allOwnedSleightCards !== 'function') return;
+  let n = 0;
+  allOwnedSleightCards().forEach(c => {
+    if (typeof c._usesLeft !== 'number') return;
+    const cap = sleightCapOf(c);
+    if (cap != null && c._usesLeft < cap) { c._usesLeft = cap; n++; }
+    c._chargeSecsUsed = 0;
+  });
+  if (n && typeof knackNotice === 'function') knackNotice('head_count', `${knackName('head_count')} - ${n} Sleight${n > 1 ? 's' : ''} recharged`);
+}
+
 // Short Suit (knack): unlocks Flush of 3 and Flush of 4 in the modes that don't
 // start with them. startGame only seeds flush3/flush4 when ACTIVE_MODE.suitCount
 // >= 6 (Six Suits, Spectrum), because on a 4-suit deck short flushes are common
