@@ -87,7 +87,7 @@ const BAL = {
   cuckoo: { hands_between: 2, per_replays: 5 },
   clean_sweep: { focus: 8, credits: 4 },
   obsessed:        { per_credits: 100 },
-  relentless:      { mult_per_spade: 0.1 },   // r817 (owner, the averages pass): was 0.05
+  relentless:      { mult_per_spade: 0.05 },  // r843 (owner): back to 0.05 (r817 had raised it to 0.1)
   buried_treasure: { luck_share: 0.5, credit_mult: 1.25 },   // r817 (owner, the averages pass): was x1.1
   patient_rulers:  { mult_mult: 1.5, extra_ranks: 0 },           // r625: the 5th improvement adds 3 random ranks (rolled on the Trick)
   even_better:     { chance: 0.66, pip_mult: 2.25, replay: 0 },   // r625: replay 1 = even cards replay (5th improvement)

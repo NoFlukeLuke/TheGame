@@ -1,4 +1,4 @@
-const BUILD = "2026-11-24 · r842 · big numbers: letters to decillion, then powers of ten";
+const BUILD = "2026-11-24 · r843 · Relentless x0.05 a spade";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

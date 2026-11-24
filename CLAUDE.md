@@ -6122,3 +6122,8 @@ print every digit under a trillion (`SCORE_SHORT_FROM`).
 ## r842 - letters stop at decillion (owner)
 `FMT_BIG_UNITS` ends at Dc (1e33); from 1e36 numbers read as powers of ten (1e36, 2.3e40).
 r841's Ud to Vg are gone.
+
+## r843 - Relentless x0.05 a spade (owner)
+`BAL.relentless.mult_per_spade` 0.1 -> 0.05 (r817 had raised it). The owner is weighing a per-level
+falling step instead (0.10, 0.09, 0.08... starting over each level): it gives more than a flat 0.05
+until the 11th spade of one level, equal there, less from the 12th. Not built.
