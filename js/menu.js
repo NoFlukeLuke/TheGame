@@ -1,4 +1,4 @@
-const BUILD = "2026-11-24 · r830 · Surveyor picks row or column; tally waits for every chip";
+const BUILD = "2026-11-24 · r831 · Employee of the Month: +1 Focus apply a hand in the row; shop upgrade text";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

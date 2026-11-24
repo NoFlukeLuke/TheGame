@@ -247,7 +247,7 @@ const TRICK_POOL = [
   { id:'feelin_lucky',    name:'Feelin Lucky',       tier:'epic',      tags:['xmult','card','rank','scores','chance','cost'],   desc:'Five randomly rolled ranks score x1.5 mult. Trying to sell this costs 30% of your credits and rerolls the ranks instead - 3 times, then it really sells' },
   { id:'marathon',        name:'Marathon',           tier:'epic',      tags:['focus','hand','run','scores'],           desc:'Run type hands apply the Focus multiplier 1 extra time(s)' },
   // r802 (owner): unlocked by a won run of the Agentic protocol (js/agentic.js; TRICK_UNLOCKS `pwin:agentic`).
-  { id:'employee_month',  name:'Employee of the Month', tier:'epic',   tags:['focus','hand','streak','scores'],        desc:'Hands played in a row with no swap or discard: the 2nd applies the Focus multiplier 2 times, the 4th 3 times, the 6th 4 times, and so on. Starts over each level.' },
+  { id:'employee_month',  name:'Employee of the Month', tier:'epic',   tags:['focus','hand','streak','scores'],        desc:'Every hand played in a row with no swap or discard applies the Focus multiplier one more time: the 2nd hand twice, the 3rd 3 times, and so on. Starts over each level.' },
   // ── Run add-ons (r124) ──
   { id:'dam_holding',    name:'Please Hold',        tier:'rare',      tags:['time','hand','run'],            desc:'Runs pause the clock for 3s' },
   { id:'wave_amp',       name:'Upswing',  tier:'common',    tags:['pips','hand','run','streak','scores'],   desc:'Consecutively played Runs score +15 pips × the streak count' },

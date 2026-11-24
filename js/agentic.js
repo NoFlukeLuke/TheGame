@@ -234,20 +234,27 @@ function agenticReset() { _agWaitDrop(); _agDeclined = new Set(); _agSince = 0; 
 // The count is hands played in a row this round with no swap and no discard
 // (`eotm.n`, SAVE_VARS; it starts over each level, eotmSync). Ladder (IMPROVE_PLAN):
 //   v2 one discard between two hands does not break it (`discards`)
-//   v3 the 3rd, 5th... take the bonus of the hand before them (`carry`)
+//   v3 the streak carries over between levels (`keep`; r831, was `carry`)
 //   v4 one swap between two hands does not break it (`swaps`)
 //   v5 a hand that takes the every-other bonus has `prime_chance` to prime a random Trick
-//   v6 every hand adds one: the 2nd twice, the 3rd 3 times (`every`)
+//   v6 the prime chance rolls on every hand from the 2nd (`every`)
+// r831 (owner): the base rule is now "every hand in the row applies Focus one more time"
+// (the 2nd twice, the 3rd 3 times), which was the old v6; the every-other wording above is history.
 // calcScore is read-only, so the count moves in eotmAfterHand (end of scalingCount).
 let eotm = { n: 0, disc: 0, swap: 0, lv: 0 };
-function eotmSync() { if (eotm.lv !== level) eotm = { n: 0, disc: 0, swap: 0, lv: level }; return eotm; }
+function eotmSync() {
+  if (eotm.lv !== level) {
+    // r831: from v3 the streak carries over into the next level (`keep`).
+    const keep = typeof hasTrick === 'function' && hasTrick('employee_month') && TB('employee_month').keep;
+    eotm = keep ? { n: eotm.n, disc: 0, swap: 0, lv: level } : { n: 0, disc: 0, swap: 0, lv: level };
+  }
+  return eotm;
+}
 // EXTRA Focus applications for the n-th hand of the streak.
 function eotmExtraAt(n) {
   const B = TB('employee_month');
-  if (n < 2) return 0;
-  if (B.every) return n - 1;
-  if (B.carry) return Math.floor(n / 2);
-  return n % 2 ? 0 : n / 2;
+  // r831 (owner): every hand in the row applies Focus once more: the n-th hand n - 1 extra times.
+  return Math.max(0, n - 1);
 }
 function eotmFocusExtra() { return hasTrick('employee_month') ? eotmExtraAt(eotmSync().n + 1) : 0; }
 // A swap or a discard (doSwap, doSwapMulti, doDiscard): the Agentic chain starts over, and so does

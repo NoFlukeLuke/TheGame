@@ -345,7 +345,7 @@ function shopgImprovePayloads(n) {
     const typeWord = (typeof entityLabel === 'function') ? entityLabel(type) : type;
     out.push({
       _improve: true, icon: '⬆', label: `Random ${typeWord}`,
-      desc: `Upgrade a random owned ${typeWord} one tier. Which one is decided when you buy.`,
+      desc: `Upgrade a random owned ${typeWord} one tier.`,
       rarity: 'rare', price: shopRaised(20, 'improve'),
       buy: () => { const t = pickImproveTarget(type); if (t) { improveEntity(t.id); noteMessage(`⬆ ${t.name} upgraded`, 'var(--c-mint)'); } },
     });
