@@ -145,7 +145,7 @@ function musicSpeakerChain(ctx, input, output) {
 }
 
 // Route the element into the graph (once), then wire speaker or bypass.
-// r825: the warble (a modulated delay, below) sits first, always in the path once
+// r830: the warble (a modulated delay, below) sits first, always in the path once
 // routed. The ticks join at the volume, AFTER the speaker: its compressor pressed
 // them under the music (measured 0 to 3 dB over it in their own band). They are
 // already a small speaker's sound (2 to 3 kHz). Routed when the speaker OR the
@@ -488,7 +488,7 @@ function musicClockTick() {
 // setting change (off -> 1x) and a run ending with no track loaded yet.
 setInterval(musicClockTick, MUSIC_CLOCK_TICK);
 
-// ── THE LEVEL'S END: TAPE WARBLE AND TICKS (r825, owner) ─────────────────────
+// ── THE LEVEL'S END: TAPE WARBLE AND TICKS (r830, owner) ─────────────────────
 // Near the end of a level the music starts to go wrong. From MUSIC_EDGE.warbleFrom
 // seconds left the track WARBLES like a worn tape: the element's sound runs through
 // a short delay whose length two slow, uneven sine waves (wow) and one fast one

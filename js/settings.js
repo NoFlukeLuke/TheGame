@@ -61,7 +61,7 @@ const SETTINGS_DEF = [
     hint: 'Small speaker plays the music through a cheap cabinet speaker: thin bass, soft top. Off plays the recordings as they are.',
     type: 'select', default: 'on', options: [['on', 'Small speaker'], ['off', 'Off']],
     apply: () => { if (typeof musicSpeakerApply === 'function') musicSpeakerApply(); } },
-  // r825: the level's end (js/music.js, MUSIC_EDGE). Read every tick; routing may be needed.
+  // r830: the level's end (js/music.js, MUSIC_EDGE). Read every tick; routing may be needed.
   { group: 'Audio', id: 'musicEdge', label: 'Music at the level\'s end',
     hint: () => `In the last ${(typeof MUSIC_EDGE !== 'undefined' ? MUSIC_EDGE.warbleFrom : 45)} seconds the music warbles like a worn tape, worse as the clock runs down. Ticks adds a clock ticking under it from ${(typeof MUSIC_EDGE !== 'undefined' ? MUSIC_EDGE.tickFrom : 30)} seconds, twice as fast in the last ${(typeof MUSIC_EDGE !== 'undefined' ? MUSIC_EDGE.fastFrom : 10)}.`,
     type: 'select', default: 'both', options: [['both', 'Warble and ticks'], ['warble', 'Warble'], ['off', 'Off']],

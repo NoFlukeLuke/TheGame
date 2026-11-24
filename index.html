@@ -547,6 +547,16 @@
       <input id="dev-tally-hold" type="range" min="0" max="2400" value="1200" step="20" oninput="devSetTally('hold', this.value)"></div>
     <div class="dev-slider-row"><span>Chip path curve <b id="dev-tally-curve-val">6</b>% (0 = straight)</span>
       <input id="dev-tally-curve" type="range" min="0" max="25" value="6" step="1" oninput="devSetTally('curve', this.value)"></div>
+    <div class="dev-slider-row"><span>Next card or Trick fires after <b id="dev-tally-beat-val">600</b>ms</span>
+      <input id="dev-tally-beat" type="range" min="150" max="3000" value="600" step="50" oninput="devSetTally('beat', this.value)"></div>
+    <div class="dev-slider-row"><span>Fire jump lasts <b id="dev-tally-fire-val">450</b>ms</span>
+      <input id="dev-tally-fire" type="range" min="120" max="2000" value="450" step="10" oninput="devSetTally('fire', this.value)"></div>
+    <div class="dev-slider-row"><span>Fire jump size <b id="dev-tally-firePop-val">100</b>% (0 = no movement)</span>
+      <input id="dev-tally-firePop" type="range" min="0" max="200" value="100" step="10" oninput="devSetTally('firePop', this.value)"></div>
+    <div class="dev-slider-row"><span>Fire brightness flash <b id="dev-tally-fireLight-val">100</b>%</span>
+      <input id="dev-tally-fireLight" type="range" min="0" max="200" value="100" step="10" oninput="devSetTally('fireLight', this.value)"></div>
+    <div class="dev-slider-row"><span>Fire glow <b id="dev-tally-fireGlow-val">0</b>% (0 = off)</span>
+      <input id="dev-tally-fireGlow" type="range" min="0" max="100" value="0" step="10" oninput="devSetTally('fireGlow', this.value)"></div>
     <div class="dev-slider-row"><span>Gap between chips <b id="dev-tally-gap-val">140</b>ms</span>
       <input id="dev-tally-gap" type="range" min="0" max="400" value="140" step="10" oninput="devSetTally('gap', this.value)"></div>
     <div class="dev-row"><span style="font-size:11px;color:var(--cream-dim)">Chip order</span>

@@ -20,8 +20,8 @@ const BAL = {
   obligatory:  { chance: 0.25, chance2: 0 },
   suggestive:  { chance: 0.35, chance2: 0 },
   coin_sword:  { credit_chance: 0.1, mult_chance: 0.2, credit_pct: 0.25, line2: 0 },
-  // r646 INSEPARABLE: Lie Down + Stand-Up. span 1 = one row or one column; 2 (the 5th improvement) = no more than 2 of either.
-  lie_up:      { mult: 24, span: 1 },
+  // r646 INSEPARABLE: Lie Down + Stand-Up. r828: per card, when the hand's shape bends no more than `bends` times (the 5th improvement: 3).
+  lie_up:      { pips_per_card: 25, mult_per_card: 25, bends: 2 },   // r828 (owner): was +24 mult a hand on one row or column
   // r651 (owner): the 21 fused Tricks. An `acts` row holds BOTH parts' keys (their code reads it through TB()).
   well_adjusted: { pips: 20, mult: 20 },
   right_place_time: { flat_pips: 25, pause_seconds: 2 },
@@ -66,7 +66,7 @@ const BAL = {
   discard_pips: { mult_per: 4, mult_per_flow: 2 },   // r651 (owner): Flow pays the smaller one
   landfill: { mult_per: 1 },   // r651 (owner): per swapped or discarded card THIS GAME (landfillCount)
   magician: { mult_per_sleight: 6, solo_pips: 50 },   // r635: solo_pips while you own no Sleight
-  stand_up: { mult_per_card: 16 },   // r817 (owner, the averages pass): was 12
+  stand_up: { mult_per_card: 20 },   // r827 (owner): matches Lie Down; was 16 (r817), 12 before
   scalper: { mult_mult_per_missing: 0.25 },
   down_and_back_in: { coins: 5, grant: 2 },   // r635: grant swaps or discards, alternating
   short_change: { coins: 1 },
@@ -129,7 +129,7 @@ const BAL = {
   wild_heart: { primes: 1, extra_ranks: 0 },   // r625: primes per Ace; extra ranks are rolled on the Trick when improved
   same_kind: { mult_per_match: 2 },
   column_rush: { mult_per_card: 5 },
-  row_power: { mult_per_card: 16 },   // r817 (owner, the averages pass): was 12
+  row_power: { mult_per_card: 20 },   // r827 (owner): was 16 (r817), 12 before
   groove:        { focus_per_2: 1 },
   assembly_line: { mult_per_prior: 2, mult_per_flow: 1, lines: 1 },   // r646 (owner): per card played from the line LAST round (last quarter in Flow); lines 2 = the 5th improvement's second line
   overtime:      { seconds_per_3: 1 },
@@ -485,7 +485,7 @@ const DESC_TEMPLATES = {
   obligatory: "Cards scored in a marked row or column have a {chance_pct}% chance to force-trigger the Trick in the tray slot of that line's number[[chance2:; a second line at {chance2_pct}%]]",
   suggestive: "Cards scored in a marked row or column have a {chance_pct}% chance to prime the Trick in the tray slot of that line's number[[chance2:; a second line at {chance2_pct}%]]",
   coin_sword: 'Cards scored in a marked row or column have a {credit_chance_pct}% chance to pay credits equal to the hand size and a {mult_chance_pct}% chance to score mult equal to {credit_pct_pct}% of your credits[[line2:; a second line at the base odds]]',
-  lie_up: 'Hands with cards from [[span<2:only one row or only one column]][[span>1:no more than 2 rows or no more than 2 columns]] score +{mult} mult',
+  lie_up: 'Hands whose shape bends {bends} times or fewer score +{pips_per_card} pips and +{mult_per_card} mult per card',
   overtime:      "Every hand rewinds the clock {seconds_per_3}s for every 3 cards you have scored from this Trick's marked row or column. Resets each level.",
   feng_shui: 'Permanently scores +{pips_per_hand} pips for each hand scored with a positional buff (row or column effects)',
   sands_of_time: 'Score +pips equal to time remaining ÷ {divisor}',

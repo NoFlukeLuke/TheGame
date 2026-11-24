@@ -112,7 +112,7 @@ const TRICK_POOL = [
   { id:'edge_pips',      name:'On the Edge',         tier:'common',    tags:['pips','card','position','scores'], desc:'Cards scored on an edge score +15 pips' },
   { id:'wide_span_mult', name:'Inclusive',           tier:'rare',      tags:['mult','hand','position','scores'], desc:'Hands spanning the full width or height of the grid score +50 mult' },
   { id:'column_rush',    name:'Stand Up',            tier:'common',    retired:true, desc:'Hands with cards from only one column score +5 mult per card', tags:['mult','card','position','scores'] },
-  { id:'row_power',      name:'Lie Down',            tier:'rare',    desc:'Hands with cards from only one row score +16 mult per card', tags:['mult','card','position','scores'] },
+  { id:'row_power',      name:'Lie Down',            tier:'rare',    desc:'Hands with cards from only one row score +20 mult per card', tags:['mult','card','position','scores'] },
   // ── New position tricks (owner batch) ──
   { id:'groove',         name:'Groove',              tier:'rare',      tags:['focus','hand','position','line'], desc:'This trick scales +1 Focus for every 2 cards scored from a marked row or column. Resets each level.' },
   { id:'assembly_line',  name:'Assembly Line',       tier:'epic',      tags:['mult','card','position','scores','line'],  desc:'Cards scored in a marked row or column score +2 mult for every card played from that line last level (+1 in Flow, counting the last quarter)' },
@@ -123,7 +123,7 @@ const TRICK_POOL = [
   { id:'suggestive',     name:'根回し',          tier:'epic',      tags:['retrigger','card','position','tricks','chance','line'], desc:"Cards scored in a marked row or column have a 35% chance to prime the Trick in the tray slot of that line's number" },
   { id:'coin_sword',     name:'Coin and the Sword',  tier:'rare',      tags:['credits','mult','card','position','chance','scores','line'], desc:'Cards scored in a marked row or column have a 10% chance to pay credits equal to the hand size and a 20% chance to score mult equal to 25% of your credits' },
   // ── r646 INSEPARABLE (js/inseparable.js): two owned Tricks fuse into one. Never offered; fused: true. ──
-  { id:'lie_up',         name:'Lie Up',              tier:'epic',      fused:true, tags:['mult','hand','position','scores'], desc:'Hands with cards from only one row or only one column score +24 mult' },
+  { id:'lie_up',         name:'Lie Up',              tier:'epic',      fused:true, tags:['pips','mult','card','position','scores'], desc:'Hands whose shape bends 2 times or fewer score +25 pips and +25 mult per card' },
   // r651 (owner): 21 more. `acts` = the fused Trick stands in for both parts (hasTrick, their BAL row through TB(), their line); the rest have their own scoring.
   { id:'well_adjusted',  name:'Well Adjusted',       tier:'rare',      fused:true, tags:['pips','mult','hand','scores'], desc:'Every hand scores +20 pips and +20 mult' },
   { id:'right_place_time', name:'Right Place & Time', tier:'epic',     fused:true, acts:['rowcol_triple_pips','right_time'], tags:['pips','time','card','position','scores','line'], desc:'Cards scored in a marked row or column score +25 pips and pause the clock for 2s' },
@@ -212,7 +212,7 @@ const TRICK_POOL = [
   { id:'landfill',       name:'Paper Trail',            tier:'epic',    tags:['mult','card','discard','swap','scores'],  desc:'Score +1 mult for every swapped or discarded card this game' },
   { id:'old_growth',     name:'Equity Experience',          tier:'legendary',      tags:['mult','card','scores'],  desc:'Cards add their pip value to mult' },
   { id:'magician',       name:'Magician',            tier:'common',      tags:['pips','mult','hand','sleights','scores'],  desc:'+50 pips if you own no Sleights, or +6 mult for each Sleight you own' },
-  { id:'stand_up',       name:'Stand-Up',            tier:'rare',      tags:['mult','card','position','scores'],  desc:'Hands with cards from only one column score +16 mult per card' },
+  { id:'stand_up',       name:'Stand-Up',            tier:'rare',      tags:['mult','card','position','scores'],  desc:'Hands with cards from only one column score +20 mult per card' },
   { id:'scalper',        name:'Scalper',             tier:'rare',      tags:['xmult','hand','sleights','scores'],  desc:'Score ×1 mult, +×0.25 per charge your Sleights are missing' },
   // ── 5-card-hand family (r103) ──
   { id:'five_stack',     name:'Five Stack',          tier:'legendary',    tags:['pips','mult','focus','card','size','scores'], desc:'Each card in a 5-card hand scores +25 pips, +20 mult, and +1 Focus' },

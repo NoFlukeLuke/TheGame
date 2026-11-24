@@ -82,7 +82,13 @@ function dncClearAnims() { _dncAnims = []; }
 // Called from pauseGame / resumeGame (js/game-control.js). The CSS class is what
 // holds the class-driven keyframes - jitter, pop, pulse, flash - which are not
 // WAAPI animations and so are not in the registry.
+// r826: the dance's own clock, in ms, stopped while the game is paused. The landing
+// queue (js/score-dance.js) times chips against it.
+let _dncPausedMs = 0, _dncPauseAt = 0;
+function dncClock() { const n = performance.now(); return n - _dncPausedMs - (_dncPauseAt ? n - _dncPauseAt : 0); }
 function dncSetPaused(on) {
+  if (on) { if (!_dncPauseAt) _dncPauseAt = performance.now(); }
+  else if (_dncPauseAt) { _dncPausedMs += performance.now() - _dncPauseAt; _dncPauseAt = 0; }
   document.body.classList.toggle('dance-paused', !!on);
   _dncAnims.forEach(a => { try { on ? a.pause() : a.play(); } catch (e) {} });
 }
@@ -102,11 +108,18 @@ function dncSetPaused(on) {
 //          (dncChipBase), so the travel itself is never shorter than it was.
 //   curve  % of the flight's length the path bulges sideways at its midpoint
 //          (0 = dead straight). Always the same side, so chips never weave.
+// r826 (owner: "the beats can continue while the chip sits"):
+//   beat   ms from one card or Trick firing to the next one firing. The tally no
+//          longer waits for a chip to land before the next thing goes off, so with
+//          beat under hold the next one fires while the last chip still sits.
+//   fire   ms a fired card or Trick stays up before it drops back (never past the
+//          next beat); firePop its size (% of the built jump), fireLight the
+//          brightness flash (%), fireGlow the halo in the chip's colour (%, 0 = none).
 //   gap    ms between one chip and the next in the same beat
 //   order  'ltr' the card first, then Tricks left to right across the tray;
 //          'rtl' right to left; 'emit' the order the score is worked out in
 // Dev -> HUD & Display -> Score tally pacing. Store lethe.tallyPace.v1, overrides only.
-const TALLY_DEFAULT = { accelStep: 1, accelMax: 2, focusMax: 1.5, hold: 1200, gap: 140, order: 'ltr', curve: 6 };
+const TALLY_DEFAULT = { accelStep: 1, accelMax: 2, focusMax: 1.5, hold: 1200, gap: 140, order: 'ltr', curve: 6, beat: 600, fire: 450, firePop: 100, fireLight: 100, fireGlow: 0 };
 const TALLY_HOLD_CARVED = 600;
 const TALLY_CFG = Object.assign({}, TALLY_DEFAULT);
 (function () { try {

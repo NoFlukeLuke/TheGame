@@ -21,6 +21,8 @@ fxDefine('balanced_diet', { handWhen: h => h.suitCount === 2,   card: () => ({ m
 fxDefine('column_rush',   { handWhen: h => h.allSameCol,        card: () => ({ mult: BAL.column_rush.mult_per_card }) });
 fxDefine('row_power',     { handWhen: h => h.allSameRow,        card: () => ({ mult: BAL.row_power.mult_per_card }) });
 fxDefine('stand_up',      { handWhen: h => h.allSameCol,        card: () => ({ mult: BAL.stand_up.mult_per_card }) });
+// Lie Up (r828, owner): per card, when the hand's shape bends no more than BAL.lie_up.bends times.
+fxDefine('lie_up',        { handWhen: h => lieUpShape(h.cells), card: () => ({ pip: BAL.lie_up.pips_per_card, mult: BAL.lie_up.mult_per_card }) });
 fxDefine('rich_soil',     {                                     card: () => ({ mult: BAL.rich_soil.mult }) });
 fxDefine('tidal_force',   { handWhen: h => h.isFlush,           card: () => ({ mult: BAL.tidal_force.mult_per_card }) });
 fxDefine('number_crunch', { handWhen: h => h.rankCount >= 4,    card: () => ({ mult: BAL.number_crunch.mult_per_card }) });

@@ -145,8 +145,8 @@ const IMPROVE_PLAN = {
   coin_sword:       t => ({ credit_chance: 0.1 + 0.1 * [0, 1, 1, 2, 2, 2][t], mult_chance: 0.2 + 0.1 * [0, 1, 1, 2, 2, 2][t], credit_pct: 0.25 + 0.15 * [0, 0, 1, 1, 2, 2][t], line2: t >= 5 ? 1 : 0 }),
   // Assembly Line (r646): +2 a tier (+1 in Flow); the 5th adds a second line
   assembly_line:    t => ({ mult_per_prior: 2 + 2 * Math.min(4, t), mult_per_flow: 1 + Math.min(4, t), lines: t >= 5 ? 2 : 1 }),
-  // Lie Up (r646, INSEPARABLE): +16 mult a tier; the 5th loosens the shape to no more than 2 rows or 2 columns
-  lie_up:           t => ({ mult: 24 + 16 * t, span: t >= 5 ? 2 : 1 }),
+  // Lie Up (r828): +15 pips and +15 mult per card a tier to the 4th; the 5th lets the shape bend 3 times
+  lie_up:           t => ({ pips_per_card: 25 + 15 * Math.min(4, t), mult_per_card: 25 + 15 * Math.min(4, t), bends: t >= 5 ? 3 : 2 }),
   // r649: +2 mult a tier to the 4th; the 5th counts credit changes anywhere instead
   middle_man:       t => ({ mult_per: 3 + 2 * Math.min(t, 4), anywhere: t >= 5 ? 1 : 0 }),
   // ── r625, the owner's epic sheet ──
