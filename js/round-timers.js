@@ -109,6 +109,7 @@ function startRoundTimer(opts) {
     roundSeconds -= (bossActive && typeof bossClockStep === 'function') ? bossClockStep() : 1;
     if (roundSeconds < 0) roundSeconds = 0;
     if (typeof crTick === 'function') crTick();   // challenge cards' own clocks + Flow's spawner
+    if (typeof goalNetTick === 'function') goalNetTick();   // r839: a met goal always ends the level (js/level-types.js)
     // Slow Burn sleights accrue on-grid time → +1 max Focus per minute (see onGridSleightCapBonus)
     for (let _r = 0; _r < gridRows; _r++) for (let _c = 0; _c < gridCols; _c++) {
       const _cd = gridData[_r]?.[_c];

@@ -100,6 +100,39 @@ function roundQuotaMet() {
   return q.lines.every(l => l.prog >= l.target);
 }
 
+// r839 (owner's bug: a Relay at a huge score that six hands could not end). THE GOAL NET.
+// playHand ends a level in the same call that scores the hand. If anything throws between
+// the score being added and that check, the hand counts but the level stays open, and every
+// later hand can fail the same way. So the round tick asks too: goal met, no hand ended the
+// level, board still for two ticks -> end it here, through the mode's ordinary exit.
+let _goalNetTicks = 0;
+function goalNetTick() {
+  const idle = !roundEnded && !goalReachedThisRound && !bossActive && !animating && !falling && !danceAbortController
+    && !(typeof runIsOver === 'function' && runIsOver())
+    && !(typeof flowBossFighting !== 'undefined' && flowBossFighting)
+    && !(typeof cascadeRunning === 'function' && cascadeRunning())
+    && !(typeof match3Active === 'function' && match3Active())
+    && !(typeof crunchActive === 'function' && crunchActive())
+    && !(typeof sqActive === 'function' && sqActive())
+    && roundGoal > 0 && roundQuotaMet();
+  if (!idle) { _goalNetTicks = 0; return; }
+  if (++_goalNetTicks < 2) return;
+  _goalNetTicks = 0;
+  if (typeof dbgEvent === 'function') dbgEvent('warn', 'goal net: goal met with no goal hand, ending the level', { score, goal: roundGoal, quota: roundQuota && roundQuota.kind });
+  goalReachedThisRound = true; roundEnded = true;
+  selected = [];
+  if (typeof svGoalCells !== 'undefined') svGoalCells = [];
+  if (typeof captureGoalHand === 'function') captureGoalHand([]);
+  clearInterval(roundInterval); roundInterval = null;
+  if (typeof updateScoreUI === 'function') updateScoreUI();
+  if (typeof flashRoundEnd === 'function') flashRoundEnd();
+  setTimeout(() => {
+    if (typeof runIsOver === 'function' && runIsOver()) return;
+    if (typeof survivalActive === 'function' && survivalActive()) survivalShowPick();
+    else { gameTimerPaused = true; frozenRoundSeconds = roundSeconds; startInterlude(); }
+  }, 900);
+}
+
 // Flow's reward chain asks this before the level-up clears the round: every line
 // filled means at least QUOTA_LINES_REWARDS reward screens.
 function quotaLinesRewardFloor() {
@@ -355,10 +388,20 @@ function roundQuotaPaint() {
       // r805 (owner): each section prints its goal, short (37.5k).
       roundQuota.bars.forEach((b, i) => {
         const s = document.createElement('span');
-        s.className = 'q-seg-lbl' + (i < roundQuota.idx ? ' q-done' : ''); s.textContent = qShort(b);
+        // r838: the section being filled prints how far it is (12.4k/66k), at once.
+        const cur = i === roundQuota.idx && roundQuota.prog > 0;
+        s.className = 'q-seg-lbl' + (i < roundQuota.idx ? ' q-done' : '') + (cur ? ' q-cur' : '');
+        s.textContent = cur ? qShort(roundQuota.prog) + '/' + qShort(b) : qShort(b);
         s.style.left = (i / n * 100) + '%'; s.style.width = (100 / n) + '%';
         wrap.appendChild(s);
       });
+      // r838 (owner's bug): the fill and the goal text are written HERE, the moment a hand is
+      // credited. They were only written by updateScoreUI, which waits for the tally, so a hand
+      // that moved the bar showed nothing until the next one ("0/66,000" under a huge score).
+      const bar = document.getElementById('score-progress-bar');
+      if (bar) bar.style.width = Math.round(roundQuotaFrac() * 100) + '%';
+      const gd = document.getElementById('goal-display'), q = roundQuota;
+      if (gd) gd.textContent = q.idx >= n ? 'DONE' : `${q.prog.toLocaleString()}/${q.bars[Math.min(q.idx, n - 1)].toLocaleString()}`;
     }
   }
   roundQuotaPaintHud();

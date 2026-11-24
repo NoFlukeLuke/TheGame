@@ -493,9 +493,11 @@ function playHand() {
   console.log('[PLAY] hand result', { hand, finalScore, scoreAfterAdd: score + finalScore });
   const scoreBeforeHand = score;
   score += finalScore;
-  if (typeof scoreRiseNote === 'function') scoreRiseNote(scoreBeforeHand);   // r696: the SCORE box starts rolling toward the new total
-  // r399: a shaped round (js/level-types.js) is credited from the same number.
+  // r399: a shaped round (js/level-types.js) is credited from the same number. r839: before the
+  // display, and the display can never stop the hand.
   if (typeof roundQuotaCredit === 'function') roundQuotaCredit(finalScore, handCells);
+  try { if (typeof scoreRiseNote === 'function') scoreRiseNote(scoreBeforeHand); }   // r696: the SCORE box starts rolling toward the new total
+  catch (e) { if (typeof dbgEvent === 'function') dbgEvent('error', 'scoreRiseNote: ' + (e && e.message)); }
   // Echo and Legacy both used to be applied here, at SCORE level. Both moved (r193):
   // Echo is now a per-card replay (js/scoring.js retrigger block) because its text is
   // "each card replays twice", and Legacy is now a ×mult so the MULT chip shows it.

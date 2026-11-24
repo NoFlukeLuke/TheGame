@@ -6081,3 +6081,21 @@ Measured in a served headless Chromium at 1440x820 and 420x900: Logistics double
 PLAY (falling, tallying) and again mid-tally printed no refusal and made 2 swaps (charges 12 -> 10);
 a Relay at 1e16 a hand showed SCORE inside its screen, MULT 1E15, the three sections with no text
 over them, and ended on the third hand into the reward pick. Golden: 838 match. No page errors.
+
+## r839 - the goal net; a Relay shows a hand's progress at once (owner's bug)
+Owner: a Relay level at a huge score that six hands could not end. Not reproduced: hands of 1e16 to
+1e21, slow and fast, on this build and on r835, all ended the level. The one way the report fits the
+code: playHand ends a level in the same call that scores the hand, about 180 lines after the score is
+added, so an error in between counts the hand and leaves the level open, on every hand.
+- **The goal net** (`goalNetTick`, js/level-types.js, from the round tick): goal met
+  (`roundQuotaMet()`), no hand ended the level, the board still for two ticks (no tally, fall, cascade,
+  boss, held clock) -> the level ends through the mode's own exit (`survivalShowPick`, else
+  `startInterlude`), with a WARN in the event log. Not in Match-3 or Crunch.
+- `roundQuotaCredit` runs before `scoreRiseNote` and the display call is in a try, so the SCORE box can
+  never stop a hand being credited.
+- **A Relay's bar and goal text are written when the hand is credited** (`roundQuotaPaint`), not when
+  its tally ends; the section being filled reads `12.4k/66k`.
+- If it happens again: Settings -> Help -> Copy bug report names the error.
+Measured in a served headless Chromium at 1440x820 and 420x900: a Relay set to met with no hand opened
+Flow's reward pick 2s later; Classic at score over goal opened the payout; a normal Relay of three huge
+hands ended as before. Golden: 838 match. No page errors.
