@@ -424,3 +424,26 @@ body.map-keys :is(#btn-play, #btn-discard, #swap-indicator).mapk-on .mapk-ico { 
 #grid .map-term .map-reveal b.mk-boss      { --rc: #ff5c5c; }
 #grid .map-term .map-reveal.mrv-done b { animation: mrvFlash .5s steps(2) 2; }
 @keyframes mrvFlash { 50% { opacity: .35; } }
+
+/* ── r833: a side project, one frame round its two halves (js/side-projects.js) ── */
+#grid .mt-spframe {
+  --sp: #ffd98a;
+  position: relative; z-index: 2; pointer-events: none; margin: -3px;
+  border: 2px solid var(--sp); border-radius: 3px;
+  box-shadow: 0 0 8px -2px var(--sp), inset 0 0 8px -4px var(--sp);
+}
+#grid .mt-spframe .sp-tab, #grid .mt-spframe .sp-count {
+  position: absolute; left: 50%; transform: translateX(-50%); font-size: 9px; line-height: 1; padding: 1px 3px 0;
+  background: #0a0d06; color: var(--sp); letter-spacing: .4px; white-space: nowrap; text-shadow: none;
+}
+#grid .mt-spframe .sp-tab { top: -6px; }
+#grid .mt-spframe .sp-count { bottom: -6px; }
+#grid .mt-spframe.sp-run { animation: spRun 1.6s ease-in-out infinite; }
+@keyframes spRun { 50% { box-shadow: 0 0 14px 0 var(--sp), inset 0 0 10px -3px var(--sp); } }
+#grid .mt-spframe.sp-done { --sp: #94ecb0; }
+#grid .mt-spframe.sp-gone { --sp: #ff7656; }
+#grid .mt-spframe.sp-skip { --sp: #9a6f2a; opacity: .6; box-shadow: none; }
+#grid .map-tile .mt-stake.mt-sp-cost { color: #ff7656; }
+#grid .map-tile .mt-stake.mt-sp-pay { color: #94ecb0; }
+#grid .map-tile.mt-selected .mt-stake:is(.mt-sp-cost, .mt-sp-pay) { color: var(--am-ink); }
+@media (prefers-reduced-motion: reduce) { #grid .mt-spframe.sp-run { animation: none; } }

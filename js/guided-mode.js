@@ -442,7 +442,8 @@ let miniBossActive = false;
 // effects and triggerLevelUp never armed a challenge for it anyway.
 function miniBossMaybeStart() {
   if (miniBossActive || bossActive) return;
-  const m = guidedActiveChallenge && guidedActiveChallenge.mini;
+  // r833: a side project's HALF A BOSS cost (js/side-projects.js) is a one-on-one's handicap.
+  const m = (guidedActiveChallenge && guidedActiveChallenge.mini) || ((typeof spMiniNow === 'function') ? spMiniNow() : null);
   if (!m) return;
   miniBossActive = true;
   if (m.modifier === '_stones') {

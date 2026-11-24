@@ -5962,3 +5962,40 @@ The shop's sell board passes its tile as `from` and flies that. Reduced motion: 
 plate only. Trade In and Feelin Lucky's reroll are not sales and stay silent. **A new sell door
 calls `saleFx`** (beside `moneySalePrice` / `moneyAfterSale`). Measured at 1440x820 and 420x900: a
 Trick, a Knack and a shop sell tile each rang once, flew one copy and left none behind; no page errors.
+
+## r833 - side projects on the Schedule (`js/side-projects.js`, owner: chunk 4)
+Two linked rounds framed together in one lane, the second one slot below the first. Book the first
+and its cost starts; book and clear the second and the cost ends and it pays; leave the second's slot
+without it (or fill that slot with something else) and you keep the cost paid and take a penalty;
+never book the first and it is missed. **Dealt** at map build (`spDeal`, from both `mapGenerate`
+exits): `SIDE_CFG.chance` (25)% of quarters, `max` (2) a run (`mapSideLog`). Halves are one-cell,
+non-mystery rounds (account, priority, audit, one-on-one); Q1's first half is never slot 1 (round 1
+rides startGame's deal). Measured over 1,000 maps: a pair exists in 65% of Q1 maps, 90% of later
+ones; over 2,000 four-quarter runs 0 / 1 / 2 projects 37 / 43 / 20%. **`mapSide`** (SAVE_VARS) holds
+the halves' ids, `cost` / `pay` / `pen`, `state` (idle run done gone skip), `war` (stone ids), `cut`.
+- **Costs** (`SIDE_COSTS`, the owner's 7), on the two halves' own levels (`spCostLive`), or every
+  level until the review under COST STAYS: GOAL +15% (`spApplyGoal` from `mapApplyPendingGoal`; the
+  list prints it, `spGoalMultFor` in `mapGoalPreview`), -20s, STOCK -1 (a swap and a discard) and
+  HAND -1 (`spRoundStart`, from triggerLevelUp after the seconds and stock are set; Selection Size is
+  cut on the limit and put back by `spRestoreHand` as the level ends), FOCUS ½ (`spFocusScale` in
+  `addFocus`, carrying the half point), HALF BOSS (a one-on-one's handicap, `spMiniNow` read by
+  `miniBossMaybeStart`; never rolled when a half is a one-on-one), +3 WAR (`spWarIn` on booking the
+  first, `spWarOut` at the end; by id).
+- **Rewards** (`SIDE_PAYS`, 6), paid from `mapAfterLevel` before the level's own reward
+  (`spAfterLevel` -> `mapAfterLevelPay`): pick of 3 Tricks epic+, permaprime one of up to 3 of your
+  Tricks (`spPermaprimePick`), pick 1 of 3 improvements applied twice (`crrKindPick` takes `times`),
+  pick of 3 Knacks rare+, L¢40, +1 Trick slot. One that cannot land pays the credits.
+- **Penalties** (`SIDE_PENS`, 4), from `spOnBook` in mapConfirm: the review +10% (`mapBossGoal`),
+  -L¢20, a random improvement taken back (`CRR.improve.take`), COST STAYS.
+- **The look** (the owner's pick, look E of side-projects-preview.html): `spFrameEl`, a grid item over
+  the two cells (`.mt-spframe`, css/map-mode.css), SIDE PROJECT on top, the state below (2 TO GO,
+  1 TO GO, DONE, DROPPED, MISSED); amber, glowing while it runs, green done, coral dropped. The first
+  half prints its cost and the second its reward (`spTileLine`, 10 characters at most; a priority
+  half drops its PATH line for it). `mapTileDesc` adds the full sentence (`spDescFor`); the ? card
+  has a row; the handbook has an entry. PROB_TABLES: sidecfg, sidecost, sidepay, sidepen.
+Measured in headless Chromium at 1440x820 and 420x900: each cost through a real booking and level
+start (2,000 -> 2,300; 180 -> 160s; 3 / 3 -> 2 / 2 stock; Selection 3 -> 2 and back; Focus +4 -> +2;
+the focus-drain handicap armed; 3 War cards in the draw pile); each reward and penalty; a full run by
+real taps and clicks: the first half's level at 2,300, its pick of three, the second at 4,000, the epic
+Trick pick, then its pick of three, the frame DONE. Golden: 838 match. No page errors. tools/sim's
+Schedule runs error on main before this change too ("reading 'length'"); not looked into.

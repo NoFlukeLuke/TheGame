@@ -206,6 +206,7 @@ function triggerLevelUp() {
                : (typeof flowNextRoundSeconds === 'function' && flowActive())
                ? flowNextRoundSeconds(roundSeconds) : _rr.seconds;
   if (typeof crApplyStartTime === 'function') crApplyStartTime();   // the Schedule audit's extra minute
+  if (typeof spRoundStart === 'function') spRoundStart();   // r833: a side project's cost (js/side-projects.js)
   match3ApplyZenResources(); // Zen/infinite: refill swaps & discards to "unlimited"
   match3PendingSettle = true; // the round's fresh board settles when its timer starts
   // Per-action time-cost debuffs active this round = permanent + next-round-only.

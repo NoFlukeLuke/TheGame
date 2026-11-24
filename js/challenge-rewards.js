@@ -96,7 +96,8 @@ function crrKindPick(s, done) {
     offers: offers.map(o => ({ entity: o.type === 'improve' ? o.etype : o.type, _improve: o.type === 'improve',
       id: o.id, emoji: o.icon, icon: o.icon, label: o.name, desc: o.desc, rarity: o.rar, tag: o.tag })),
     actions: [],
-    onChoose: i => { flowrGrantOffer(offers[i]); done(); },
+    // r833: `times` grants an improvement that many times (a side project's +2 TIERS).
+    onChoose: i => { flowrGrantOffer(offers[i]); for (let k = 1; k < (s.times || 1) && offers[i].type === 'improve'; k++) flowrGrantOffer(offers[i]); done(); },
     onSkip: () => done(),
   });
 }

@@ -329,6 +329,12 @@ const INFO_TOPICS = [
       'The perks: Sleight charges, a chance at a permaprime (a Trick fires once more every time, for good), a swap and a discard for good, a longer path on the next grid, card buffs, an improvement, or credits.',
     ] },
 
+  { id: 'side_projects', group: 'schedule', title: 'Side projects',
+    body: [
+      'Some quarters frame two levels together in one lane: a side project. The first half prints its cost, the second what it pays.',
+      'Book the first and its cost starts. Book and clear the second and the cost ends and it pays. Leave the second\'s slot without booking it and you keep the cost you paid and take a penalty. Never book the first and nothing happens.',
+    ] },
+
   { id: 'departments', group: 'schedule', title: 'Departments',
     body: [
       'Each quarter belongs to one department, named on the location screen. It makes one kind of obligation more common, leans offers toward one kind of {Trick}, {Knack} or {Sleight}, and draws most of its events from its own list.',

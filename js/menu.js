@@ -1,4 +1,4 @@
-const BUILD = "2026-11-24 · r832 · selling rings the till; the sold thing is thrown to the credits";
+const BUILD = "2026-11-24 · r833 · side projects on the Schedule";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
