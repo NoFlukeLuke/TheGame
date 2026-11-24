@@ -1,4 +1,4 @@
-const BUILD = "2026-11-24 · r844 · Relentless: each spade in a level adds 0.01 less";
+const BUILD = "2026-11-24 · r845 · scaling Trick sentences in one voice";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

@@ -6136,3 +6136,12 @@ under `floor` (0.01); replays count, a flush layer counts each spade twice. A le
 Flow each level-up starts the step over. Grown in scalingCount; the tray line prints the next step.
 A pre-r844 save starts the bonus at 0. Measured at 1440x820 and 420x900: hands of three suited spades
 added 0.45, 0.12, then 0.06 a hand; the next level's first spade 0.1; no drift. Golden: 838 match.
+
+## r845 - the scaling Tricks speak one way (owner)
+A Trick that grows from the moment it is taken reads "Each ___ adds +N to this" (Firesale, 401,
+inflation, More Better, Cloud Nine, Middle Man, Feng Shui) or, to compare, "Each ___ scales this
+trick +N" (Compound, To The Nines, Nickel Saved, Pe-de-Meia, Relentless in the owner's words). One that
+counts the whole run, taken or not, reads "+N for every ___ this run" (The Hummingbird, Wild Side,
+生きがい: `pauseInstanceGame`, `negativeTilesTakenRun`, `focusGenGame` all count from the run's start).
+"permanently" and "scaling" are gone from them. Wild Side has a template now. Templates only, no number
+changed. Golden: 838 match.
