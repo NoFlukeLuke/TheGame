@@ -1,4 +1,4 @@
-const BUILD = "2026-11-24 · r831 · Employee of the Month: +1 Focus apply a hand in the row; shop upgrade text";
+const BUILD = "2026-11-24 · r838 · merge: Employee of the Month +1 Focus apply a hand in the row (r831) with r837";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

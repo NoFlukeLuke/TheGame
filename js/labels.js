@@ -107,7 +107,9 @@ function fmtBig(n, small) {
   n = +n || 0;
   const a = Math.abs(n);
   if (a < 1e5) return small ? small(n) : String(Math.round(n));
-  const u = a >= 1e9 ? [1e9, 'b'] : a >= 1e6 ? [1e6, 'm'] : [1e3, 'k'];
+  // r836: past a trillion the letters run out: t, then powers of ten (2.3e18).
+  if (a >= 1e15) { const e = Math.floor(Math.log10(a)); let m = Math.round(a / Math.pow(10, e) * 10) / 10, x = e; if (m >= 10) { m = 1; x++; } return (n < 0 ? '-' : '') + m + 'e' + x; }
+  const u = a >= 1e12 ? [1e12, 't'] : a >= 1e9 ? [1e9, 'b'] : a >= 1e6 ? [1e6, 'm'] : [1e3, 'k'];
   const v = a / u[0];
   const s = v < 10 ? (Math.round(v * 10) / 10).toString() : String(Math.round(v));
   return (n < 0 ? '-' : '') + s + u[1];

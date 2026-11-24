@@ -519,5 +519,5 @@ html.skin-machine #stage #focus-mult-readout.fr-long { font-size: 10px !importan
 html.skin-machine #stage #focus-mult-readout.active { color: #d9ffe9 !important; }
 
 /* r805: with Line Quotas the goal screen is the meters, each printing its own goal; the 0/3 text would sit over them. */
-html.skin-machine #stage #score-right:has(#score-progress-bar-wrap.q-lines) #goal-display,
-html.skin-machine #stage #score-center:has(#score-progress-bar-wrap.q-lines) #goal-display { visibility: hidden; }
+/* r836: the Relay too (its sections print their goals and the fill shows the progress), and the LED copy of the text with it. */
+html.skin-machine #stage:has(#score-progress-bar-wrap:is(.q-lines, .q-relay)) :is(#goal-display, #goal-display + .led-c) { visibility: hidden !important; }   /* #stage, not a named parent: the goal sits in #score-left on a desktop, where r805's rule never matched */
