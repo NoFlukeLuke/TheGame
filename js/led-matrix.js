@@ -24,7 +24,7 @@ const LED_TARGETS = [
   { sel: '.rp-act' }, { sel: '.rp-lv' }, { sel: '.rp-lnum' }, { sel: '#level-display' },
   { sel: '.ci-main' },
 ];
-const LED_CFG = { ink: .72, gap: 1, minP: 2, glow: .9 };   // ink: the glyph's 7 rows over the text's line height
+const LED_CFG = { ink: .72, gap: 1, minP: 2, glow: .9, fit: .94 };   // ink: the glyph's 7 rows over the text's line height
 const _led = new Map();      // host -> state
 let _ledRaf = 0;
 
@@ -111,7 +111,7 @@ function ledDraw(st) {
   const tr = ledTextRect(el);
   const z = hr.width / el.offsetWidth, dpr = window.devicePixelRatio || 1;
   const ink = ledInk(st);
-  const sig = [text, Math.round(hr.left - pr.left), Math.round(hr.top - pr.top), Math.round(hr.width), Math.round(hr.height),
+  const sig = [text, Math.round(pr.width), Math.round(hr.left - pr.left), Math.round(hr.top - pr.top), Math.round(hr.width), Math.round(hr.height),
     Math.round(tr.left), Math.round(tr.width), Math.round(tr.height), ink, dpr].join('|');
   if (sig === st.sig) return;
   st.sig = sig;
@@ -120,21 +120,24 @@ function ledDraw(st) {
   const glyphs = [...text].map(ch => ch === ' ' ? null : kdGlyph(7, ch));
   let cols = 0; glyphs.forEach((g, i) => { cols += (g ? g.w : 3) + (i < glyphs.length - 1 ? 1 : 0); });
   let P = Math.floor(tr.height * dpr * LED_CFG.ink / 7);
-  const room = Math.max(hr.width, tr.width) * dpr;
+  // r836: never wider than the screen it sits on (a 19-digit score ran across the goal screen)
+  const fits = pr.width * dpr * LED_CFG.fit;
+  const room = Math.min(Math.max(hr.width, tr.width) * dpr, fits);
   if (cols && cols * P > room) P = Math.floor(room / cols);
-  P = Math.max(LED_CFG.minP, P);
+  P = Math.max(cols * LED_CFG.minP > fits ? 1 : LED_CFG.minP, P);
   const pad = Math.ceil(P * 2);   // room for the glow
   const W = cols * P + pad * 2, H = 7 * P + pad * 2;
   // centred on where the text was drawn, placed in the parent's padding box
   const ox = pr.left + p.clientLeft * z, oy = pr.top + p.clientTop * z;
-  const cx = (tr.left + tr.width / 2 - ox) * dpr, cy = (tr.top + tr.height / 2 - oy) * dpr;
+  const wide = tr.width > pr.width;   // text wider than its screen: centre on the screen
+  const cx = (wide ? pr.width / 2 : tr.left + tr.width / 2 - ox) * dpr, cy = (tr.top + tr.height / 2 - oy) * dpr;
   const left = Math.round(cx - W / 2), top = Math.round(cy - H / 2);   // whole device px, so the squares stay sharp
   c.width = Math.max(1, Math.round(W)); c.height = Math.max(1, Math.round(H));
   const css = v => (v / dpr / z) + 'px';
   c.style.left = css(left); c.style.top = css(top); c.style.width = css(W); c.style.height = css(H);
   c.style.setProperty('--led-ink', ink);
   x.clearRect(0, 0, c.width, c.height);
-  const gap = P >= 3 ? LED_CFG.gap : 0.5, D = P - gap;
+  const gap = P >= 3 ? LED_CFG.gap : P >= 2 ? 0.5 : 0, D = P - gap;
   let gx = pad;
   glyphs.forEach(g => {
     if (g) g.rows.forEach((row, ry) => row.forEach((on, rx) => {

@@ -176,7 +176,10 @@ function logisticsNextSwap(locked, from) {
 function logisticsStart(card, r, c) {
   if (_logRun) return;
   const dim = { color: 'var(--cream-dim)' };
-  const busy = animating || falling || !!danceAbortController || roundEnded
+  // r836 (owner's bug): a hand still tallying no longer refuses it (the board is the player's during a
+  // tally, and r826 made tallies long), and cards still in the air are landed first, not refused.
+  if (falling && !animating && typeof fallSettleNow === 'function') fallSettleNow();
+  const busy = animating || falling || roundEnded
     || (typeof dealerHand !== 'undefined' && dealerHand)
     || (typeof cascadeRunning === 'function' && cascadeRunning())   // r773
     || (typeof sleightSpinLock !== 'undefined' && sleightSpinLock);

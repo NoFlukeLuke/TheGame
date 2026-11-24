@@ -1,4 +1,4 @@
-const BUILD = "2026-11-24 · r835 · merge: side projects with square boxes, LED numbers, Free Hand 20s";
+const BUILD = "2026-11-24 · r836 · Logistics Assistant no longer refuses during a tally; Relay and huge numbers draw right";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

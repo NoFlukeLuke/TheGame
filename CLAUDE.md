@@ -6049,3 +6049,24 @@ on desktop and none on the phone; golden 838 match; no page errors.
 ## r834 numbering
 Two sessions shipped r834 in parallel: side projects on the Schedule, and the Straight Shot / square
 boxes / LED numbers / Free Hand pass. The merge that joined them is r835.
+
+## r836 - Logistics Assistant runs during a tally; the Relay's screen and huge numbers draw right (owner's bugs)
+- **Logistics Assistant** (`logisticsStart`, js/office-sleights.js) refused with "let the board settle
+  first" whenever a hand was still tallying (`danceAbortController`) or cards were in the air. Tallies
+  are long since r826 and the board is the player's during one, so that test is gone; cards still
+  falling are landed first (`fallSettleNow`) instead of refusing. It still waits for `animating`, a held
+  stack, a cascade and a spinning Sleight.
+- **Relay / Line Quotas goal screen**: the goal text ("0/66,000") sat over the sections' own goals.
+  r805's rule hiding it named `#score-right` / `#score-center`, but on a desktop the goal lives in
+  `#score-left`, so it never matched, and r834's LED copy of the text drew over the meters at full size.
+  The rule is `#stage:has(#score-progress-bar-wrap:is(.q-lines, .q-relay))` now and hides the text AND
+  its LED canvas (`#goal-display + .led-c`), for the Relay too. The Relay itself was checked at scores
+  of 1e16 a hand: each hand clears one goal (r805: nothing rolls over), the third ends the level and
+  the reward chain opens.
+- **Huge numbers**: an LED readout is never wider than the screen it sits on (`LED_CFG.fit` 94% of the
+  parent; a 17-digit SCORE ran across the goal screen), centred on the screen when its text is wider.
+  `fmtBig` has `t` for trillions and powers of ten from 1e15 ("2.3e18"; MULT read "10000000B").
+Measured in a served headless Chromium at 1440x820 and 420x900: Logistics double-tapped 120ms after
+PLAY (falling, tallying) and again mid-tally printed no refusal and made 2 swaps (charges 12 -> 10);
+a Relay at 1e16 a hand showed SCORE inside its screen, MULT 1E15, the three sections with no text
+over them, and ended on the third hand into the reward pick. Golden: 838 match. No page errors.
