@@ -8,7 +8,7 @@ function keeperModesAllowed() { const n = BAL.keeper ? BAL.keeper.modes : 3; ret
 function keeperModeOf(card) { const ok = keeperModesAllowed(); return ok.includes(card && card._keepMode) ? card._keepMode : ok[0]; }
 function keeperCycle(card) {
   const ok = keeperModesAllowed();
-  if (ok.length < 2) { refuse('Keeper keeps the cards. Improve it to choose', { color: 'var(--cream-dim)' }); return false; }
+  if (ok.length < 2) { refuse('Keeper keeps the cards. Upgrade it to choose', { color: 'var(--cream-dim)' }); return false; }
   card._keepMode = ok[(ok.indexOf(keeperModeOf(card)) + 1) % ok.length];
   if (typeof noteMessage === 'function') noteMessage(`\ud83d\udccc Keeper: ${keeperModeLabel(card).toLowerCase()} between levels`, 'var(--gold)');
   return true;

@@ -30,7 +30,7 @@ const TRICK_POOL = [
   { id:'eye_of_storm',   name:'Midlife Crisis',    tier:'epic',      desc:'Replay all non first or last cards 2x', tags:['replay','card','scores'] },
   { id:'ripple',         name:'关系',              tier:'rare',      desc:'Cards adjacent in rank to another card in the hand have a 66% chance to replay', tags:['replay','card','scores','chance','rank'] },
   // ── Flush / special hand types ──
-  { id:'enriched',       name:'Enriched',            tier:'common',    desc:'Flushes score +60 pips', tags:['pips','hand','flush','scores'] },
+  { id:'enriched',       name:'Enriched',            tier:'common',    desc:'Flushes score +100 pips', tags:['pips','hand','flush','scores'] },
   { id:'tidal_force',    name:'Vestir a Camisa',        tier:'common',    desc:'Flushes score +15 mult per card', tags:['mult','card','flush','scores'] },
   { id:'deluge',         name:'Company Time',              tier:'rare',      desc:'A 5-card Flush rewinds the clock 8s', tags:['time','hand','flush'] },
   { id:'summit',     name:'The Go-to Gal',   tier:'common', desc:'The highest-ranking card in each hand scores +(level x 2) pips.', tags:['pips','card','scores','scaling','rank'] },
@@ -93,7 +93,7 @@ const TRICK_POOL = [
   { id:'ninesong',       name:'Threepeat',           tier:'epic',      desc:"If the hand's pip total is divisible by 3, one of the following happens: rewind the clock 9s, +40 mult, +13 Focus, or all three", tags:['time','mult','focus','hand','scores','chance'] },
   { id:'prime_time',     name:'Prime Time',          tier:'rare',      desc:'Prime-ranked cards (A,2,3,5,7) score +29 pips', tags:['pips','card','rank','scores'] },
   { id:'even_score',     name:'Get Even',            tier:'common',    desc:'Even-ranked cards score +15 pips', tags:['pips','card','rank','scores'] },
-  { id:'odd_squad',      name:'Odd One In',          tier:'rare',      desc:'Odd-ranked cards score +18 mult', tags:['mult','card','rank','scores'] },
+  { id:'odd_squad',      name:'Odd One In',          tier:'rare',      desc:'Odd-ranked cards score +19 mult', tags:['mult','card','rank','scores'] },
   // ── Rank diversity ──
   { id:'number_crunch',  name:'Equal Opportunity',           tier:'rare',      desc:'Hands with 4+ different ranks score +18 mult per card', tags:['mult','card','rank','scores'] },
   // ── Position ──
@@ -105,7 +105,7 @@ const TRICK_POOL = [
   { id:'study_hall',     name:'Study Hall',          tier:'rare',      tags:['focus','card'], desc:'Every 2 cards scored adds +2 Focus' },
   { id:'rowcol_perm_double', name:'Matrix Management',        tier:'epic',      tags:['deck','mult','card','position','scaling','scores'], desc:'Cards scored at the intersection of a row effect and a column effect permanently gain +6 mult' },
   { id:'shape_square',   name:'Hands of Blue',       tier:'rare',      tags:['mult','focus','hand','position','scores'], desc:'A 2×2 shaped hand scores +24 mult and adds +16 Focus' },
-  { id:'shape_cross',    name:'Crossroads',          tier:'rare',      tags:['mult','focus','hand','position','size','scores'], desc:'A 5 card + shaped hand adds +10 Focus and +25 mult' },
+  { id:'shape_cross',    name:'Crossroads',          tier:'rare',      tags:['mult','focus','hand','position','size','scores'], desc:'A 5 card + shaped hand adds +25 Focus and +25 mult' },
   { id:'shape_line',     name:'Straight Shot',       tier:'epic',      tags:['mult','hand','position','size','scores'], desc:"5-card hands played in a straight line add every card's pip value (including buffs) to mult" },
   { id:'corner_retrigger', name:'Cornered',          tier:'rare',      tags:['xpips','card','position','clock','scores'], desc:'Corner cards score ×pips equal to the whole minutes left on the clock' },
   { id:'two_corners',    name:'Ornery',              tier:'epic',      tags:['xmult','card','position','scores'], desc:'Corner cards score ×1.75 mult' },
@@ -153,7 +153,7 @@ const TRICK_POOL = [
   { id:'clean_sweep',    name:'Clean Sweep',         tier:'rare',      tags:['focus','credits','hand','position'],           desc:'Use every cell of any row or column within two hands to add +8 Focus and +4 credits' },
   // ── Level scaling ──
   // r676 (owner; CHALLENGE_REWARDS.md section 7): becomes a random Trick each round (js/changing.js). Working name.
-  { id:'changeling',     name:'Temp',                tier:'epic',    desc:'At the start of each level, becomes a random Trick of any rarity. Improvements apply to the Trick it becomes.', tags:['other','chance','start'] },
+  { id:'changeling',     name:'Temp',                tier:'epic',    desc:'At the start of each level, becomes a random Trick of any rarity. Upgrades apply to the Trick it becomes.', tags:['other','chance','start'] },
   // r722: the money and selling Tricks (MONEY_AND_SELLING.md, owner). Descriptions from DESC_TEMPLATES.
   { id:'small_change',     name:'Small Change',     tier:'common', desc:'', tags:['credits','card','rank'] },
   { id:'gold_standard',    name:'Gold Standard',    tier:'common', desc:'', tags:['pips','card','suit','held','scores'] },
@@ -172,7 +172,7 @@ const TRICK_POOL = [
   { id:'fives_discard',  name:'Nickel Saved',        tier:'rare',      tags:['pips','hand','rank','discard','scores','scaling'], desc:'Each 5 discarded or played permanently adds +5 pips to this trick' },
   { id:'nines_mult',     name:'Cloud Nine',          tier:'epic',      tags:['deck','mult','hand','rank','discard','scores','scaling','cost'], desc:'Adds 9 9s to your deck. Each 9 scored adds +2 mult to this trick. A 9 that scores or is discarded is destroyed; when none are left, this trick deletes itself' },
   { id:'tens_mult',      name:'To The Nines',        tier:'rare',      tags:['mult','hand','rank','discard','scores','scaling'], desc:'Each 9 discarded or played permanently adds +3 mult to this trick' },
-  { id:'sixes_perm',     name:'D6',                  tier:'epic',      tags:['deck','pips','mult','card','scaling','scores','chance'], desc:'Every 6th card scored permanently gains a random +2–12 pips or mult' },
+  { id:'sixes_perm',     name:'D6',                  tier:'epic',      tags:['deck','pips','mult','card','scaling','scores','chance'], desc:'Every 6th card scored permanently gains a random +6–18 pips or mult' },
   { id:'fours_perm',     name:'Middle Management',   tier:'common',    tags:['deck','pips','card','size','scaling','scores'], desc:'4-card hands permanently give the 4th card +16 pips' },
   { id:'twos_retrigger', name:'Double Take',         tier:'rare',      tags:['retrigger','card','rank','tricks'], desc:'Each 2 scored force triggers your rightmost Trick (other than this one)' },
   { id:'prime_times',    name:'Prime Times',         tier:'rare',      tags:['retrigger','card','rank','tricks'], desc:'Scoring prime-ranked cards (A,2,3,5,7) primes your leftmost Trick' },
@@ -183,7 +183,7 @@ const TRICK_POOL = [
   // ── Situational pip ──
   { id:'sands_of_time',  name:'El Tiempo es Oro',       tier:'rare',      desc:'Score +pips equal to time remaining ÷ 2', tags:['pips','hand','clock','scores'] },
   { id:'discard_pips',   name:'Waste Specialist',             tier:'common',    tags:['mult','hand','discard','scores'], desc:'+4 mult per card discarded this level (+2 in Flow)' },
-  { id:'spade_flood',    name:'In the Black',         tier:'epic',      tags:['pips','hand','suit','clock','scores'], desc:'All-Spade hands add the remaining level time as pips' },
+  { id:'spade_flood',    name:'In the Black',         tier:'rare',      tags:['pips','hand','suit','clock','scores'], desc:'All-Spade hands add the remaining level time as pips' },
   { id:'mirror',         name:'Mirror',              tier:'rare',      tags:['retrigger','hand','tricks'], desc:'Tap to tilt left or right; mimics the effect of the Trick it reflects.' },
   // ── Diverse conditions ──
   { id:'combo_score',    name:'Hybrid Approach',         tier:'common',    desc:'+6 mult for every distinct hand type played this level', tags:['mult','hand','scores'] },

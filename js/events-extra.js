@@ -67,7 +67,7 @@ function trickGambleChoices() { return (trickTray || []).filter(t => canImprove(
 function renderTrickGamble() {
   const s = eventState, body = evBodyEl();
   s.tgPicks = []; s.tgDone = false;
-  body.appendChild(evNote('Choose two Tricks. One of them is improved twice, the other is deleted. You do not choose which.'));
+  body.appendChild(evNote('Choose two Tricks. One of them is upgraded twice, the other is deleted. You do not choose which.'));
   const wrap = document.createElement('div'); wrap.className = 'ev-choice-grid'; body.appendChild(wrap);
   s.tgEls = trickGambleChoices().map(t => {
     const em = (typeof trickEmoji === 'function') ? trickEmoji(t) : '✦';

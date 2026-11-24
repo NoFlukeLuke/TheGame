@@ -5942,7 +5942,34 @@ Settings -> Audio -> Music at the level's end (`musicEdge`: both / warble / off;
 clock froze it and stopped ticks, shop clean, Warble-only and Off, speaker off still warbles and
 ticks; no page errors. An offline render of a level's last 45s peaked at 0.71.
 
-## r831 - Head Count restores every Sleight's charges when taken (owner)
+## r831 - "improve" reads "upgrade"; card marks a band per 10; the owner's numbers
+- **Wording (owner):** every player-facing improve / improves / improved / improvement reads upgrade /
+  upgrades / upgraded / upgrade (79 strings, the r814 sweep's rules; Spin to Improve is **Spin to
+  Upgrade**, Flow's IMPROVE step reads UPGRADE). Code names (`improveEntity`, `IMPROVE_PLAN`, the
+  `improve` kind ids) are unchanged; dev panel text left alone. **A new player-facing line says
+  "upgrade".**
+- **Card marks** (`CARD_BAND_FAMILIES`, js/deck-grid.js): pips and mult draw a band per 10 (`per`),
+  ROUNDED DOWN with at least one (`cardBandCount`: 29 is two, 30 three); at `solidAt` (50) and up the
+  whole corner is the colour (`.card-bsolid`, a wedge out to `CARD_BAND_LIMIT`, so it never reaches the
+  rank or suit). Time keeps 5 a band, replays 1, both now rounded down.
+- **Numbers (owner):** Enriched +100 and Crossroads +25 Focus stay (r817's cuts undone); Odd One In
+  +19 (odd); D6 rolls 6-18; In the Black is rare; Cornered reads the whole clock in Flow too (r814's cap
+  gone); El Tiempo es Oro divides by `flow_divisor` (3) in Flow, uncapped (`sandsDivisor`; its sentence
+  carries "(÷ 3 in Flow)", which `flowWordApply` turns into ÷ 3 in Flow and drops elsewhere). **Hyper
+  Focus's ladder alternates** a lower bar and one more application: 50% x1, 45% x1, 45% x2, 40% x2,
+  40% x3, v6 35% x4.
+- **Fixed:** a Trick left out of the offer pool (locked on this browser, a tour's grant) took no
+  upgrade ladder and kept its v1 sentence when owned: `improvableIds`, `applyBalDescriptions`,
+  `syncOwnedEntityDescs` and `improvePreview` read `TRICK_POOL_ALL` now.
+Measured in headless Chromium at 1440x820 and 420x900: marks for 9 / 15 / 29 / 30 / 49 pips-or-mult read
+1 / 1 / 2 / 3 / 4 bands and 50 solid; Hyper Focus by real `improveEntity` 45% x1 ... 35% x4 with the
+sentence following; El Tiempo es Oro in Flow at 5:00 read ÷ 3 (100 pips), Classic ÷ 2; no "improv" left
+on a run's screen; no page errors. Golden: only Odd One In, Enriched and the trays holding them move;
+baseline in r832.
+
+## r832 - golden baseline rewritten for r831
+Only Odd One In, Enriched and the trays holding them moved.
+## r831 (main) - Head Count restores every Sleight's charges when taken (owner)
 `applyHeadCountOnce` (js/limits.js, from `updateKnackList` beside Tempo and Jeitinho): every owned
 Sleight with a charge count (board and both piles) goes to its cap (`sleightCapOf`); infinite ones
 are left alone. Once per take: `headCountInitApplied` (SAVE_VARS, reset in startGame) clears when the
@@ -5951,7 +5978,7 @@ The sentence leads with it; tag `charges` added. Measured at 1440x820 and 420x90
 1 charge went to 5 / 10 / 9 on taking it, a later `updateKnackList` changed nothing, sold and retaken
 refilled again; no page errors.
 
-## r832 - a sale rings the till; the sold thing is thrown to the credits (owner)
+## r832 (main) - a sale rings the till; the sold thing is thrown to the credits (owner)
 `saleFx(paid, from)` (js/tray-fx.js) is called by every sell door: `sellTrick`, `sellKnack`
 (js/shop.js) and the shop's sell board (`doShopSell`). It plays `sfxSale` (js/coin-sounds.js,
 catalog `sale`, event bus: the drawer's clack, then the bell twice a fifth apart) and marks the sale;
@@ -5963,7 +5990,10 @@ plate only. Trade In and Feelin Lucky's reroll are not sales and stay silent. **
 calls `saleFx`** (beside `moneySalePrice` / `moneyAfterSale`). Measured at 1440x820 and 420x900: a
 Trick, a Knack and a shop sell tile each rang once, flew one copy and left none behind; no page errors.
 
-## r833 - side projects on the Schedule (`js/side-projects.js`, owner: chunk 4)
+## r831-r832 numbering
+Two sessions shipped r831 and r832 in parallel: the upgrade wording, card marks and numbers (with its r832 baseline) and main's Head Count / selling changes. The merge that joined them is r833.
+
+## r834 - side projects on the Schedule (`js/side-projects.js`, owner: chunk 4)
 Two linked rounds framed together in one lane, the second one slot below the first. Book the first
 and its cost starts; book and clear the second and the cost ends and it pays; leave the second's slot
 without it (or fill that slot with something else) and you keep the cost paid and take a penalty;

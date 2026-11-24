@@ -425,7 +425,7 @@ body.map-keys :is(#btn-play, #btn-discard, #swap-indicator).mapk-on .mapk-ico { 
 #grid .map-term .map-reveal.mrv-done b { animation: mrvFlash .5s steps(2) 2; }
 @keyframes mrvFlash { 50% { opacity: .35; } }
 
-/* ── r833: a side project, one frame round its two halves (js/side-projects.js) ── */
+/* ── r834: a side project, one frame round its two halves (js/side-projects.js) ── */
 #grid .mt-spframe {
   --sp: #ffd98a;
   position: relative; z-index: 2; pointer-events: none; margin: -3px;

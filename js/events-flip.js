@@ -63,7 +63,7 @@ function evRunScreens(steps, done) {
     if (k === 'pick3') guidedOpenPickThree(next);
     else if (k === 'improve_random') {
       const nm = evRandomImprove();
-      if (nm) { showMessage(`${nm} improved`, '#e0813a'); setTimeout(next, 700); }
+      if (nm) { showMessage(`${nm} upgraded`, '#e0813a'); setTimeout(next, 700); }
       else guidedOpenPickThree(next);
     }
     else evKindPick(k, next);
@@ -306,7 +306,7 @@ function renderPrizeLadder() {
   evLadder({
     secure: 2,
     note: 'Each heads adds the next prize. Get two heads and secure the first two rewards. Getting tails loses any unsecured rewards.',
-    rungs: [`+${f} Focus limit`, 'A limit, then a pick of three', 'A random improvement', 'All three again'],
+    rungs: [`+${f} Focus limit`, 'A limit, then a pick of three', 'A random upgrade', 'All three again'],
     cash: (n, lines) => {
       const twice = n >= 4 ? 2 : 1;
       focusCapPerm += f * twice;
@@ -315,8 +315,8 @@ function renderPrizeLadder() {
       const steps = [];
       if (n >= 2) for (let k = 0; k < twice; k++) steps.push('limits', 'pick3');
       if (n >= 3) for (let k = 0; k < twice; k++) steps.push('improve_random');
-      if (n >= 2) lines.push(twice > 1 ? 'Then two limits, two picks of three and two random improvements.'
-                                       : n >= 3 ? 'Then a limit, a pick of three and a random improvement.' : 'Then a limit and a pick of three.');
+      if (n >= 2) lines.push(twice > 1 ? 'Then two limits, two picks of three and two random upgrades.'
+                                       : n >= 3 ? 'Then a limit, a pick of three and a random upgrade.' : 'Then a limit and a pick of three.');
       return steps;
     },
   });

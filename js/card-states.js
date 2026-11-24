@@ -169,14 +169,14 @@ const CARD_STATE_DEFS = {
 
   review: {
     name: 'Review', icon: '↗', color: '#d9a129', tier: 'rare', fuse: 60,
-    desc: 'Play it for a 1 in 5 chance to improve a trick. Leave it 60 seconds for a 1 in 2 chance to knock a tier off one.',
+    desc: 'Play it for a 1 in 5 chance to upgrade a trick. Leave it 60 seconds for a 1 in 2 chance to knock a tier off one.',
     use(ctx) {
       const B = cardStateBal();
       if (luckRoll(B.review_up) <= 0) return { note: 'Review - no change' };
       const t = (typeof pickImproveTarget === 'function') ? pickImproveTarget('trick') : null;
-      if (!t || typeof improveEntity !== 'function') return { note: 'Review - nothing left to improve' };
+      if (!t || typeof improveEntity !== 'function') return { note: 'Review - nothing left to upgrade' };
       const tier = improveEntity(t.id);
-      if (!tier) return { note: 'Review - nothing left to improve' };
+      if (!tier) return { note: 'Review - nothing left to upgrade' };
       if (typeof syncOwnedEntityDescs === 'function') syncOwnedEntityDescs();
       if (typeof renderTrickTray === 'function') renderTrickTray();
       return { note: `Review - ${t.name} to v${tier}.0`, color: '#3aa76d' };
@@ -188,7 +188,7 @@ const CARD_STATE_DEFS = {
       // makes half the card worse.
       if (luckBadRoll(B.review_down) <= 0) return { note: 'Review - filed with no change' };
       const t = cardStatePickImproved();
-      if (!t) return { note: 'Review - nothing improved to knock back' };
+      if (!t) return { note: 'Review - nothing upgraded to knock back' };
       const tier = downgradeEntity(t.id);
       if (typeof syncOwnedEntityDescs === 'function') syncOwnedEntityDescs();
       if (typeof renderTrickTray === 'function') renderTrickTray();

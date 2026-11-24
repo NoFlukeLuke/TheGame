@@ -56,7 +56,7 @@ const UL_STAT_TEXT = {
   'shapes:line5': 'Play {n} hands of 5 cards in a straight line',
   'max:roundruns': 'Play {n} Run hands in one level', 'pairburst': 'Play 3 hands with a pair within 30s, {n} times',
   'max:pairhandscore': 'Score {n} with one hand that holds a pair',
-  'challenges': 'Bank {n} challenge stages', 'bosses': 'Beat {n} bosses', 'improves': 'Improve {n} times', 'events': 'Open {n} events',
+  'challenges': 'Bank {n} challenge stages', 'bosses': 'Beat {n} bosses', 'improves': 'Upgrade {n} times', 'events': 'Open {n} events',
 };
 
 const TRICK_UNLOCKS = {

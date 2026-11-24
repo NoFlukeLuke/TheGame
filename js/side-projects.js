@@ -1,4 +1,4 @@
-// ── SIDE PROJECTS (r833, owner: the Schedule's chunk 4) ──────────────────────
+// ── SIDE PROJECTS (r834, owner: the Schedule's chunk 4) ──────────────────────
 // Two linked rounds on the Schedule, framed together: the first in one slot, the
 // second in the same lane of the next. Book the first and its COST starts; book
 // and clear the second and the cost ends and it PAYS. Leave the second's slot
@@ -43,7 +43,7 @@ const SIDE_COSTS = {
 const SIDE_PAYS = {
   tricks:     { short: 'EPIC TRICK',    say: () => 'pick 1 of 3 Tricks, epic or better', can: () => !(typeof trickTrayFull === 'function' && trickTrayFull()) },
   permaprime: { short: 'PERMAPRIME',    say: () => 'permaprime a Trick you pick', can: () => typeof trickTray !== 'undefined' && trickTray.length > 0 },
-  tiers:      { short: '+2 TIERS',      say: () => 'improve something you pick, twice', can: () => typeof evImprovables === 'function' && evImprovables().length > 0 },
+  tiers:      { short: '+2 TIERS',      say: () => 'upgrade something you pick, twice', can: () => typeof evImprovables === 'function' && evImprovables().length > 0 },
   knacks:     { short: 'RARE KNACK',    say: () => 'pick 1 of 3 Knacks, rare or better', can: () => true },
   credits:    { short: creditsTxt(SIDE_CREDITS), say: () => `${SIDE_CREDITS} credits`, can: () => true },
   slot:       { short: 'TRICK SLOT', say: () => 'one more Trick slot', can: () => limits.trick_slots.current < limits.trick_slots.max },
@@ -51,7 +51,7 @@ const SIDE_PAYS = {
 const SIDE_PENS = {
   review:  { short: 'REVIEW +10%', say: () => 'this quarter’s review asks 10% more' },
   credits: { short: '-' + creditsTxt(SIDE_PEN_CREDITS), say: () => `you lose ${SIDE_PEN_CREDITS} credits` },
-  tier:    { short: '-1 TIER',     say: () => 'something you improved loses an improvement' },
+  tier:    { short: '-1 TIER',     say: () => 'something you upgraded loses an upgrade' },
   stays:   { short: 'COST STAYS',  say: () => 'the cost lasts until the review' },
 };
 

@@ -56,13 +56,13 @@ const BAL = {
   wide_span_mult: { mult: 50 },
   hidden_pair: { pips: 12 },
   twin_sprouts: { pips: 15 },
-  enriched: { pips: 60 },   // r817 (owner, the averages pass): was 100
+  enriched: { pips: 100 },   // r831 (owner): stays 100 (r817 had 60)
   overgrowth: { pips_per_card: 15 },   // r817 (owner, the averages pass): was 20
   triple_threat: { pips: 20 },
   early_bird: { pips_per_card: 15 },   // r817 (owner, the averages pass): was 20
   kindling: { mult_per_streak: 8 },
   spade_flood: { time_div: 1, time_mult: 1, suits: 0 },   // r625: suits 0 all spades / 1 all clubs or spades / 2 any club or spade; time_mult by IMPROVE_PLAN
-  sands_of_time: { divisor: 2 },
+  sands_of_time: { divisor: 2, flow_divisor: 3 },   // r831 (owner): in Flow the clock left is divided by 3
   discard_pips: { mult_per: 4, mult_per_flow: 2 },   // r651 (owner): Flow pays the smaller one
   landfill: { mult_per: 1 },   // r651 (owner): per swapped or discarded card THIS GAME (landfillCount)
   magician: { mult_per_sleight: 6, solo_pips: 50 },   // r635: solo_pips while you own no Sleight
@@ -78,7 +78,7 @@ const BAL = {
   quick_draw: { window_ms: 3000, cap_gain: 1, cap: 10, focus_cut: 0.25, sell_bonus: 6 },   // r708 owner: costs 25% of your Focus; sells for more at max
   expanse: { cap_gain: 1, cap: 10, keep_fraction: 0.5, sell_bonus: 6 },
   flow_state: { pips_per_card: 20 },   // r814 (owner): was 15
-  hyper_focus: { share: 0.5, extra: 1 },   // r817 (owner, the averages pass): reworked: Focus applies again while over half its limit
+  hyper_focus: { share: 0.5, extra: 1 },     // r817 (owner, the averages pass): reworked: Focus applies again while over half its limit
   club_double: { base: 1 },
   night_owl: { mult_per_card: 16 },   // r767 (owner): was 10
   wildfire: { focus: 5 },
@@ -123,7 +123,7 @@ const BAL = {
   number_crunch: { mult_per_card: 18 },   // r817 (owner, the averages pass): was 14
   cull: { focus_per_stock: 2, per: 2 },
   even_score: { pips_per_card: 15 },   // r817 (owner, the averages pass): was 16
-  odd_squad: { mult_per_card: 18 },   // r817 (owner, the averages pass): was 13
+  odd_squad: { mult_per_card: 19 },   // r831 (owner): an odd number (r817 had 18)
   long_road: { mult_per_card: 10 },
   still_water: { mult_per_interval: 10, interval_seconds: 5 },   // r767 (owner): was 10; r814 (owner): back to 10 (15 was 3 a second)
   wild_heart: { primes: 1, extra_ranks: 0 },   // r625: primes per Ace; extra ranks are rolled on the Trick when improved
@@ -188,7 +188,7 @@ const BAL = {
   marathon: { extra: 1, flush: 0, sets: 0 },  // r625: extra applications on runs; flush / sets extend them
   employee_month: { discards: 0, swaps: 0, carry: 0, prime_chance: 0, every: 0 },   // r802: all five are switched on by its ladder (IMPROVE_PLAN)
   undue_influence: { faces: 0 },              // r625: 1 = also pays the face cards in the hand
-  shape_cross: { focus: 10, mult: 25 },   // r817 (owner, the averages pass): Focus was 25
+  shape_cross: { focus: 25, mult: 25 },   // r831 (owner): Focus stays 25, the shape is hard to make
   two_corners: { mult_mult: 1.75 },   // r817 (owner, the averages pass): was x2
   correct_run: { pips: 80, mult: 20, focus: 10 },
   tide_table: { mult_base: 1.5, mult_step: 0.5 },   // r817 (owner, the averages pass): starts at x1.5 (was x1.25)
@@ -250,7 +250,7 @@ const BAL = {
   fives_discard: { pips_per_five: 5 },
   nines_mult: { mult_per_nine: 2, added: 9, no_delete: 0 },   // r539 owner's rework: brings its own 9s; r625: no_delete at the 5th improvement
   tens_mult: { mult_per_milestone: 3 },   // r708 owner: To The Nines, +3 mult per 9 discarded or played
-  sixes_perm: { roll_min: 2, roll_max: 12, interval: 6 },   // r817 (owner, the averages pass): the roll x2 (was 1-6)
+  sixes_perm: { roll_min: 6, roll_max: 18, interval: 6 },   // r831 (owner): 6-18 (was 1-6, r817 2-12)
   compound_mult: { mult_per_hand: 0.3 },   // r817 (owner, the averages pass): was 0.1
   // ── clock-mark Tricks ──
   ticktock: { focus: 4 },
@@ -488,7 +488,7 @@ const DESC_TEMPLATES = {
   lie_up: 'Hands whose shape bends {bends} times or fewer score +{pips_per_card} pips and +{mult_per_card} mult per card',
   overtime:      "Every hand rewinds the clock {seconds_per_3}s for every 3 cards you have scored from this Trick's marked row or column. Resets each level.",
   feng_shui: 'Permanently scores +{pips_per_hand} pips for each hand scored with a positional buff (row or column effects)',
-  sands_of_time: 'Score +pips equal to time remaining ÷ {divisor}',
+  sands_of_time: 'Score +pips equal to time remaining ÷ {divisor}[[flow_divisor: (÷ {flow_divisor} in Flow)]]',
   discard_pips: '+{mult_per} mult per card discarded this level (+{mult_per_flow} in Flow)',
   dark_matter: 'Corrupted cards in a hand add +{pips} pips each',
   combo_score: '+{mult_per_type} mult for every distinct hand type played this level',
@@ -535,12 +535,12 @@ const DESC_TEMPLATES = {
   excursion_fund: 'Each event you go to pays {credits} credits.',
   hedge_fund: 'Clearing a level without a swap pays {pct}% of the credits you hold.',
   king_pawn: 'Tricks sell for [[pct<101:the price the shop asks for them]][[pct>101:{pct}% of the price the shop asks for them]].',
-  buyback: 'The last Trick you sold waits on the next shop\'s first shelf, improvements kept, for [[pct>99:what it sold for]][[pct<99:{pct}% of what it sold for]].',
+  buyback: 'The last Trick you sold waits on the next shop\'s first shelf, upgrades kept, for [[pct>99:what it sold for]][[pct<99:{pct}% of what it sold for]].',
   nest_egg: 'Each time it is drawn, it sells for {gain} more. While it is on the grid, selling a Trick or Knack mid-level pays {bonus_pct}% more.[[flat: Sells for {flat} more.]] Inert: it cannot be swapped or discarded, only played.',
   loan_shark: 'Pays {grant} credits when you take it. While it is on the grid, every hand scores +{pips} pips and +{mult} mult. Each time it is drawn it takes {cost_add} credits, +1 for every level you have held it. Sells for nothing. Inert: it cannot be swapped or discarded, only played.',
   bogo: 'Double-tap: copies of a random card beside it replace cards in its row, one for every {per_credits} credits you hold or one for each time you gained credits this level, whichever is more[[extra:, plus {extra}]]. The copies are temp. ({charges} charges)',
   very_rewarding: 'Challenge cards pay their reward [[times<3:twice]][[times>2:{times} times]][[bonus:, plus a random [[hard<1:easy]][[hard:hard]] card’s stage [[stage<1:1]][[stage:2]] reward]].',
-  deluxe_subscription: 'Tricks and Sleights you are offered have a {chance_pct}% chance to come improved[[chance2:, then a {chance2_pct}% chance of each further improvement]].',
+  deluxe_subscription: 'Tricks and Sleights you are offered have a {chance_pct}% chance to come upgraded[[chance2:, then a {chance2_pct}% chance of each further upgrade]].',
   green_station: 'Sleights have a {chance_pct}% chance to get a charge back at the end of each level[[chance2:, then a {chance2_pct}% chance of one more]]. A Sleight at 0 charges is not destroyed: it sits out of the deck until it has a charge again.',
   power_cell: 'When it enters the grid: +{focus_on_enter} Focus. While it remains on the grid: +{focus_cap} to your Focus limit.',
   rowcol_retrigger: 'Cards scored in a marked row or column have a {chance_pct}% chance to replay[[chance2:, then a {chance2_pct}% chance to replay again]]',
@@ -566,7 +566,7 @@ const DESC_TEMPLATES = {
   ninesong: "If the hand's pip total is divisible by 3, one of the following happens: rewind the clock {seconds}s, +{mult} mult, +{focus} Focus, or all three",
   deja_vu: 'Playing the same ranks in two hands in a row rewinds the clock {seconds}s.',
   clockmaker: 'Any time a single hand scores at least 30% of the level goal, rewind the clock {seconds}s.',
-  free_range_t: 'Can swap any two non-adjacent cards. When taken, sets your swap limit to {swaps}[[extra: (+{extra} from improvements)]].[[four: SWAP takes 4 selected cards: the 1st and 3rd trade places, and the 2nd and 4th.]][[three: SWAP takes 3 selected cards: each moves to the cell of the card picked before it, the 1st to the last one\'s.]]',
+  free_range_t: 'Can swap any two non-adjacent cards. When taken, sets your swap limit to {swaps}[[extra: (+{extra} from upgrades)]].[[four: SWAP takes 4 selected cards: the 1st and 3rd trade places, and the 2nd and 4th.]][[three: SWAP takes 3 selected cards: each moves to the cell of the card picked before it, the 1st to the last one\'s.]]',
   mockingbird: 'Every 4 hands you play without a same-type streak grants +1 swap and +1 discard',
   piggy_bank: 'Double-tap: gain {coins} credits, once per level. Becomes inert on use: it can no longer be swapped or discarded. (5 charges)',
   steady_hand: 'Swaps no longer count against the swap limit, but cost {swap_mult}x the time.',
@@ -705,7 +705,7 @@ const DESC_TEMPLATES = {
   photocopier: 'Double-tap: picks an adjacent card at random and makes {copies} temp copies of it, buffs and all. They replace cards in its row and the row below; any that do not fit go into the deck.[[permanent: Also adds {permanent} permanent copies to the deck.]] ({charges} charges)',
   sequencer: 'Double-tap: picks an adjacent card at random. {copies} temp cards running up from its rank replace cards in its column and the next column over; any that do not fit go into the deck.[[suit: They take its suit.]] ({charges} charges)',
   logistics_assistant: 'Double-tap: finds swaps that make a playable hand and makes them one by one, left to right, for free. Each swap spends a charge.[[focus: Each swap gives +{focus} Focus.]][[stock_per: Every {stock_per} swaps give +1 swap.]] Then it discards itself. ({charges} charges)',
-  keeper: 'If on the grid, [[modes<2:cards remain in place]][[modes>1:the board can stay as it is]] between levels instead of being redealt.[[modes>1: Double-tap to choose what stays: the cards or the Sleights[[modes>2:, everything or nothing]].]][[pay: Pays 1 credit for each card and Sleight it keeps.]][[improve: At the end of a level it improves a random Sleight on the grid.]][[inert: Play only.]]',
+  keeper: 'If on the grid, [[modes<2:cards remain in place]][[modes>1:the board can stay as it is]] between levels instead of being redealt.[[modes>1: Double-tap to choose what stays: the cards or the Sleights[[modes>2:, everything or nothing]].]][[pay: Pays 1 credit for each card and Sleight it keeps.]][[upgrade: At the end of a level it upgrades a random Sleight on the grid.]][[inert: Play only.]]',
   lockbox: 'Double-tap: take out the cards you bought at the Card Market[[temp:, plus {temp} new temp cards with a random buff]][[perm: and {perm} new permanent ones]]. Tap a card on the board to put one in its place; it joins your deck. Cards you do not place stay in the box. Discards itself after {life_seconds} seconds on the grid.',
   dealers_choice: 'Double-tap: adds {cards} temp cards to your hand (like the Reserve). Tap a cell to place a held card in that cell.[[perm: Cards you place are permanent.]] ({charges} charges)',
   all_hands: 'Double-tap: plays every hand on the board, one after another, left to right, top to bottom. The board falls after the last one. No cost.[[focus<0.01: The hands generate no Focus.]][[focus>0:[[focus<1: The hands make half their Focus, no speed bonus.]]]][[focus>0.99: The hands make their Focus, no speed bonus.]][[applies>1: Focus applies twice.]][[boss<1: Not in a boss level.]] ({charges} charges)',
@@ -720,7 +720,7 @@ const DESC_TEMPLATES = {
   rule_ranks: 'When it is drawn, {ranks} random ranks are chosen from the deck. While it is on the grid, those ranks replay [[replays<2:once]][[replays>1:{replays}x]]. Play only. ({charges} charges)',
   rule_evens: 'While it is on the grid, even-ranked cards (2, 4, 6, 8, 10) score +{focus} Focus[[credits: and {credits} credits]]. Play only. ({charges} charges)',
   rule_faces: 'While it is on the grid, face cards (J, Q, K) rewind the clock {seconds}s when scored. Play only.[[role: Preparing for role change.]] ({charges} charges)',
-  floater: 'Each time it is drawn it becomes a random Sleight. The Sleight it becomes has unlimited charges. Each draw spends a charge. Improvements apply to the Sleight it becomes. ({charges} charges)',
+  floater: 'Each time it is drawn it becomes a random Sleight. The Sleight it becomes has unlimited charges. Each draw spends a charge. Upgrades apply to the Sleight it becomes. ({charges} charges)',
   slow_burn: '+{per} to your Focus limit for every {seconds_per} seconds this sleight spends on the grid (max +{cap}).[[keep: Sell it to keep what it has earned.]]',
   recycler: 'Scoring the hand named on its face[[anywhere<1: next to this]] makes your next {free} swaps or discards free (no time or stock cost). Then it discards itself. ({charges} charges)',
   trickle_charge: 'Every time a Sleight spends a charge, {chance_pct}% chance to restore [[amount<2:a charge]][[amount>1:{amount} charges]] to a random Sleight on the grid[[two: and to another]].',
@@ -745,7 +745,7 @@ function fillDescTemplate(t, p) {
   });
 }
 function applyBalDescriptions() {
-  [TRICK_POOL, SLEIGHT_POOL, KNACK_POOL].forEach(pool => pool.forEach(e => {
+  [typeof TRICK_POOL_ALL !== 'undefined' ? TRICK_POOL_ALL : TRICK_POOL, SLEIGHT_POOL, KNACK_POOL].forEach(pool => pool.forEach(e => {   // r831: every Trick row (a locked one can be owned)
     if (DESC_TEMPLATES[e.id] && BAL[e.id]) e.desc = fillDescTemplate(DESC_TEMPLATES[e.id], BAL[e.id]);
   }));
 }

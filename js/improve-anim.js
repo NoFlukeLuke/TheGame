@@ -268,7 +268,7 @@ async function iaPlay(entry) {
   scene.style.setProperty('--ia-size', size + 'px');
   const screen = document.createElement('div'); screen.className = 'ia-screen';
   screen.style.left = g.l + 'px'; screen.style.top = g.t + 'px'; screen.style.width = g.w + 'px'; screen.style.height = g.h + 'px';
-  screen.innerHTML = `<div class="ia-head">&gt; ${entry.down ? 'DOWNGRADING' : 'IMPROVING'} <b class="ia-name rar-${rar}">${iaEsc(ent.name).toUpperCase()}</b></div>`
+  screen.innerHTML = `<div class="ia-head">&gt; ${entry.down ? 'DOWNGRADING' : 'UPGRADING'} <b class="ia-name rar-${rar}">${iaEsc(ent.name).toUpperCase()}</b></div>`
     + `<div class="ia-term"><div class="ia-ver"></div><div class="ia-desc"></div></div>`;
   // The tile: one copy per tier, the real entity tile at that tier, the current one shown.
   const tile = document.createElement('div'); tile.className = 'ia-tile';

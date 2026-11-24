@@ -1,4 +1,4 @@
-const BUILD = "2026-11-24 · r833 · side projects on the Schedule";
+const BUILD = "2026-11-24 · r834 · side projects on the Schedule (merges main r833)";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

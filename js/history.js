@@ -290,7 +290,7 @@ function historyStatsHTML(st, idx) {
     <div class="hs-lines">
       <div>Average <b>${sm.perHand.toFixed(1)}s</b> a hand over ${sm.hands} hands (live round time, ${_histSecs(sm.secs)})</div>
       ${gainLine}
-      ${sm.ups ? `<div><b>${sm.ups}</b> improvement${sm.ups === 1 ? '' : 's'}</div>` : ''}
+      ${sm.ups ? `<div><b>${sm.ups}</b> upgrade${sm.ups === 1 ? '' : 's'}</div>` : ''}
       ${limLine ? `<div>Limits: ${limLine}</div>` : ''}
       ${scrLine || flowSteps ? `<div>Reward screens: ${[flowSteps ? flowSteps + ' Flow reward steps' : '', scrLine].filter(Boolean).join(', ')}</div>` : ''}
       ${st.credits ? `<div>Credits: ${creditsTxt(st.credits.earned)} earned, ${creditsTxt(st.credits.spent)} spent</div>` : ''}

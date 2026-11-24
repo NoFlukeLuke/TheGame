@@ -52,7 +52,7 @@ const CARD_ANIM_KINDS = [
       { id: 'current', name: 'Current: ring pulse' },
       { id: 'stamp',  name: 'A · Stamp', step: 6, desc: 'Pressed down like a rubber stamp; a ring in the buff\'s colour spreads out.' },
       { id: 'charge', name: 'B · Charge', step: 6, desc: 'Fills with light from the bottom, then flares.' },
-      { id: 'flip',   name: 'C · Flip', step: 6, desc: 'Flips over and back, new and improved.' },
+      { id: 'flip',   name: 'C · Flip', step: 6, desc: 'Flips over and back, new and upgraded.' },
     ] },
   { id: 'boss', label: 'Boss effect on a card', note: 'A boss holds, marks or blocks a card.',
     options: [

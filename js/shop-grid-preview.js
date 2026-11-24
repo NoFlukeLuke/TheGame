@@ -39,7 +39,7 @@ const SHOP_CATS = {
   sleights: { type: 'sleight', fallback: 'Sleights', icon: '▶' },
   knacks:   { type: 'knack',   fallback: 'Knacks',   icon: '♦' },
   cards:    { type: 'card',    fallback: 'Cards',    icon: '♠' },
-  improve:  { fallback: 'Improve',  icon: '⬆' },
+  improve:  { fallback: 'Upgrade',  icon: '⬆' },
   limits:   { fallback: 'Upgrades', icon: '▲' },
 };
 function shopgCatLabel(cat) {
@@ -331,7 +331,7 @@ function shopgImprovePayloads(n) {
         const delta = (prev && prev.after !== prev.before && typeof improveDeltaHTML === 'function')
                         ? improveDeltaHTML(prev.before, prev.after) : null;
         out.push({
-          _improve: true, _span: 2, icon: '⬆', label: `Improve ${target.name}`,
+          _improve: true, _span: 2, icon: '⬆', label: `Upgrade ${target.name}`,
           desc: delta ? `Raise ${target.name} one tier.<br>${delta}`
               : prev  ? `Raise ${target.name} one tier.<br><b>Now:</b> ${prev.before}<br><b>After:</b> ${prev.after}`
                       : `Raise ${target.name} one tier.`,
@@ -345,9 +345,9 @@ function shopgImprovePayloads(n) {
     const typeWord = (typeof entityLabel === 'function') ? entityLabel(type) : type;
     out.push({
       _improve: true, icon: '⬆', label: `Random ${typeWord}`,
-      desc: `Improve a random owned ${typeWord} one tier. Which one is decided when you buy.`,
+      desc: `Upgrade a random owned ${typeWord} one tier. Which one is decided when you buy.`,
       rarity: 'rare', price: shopRaised(20, 'improve'),
-      buy: () => { const t = pickImproveTarget(type); if (t) { improveEntity(t.id); noteMessage(`⬆ ${t.name} improved`, 'var(--c-mint)'); } },
+      buy: () => { const t = pickImproveTarget(type); if (t) { improveEntity(t.id); noteMessage(`⬆ ${t.name} upgraded`, 'var(--c-mint)'); } },
     });
     left -= 1;
   }

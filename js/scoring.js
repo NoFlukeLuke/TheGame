@@ -392,7 +392,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   const _3rdKey = (hasTrick('third_charm') && _scoreCells.length >= 3 && _scoreCells[2]) ? cellKey(_scoreCells[2]) : null;
   // Straight Shot: capture the modified pip value of the line's first & last card
   let _slSumPips = 0, _slSumBase = 0;   // Straight Shot: buffed and bare pip sums (r625: buffs count from tier 3)
-  const _crMins = hasTrick('corner_retrigger') ? Math.floor(clockLeftSecs() / 60) : 0;   // r814: capped at 3 in Flow
+  const _crMins = hasTrick('corner_retrigger') ? Math.floor(roundSeconds / 60) : 0;   // r831 (owner): the whole clock, Flow too
   const _crSet = new Set(_crMins >= 1 ? cornerCells(cells).map(([_r,_c]) => _r + '-' + _c) : []);
   // Encore (r608): an odd-ranked card in a set replays once. Only the cells of a set
   // component count, so an odd card in a run layered on the set does not.
@@ -930,7 +930,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
   if (hasTrick('spade_flood') && _dmOn) { const _a = Math.floor(clockLeftSecs() / BAL.spade_flood.time_div * BAL.spade_flood.time_mult); if (_a) { totalPips += _a; bPip('spade_flood', _a); } }
 
   // Sands of Time: remaining round seconds / 2 as trick pips
-  if (hasTrick('sands_of_time')) { const _a = Math.floor(clockLeftSecs() / sandsDivisor()); totalPips += _a; bPip('sands_of_time', _a); }
+  if (hasTrick('sands_of_time')) { const _a = Math.floor(roundSeconds / sandsDivisor()); totalPips += _a; bPip('sands_of_time', _a); }
 
   // Penny Saved: accumulated trick pips from discarded 5s
   if (hasTrick('fives_discard')) { totalPips += bonusMult_fives; bPip('fives_discard', bonusMult_fives); }
@@ -1946,7 +1946,7 @@ function isEffectIntersection(r, c) {
 // One function, read by calcScore AND the live desc in tricks-ui.
 function sandsDivisor() {
   const d = TB('sands_of_time').divisor;
-  if (clockQuarterOn()) return d;   // r814: Flow reads at most 180s left (clockLeftSecs), so no long-clock doubling
+  if (clockQuarterOn()) return TB('sands_of_time').flow_divisor || d;   // r831 (owner): the quarter's clock divided by 3 in Flow
   return (typeof currentRoundDuration === 'function' && currentRoundDuration() > 180) ? d * 2 : d;
 }
 

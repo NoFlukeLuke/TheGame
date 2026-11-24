@@ -320,7 +320,7 @@ function mapResetRun() {
   document.getElementById('map-bar')?.classList.remove('show');
   document.body.classList.remove('map-active');
   mapFirstRoundDone = false;
-  mapSide = null; mapSideLog = {};   // r833: a new run deals its side projects afresh
+  mapSide = null; mapSideLog = {};   // r834: a new run deals its side projects afresh
   if (typeof deptReset === 'function') deptReset();   // r673: a new run draws its departments afresh
   mapResetBoard();
 }
@@ -330,7 +330,7 @@ function mapResetRun() {
 // its own map, so `mapFirstRoundDone` (round 1 rides startGame's own deal) is reset
 // by mapResetRun ALONE and never here - every later quarter opens on a level-up.
 function mapResetBoard() {
-  if (typeof spQuarterEnd === 'function') spQuarterEnd();   // r833: last quarter's side project lets go
+  if (typeof spQuarterEnd === 'function') spQuarterEnd();   // r834: last quarter's side project lets go
   mapTiles = []; mapPos = null; mapVisits = 0; mapSkips = 0;
   mapBossArmed = false; mapPosTileId = null;
   mapScreenOpen = false; mapSelected = null;
@@ -402,7 +402,7 @@ const MAP_KIND_META = {
                 blurb: `A level with a raised goal and one extra ask. Pays credits and ${gridName('reward', { a: true })}.` },
   // r690: a priority account whose ask is a boss handicap (CHALLENGE_DEFS' `mini`).
   mini:       { icon: '⚔\uFE0E', name: '1-ON-1', full: 'One-on-One', cls: 'mk-mini',
-                blurb: 'A level with a raised goal and a review\u2019s handicap at half strength. Pays credits and an improvement you pick.' },
+                blurb: 'A level with a raised goal and a review\u2019s handicap at half strength. Pays credits and an upgrade you pick.' },
   // r444: half the challenge tiles are an AUDIT instead - a challenge round
   // (js/challenge-round.js). Same tile kind; `t.audit` picks the face.
   audit:      { icon: '⚑\uFE0E', name: 'AUDIT', full: 'Audit', cls: 'mk-audit',
@@ -439,7 +439,7 @@ function mapTileIsMini(t) {
 function mapTileMetaKey(t) { return t.audit ? 'audit' : mapTileIsMini(t) ? 'mini' : t.kind; }
 // `legalIds` (the ids bookable now) lets the stakes say "if booked next"; without
 // it they are worked out here.
-// r833: a side project's half adds its line (js/side-projects.js).
+// r834: a side project's half adds its line (js/side-projects.js).
 function mapTileDesc(t, legalIds) {
   const d = _mapTileDesc(t, legalIds), sp = (typeof spDescFor === 'function') ? spDescFor(t) : '';
   return sp ? (d ? d + ' ' : '') + sp : d;
@@ -453,7 +453,7 @@ function _mapTileDesc(t, legalIds) {
     case 'level':      return `Play a level.${goal} Clear it for the payout and a pick of three.`;
     case 'challenge':  if (t.audit) return MAP_KIND_META.audit.blurb + goal;
                        return (t.challenge ? t.challenge.label + ' ' : '')
-      + `${G} +${Math.round(((t.challenge?.goalMult || 1.2) - 1) * 100)}%.${goal} Pays +${t.challenge?.credits || 0} credits and ` + (mapTileIsMini(t) ? 'an improvement you pick (1 of 3).' : `${gridName('reward', { a: true })} (a path of up to ${mapRewardPath()}).`);
+      + `${G} +${Math.round(((t.challenge?.goalMult || 1.2) - 1) * 100)}%.${goal} Pays +${t.challenge?.credits || 0} credits and ` + (mapTileIsMini(t) ? 'an upgrade you pick (1 of 3).' : `${gridName('reward', { a: true })} (a path of up to ${mapRewardPath()}).`);
     case 'shop':       return `The company store. Buy Tricks, Sleights, Knacks and upgrades. You hold ${coins} credits.`;
     case 'reward':     return `A ${limits.grid_rows.current}x${limits.grid_cols.current} ${gridName('reward')}. Take a connected path of up to ${mapRewardPath()} tiles.`;
     case 'event':      return (t.eventId && typeof eventShownDoes === 'function') ? eventShownDoes(t.eventId) : (t.eventFlavor || 'Something happens.');
@@ -504,7 +504,7 @@ function mapGoalPreview(t, k, now) {
   if (goalPenaltyMult > 1) g = Math.round(g * goalPenaltyMult / 50) * 50;
   const gm = (t.kind === 'challenge' && !t.audit) ? (t.challenge?.goalMult || 1) : 1;
   if (gm !== 1) g = Math.round(g * gm / 50) * 50;
-  const sp = (typeof spGoalMultFor === 'function') ? spGoalMultFor(t) : 1;   // r833: a side project's GOAL +15%
+  const sp = (typeof spGoalMultFor === 'function') ? spGoalMultFor(t) : 1;   // r834: a side project's GOAL +15%
   if (sp !== 1) g = Math.round(g * sp / 50) * 50;
   if (k === 1 || now) { const a = mapAltarNextMult(); if (a !== 1) g = Math.max(50, Math.round(g * a / 50) * 50); }
   return g;
@@ -1164,7 +1164,7 @@ function mapRender(animateIn) {
       { duration: 140, delay: t.set * 90 + (isBoss ? 0 : t.lane * 28), easing: 'steps(3, end)', fill: 'backwards' });
   };
   mapTiles.forEach(t => { if (t.kind !== 'boss') drawTile(t); });
-  // r833: the side project's frame, a grid item over its two halves (js/side-projects.js).
+  // r834: the side project's frame, a grid item over its two halves (js/side-projects.js).
   const spFr = (typeof spFrameEl === 'function') ? spFrameEl() : null;
   if (spFr) { list.appendChild(spFr); if (animateIn) spFr.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 160, delay: MAP_SETS * 90, easing: 'steps(3, end)', fill: 'backwards' }); }
   // r702: the review row holds the two named managers side by side, each with
@@ -1288,7 +1288,7 @@ function mapHelpRows() {
   rows.push(['Two reviews', mapBossRule() === 'lanes'
     ? `Each review unlocks at ${mapBossNeedN()} bookings in its two lanes. Neither unlocked: a random manager.`
     : `One review unlocks at ${MAP_BOSS_NEED.kinds} levels booked, the other at ${MAP_BOSS_NEED.kinds} other obligations. A mystery counts as another obligation, and as a level too if it is one. Neither: a random manager.`]);
-  const sp = (typeof spHelpRow === 'function') ? spHelpRow() : null;   // r833: this quarter's side project
+  const sp = (typeof spHelpRow === 'function') ? spHelpRow() : null;   // r834: this quarter's side project
   if (sp) rows.push(sp);
   const d = (typeof deptHelpRow === 'function') ? deptHelpRow() : null;   // r673: this quarter's department
   if (d) rows.unshift(d);
@@ -1661,7 +1661,7 @@ function mapConfirm() {
   // account and the review are free - they cost their own play time instead.
   if (typeof crunchChargeTile === 'function') crunchChargeTile(t);
 
-  if (typeof spOnBook === 'function') spOnBook(t, move.after);   // r833: a side project starts, or is walked away from
+  if (typeof spOnBook === 'function') spOnBook(t, move.after);   // r834: a side project starts, or is walked away from
   t.visited = true;
   // The walked route is drawn from this (mapRender's trail), so the tile has to
   // remember WHEN it was taken. A plain number keeps mapTiles JSON-safe.
@@ -1761,7 +1761,7 @@ function mapReviewGoalShown() {
 function mapApplyPendingGoal() {
   if (!mapActive()) return;
   if (mapBossArmed) roundGoal = mapBossGoal;
-  else if (typeof spApplyGoal === 'function') spApplyGoal();   // r833: a side project's GOAL +15%
+  else if (typeof spApplyGoal === 'function') spApplyGoal();   // r834: a side project's GOAL +15%
 }
 
 // ── Continuations back to the map ────────────────────────────────────────────
@@ -1786,7 +1786,7 @@ function mapAfterLevel() {
   // An audit (js/challenge-round.js) pays no prize grid (owner, r666). crTakePrize
   // is still called so the round's state is cleared.
   if (typeof crTakePrize === 'function') crTakePrize();
-  // r833: a cleared side project pays first (js/side-projects.js), then the level's own reward.
+  // r834: a cleared side project pays first (js/side-projects.js), then the level's own reward.
   if (typeof spAfterLevel === 'function' && spAfterLevel(t, () => mapAfterLevelPay(t, done))) return;
   mapAfterLevelPay(t, done);
 }

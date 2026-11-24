@@ -426,7 +426,7 @@ function bvRecordHTML(x) {
     <div class="bv-chips">${bvTagChips(x)}</div>${bvPairHTML(x)}${extra}${ladder}
     <div class="bv-keys">
       <button class="bv-key bv-add ${inDraft ? 'on' : ''}">${inDraft ? '&#10003; IN DRAFT' : '+ DRAFT'}</button>
-      <button class="bv-key bv-lad ${bvLadders.has(x.id) ? 'on' : ''}" title="improvement tiers">v2..v5</button>
+      <button class="bv-key bv-lad ${bvLadders.has(x.id) ? 'on' : ''}" title="upgrade tiers">v2..v5</button>
     </div></div>`;
 }
 
@@ -517,13 +517,13 @@ function bvPairHTML(x) {
 // until the player has taken that entity to v6 in a run (owner).
 function bvLadderHTML(x) {
   if (typeof canImprove !== 'function' || !(IMPROVE_PLAN[x.id] || improveStepsFor(x.id)))
-    return `<div class="bv-ladder"><div class="bv-lrow bv-ldim">Cannot be improved.</div></div>`;
+    return `<div class="bv-ladder"><div class="bv-lrow bv-ldim">Cannot be upgraded.</div></div>`;
   const was = entityTierOf(x.id);
   const rows = [];
   for (let t = 1; t <= 4; t++) {
     // r651 (owner): a tier reads only once it has been reached in a run (improveTierSeen; dev reveal shows all).
     if (!(typeof improveTierSeen === 'function' && improveTierSeen(x.id, t)) && !(typeof devRevealAll !== 'undefined' && devRevealAll)) {
-      rows.push(`<div class="bv-lrow bv-ldim"><b>v${t + 1}</b><span>Not reached yet. Improve this in a run to v${t + 1} to read it.</span></div>`); continue;
+      rows.push(`<div class="bv-lrow bv-ldim"><b>v${t + 1}</b><span>Not reached yet. Upgrade this in a run to v${t + 1} to read it.</span></div>`); continue;
     }
     entityTier[x.id] = t; applyEntityTiers();
     const d = (TRICK_POOL_ALL.find(e => e.id === x.id) || SLEIGHT_POOL.find(e => e.id === x.id) || KNACK_POOL.find(e => e.id === x.id) || {}).desc || '';
@@ -533,7 +533,7 @@ function bvLadderHTML(x) {
   const seen = ((typeof improveTierSeen === 'function') && improveTierSeen(x.id, 5)) || (typeof devRevealAll !== 'undefined' && devRevealAll);
   rows.push(seen
     ? (() => { entityTier[x.id] = 5; applyEntityTiers(); const d = (TRICK_POOL_ALL.find(e => e.id === x.id) || SLEIGHT_POOL.find(e => e.id === x.id) || KNACK_POOL.find(e => e.id === x.id) || {}).desc || ''; entityTier[x.id] = was; applyEntityTiers(); const nm = (typeof V6_NAMES !== 'undefined' && V6_NAMES[x.id]) ? `<i>${V6_NAMES[x.id]}.</i> ` : ''; return `<div class="bv-lrow"><b>v6</b><span>${nm}${highlightKeywords(d)}</span></div>`; })()
-    : `<div class="bv-lrow bv-ldim"><b>v6</b><span>Not discovered yet. Improve this in a run to v6 to read it.</span></div>`);
+    : `<div class="bv-lrow bv-ldim"><b>v6</b><span>Not discovered yet. Upgrade this in a run to v6 to read it.</span></div>`);
   return `<div class="bv-ladder">${rows.join('')}</div>`;
 }
 

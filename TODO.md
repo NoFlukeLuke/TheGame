@@ -120,7 +120,7 @@ on the rest of `SCHEDULE_IDEAS.md`, taken one chunk at a time, questions first:
    **Owner (r825):** two linked rounds (account, priority, audit or 1-on-1), the second in the
    next slot; about 25% of quarters, 2 a run at most, both shapes; walking away after the first
    half adds a penalty. Looks, costs, rewards and penalties to pick: `side-projects-preview.html`.
-   **Built r833** with the owner's picks (the frame look; 7 costs, 6 rewards, 4 penalties).
+   **Built r834** with the owner's picks (the frame look; 7 costs, 6 rewards, 4 penalties).
 5. **The Schedule's difficulty ladder** (ideas 6, 7, 9). Tier 1 any tile; tier 2 adjacent moves
    from ANY tile already taken (the dev panel's Free branch is this today); tier 3 two of row 4
    hidden until a neighbour is played; tier 4 the same on row 3; due-date tiles in slot 1
