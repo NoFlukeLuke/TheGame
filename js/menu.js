@@ -1,4 +1,4 @@
-const BUILD = "2026-11-24 · r835 · merge: side projects with square boxes, LED numbers, Free Hand 20s";
+const BUILD = "2026-11-24 · r830 · Surveyor picks row or column; tally waits for every chip";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

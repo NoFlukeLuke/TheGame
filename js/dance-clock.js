@@ -118,8 +118,11 @@ function dncSetPaused(on) {
 //   gap    ms between one chip and the next in the same beat
 //   order  'ltr' the card first, then Tricks left to right across the tray;
 //          'rtl' right to left; 'emit' the order the score is worked out in
+// r830 (owner: "wait until all the chips have landed before resolving"):
+//   settle ms the PIPS / MULT / FOCUS numbers rest after the LAST chip is gone from the
+//          screen, before they fuse. The tally also waits for every chip in the air.
 // Dev -> HUD & Display -> Score tally pacing. Store lethe.tallyPace.v1, overrides only.
-const TALLY_DEFAULT = { accelStep: 1, accelMax: 2, focusMax: 1.5, hold: 1200, gap: 140, order: 'ltr', curve: 6, beat: 600, fire: 450, firePop: 100, fireLight: 100, fireGlow: 0 };
+const TALLY_DEFAULT = { accelStep: 1, accelMax: 2, focusMax: 1.5, hold: 1200, gap: 140, order: 'ltr', curve: 6, beat: 600, fire: 450, firePop: 100, fireLight: 100, fireGlow: 0, settle: 250 };
 const TALLY_HOLD_CARVED = 600;
 const TALLY_CFG = Object.assign({}, TALLY_DEFAULT);
 (function () { try {

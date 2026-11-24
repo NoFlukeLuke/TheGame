@@ -2253,7 +2253,8 @@ function assignPositionMark(trick) {
   trick._posAssigned = true;
   const district = hasKnack('district');
   const axes = [];
-  if (hasKnack('leveler'))  axes.push('row');
+  // r830: Surveyor chooses either axis; a saved run's retired Leveler still gives rows.
+  if (hasKnack('leveler') || hasKnack('surveyor')) axes.push('row');
   if (hasKnack('surveyor')) axes.push('col');
   if (axes.length) {                              // a manual chooser beats the alternation
     // Owning BOTH knacks offers both axes, so the provisional default is the

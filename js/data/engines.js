@@ -42,7 +42,7 @@ const ENGINES = [
     desc: 'Mark rows and columns, then play your hands along them.',
     tricks:   ['rowcol_triple_pips', 'rowcol_mult', 'rowcol_retrigger', 'perfect_timing', 'right_time', 'rowcol_perm_double', 'temporal_rift', 'groove', 'assembly_line', 'overtime', 'feng_shui', 'column_rush', 'row_power', 'clean_sweep', 'line_xpips', 'line_xmult', 'obligatory', 'suggestive', 'coin_sword'],
     sleights: ['lighthouse', 'shady_tree', 'magnet'],
-    knacks:   ['surveyor', 'leveler', 'district', 'sundial'] },
+    knacks:   ['surveyor', 'district', 'sundial'] },
   { id: 'flush', name: 'Suits', icon: '♥', buff: 'xmult',
     desc: 'Flushes and suit counts, paid in pips, mult and time.',
     tricks:   ['enriched', 'tidal_force', 'deluge', 'critical', 'kaleidoscope', 'full_color', 'balanced_diet', 'spade_flood', 'club_double', 'relentless', 'obsessed', 'buried_treasure'],

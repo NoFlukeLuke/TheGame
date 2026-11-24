@@ -6049,3 +6049,14 @@ on desktop and none on the phone; golden 838 match; no page errors.
 ## r834 numbering
 Two sessions shipped r834 in parallel: side projects on the Schedule, and the Straight Shot / square
 boxes / LED numbers / Free Hand pass. The merge that joined them is r835.
+
+## r828 / r830 - Lie Up per card; one Surveyor; the tally waits for every chip (owner)
+- **Lie Up** (fused Lie Down + Stand-Up): +25 pips and +25 mult per card when the hand's shape bends
+  `BAL.lie_up.bends` (2) times or fewer (`handBends(cells)`, js/scoring.js: the cells as one unbranched
+  path; a T, a plus or a 2x2 is never a path). Per-card behaviour in js/trick-fx/per-card.js; `_pcCtx`
+  carries `cells`. Ladder +15 / +15 a tier to the 4th, the 5th allows 3 bends.
+- **Surveyor** chooses a row OR a column for a new position Trick. **Leveler is retired** (a saved
+  run that owns it still chooses rows).
+- **The tally resolves only when every chip is gone** (js/score-dance.js, after the landing queue
+  empties): it waits while any `.dnc-particle` is on screen (2.5s cap), then rests `TALLY_CFG.settle`
+  (250ms; dev -> Score tally pacing) before the PIPS / MULT / FOCUS fuse. Not on a skip or blast.
