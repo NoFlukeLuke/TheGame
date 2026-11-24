@@ -6127,3 +6127,12 @@ r841's Ud to Vg are gone.
 `BAL.relentless.mult_per_spade` 0.1 -> 0.05 (r817 had raised it). The owner is weighing a per-level
 falling step instead (0.10, 0.09, 0.08... starting over each level): it gives more than a flat 0.05
 until the 11th spade of one level, equal there, less from the 12th. Not built.
+
+## r844 - Relentless: each spade in a level adds 0.01 less (owner)
+Built from r843's note. `relentlessBonus` (SAVE_VARS) is the x mult a spade scores (no effect until it
+passes x1). Each spade scored adds `relentlessStepNow()`: `BAL.relentless.mult_per_spade` (0.1) for a
+level's first, `step` (0.01) less for each after it in that level (`relentlessLvN` / `relentlessLv`), never
+under `floor` (0.01); replays count, a flush layer counts each spade twice. A level is `level`, so in
+Flow each level-up starts the step over. Grown in scalingCount; the tray line prints the next step.
+A pre-r844 save starts the bonus at 0. Measured at 1440x820 and 420x900: hands of three suited spades
+added 0.45, 0.12, then 0.06 a hand; the next level's first spade 0.1; no drift. Golden: 838 match.

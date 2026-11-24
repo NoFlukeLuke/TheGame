@@ -87,7 +87,7 @@ const BAL = {
   cuckoo: { hands_between: 2, per_replays: 5 },
   clean_sweep: { focus: 8, credits: 4 },
   obsessed:        { per_credits: 100 },
-  relentless:      { mult_per_spade: 0.05 },  // r843 (owner): back to 0.05 (r817 had raised it to 0.1)
+  relentless:      { mult_per_spade: 0.1, step: 0.01, floor: 0.01 },  // r844 (owner): a level's first spade adds 0.1, each after it 0.01 less, never under 0.01
   buried_treasure: { luck_share: 0.5, credit_mult: 1.25 },   // r817 (owner, the averages pass): was x1.1
   patient_rulers:  { mult_mult: 1.5, extra_ranks: 0 },           // r625: the 5th improvement adds 3 random ranks (rolled on the Trick)
   even_better:     { chance: 0.66, pip_mult: 2.25, replay: 0 },   // r625: replay 1 = even cards replay (5th improvement)
@@ -497,7 +497,7 @@ const DESC_TEMPLATES = {
   low_tide: 'Cards below 6 score +{pips} pips',
   rowcol_triple_pips: 'Cards scored in a marked row or column score +{flat_pips} pips',
   first_fruits: 'Each card in the first [[hands>1:{hands} ]]hand[[hands>1:s]] each level permanently gains +{pips} pips',
-  relentless: 'Each spade scores x{mult_per_spade} mult for every spade scored since you took this (replays count). No effect until it passes x1',
+  relentless: "Every spade scored adds to this: x{mult_per_spade} for a level's first, {step} less for each one after, never under {floor} (replays count). Each spade scores x mult equal to the total. No effect until it passes x1",
   compound_mult: 'Each hand played permanently adds +{mult_per_hand} mult to this trick',
   quick_draw: 'Hands played within 3 seconds of the previous hand remove {focus_cut_pct}% of your Focus and add +{cap_gain} to your Focus limit (max +{cap}). When max bonus is reached, +{sell_bonus} to sell value. If sold, keep half the bonus you\'ve reached',
   expanse: 'Each time you hit your Focus limit, increase it by {cap_gain} (max +{cap}), then lose half your Focus. When max bonus is reached, +{sell_bonus} to sell value. If sold, keep half the bonus you\'ve reached',

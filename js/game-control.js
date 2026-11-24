@@ -580,7 +580,7 @@ function startGame() {
   deluxeOffers = {};
   bonusMult_tens = 0;
   bonusMult_compound = 0;
-  spadesRelentless = 0;
+  spadesRelentless = 0; relentlessBonus = 0; relentlessLvN = 0; relentlessLv = 0;
   goalHandCards = null; goalHandHeld = [];
   bonusFocus_acorns  = 0;   // Acorns (per-game Focus accumulator)
   handsPlayedGame    = 0;   // Plan Ahead (per-game hand count)

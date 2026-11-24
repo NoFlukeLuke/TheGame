@@ -1,4 +1,4 @@
-const BUILD = "2026-11-24 · r843 · Relentless x0.05 a spade";
+const BUILD = "2026-11-24 · r844 · Relentless: each spade in a level adds 0.01 less";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
