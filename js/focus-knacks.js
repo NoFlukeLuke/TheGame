@@ -87,7 +87,7 @@ function chargedCardApply(handCells) {
   const e = (typeof rollEditorBuff === 'function') ? rollEditorBuff() : { pips: 10 };
   if (!e) return;
   chargedCardPending = false;
-  enhanceCardKey(cardId(card), e);
+  withBuffSource('charged_card', () => enhanceCardKey(cardId(card), e));   // r859: one rewind buff a card from this source
   noteMessage(`${knackName('charged_card')}: ${card.rank}${card.suit} ${typeof buffOfferName === 'function' ? buffOfferName(e) : ''}`);
   focusChipSync();
 }

@@ -26,7 +26,7 @@ function yokeBuffs(e) {
 
 function yokedStores() {
   return [[permPips, 'flat'], [permMult, 'flat'], [permPipsGrow, 'flat'], [permMultGrow, 'flat'],
-          [permTime, 'flat'], [permCoins, 'flat'], [permFocus, 'flat'],
+          [permCoins, 'flat'], [permFocus, 'flat'],   // r859: permTime left out, a rewind buff stays at 2s or less
           [permXPips, 'x'], [permXMult, 'x'], [permRetrig, 'replay']];
 }
 function yokedImprove(tier) {

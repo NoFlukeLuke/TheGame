@@ -571,7 +571,7 @@ function _generateRewardContent() {
     _usedThisGrid.add(pick.id);
     return {
       icon: pick.emoji || '\u{1F0CF}', emoji: pick.emoji || '\u{1F0CF}', label: pick.name, desc: pick.desc, tier: pick.rarity || 'rare',
-      entity: 'sleight', rarity: pick.rarity || 'rare',
+      entity: 'sleight', rarity: pick.rarity || 'rare', _sleightId: pick.id,
       uses: (pick.durability === 'infinite' || pick.durability == null) ? '∞' : pick.durability,
       apply: () => grantSleight(pick)
     };
@@ -793,7 +793,7 @@ function _generateRewardContent() {
     if (g.type === 'trick') return { icon: '★', label: shownEntityName(d, 'trick'), desc: d.desc, tier: d.tier || 'rare',
       entity: 'trick', rarity: d.tier || 'rare', _trick: d, _guaranteed: true, apply: () => injectTrickAfterReward(d) };
     if (g.type === 'sleight') return { icon: d.emoji || '\u{1F0CF}', emoji: d.emoji || '\u{1F0CF}', label: d.name, desc: d.desc,
-      tier: d.rarity || 'rare', entity: 'sleight', rarity: d.rarity || 'rare', _guaranteed: true,
+      tier: d.rarity || 'rare', entity: 'sleight', rarity: d.rarity || 'rare', _sleightId: d.id, _guaranteed: true,
       uses: (d.durability === 'infinite' || d.durability == null) ? '∞' : d.durability, apply: () => grantSleight(d) };
     return { icon: d.emoji, emoji: d.emoji, label: d.name, desc: d.desc, tier: d.rarity || 'common', rarity: d.rarity || 'common',
       entity: 'knack', _knackId: d.id, _guaranteed: true,
@@ -1416,7 +1416,7 @@ function ensureRewardTooltip() {
   document.body.appendChild(_rewardTT);
   return _rewardTT;
 }
-function hideRewardTooltip() { if (_rewardTT) { _rewardTT.classList.remove('show', 'kw-open'); _rewardTT.dataset.key = ''; } }
+function hideRewardTooltip() { if (_rewardTT) { _rewardTT.classList.remove('show', 'kw-open', 'up-open'); _rewardTT.dataset.key = ''; } }
 
 // ── THE POINTER IS OVER THE BUBBLE (r288) ───────────────────────────────────
 // The bubble is pointer-events:none (r170 - at 214px it would otherwise eat the
@@ -1471,8 +1471,9 @@ function showRewardTooltipFor(r, c) {
   tt.querySelector('.rtt-desc').innerHTML   = colorizeKeywords(descText);
   // r288 - definitions are never shown unasked; the + in the corner opens them.
   // The chip is rebuilt with the text, so it is re-wired on every show.
-  tt.querySelector('.rtt-more').innerHTML = kwMoreHTML(descText);
-  tt.querySelector('.rtt-defs').innerHTML = kwDefsHTML(descText);
+  const _upId = (p._trick && p._trick.id) || p._knackId || p._sleightId || (p.entity ? p.id : null);   // r859: the ↑ ladder
+  tt.querySelector('.rtt-more').innerHTML = kwMoreHTML(descText, '', _upId);
+  tt.querySelector('.rtt-defs').innerHTML = kwDefsHTML(descText) + upDefsShell(_upId);
   tt.classList.toggle('kw-open', wasOpen);
   const _sign = tt.querySelector('.kw-more-sign');
   if (_sign && wasOpen) _sign.textContent = '\u2212';

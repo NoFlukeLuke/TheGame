@@ -69,7 +69,7 @@ function trickLiveDesc(trick) {
       case 'first_play':     return roundNow(`next hand +${Math.max(0, (B.first_play?.focus ?? 5) - (handsPlayedRound || 0))} Focus`);
       // ── position-line accumulators (reset each round) ──
       case 'groove':         return roundNow(`+${Math.floor((markCount_groove || 0) / 2)} Focus/hand`);
-      case 'overtime':       return roundNow(`${markCount_overtime || 0} scored from its line · rewinds ${Math.floor((markCount_overtime || 0) / 3) * (B.overtime?.seconds_per_3 ?? 1)}s a hand`);
+      case 'overtime':       return roundNow(`${markCount_overtime || 0} scored from its line · rewinds ${Math.floor((markCount_overtime || 0) / 5) * (B.overtime?.seconds_per_5 ?? 1)}s a hand`);
       case 'assembly_line':  return now(`+${typeof asmLinePerCard === 'function' ? asmLinePerCard() : 0} mult per line card · ${asmLine.cur} played from the line so far`);
       case 'coin_sword':     return now(`a hit adds +${typeof coinSwordMult === 'function' ? coinSwordMult() : 0} mult`);
       // ── round-time / round-counter scaling (live round only) ──
@@ -320,7 +320,7 @@ function showTrickTrayTooltip(trick, anchorEl, { actions = true } = {}) {
   const liveDesc = trickLiveDesc(trick);
   const _sv = (typeof trickSellValue === 'function') ? trickSellValue(trick) : 0;
   // The + and its rail (r288). Definitions never open unasked, here or anywhere.
-  tip.innerHTML = `<button class="tt-close" aria-label="Close">✕</button>${kwMoreHTML(liveDesc)}<div class="trick-tooltip-name">${trick.name}</div>${nameSayHTML(trick.name)}<div class="trick-tooltip-desc">${colorizeKeywords(withSuitHalo(liveDesc))}</div>${kwDefsHTML(liveDesc)}`
+  tip.innerHTML = `<button class="tt-close" aria-label="Close">✕</button>${kwMoreHTML(liveDesc, '', trick.id)}<div class="trick-tooltip-name">${trick.name}</div>${nameSayHTML(trick.name)}<div class="trick-tooltip-desc">${colorizeKeywords(withSuitHalo(liveDesc))}</div>${kwDefsHTML(liveDesc)}${upDefsShell(trick.id)}`
                 + (actions
                     ? `<div class="trick-tooltip-actions"><button class="trick-tooltip-sell" id="trick-tooltip-sell-btn">Sell ${creditsTxt(_sv)}</button></div>`
                     : '');

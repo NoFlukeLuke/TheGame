@@ -48,11 +48,18 @@ function trickPickOne(salt, cells) {
 }
 // Threepeat (r625): outcome k pays when picked, or when the silent all-three
 // roll (BAL.ninesong.all_chance) lands. Asked by calcScore and generateHandFocus.
-function ninesongPays(k, cells) {
+// r859 (owner, never printed): the rewind-only outcome cannot come twice in a row. After a
+// rewind-only hand, a pick of rewind becomes mult or Focus. "All three" is not rewind-only,
+// on either side. 0 rewind, 1 mult, 2 Focus, 3 all three.
+let ninesongLastRewind = false;
+function ninesongPick(cells) {
   const c0 = cells[0] || [0, 0];
-  if (_detReplayRand(c0[0] * 31 + c0[1] * 7 + 913, handsPlayedRound) < BAL.ninesong.all_chance) return true;
-  return trickPickOne(911, cells) === k;
+  if (_detReplayRand(c0[0] * 31 + c0[1] * 7 + 913, handsPlayedRound) < BAL.ninesong.all_chance) return 3;
+  const k = trickPickOne(911, cells);
+  if (k === 0 && ninesongLastRewind) return 1 + Math.floor(_detReplayRand(c0[0] * 31 + c0[1] * 7 + 915, handsPlayedRound) * 2);
+  return k;
 }
+function ninesongPays(k, cells) { const p = ninesongPick(cells); return p === 3 || p === k; }
 // Four Horse-man (r625): the outcomes paid this hand; a second, different one at the 5th improvement.
 function fourHorsemanPicks(cells) {
   const a = fourHorsemanRoll(cells);

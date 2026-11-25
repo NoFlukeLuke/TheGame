@@ -65,7 +65,7 @@ const SLEIGHT_POOL = [
   // and each landing spends a charge (js/rule-sleights.js). Named by the owner (r677).
   { id:'rule_ranks', name:'Double Time',  emoji:'🎟️', rarity:'epic',   activation:'passive', durability:6, defaultRank:null, defaultSuit:null, tags:['replay','card','rank','scores'], desc:'' },
   { id:'rule_evens', name:'Even Keel',    emoji:'⚖️', rarity:'common', activation:'passive', durability:5, defaultRank:null, defaultSuit:null, tags:['focus','card','rank','scores'],  desc:'' },
-  { id:'rule_faces', name:'In Your Face', emoji:'🫅', rarity:'rare',   activation:'passive', durability:5, defaultRank:null, defaultSuit:null, tags:['time','card','rank','scores'],   desc:'' },
+  { id:'rule_faces', name:'In Your Face', emoji:'🫅', rarity:'rare',   activation:'passive', durability:15, defaultRank:null, defaultSuit:null, tags:['time','card','rank','scores'],   desc:'' },
   // r722 (owner): money Sleights (js/money.js). Descriptions from DESC_TEMPLATES.
   { id:'nest_egg',   name:'Nest Egg',   emoji:'💰', rarity:'rare', activation:'passive',    durability:'infinite', defaultRank:null, defaultSuit:null, tags:['credits','other','shop','scaling'], desc:'' },
   { id:'loan_shark', name:'Loan Shark', emoji:'💸', rarity:'rare', activation:'passive',    durability:'infinite', defaultRank:null, defaultSuit:null, tags:['pips','mult','credits','hand','scores','cost'], desc:'' },

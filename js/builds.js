@@ -522,7 +522,8 @@ function bvLadderHTML(x) {
   const rows = [];
   for (let t = 1; t <= 4; t++) {
     // r651 (owner): a tier reads only once it has been reached in a run (improveTierSeen; dev reveal shows all).
-    if (!(typeof improveTierSeen === 'function' && improveTierSeen(x.id, t)) && !(typeof devRevealAll !== 'undefined' && devRevealAll)) {
+    // r859 (owner): v2 always reads, so a player can tell whether upgrading is worth it.
+    if (t > 1 && !(typeof improveTierSeen === 'function' && improveTierSeen(x.id, t)) && !(typeof devRevealAll !== 'undefined' && devRevealAll)) {
       rows.push(`<div class="bv-lrow bv-ldim"><b>v${t + 1}</b><span>Not reached yet. Upgrade this in a run to v${t + 1} to read it.</span></div>`); continue;
     }
     entityTier[x.id] = t; applyEntityTiers();

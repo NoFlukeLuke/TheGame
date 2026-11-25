@@ -52,9 +52,10 @@ const KNACK_POOL = [
   { id:'sundial',         emoji:'🌇',  name:'Vertical Thinking',          rarity:'common', desc:'Hands where every card shares a column pause the clock for 8s.', tags:['time','hand','position'] },
   { id:'metronome',       emoji:'🥁',  name:'Metronome',        rarity:'common', desc:'Each level a hand type you can make is chosen; playing that hand type pauses the clock for 5s.', tags:['time','hand','chance','start'] },
   // ── Rewind knacks ──
-  { id:'time_slip',       emoji:'⏮️',  name:'Time Slip',        rarity:'common', desc:'Whenever the clock would pause, 10% chance to rewind the clock that many seconds instead.', tags:['time','other','pause','chance'] },
-  { id:'replay_rewind',   emoji:'🔂',  name:'eeruh eeruh',     rarity:'common', desc:'Any time a card replays, 25% chance to rewind the clock 2s.', tags:['time','card','chance','replays'] },
-  { id:'deja_vu',         emoji:'🔁',  name:'Déjà Vu',          rarity:'common', desc:'Playing the same ranks in two hands in a row rewinds the clock 15s.', tags:['time','hand','rank'] },
+  { id:'time_slip',       emoji:'⏮️',  name:'Time Slip',        rarity:'common', desc:'Whenever the clock would pause, 5% chance to rewind the clock that many seconds instead.', tags:['time','other','pause','chance'] },
+  { id:'replay_rewind',   emoji:'🔂',  name:'eeruh eeruh',     rarity:'common', desc:'Any time a card replays, 10% chance to rewind the clock 2s.', tags:['time','card','chance','replays'] },
+  { id:'time_theft',      emoji:'⏪',  name:'Time Theft',       rarity:'epic',   desc:'Rewinds can take the clock past where it stood when the level started.', tags:['time','other'] },   // r859 (owner): lifts the rewind cap (js/discard.js)
+  { id:'deja_vu',         emoji:'🔁',  name:'Déjà Vu',          rarity:'rare',   desc:'Playing the same ranks in two hands in a row rewinds the clock 5s.', tags:['time','hand','rank'] },
   { id:'clockmaker',      emoji:'⏱️',  name:'Clockmaker',       rarity:'rare',   retired:true,  // r767 (owner): removed from the game; the row stays for saved runs
     desc:'Any time a single hand scores at least 30% of the level goal, rewind the clock 15s.', tags:['time','hand'] },
   // ── Combo batch (r83) ──

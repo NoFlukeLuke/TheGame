@@ -491,7 +491,9 @@ function startGame() {
   nextRoundPlayCost = 0; nextRoundDiscardCost = 0;
   playHandCostThisRound = 0; discardCostThisRound = 0;
   goalPenaltyMult = 1; focusRatePenalty = 1; skipNextPayout = false;
-  overtimeRun = { taken: false, costs: [], gift: false };   // js/overtime.js
+  overtimeRun = { taken: false, costs: [], gift: false };
+  ninesongLastRewind = false;
+  rewindCapKey = null; rewindCapSecs = Infinity; rewindCapHits = 0;   // r859: the rewind cap (js/discard.js)   // r859: Threepeat's no-rewind-twice memory (js/scoring.js)   // js/overtime.js
   pendingEntityLockout = null; entityLockout = null;
   luckModifiers = 0;
   deadCells = new Set(); riderTrickId = null; interestFreezeRounds = 0;
@@ -567,6 +569,7 @@ function startGame() {
   permXMult  = {};
   permRetrig = {};
   permTime   = {};
+  permTimeSrc = {};   // r859
   permCoins  = {};
   permFocus  = {};
   permPipsGrow = {}; permMultGrow = {};

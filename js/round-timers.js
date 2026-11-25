@@ -46,6 +46,7 @@ function startRoundTimer(opts) {
   const _resume = !!(opts && opts.resume);   // r814: closing the pause menu keeps the level's start
   if (roundInterval) clearInterval(roundInterval);
   if (typeof flowrMaybeRunPendingDual === 'function' && flowrMaybeRunPendingDual()) return;
+  if (!_resume && typeof rewindCapMark === 'function') rewindCapMark();   // r859: a new level marks the rewind cap
   // The last round's winning hand goes back into the deck now that the new
   // board is dealt (r371, js/deck-grid.js) - above the checkpoint, so a save
   // never captures it held.
@@ -166,6 +167,7 @@ function startRoundTimer(opts) {
     if (typeof sleightLifeTick === 'function') sleightLifeTick();
     if (typeof autopilotTick === 'function') autopilotTick();
     if (typeof ruleSleightsScan === 'function') ruleSleightsScan();   // r675: a rule Sleight that landed without a render
+    if (typeof ruleFacesTick === 'function') ruleFacesTick();   // r859: In Your Face leaves after its seconds or charges
     if (typeof moneySleightsScan === 'function') moneySleightsScan(); // r722
     if (typeof focusKnacksTick === 'function') focusKnacksTick();
     // (The Cuckoo moved off the round tick in r346: it fires on every other HAND

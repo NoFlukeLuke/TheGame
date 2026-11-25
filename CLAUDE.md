@@ -6328,3 +6328,29 @@ The CREDITS option reads "Invest all your credits until the start of the next qu
 return. No one can predict the market." (the odds are no longer printed; owner kept the quarter
 payout). The report (`investmentReportMaybe`) prints INITIAL INVESTMENT L¢N, GAINED +L¢N or
 LOST -L¢N, and > RETURN +N% (gain over the stake, rounded). The Trick option is unchanged.
+
+## r859 - the rewind cap; Time Theft; the ↑ upgrade ladder; the rewind pass (owner)
+- **The rewind cap** (`rewindCeiling`, js/discard.js): a rewind cannot take the clock past where it stood
+  when the level started (a boss window is its own level). `rewindCapMark()` runs from `startRoundTimer`
+  (not on a resume) and marks `rewindCapSecs` only at a NEW level (`level` + boss), so a screen that
+  restarts the timer mid-level keeps it; `roundTimeLimitGained` and a level-start bonus
+  (`rewindTime(..., { raiseCap: true })`: pending challenge seconds) raise it. A rewind that comes up
+  short counts `rewindCapHits`; one that gains nothing floats "⏪ MAX". Pauses are not capped.
+  **Time Theft** (epic Knack `time_theft`) lifts it. Tips `rewind_cap_flow` / `rewind_cap` (one a mode)
+  fire once something in the run rewinds (`rewindRuleRelevant`). Rain Check in Flow is capped (owner to decide).
+- **A rewind buff is 2s at most, once per source** (`permTimeGain`, js/deck-grid.js; `permTimeSrc` in
+  SAVE_VARS). Every grant goes through it (enhanceCardKey, Naturalist). An entity names itself
+  (`withBuffSource(id, fn)`: Charged Card, Crescents, Naturalist); everything else is source 'other'.
+  Yoked's upgrades no longer scale permTime. Time Buff op 1-2s, Dealer's Choice 2s.
+- **The ↑ in every entity tooltip** (js/keywords.js: `kwMoreHTML(text, cls, id)` now returns a
+  `.tip-chips` box with `upMoreHTML(id)` beside the +; `upDefsShell(id)`; `wireKwMore` wires both, one
+  rail open at a time, `.up-open`). `upLadderHTML(id)` lists v1-v6: a version reads if it is v1 or v2,
+  held now (NOW), or `improveTierSeen`; the rest read "Not reached yet". Built on open only. Wired in
+  the entity tooltip (payload carries `id`), the Trick tray, the Knack strip and the reward grid
+  (`_sleightId` added to Sleight tiles). Builds' ladder also always reads v2.
+- **Numbers (owner):** Déjà Vu rare, 5s +1s a tier; eeruh eeruh 10% / 2s, alternating +2% / +1s, v6 both;
+  Time Slip 5% +2%; Company Time 5s +2s, v6 any Flush (a Flush layer counts); Overtime 1s per 5 cards
+  (`seconds_per_5`); Last Call 15s; In Your Face 1s, 15 charges, a charge per face card played
+  (`ruleFacesSpend`, replays free), leaves the grid after 60 live seconds or at 0 charges
+  (`ruleFacesTick`, round tick, a still board), ladder +3 charges / +15s alternating (mine), v6 the
+  Knack at 3s. Threepeat never rewinds-only twice in a row (`ninesongPick`, `ninesongLastRewind`, silent).

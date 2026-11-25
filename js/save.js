@@ -107,11 +107,13 @@ const SAVE_VARS = [
   'lastBoard',                                  // r590: Clean Up's "your last grid"
   // r217: the slot machine's rotating buff cursor, and the event no-repeat memory.
   'slotBuffIdx', 'recentEventIds',
+  'rewindCapKey', 'rewindCapSecs',   // r859: the level's rewind cap
+  'ninesongLastRewind',        // r859: Threepeat never rewinds twice in a row
   'overtimeRun',               // r562: Overtime taken, its two costs, and the skip gift (js/overtime.js)
   'sleightNextHandDouble', 'sleightLegacyMult', 'sleightAmplifierMult',
   '_dabiSwapNext', 'sleightFreeSwapPending', 'recyclerFreeLeft',
   // ── Permanent card buffs / curses ──
-  'permPips', 'permMult', 'permXPips', 'permXMult', 'permRetrig', 'permTime', 'permCoins', 'permFocus', 'permFodder',
+  'permPips', 'permMult', 'permXPips', 'permXMult', 'permRetrig', 'permTime', 'permTimeSrc', 'permCoins', 'permFocus', 'permFodder',
   'permPipsGrow', 'permMultGrow', 'cardCurses',
   // Card states (r278). cardIdleSecs is deliberately NOT saved: the save point is
   // the START of a round and the fuses reset there anyway, so restoring last

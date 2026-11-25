@@ -132,7 +132,7 @@ const BAL = {
   row_power: { mult_per_card: 20 },   // r827 (owner): was 16 (r817), 12 before
   groove:        { focus_per_2: 1 },
   assembly_line: { mult_per_prior: 2, mult_per_flow: 1, lines: 1 },   // r646 (owner): per card played from the line LAST round (last quarter in Flow); lines 2 = the 5th improvement's second line
-  overtime:      { seconds_per_3: 1 },
+  overtime:      { seconds_per_5: 1 },   // r859 (owner): 1s per 5 cards (was per 3)
   shift_change:  { consolation_credits: 15 },   // Shift Change event, when you hold under 2 Tricks
   feng_shui:     { pips_per_hand: 3 },
   five_stack:    { pips: 25, mult: 20, focus_per_card: 1 },   // r817 (owner, the averages pass): pips were 15
@@ -174,7 +174,7 @@ const BAL = {
   richter: { mult_mult: 3, focus: 10 },
   ripple: { chance: 0.66, chance2: 0 },   // r624: chance2 is a second replay rolled after a first success (improvements, IMPROVE_PLAN)
   river_run: { focus_per_card: 1 },
-  deluge: { seconds: 8 },   // r817 (owner, the averages pass): was 15; still a 5-card Flush only
+  deluge: { seconds: 5, any_size: 0 },   // r859 (owner): 5s, +2s an upgrade, v6 any flush (was 8)   // r817 (owner, the averages pass): was 15; still a 5-card Flush only
   perfect_storm: { pip_mult: 5 },
   extinction: { mult_mult: 2 },
   lucky_sevens: { focus: 5 },
@@ -325,9 +325,9 @@ const BAL = {
   jury_rig: { chance: 0.5, charges: 1 },
   coin_toss: { chance: 0.5, charges: 1 },   // was hardcoded in js/level-up.js until r196
   rowcol_retrigger: { chance: 2/3, chance2: 0 },   // r624: chance2 like Ripple's (IMPROVE_PLAN)
-  time_slip: { chance: 0.10 },   // r771 (owner): was 0.25
-  replay_rewind: { chance: 0.25, seconds: 2 },
-  deja_vu: { seconds: 15 },
+  time_slip: { chance: 0.05 },   // r859 (owner): 5%, +2% an upgrade (was 10%)   // r771 (owner): was 0.25
+  replay_rewind: { chance: 0.10, seconds: 2 },   // r859 (owner): 10% (was 25%); upgrades alternate +2% and +1s
+  deja_vu: { seconds: 5 },   // r859 (owner): 5s, +1s an upgrade (was 15)
   clockmaker: { goal_fraction: 0.30, seconds: 15 },
   free_range_t: { swaps: 2, extra: 0, four: 0, three: 0 },   // r779 / r780 (owner): the limit set when taken; extra from improvements; 3- / 4-card swaps (IMPROVE_PLAN)
   time_bank: { seconds: 30 },
@@ -356,7 +356,7 @@ const BAL = {
   retake: { charges: 6, copies_a: 0, perm_a: 0, copies_b: 0, perm_b: 0 },
   the_bomb: { charges: 3, pips: 3, rank_up: 0 },
   the_legacy: { charges: 5, pips_x: 3, mult_x: 0 },
-  last_call: { charges: 5, seconds: 12 },
+  last_call: { charges: 5, seconds: 15 },   // r859 (owner): 15s (was 12)
   sandbag: { flat: 0, extra_per_member: 0.5 },
   procrastinate: { charges: 5, recharge: 0 },
   shredder: { charges: 3, deletes: 1 },
@@ -388,13 +388,13 @@ const BAL = {
   corp_ladder: { charges: 4, buff: 10, reach: 1 },
   identity_crisis: { charges: 5, chance: 0.3, entity: 0 },
   org_chart: { charges: 5, extra: 0, plus: 0 },
-  rule_faces: { charges: 5, seconds: 2, role: 0 },
+  rule_faces: { charges: 15, seconds: 1, life: 60, role: 0 },   // r859 (owner): 1s, 15 charges (one a face card played), leaves after 60s
   floater: { charges: 6 },
   slow_burn: { seconds_per: 30, cap: 15, per: 1, keep: 0 },
   recycler: { charges: 6, free: 3, anywhere: 0 },
   trickle_charge: { chance: 0.25, amount: 1, two: 0 },
   perpetual_motion: { chance: 0.04, amount: 1, time: 0, spend: 0 },
-  rule_faces_k: { seconds: 4 },
+  rule_faces_k: { seconds: 3 },   // r859 (owner): was 4
 };
 
 // ── Description templates - keep tooltip text in sync with BAL numbers ──
@@ -492,7 +492,7 @@ const DESC_TEMPLATES = {
   suggestive: "Cards scored in a marked row or column have a {chance_pct}% chance to prime the Trick in the tray slot of that line's number[[chance2:; a second line at {chance2_pct}%]]",
   coin_sword: 'Cards scored in a marked row or column have a {credit_chance_pct}% chance to pay credits equal to the hand size and a {mult_chance_pct}% chance to score mult equal to {credit_pct_pct}% of your credits[[line2:; a second line at the base odds]]',
   lie_up: 'Hands whose shape bends {bends} times or fewer score +{pips_per_card} pips and +{mult_per_card} mult per card',
-  overtime:      "Every hand rewinds the clock {seconds_per_3}s for every 3 cards you have scored from this Trick's marked row or column. Resets each level.",
+  overtime:      "Every hand rewinds the clock {seconds_per_5}s for every 5 cards you have scored from this Trick's marked row or column. Resets each level.",
   feng_shui: 'Scales +{pips_per_hand} pips every time you score a hand with a row or column effect',
   sands_of_time: 'Score +pips equal to time remaining ÷ {divisor}[[flow_divisor: (÷ {flow_divisor} in Flow)]]',
   discard_pips: '+{mult_per} mult per card discarded this level (+{mult_per_flow} in Flow)',
@@ -552,7 +552,7 @@ const DESC_TEMPLATES = {
   rowcol_retrigger: 'Cards scored in a marked row or column have a {chance_pct}% chance to replay[[chance2:, then a {chance2_pct}% chance to replay again]]',
   coin_toss: 'At the start of each level, every Sleight has a {chance_pct}% chance to restore {charges} charge.',
   short_change: 'Each hand you play with fewer cards than your hand size earns {coins} credit.',
-  deluge: 'A 5-card Flush rewinds the clock {seconds}s',
+  deluge: '[[any_size:Any Flush]][[any_size<1:A 5-card Flush]] rewinds the clock {seconds}s',
   // r550: time wording. A rewind reads "rewind(s) the clock Ns", a pause "pause(s) the clock
   // for Ns", a card's buff adds "when scored". Templated so an improvement shows its number.
   high_water: 'Sets pause the clock for {pause_per_set}s for each Set played this level',
@@ -570,6 +570,7 @@ const DESC_TEMPLATES = {
   snooze: 'Double-tap: pause the clock for {seconds}s, then Snooze returns to your deck. (5 charges)',
   monochrome: 'Hands containing exclusively hearts AND diamonds score +{mult} mult, grant +{coins} credits, and cost {seconds} seconds',
   ninesong: "If the hand's pip total is divisible by 3, one of the following happens: rewind the clock {seconds}s, +{mult} mult, +{focus} Focus, or all three",
+  time_slip: 'Whenever the clock would pause, {chance_pct}% chance to rewind the clock that many seconds instead.',
   deja_vu: 'Playing the same ranks in two hands in a row rewinds the clock {seconds}s.',
   clockmaker: 'Any time a single hand scores at least 30% of the level goal, rewind the clock {seconds}s.',
   free_range_t: 'Can swap any two non-adjacent cards. When taken, sets your swap limit to {swaps}[[extra: (+{extra} from upgrades)]].[[four: SWAP takes 4 selected cards: the 1st and 3rd trade places, and the 2nd and 4th.]][[three: SWAP takes 3 selected cards: each moves to the cell of the card picked before it, the 1st to the last one\'s.]]',
@@ -731,7 +732,7 @@ const DESC_TEMPLATES = {
   identity_crisis: 'Swap it with a card: {chance_pct}% chance that card gains a second rank one above its own, a second suit, or both.[[entity: The suit is the one your oldest Trick, Knack or Sleight names.]] ({charges} charges)',
   org_chart: 'Cards scored in its row or column replay once for each Sleight on the grid, this one included[[plus:, plus 1]].[[extra: {extra_pct}% chance of one more replay.]] ({charges} charges)',
   rule_evens: 'While it is on the grid, even-ranked cards (2, 4, 6, 8, 10) score +{focus} Focus[[credits: and {credits} credits]]. Play only. ({charges} charges)',
-  rule_faces: 'While it is on the grid, face cards (J, Q, K) rewind the clock {seconds}s when scored. Play only.[[role: Preparing for role change.]] ({charges} charges)',
+  rule_faces: 'While it is on the grid, face cards (J, Q, K) rewind the clock {seconds}s when scored. Each face card played spends a charge. Leaves the grid after {life}s. Play only.[[role: Preparing for role change.]] ({charges} charges)',
   floater: 'Each time it is drawn it becomes a random Sleight. The Sleight it becomes has unlimited charges. Each draw spends a charge. Upgrades apply to the Sleight it becomes. ({charges} charges)',
   slow_burn: '+{per} to your Focus limit for every {seconds_per} seconds this sleight spends on the grid (max +{cap}).[[keep: Sell it to keep what it has earned.]]',
   recycler: 'Scoring the hand named on its face[[anywhere<1: next to this]] makes your next {free} swaps or discards free (no time or stock cost). Then it discards itself. ({charges} charges)',

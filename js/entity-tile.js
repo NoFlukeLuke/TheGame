@@ -154,7 +154,7 @@ function entityTipPayloadFor(p, rarity) {
   if (!desc) return null;
   // r651: a rare or epic Trick not yet taken in any run shows no name (js/discovery.js).
   const shown = (kind === 'trick' && typeof shownEntityName === 'function') ? shownEntityName({ id: p.id, name: label, tier: rar }, 'trick') : label;
-  return { label: shown, desc, rarity: rar || 'common', type: kind, emoji: p.emoji || p.icon, uses: p.uses };
+  return { id: p.id, label: shown, desc, rarity: rar || 'common', type: kind, emoji: p.emoji || p.icon, uses: p.uses };   // r859: id for the ↑ ladder
 }
 
 // A complete tile, frame and all - for surfaces that have no frame of their own

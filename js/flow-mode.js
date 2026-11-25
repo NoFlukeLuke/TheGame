@@ -297,5 +297,6 @@ function roundTimeLimitGained(sec) {
   if (!_live) return;
   roundSeconds += sec;
   if (typeof roundStartSeconds === 'number') roundStartSeconds += sec;
+  if (typeof rewindCapRaise === 'function') rewindCapRaise(sec);   // r859: a longer level lifts its rewind cap too
   if (typeof updateClockUI === 'function') updateClockUI();
 }

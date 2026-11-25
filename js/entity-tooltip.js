@@ -104,10 +104,10 @@ function showEntityTooltip(anchorEl, p, opts = {}) {
   // The rail only paints once the + in the card's corner is pressed. It is built
   // up front rather than on demand because the tooltip is re-shown constantly by
   // hover and a second render path would be a second thing to keep in step.
-  el.classList.remove('kw-open');
-  el.querySelector('.et-defs').innerHTML = kwDefsHTML(desc);
+  el.classList.remove('kw-open', 'up-open');
+  el.querySelector('.et-defs').innerHTML = kwDefsHTML(desc) + upDefsShell(p.id);   // r859: the ↑ ladder shares the rail
   const moreSlot = el.querySelector('.et-more-slot');
-  moreSlot.innerHTML = kwMoreHTML(desc);
+  moreSlot.innerHTML = kwMoreHTML(desc, '', p.id);
   // Opening the rail makes the bubble STICKY, and that is the load-bearing part.
   // In hover mode the card is pointer-events:none (r170), so the rail cannot be
   // hovered, scrolled or read without the pointer falling through it onto the
@@ -151,10 +151,10 @@ function hideEntityTooltip(now = false) {
   // explicit dismissal (the backdrop, a new tooltip, a screen closing) takes it
   // away. A hover drifting off the anchor must not, or the rail would be
   // unreadable - reaching it means leaving the tile that opened it.
-  if (!now && _etEl && _etEl.classList.contains('kw-open')) return;
+  if (!now && _etEl && (_etEl.classList.contains('kw-open') || _etEl.classList.contains('up-open'))) return;
   clearTimeout(_etHideTimer);
   if (_etBackdrop) _etBackdrop.classList.remove('show');
-  const kill = () => { if (_etEl) { _etEl.classList.remove('show', 'interactive', 'kw-open'); } };
+  const kill = () => { if (_etEl) { _etEl.classList.remove('show', 'interactive', 'kw-open', 'up-open'); } };
   if (now) kill(); else _etHideTimer = setTimeout(kill, 60);
 }
 function entityTooltipOpen() { return !!(_etEl && _etEl.classList.contains('show')); }

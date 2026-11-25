@@ -40,6 +40,26 @@ function cellIsFodder(r, c) {
 // card, r211). It is a rewind, not a pause: it goes through rewindTime() like
 // every other clock gain, so it respects rewindCeiling() and shows the ⏪ floater.
 let permTime   = {}; // { "<card id>": 4, ... } seconds rewound per scored copy
+// r859 (owner): A REWIND BUFF IS 2s AT MOST, AND ONE SOURCE BUFFS A CARD ONCE.
+// Every rewind-buff grant goes through permTimeGain: the grant is cut to REWIND_BUFF_MAX
+// (after Yoked's doubling), and a source that already gave this card a rewind buff gives
+// it nothing. An entity names itself as the source (withBuffSource); everything that is
+// not an entity (the deck editor, the Balance Sheet, the shop, events) counts as one
+// source, 'other'. Buffs from different sources still stack.
+const REWIND_BUFF_MAX = 2;
+let permTimeSrc = {};   // { "<card id>": ['charged_card', 'other'], ... }
+let buffSourceNow = null;
+function withBuffSource(src, fn) { const was = buffSourceNow; buffSourceNow = src; try { return fn(); } finally { buffSourceNow = was; } }
+function permTimeGain(key, v, src) {
+  if (key == null || !(v > 0)) return 0;
+  const s = src || buffSourceNow || 'other';
+  const had = permTimeSrc[key] || (permTimeSrc[key] = []);
+  if (had.includes(s)) return 0;
+  const g = Math.min(REWIND_BUFF_MAX, v);
+  had.push(s);
+  permTime[key] = (permTime[key] || 0) + g;
+  return g;
+}
 // ONE CARD, ONE TIME BUFF (r342, owner's rule). Every site that grants a card a
 // time buff - the Vulture's pause, Wait Four It's pause, Temporal Rift's rewind -
 // asks this first and skips a card already carrying one, in either currency.

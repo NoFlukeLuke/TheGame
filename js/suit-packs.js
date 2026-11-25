@@ -77,7 +77,7 @@ function suitPackOnScore(cells) {
         const nb = _spNeighbours(x.r, x.c, inHand);
         const y = nb[Math.floor(Math.random() * nb.length)];
         const e = y && typeof rollEditorBuff === 'function' ? rollEditorBuff() : null;
-        if (y && e) { enhanceCardKey(cardId(y.card), e); buffs++; }
+        if (y && e) { withBuffSource('crescent', () => enhanceCardKey(cardId(y.card), e)); buffs++; }
       }
     }
   }

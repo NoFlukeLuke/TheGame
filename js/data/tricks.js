@@ -32,7 +32,7 @@ const TRICK_POOL = [
   // ── Flush / special hand types ──
   { id:'enriched',       name:'Enriched',            tier:'common',    desc:'Flushes score +100 pips', tags:['pips','hand','flush','scores'] },
   { id:'tidal_force',    name:'Vestir a Camisa',        tier:'common',    desc:'Flushes score +15 mult per card', tags:['mult','card','flush','scores'] },
-  { id:'deluge',         name:'Company Time',              tier:'rare',      desc:'A 5-card Flush rewinds the clock 8s', tags:['time','hand','flush'] },
+  { id:'deluge',         name:'Company Time',              tier:'rare',      desc:'A 5-card Flush rewinds the clock 5s', tags:['time','hand','flush'] },
   { id:'summit',     name:'The Go-to Gal',   tier:'common', desc:'The highest-ranking card in each hand scores +(level x 2) pips.', tags:['pips','card','scores','scaling','rank'] },
   { id:'light_touch',    name:'Agile',              tier:'common',    desc:'2-card hands score +30 mult', tags:['mult','hand','size','scores'] },
   { id:'release_valve',  name:'Release Valve',       tier:'common',    desc:'Each time you hit your Focus limit, gain +1 swap and +1 discard and lose 16 Focus.', tags:['stock','other','cost'] },
@@ -148,7 +148,7 @@ const TRICK_POOL = [
   { id:'inferno',        name:'Inferno',             tier:'epic',      fused:true, acts:['kindling','wildfire'], tags:['mult','focus','hand','streak','scores'], desc:'Same-hand streaks score +8 mult × the streak count; reaching a streak of 3 adds +5 Focus' },
   { id:'serenity',       name:'Serenity',            tier:'epic',      fused:true, tags:['mult','focus','hand','position','scores'], desc:'A hand that is not a straight line scores +50 mult and adds +25 Focus' },
   { id:'working_class',  name:'Working Class',       tier:'epic',      fused:true, acts:['club_double','landfill'], tags:['pips','mult','card','suit','discard','swap','scaling','scores'], desc:'Each club scored this level adds more and more pips: doubles each time, starting at 1; score +4 mult for every swapped or discarded card this game' },
-  { id:'overtime',       name:'Overtime',            tier:'rare',      tags:['time','hand','position','line'],  desc:'Every hand rewinds the clock 1s for every 3 cards you have scored from its marked row or column this level. The count resets each level.' },
+  { id:'overtime',       name:'Overtime',            tier:'rare',      tags:['time','hand','position','line'],  desc:'Every hand rewinds the clock 1s for every 5 cards you have scored from its marked row or column this level. The count resets each level.' },
   { id:'feng_shui',      name:'Feng Shui',           tier:'epic',      tags:['pips','hand','position','scores','scaling'],  desc:'Scales +3 pips every time you score a hand with a row or column effect' },
   { id:'clean_sweep',    name:'Clean Sweep',         tier:'rare',      tags:['focus','credits','hand','position'],           desc:'Use every cell of any row or column within two hands to add +8 Focus and +4 credits' },
   // ── Level scaling ──

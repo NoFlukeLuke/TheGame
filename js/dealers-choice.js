@@ -31,7 +31,7 @@ let dealerHand = null;   // { cards: [card...], els: [...], pos: [{x,y,vx,vy,rot
 const DEALER_DEFAULTS = { cards: 3, buff_chance: 0.75 };
 const DEALER_BUFFS = [   // [enhancement, weight]
   [{ pips: 25 }, 30], [{ mult: 25 }, 30], [{ retrig: 1 }, 12],
-  [{ xmult: 1.5 }, 10], [{ coin: 2 }, 10], [{ time: 3 }, 8],
+  [{ xmult: 1.5 }, 10], [{ coin: 2 }, 10], [{ time: 2 }, 8],
 ];
 const dealerCfg = k => (typeof BAL !== 'undefined' && BAL.dealers_choice && BAL.dealers_choice[k] != null) ? BAL.dealers_choice[k] : DEALER_DEFAULTS[k];
 

@@ -54,7 +54,7 @@ const IMPROVE_ADD = new Set([
   'mult_per_type','mult_per_event','mult_per_n','mult_per',
   'focus_per_2','focus_per_stock','focus_on_enter','focus_cap',
   'perm_pips','perm_mult','flat_pips','face_pips','worth','extra_mult','per_jack','base',
-  'extra_replays','retrigger_count','cap_gain','seconds_per_3','max_seconds','cap_bonus',
+  'extra_replays','retrigger_count','cap_gain','seconds_per_3','seconds_per_5','max_seconds','cap_bonus',
   'mult_step','pip_mult_step','pip_mult_per_replay','mult_mult_per_replay',
   'mult_mult_per_card','pip_mult_per_10_credits','pip_mult_per_missing','mult_mult_per_missing','chance_per',
 ]);
@@ -78,7 +78,7 @@ const IMPROVE_STEP = {
   extra_discards: { max: 1 },           // Harvest grants 2; repeating it whole is too strong
   extra_swaps:    { max: 1 },           // Swap Shop, same
   greedy_boi:     { selection: 1 },     // +2 selection is a big step; the sheet steps by 1
-  deja_vu:        { seconds: 2 },
+  deja_vu:        { seconds: 1 },   // r859 (owner): 5 6 7 8 9, v6 12
   sundial:        { seconds: 5 },
   metronome:      { seconds: 3 },
   clockmaker:     { seconds: 5 },
@@ -88,8 +88,7 @@ const IMPROVE_STEP = {
   long_pause:     { multiplier: 0.2 },  // 1.5x -> 1.7x, not 1.5x -> 2.0x
   coin_toss:      { chance: 0.15 },
   jury_rig:       { chance: 0.15 },
-  time_slip:      { chance: 0.05 },   // r771: 10 15 20 25 30 45% (was 25 35 45 55 65 95)
-  replay_rewind:  { chance: 0.20 },
+  time_slip:      { chance: 0.02 },   // r859 (owner): 5 7 9 11 13, v6 19%
   prime_time:     { pips_per_card: 11 }, // owner: +11 per improvement, not +23
   // r624, the owner's rare sheet
   heavy_hand:     { pips_per_card: 10 },
@@ -159,6 +158,9 @@ const IMPROVE_PLAN = {
   // +5 credits, +10 mult, 2s cheaper, round and round; the 5th does all three
   monochrome:       t => ({ coins: 5 + 5 * [0, 1, 1, 1, 2, 3][t], mult: 40 + 15 * [0, 0, 1, 1, 1, 2][t], seconds: 10 - 2 * [0, 0, 0, 1, 1, 2][t] }),
   // doubles one of the three in turn; the 5th doubles all three and lifts the silent all-three chance
+  // r859 (owner): eeruh eeruh alternates +2% and +1s, v6 both; Company Time +2s an upgrade, v6 any Flush.
+  replay_rewind:    t => ({ chance: [0.10, 0.12, 0.12, 0.14, 0.14, 0.16][t], seconds: [2, 2, 3, 3, 4, 5][t] }),
+  deluge:           t => ({ seconds: [5, 7, 9, 11, 13, 13][t], any_size: t >= 5 ? 1 : 0 }),
   ninesong:         t => ({ seconds: 9 * [1, 2, 2, 2, 4, 8][t], mult: 40 * [1, 1, 2, 2, 2, 4][t], focus: 13 * [1, 1, 1, 2, 2, 4][t], all_chance: t >= 5 ? 0.35 : 0.2 }),
   // a second replay chance, +33% a tier (past 100% a third); the 5th adds a second marked line
   perfect_timing:   t => ({ chance2: [0, 0.33, 0.66, 0.99, 1, 1][t], extra_line: t >= 5 ? 1 : 0 }),   // r631 (owner): capped at a sure second replay
@@ -244,7 +246,7 @@ const IMPROVE_PLAN = {
   retake: t => ({ charges: [6, 8, 8, 8, 8, 8][t], copies_a: t >= 2 ? 2 : 0, perm_a: t >= 3 ? 1 : 0, copies_b: t >= 4 ? 2 : 0, perm_b: t >= 5 ? 1 : 0 }),
   the_bomb: t => ({ charges: [3, 4, 4, 5, 5, 5][t], pips: [3, 3, 9, 9, 15, 15][t], rank_up: t >= 5 ? 1 : 0 }),
   the_legacy: t => ({ charges: [5, 5, 6, 6, 7, 8][t], pips_x: [3, 4, 4, 5, 5, 6][t], mult_x: t >= 5 ? 6 : 0 }),
-  last_call: t => ({ charges: [5, 6, 6, 7, 7, 8][t], seconds: [12, 12, 18, 18, 24, 30][t] }),
+  last_call: t => ({ charges: [5, 6, 6, 7, 7, 8][t], seconds: [15, 15, 20, 20, 25, 30][t] }),   // r859: base 15s
   sandbag: t => ({ flat: [0, 5, 5, 10, 10, 15][t], extra_per_member: [0.5, 0.5, 0.75, 0.75, 1, 1.25][t] }),
   procrastinate: t => ({ charges: [5, 7, 7, 9, 9, 11][t], recharge: [0, 0, 1, 1, 2, 3][t] }),
   shredder: t => ({ charges: [3, 5, 5, 7, 7, 7][t], deletes: [1, 1, 2, 2, 3, 99][t] }),
@@ -276,7 +278,7 @@ const IMPROVE_PLAN = {
   // r854 (owner): Unionize. The 3rd upgrade is a 50% chance of one more replay; the last counts one more Sleight.
   org_chart: t => ({ charges: [5, 6, 7, 7, 8, 8][t], extra: t >= 3 ? 0.5 : 0, plus: t >= 5 ? 1 : 0 }),
   rule_evens: t => ({ charges: [5, 6, 6, 7, 7, 8][t], focus: [2, 2, 4, 4, 6, 6][t], credits: t >= 5 ? 2 : 0 }),
-  rule_faces: t => ({ charges: [5, 6, 6, 7, 7, 7][t], seconds: [2, 2, 4, 4, 4, 4][t], role: t >= 4 ? 1 : 0 }),
+  rule_faces: t => ({ charges: [15, 18, 18, 21, 21, 21][t], seconds: 1, life: [60, 60, 75, 75, 90, 90][t], role: t >= 4 ? 1 : 0 }),   // r859 (owner): 1s; +3 charges / +15s on the grid alternating (mine); v6 the 3s Knack
   rule_faces_k: () => ({}),   // a role-change Knack never improves (it arrives at v6)
   slow_burn: t => ({ per: [1, 2, 2, 3, 3, 3][t], cap: [15, 15, 20, 20, 25, 25][t], keep: t >= 5 ? 1 : 0 }),
   recycler: t => ({ charges: [6, 7, 7, 8, 8, 10][t], free: [3, 3, 4, 4, 5, 5][t], anywhere: t >= 5 ? 1 : 0 }),

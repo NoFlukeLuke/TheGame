@@ -394,7 +394,7 @@ function enhanceCardKey(key, e) {
   if (e.xpips)  permXPips[key]  = (permXPips[key]  || 1) * e.xpips;
   if (e.xmult)  permXMult[key]  = (permXMult[key]  || 1) * e.xmult;
   if (e.retrig) permRetrig[key] = (permRetrig[key] || 0) + e.retrig;
-  if (e.time)   permTime[key]   = (permTime[key]   || 0) + e.time;
+  if (e.time)   permTimeGain(key, e.time);   // r859: 2s at most, once per source (js/deck-grid.js)
   if (e.coin)   permCoins[key]  = (permCoins[key]  || 0) + e.coin;
   if (e.focus)  permFocus[key]  = (permFocus[key]  || 0) + e.focus;
   if (e.subpips) permPips[key]  = Math.max(0, (permPips[key] || 0) - e.subpips);

@@ -173,7 +173,7 @@ function naturalistBonusBuff(card) {
   if (pick === 0) permMult[k] = (permMult[k] || 0) + yokeGain('mult', 10);   // r817: was 5
   else if (pick === 1) permXPips[k] = (permXPips[k] || 1) * yokeGain('xpips', 1.25);
   else if (pick === 2) permXMult[k] = (permXMult[k] || 1) * yokeGain('xmult', 1.25);
-  else if (pick === 3) { if (!(typeof cardTimeBuffed === 'function' && cardTimeBuffed(card))) permTime[k] = (permTime[k] || 0) + yokeGain('time', 2); else permMult[k] = (permMult[k] || 0) + yokeGain('mult', 10); }
+  else if (pick === 3) { if (!(typeof cardTimeBuffed === 'function' && cardTimeBuffed(card))) permTimeGain(k, yokeGain('time', 2), 'naturalist'); else permMult[k] = (permMult[k] || 0) + yokeGain('mult', 10); }
   else permRetrig[k] = (permRetrig[k] || 0) + yokeGain('retrig', 1);
 }
 

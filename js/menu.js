@@ -1,4 +1,4 @@
-const BUILD = "2026-11-25 · r858 · the Investment: plain credits option, the report shows the return";
+const BUILD = "2026-11-25 · r859 · the rewind cap, Time Theft, the ↑ upgrade ladder in tooltips, the rewind pass";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
