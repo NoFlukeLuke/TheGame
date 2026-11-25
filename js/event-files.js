@@ -61,7 +61,7 @@ const EVENT_DOES = {
   prize_ladder: 'Coin flips up a ladder of prizes. A tails loses what is not secured.',
   trick_gamble: 'Pick two Tricks. One upgrades twice. The other is deleted.',
   reschedule:   'See this quarter\'s boss and the next. Pay to reroll both.',
-  grid_spinner: 'Stop the light on a number. Add that many rows and columns.',
+  grid_spinner: 'Spin the wheel. Add that many rows and columns.',
   static_bonus: 'Two wheels set a bonus of pips or mult added to every hand for the run.',
   luck_dice:    'Two dice. Their product is added to your Luck.',
 };

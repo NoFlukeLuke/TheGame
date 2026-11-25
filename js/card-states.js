@@ -126,6 +126,24 @@ const CARD_STATE_DEFS = {
       (cardStateBackfillQueue[ctx.c] || (cardStateBackfillQueue[ctx.c] = [])).push(copy);
     },
   },
+  // r854 (owner): four traits a card keeps. No use half and no fuse; `once: false`.
+  // Each is read at its own site in js/fall-sleights.js.
+  eager: {
+    name: 'Eager', icon: '▲', color: '#35d59b', tier: 'common', once: false,
+    desc: 'Always in the opening deal of a level.',
+  },
+  dragging: {
+    name: 'Dragging', icon: '▼', color: '#8a8fa3', tier: 'common', once: false,
+    desc: 'Never in the opening deal of a level.',
+  },
+  pinned: {
+    name: 'Pinned', icon: '⊥', color: '#e8c15a', tier: 'legendary', once: false,
+    desc: 'Played, it stays in its cell.',
+  },
+  mentor: {
+    name: 'Mentor', icon: '✦', color: '#b48cff', tier: 'epic', once: false,
+    desc: 'Each time it triggers a Trick, it primes that Trick.',
+  },
   fleeting: {
     name: 'Fleeting', icon: '⏳', color: '#d8474b', tier: 'common',
     fuse: 30,

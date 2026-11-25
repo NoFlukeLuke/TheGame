@@ -606,7 +606,7 @@ function calcScore(handName, cells, contrib = null, ledger = null) {
     // ledger rows below never bill it. Layered-hand replays are not a source.
     let _enc = !!_encoreCells && _encoreCells.has(_cKey) && _rankIsOddRank(baseRank), _lab = _labOn, _cb = _cbOn, _3c = _cKey === _3rdKey;
     let _rule = (!_G && typeof ruleRankReplays === 'function') ? ruleRankReplays(baseRank) : 0;   // r675: the rank rule Sleight
-    let _org = (!_G && typeof orgChartReplays === 'function') ? orgChartReplays(r, c) : 0;   // r841: Org Chart's row and column
+    let _org = (!_G && typeof orgChartReplays === 'function') ? orgChartReplays(r, c, () => _detReplayRand((card._id || 0) + 8853, handsPlayedRound)) : 0;   // r841: Unionize's row and column
     let _ins = (!_G && _insChance > 0) ? Math.min(1, luckRollDet(_insChance, (card._id || 0) + 8317, handsPlayedRound)) : 0;   // r722: Insurance Policy
     const _srcs = [
       ['r8', _r8 ? _eightCount - 1 : 0], ['rl', _rl], ['pt', _ptN], ['res', _res ? 2 : 0], ['rip', _rip], ['evb', _evb], ['wod', _wod], ['twn', _twn],

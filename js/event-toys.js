@@ -121,41 +121,155 @@ function evCoin(parent) {
 }
 
 // ── WHEEL ───────────────────────────────────────────────────────────────────
-// evWheel(segs, parent) where segs = [{ label, color, ink? }]
-//   -> { el, spin(index) -> Promise<index> }
-// A circle cut into equal slices under a fixed pointer at the top. It ticks as
-// each slice boundary passes the pointer.
+// evWheel(segs, parent, opts) where segs = [{ label, color, ink? }]
+//   -> { el, ask() -> Promise<index>, fling(), armed() }
+// r854 (owner): the PLAYER spins it. ask() arms the wheel; a drag turns it under
+// the finger or the mouse, and letting go with speed throws it. It then runs on
+// its own physics (friction, and a peg at every slot edge that the pointer's
+// flapper clicks over, taking a little speed each time) and the promise resolves
+// with the slot under the pointer when it rests. fling() throws it for a player
+// who uses the key instead of a drag.
+// THE ONE TOY THAT IS NOT HANDED ITS RESULT: where it stops is the result.
+// Hard to aim by design: the throw's speed is scaled by a hidden roll, the
+// friction is rolled per throw, a slow throw is brought up to a rolled minimum,
+// and every throw travels WHEEL.minTurns turns or more. Those rolls are the
+// outcome, so they use Math.random (a seeded run seeds it); the flapper is cosmetic.
+// Input: pointer events with pointer capture, touch-action none on the wheel (so
+// a phone does not scroll the panel instead), release speed read from the last
+// WHEEL.sampleMs of the drag.
+const WHEEL = {
+  minFlick: 200,          // deg/s at release under which it is not a throw
+  floor: [560, 780],      // a throw is at least a roll in this range, deg/s
+  max: 1500,              // and at most this
+  kick: [0.78, 1.36],     // hidden scale on the release speed
+  c0: 36,                 // constant friction, deg/s^2
+  c1: [0.26, 0.44],       // speed-proportional friction, 1/s, rolled per throw
+  pegLoss: 0.03,          // share of speed each peg takes
+  pegStop: 62,            // under this speed a peg is not passed: the wheel rocks back
+  bounce: 0.35,
+  rest: 5,                // deg/s: it has stopped
+  minTurns: 1.2,
+  sampleMs: 90,
+  dt: 1 / 240,
+};
+function _wheelRoll(r) { return r[0] + Math.random() * (r[1] - r[0]); }
+// One fixed step. st = { ang, w }. Returns 'tick', 'bounce' or null.
+function wheelStep(st, a, c1) {
+  const dt = WHEEL.dt, sg = Math.sign(st.w);
+  if (!sg) return null;
+  st.w -= sg * (WHEEL.c0 + c1 * Math.abs(st.w)) * dt;
+  if (Math.sign(st.w) !== sg) { st.w = 0; return null; }
+  const na = st.ang + st.w * dt;
+  if (Math.floor(na / a) !== Math.floor(st.ang / a)) {
+    if (Math.abs(st.w) < WHEEL.pegStop) { st.w = -st.w * WHEEL.bounce; return 'bounce'; }
+    st.w *= 1 - WHEEL.pegLoss;
+    st.ang = na;
+    return 'tick';
+  }
+  st.ang = na;
+  return null;
+}
+function wheelPredict(ang, w, a, c1) {
+  const st = { ang, w };
+  for (let i = 0; i < 240 * 30 && Math.abs(st.w) > WHEEL.rest; i++) wheelStep(st, a, c1);
+  return st.ang;
+}
+function wheelIndexAt(ang, n) { const a = 360 / n; return Math.floor((((-ang) % 360) + 360) % 360 / a) % n; }
 function evWheel(segs, parent, opts) {
   const o = opts || {};
   const host = _etHost('evt-wheel-host', parent);
   const n = segs.length, a = 360 / n;
   const stops = segs.map((s, i) => `${s.color} ${i * a}deg ${(i + 1) * a}deg`).join(', ');
-  host.innerHTML = `<div class="evt-wheel-wrap"><div class="evt-pointer"></div>
+  host.innerHTML = `<div class="evt-wheel-wrap${n > 10 || (o.size && o.size < 140) ? ' evt-wheel-many' : ''}"${o.size ? ` style="width:${o.size}px;height:${o.size}px"` : ''}>
       <div class="evt-wheel" style="background: conic-gradient(${stops})">${segs.map((s, i) =>
-        `<div class="evt-wl" style="transform: rotate(${i * a + a / 2}deg)"><span style="color:${s.ink || '#120f1c'}">${s.label}</span></div>`).join('')}
-      </div><div class="evt-hub"></div></div>${o.title ? `<div class="evt-wheel-title">${o.title}</div>` : ''}`;
-  const wheel = host.querySelector('.evt-wheel');
-  let angle = 0;
+        `<div class="evt-wl" data-i="${i}" style="transform: rotate(${i * a + a / 2}deg)"><span style="color:${s.ink || '#120f1c'}">${s.label}</span></div>`).join('')}${
+        segs.map((s, i) => `<div class="evt-wpeg" style="transform: rotate(${i * a}deg)"><i></i></div>`).join('')}
+      </div><div class="evt-hub"></div><div class="evt-pointer"></div></div>
+    ${o.title ? `<div class="evt-wheel-title">${o.title}</div>` : ''}<div class="evt-wheel-hint"></div>`;
+  const wrap = host.querySelector('.evt-wheel-wrap'), wheel = host.querySelector('.evt-wheel');
+  const ptr = host.querySelector('.evt-pointer'), hint = host.querySelector('.evt-wheel-hint');
+  const st = { ang: 0, w: 0 };
+  let armed = false, spinning = false, resolve = null, drag = null, lastTick = 0;
+  const draw = () => { wheel.style.transform = `rotate(${st.ang}deg)`; };
+  const say = t => { hint.textContent = t || ''; };
+  const click = dir => {
+    const now = performance.now();
+    if (now - lastTick > 26) { lastTick = now; _etSfx('sfxSlotTick', Math.min(1, Math.abs(st.w) / 900)); }
+    if (_etFast()) return;
+    try { ptr.animate([{ rotate: `${-dir * 30}deg` }, { rotate: '0deg' }], { duration: 150, easing: 'ease-out' }); } catch (e) {}
+  };
+  const land = () => {
+    spinning = false; armed = false;
+    const idx = wheelIndexAt(st.ang, n);
+    host.dataset.won = idx;
+    host.classList.remove('evt-armed', 'evt-spinning'); host.classList.add('evt-won');
+    wheel.querySelectorAll('.evt-wl').forEach(el => el.classList.toggle('evt-wl-won', +el.dataset.i === idx));
+    _etSfx('sfxRewardReveal');
+    const r = resolve; resolve = null;
+    if (r) r(idx);
+  };
+  const launch = v => {
+    const dir = Math.sign(v) || 1, c1 = _wheelRoll(WHEEL.c1);
+    let mag = Math.min(WHEEL.max, Math.max(_wheelRoll(WHEEL.floor), Math.abs(v) * _wheelRoll(WHEEL.kick)));
+    for (let i = 0; i < 14 && Math.abs(wheelPredict(st.ang, dir * mag, a, c1) - st.ang) < WHEEL.minTurns * 360; i++) mag *= 1.1;
+    st.w = dir * mag; spinning = true; say('');
+    host.classList.remove('evt-armed', 'evt-won'); host.classList.add('evt-spinning');
+    wheel.querySelectorAll('.evt-wl-won').forEach(el => el.classList.remove('evt-wl-won'));
+    if (_etFast()) { st.ang = wheelPredict(st.ang, st.w, a, c1); st.w = 0; draw(); land(); return; }
+    let last = performance.now(), acc = 0;
+    const frame = now => {
+      if (!host.isConnected) { spinning = false; return; }
+      acc += Math.min(0.05, (now - last) / 1000); last = now;
+      while (acc >= WHEEL.dt && Math.abs(st.w) > WHEEL.rest) {
+        acc -= WHEEL.dt;
+        const ev = wheelStep(st, a, c1);
+        if (ev) click(ev === 'bounce' ? -Math.sign(st.w) : Math.sign(st.w));
+      }
+      draw();
+      if (Math.abs(st.w) > WHEEL.rest) requestAnimationFrame(frame); else { st.w = 0; land(); }
+    };
+    requestAnimationFrame(frame);
+  };
+  const angAt = e => { const r = wrap.getBoundingClientRect(); return Math.atan2(e.clientY - (r.top + r.height / 2), e.clientX - (r.left + r.width / 2)) * 180 / Math.PI; };
+  wrap.addEventListener('pointerdown', e => {
+    if (!armed || spinning || drag) return;
+    e.preventDefault();
+    try { wrap.setPointerCapture(e.pointerId); } catch (err) {}
+    drag = { id: e.pointerId, last: angAt(e), samples: [{ t: performance.now(), a: st.ang }] };
+    host.classList.add('evt-grab');
+  });
+  wrap.addEventListener('pointermove', e => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const p = angAt(e);
+    let d = p - drag.last; if (d > 180) d -= 360; else if (d < -180) d += 360;
+    drag.last = p;
+    const before = Math.floor(st.ang / a);
+    st.ang += d; draw();
+    if (Math.floor(st.ang / a) !== before) { st.w = d * 60; click(Math.sign(d)); st.w = 0; }
+    const now = performance.now();
+    drag.samples.push({ t: now, a: st.ang });
+    while (drag.samples.length > 2 && now - drag.samples[0].t > WHEEL.sampleMs) drag.samples.shift();
+  });
+  const up = e => {
+    if (!drag || e.pointerId !== drag.id) return;
+    const sm = drag.samples, now = performance.now(), f = sm[0], l = sm[sm.length - 1];
+    drag = null; host.classList.remove('evt-grab');
+    // A finger held still before lifting is not a throw.
+    const v = (now - l.t > 80 || l.t === f.t) ? 0 : (l.a - f.a) / ((l.t - f.t) / 1000);
+    if (Math.abs(v) < WHEEL.minFlick) { say('Spin it harder'); return; }
+    launch(v);
+  };
+  wrap.addEventListener('pointerup', up);
+  wrap.addEventListener('pointercancel', up);
   return {
     el: host,
-    spin(index) {
-      const jitter = (_etRnd() - 0.5) * a * 0.6;
-      const target = 360 * (4 + Math.floor(_etRnd() * 2)) + (360 - (index * a + a / 2)) + jitter;
-      const start = angle % 360, end = start + target - (start % 360);
-      let lastSlice = Math.floor(start / a);
-      host.classList.remove('evt-won');
-      return _etTween(o.ms || 2600, e => {
-        angle = start + (end - start) * e;
-        wheel.style.transform = `rotate(${angle}deg)`;
-        const sl = Math.floor(angle / a);
-        if (sl !== lastSlice) { lastSlice = sl; _etSfx('sfxClockTick'); }
-      }).then(() => {
-        host.dataset.won = index;
-        host.classList.add('evt-won');
-        _etSfx('sfxRewardReveal');
-        return index;
-      });
+    armed: () => armed && !spinning,
+    ask() {
+      armed = true; host.classList.add('evt-armed'); host.classList.remove('evt-won');
+      say('Drag and let go');
+      return new Promise(res => { resolve = res; });
     },
+    fling() { if (!armed || spinning || drag) return false; launch((Math.random() < 0.5 ? -1 : 1) * (700 + Math.random() * 600)); return true; },
   };
 }
 

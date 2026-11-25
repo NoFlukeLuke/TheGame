@@ -12,12 +12,13 @@
 // (the row it lands in included), then reads again. On the bottom row it leaves:
 // fallSleightDrain (from the fall's tail) spends a charge and slides it out.
 //
-// Franchised (on_play), Identity Crisis (on_swap) and Org Chart (a replay source in
+// Franchised (on_play), Identity Crisis (on_swap) and Unionize (a replay source in
 // calcScore, a charge a hand) are here too. Numbers are BAL rows, ladders IMPROVE_PLAN.
 
 function cardDragging(card) {
   if (!card) return false;
   if (card._dragging) return true;
+  if (!card._isSleight && typeof cardHasState === 'function' && cardHasState(card, 'dragging')) return true;
   const d = card._isSleight && typeof sleightDef === 'function' ? sleightDef(card) : null;
   return !!(d && d.dragging);
 }
@@ -35,6 +36,56 @@ function dragDealSweep() {
     ['_fsRead', '_bogSuit', '_ladRank', '_dragOut'].forEach(f => { delete cd[f]; });
     drawPile.splice(Math.floor(Math.random() * (drawPile.length + 1)), 0, cd);
   }
+  eagerDealSweep();
+}
+
+// r854: EAGER (a card state). After a deal, every Eager card still in the draw pile
+// changes places with a random ordinary card on the board that is not Eager.
+function eagerDealSweep() {
+  if (typeof gridData === 'undefined' || !gridData || typeof drawPile === 'undefined' || typeof cardHasState !== 'function') return;
+  const eager = cd => !!cd && !!cd.rank && !cd._isSleight && cardHasState(cd, 'eager') && !cardDragging(cd);
+  const spots = [];
+  for (let r = 0; r < gridData.length; r++) for (let c = 0; c < (gridData[r] || []).length; c++) {
+    const cd = gridData[r][c];
+    if (_fsOrdinary(cd) && !eager(cd) && !cd._temp) spots.push([r, c]);
+  }
+  for (let i = drawPile.length - 1; i >= 0 && spots.length; i--) {
+    if (!eager(drawPile[i])) continue;
+    const [r, c] = spots.splice(Math.floor(Math.random() * spots.length), 1)[0];
+    const out = gridData[r][c], inn = drawPile[i];
+    gridData[r][c] = typeof stampId === 'function' ? stampId(inn) : inn;
+    drawPile[i] = out;
+  }
+}
+// r854: PINNED (a card state). A Pinned card that is played stays in its cell: it is
+// taken out of the cells a play removes (removeAndFall, 'play') and shown again.
+function pinnedKeep(cells) {
+  if (typeof cardHasState !== 'function') return cells;
+  const grid = document.getElementById('grid');
+  return (cells || []).filter(([r, c]) => {
+    const cd = gridData[r]?.[c];
+    if (!cd || !cd.rank || cd._isSleight || !cardHasState(cd, 'pinned')) return true;
+    const el = grid && grid.querySelector(`[data-card-id="${cd._id}"]`);
+    if (el) { el.style.opacity = ''; el.style.pointerEvents = ''; el.style.visibility = ''; }
+    return false;
+  });
+}
+// r854: MENTOR (a card state). Each Trick a Mentor card triggered in the banked hand is
+// primed once per trigger. Read off the timeline; called after the hand's primes are spent.
+function mentorPrime(handCells, ledger) {
+  if (!ledger || !ledger.timeline || typeof cardHasState !== 'function') return;
+  const got = {};
+  ledger.timeline.forEach(e => {
+    if (!e || e.source !== 'trick' || !(e.card >= 0) || e.prime || e.forced) return;
+    const cl = handCells[e.card], cd = cl && (typeof cellCard === 'function' ? cellCard(cl) : gridData[cl[0]]?.[cl[1]]);
+    if (!cd || !cardHasState(cd, 'mentor')) return;
+    const t = typeof ownedTrickObj === 'function' ? ownedTrickObj(e.id) : null;
+    if (!t) return;
+    primeTrick(t, 1, { src: 'mentor' });
+    got[t.name] = (got[t.name] || 0) + 1;
+  });
+  const names = Object.keys(got);
+  if (names.length) { noteMessage(`Mentor primed ${names.map(k => got[k] > 1 ? `${k} ×${got[k]}` : k).join(', ')}`, '#b48cff'); if (typeof renderTrickTray === 'function') renderTrickTray(); }
 }
 
 // ── Fall Sleights ───────────────────────────────────────────────────────────
@@ -79,7 +130,8 @@ function fallSleightAfter(snap) {
 function bogartPass(cd, r0, r1, c) {
   const suit = cd._bogSuit; if (!suit) return;
   const b = BAL.bogart, hit = [];
-  for (let r = r0 + 1; r <= r1; r++) [c - 1, c + 1].forEach(cc => {
+  // r854 (owner): the rows it LEAVES are passed; the row it lands in is not.
+  for (let r = r0; r < r1; r++) [c - 1, c + 1].forEach(cc => {
     const x = gridData[r]?.[cc];
     if (!_fsOrdinary(x) || x.suit === suit) return;
     if (!(typeof luckRoll === 'function' ? luckRoll(b.chance) : Math.random() < b.chance)) return;
@@ -100,7 +152,7 @@ function corpLadderPass(cd, r0, r1, c) {
   const made = [];
   for (let k = 0; k < n; k++) {
     const rank = ranks[i0 + dir * k]; if (!rank) continue;
-    const r = r0 + 1 + k;
+    const r = r0 + k;   // r854: not the row it lands in
     for (let d = 1; d <= (b.reach || 1); d++) [c - d, c + d].forEach(cc => {
       const old = gridData[r]?.[cc];
       if (!_fsOrdinary(old)) return;
@@ -211,8 +263,8 @@ function identityCrisisFire(card, r, c, other) {
     if (doRank) {
       const rk = (ACTIVE_RANKS || []).filter(q => !(typeof isWildRank === 'function' && isWildRank(q)));
       const i = rk.indexOf(other.rank);
-      const near = [rk[i - 1], rk[i + 1]].filter(Boolean);
-      const q = i < 0 ? null : (b.above && rk[i + 1]) ? rk[i + 1] : near[Math.floor(Math.random() * near.length)];
+      // r854 (owner): one above its own; the top rank takes the one below.
+      const q = i < 0 ? null : (rk[i + 1] || rk[i - 1]);
       if (q) { other.rank2 = q; said.push(`second rank ${q}`); }
     }
   }
@@ -229,8 +281,8 @@ function identityCrisisFire(card, r, c, other) {
   }
 }
 
-// ── Org Chart (passive) ─────────────────────────────────────────────────────
-// A card scored in the same row or column as an Org Chart replays once for every
+// ── Unionize (passive; id org_chart) ─────────────────────────────────────────────────────
+// A card scored in the same row or column as an Unionize replays once for every
 // Sleight on the grid, this one included. A hand it replayed in spends a charge.
 function _orgOn(r, c) {
   for (let rr = 0; rr < gridRows; rr++) for (let cc = 0; cc < gridCols; cc++) {
@@ -240,10 +292,14 @@ function _orgOn(r, c) {
   }
   return null;
 }
-function orgChartReplays(r, c) {
+// r854 (owner): Unionize. `plus` (v6) adds one to the count; `extra` (v4) is the chance of
+// one more replay, rolled by the caller with `roll` (deterministic inside calcScore).
+function orgChartReplays(r, c, roll) {
   if (!_orgOn(r, c)) return 0;
-  let n = 0;
+  const b = BAL.org_chart;
+  let n = b.plus || 0;
   for (let rr = 0; rr < gridRows; rr++) for (let cc = 0; cc < gridCols; cc++) if (gridData[rr]?.[cc]?._isSleight) n++;
+  if (b.extra > 0 && roll && roll() < b.extra) n++;
   return n;
 }
 function orgChartSpend(cells) {
@@ -253,6 +309,6 @@ function orgChartSpend(cells) {
     if (typeof o._usesLeft !== 'number') return;
     o._usesLeft = Math.max(0, o._usesLeft - 1);
     if (typeof sleightChargeSpent === 'function') sleightChargeSpent(o);
-    if (o._usesLeft <= 0) noteMessage(`${sleightDef(o)?.name || 'Org Chart'} is out of charges`);
+    if (o._usesLeft <= 0) noteMessage(`${sleightDef(o)?.name || 'Unionize'} is out of charges`);
   });
 }

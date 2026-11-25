@@ -439,7 +439,7 @@ function turboDoubleQueue(queue, floors) {
 // and every event draw (evWeightedPick, js/events-core.js).
 // ══════════════════════════════════════════════
 const UNDERSIGHT_PROTO = { cards: 3 };
-const UNDERSIGHT_EVENTS = new Set(['forge', 'bench', 'the_floor', 'rewire', 'state_change', 'market', 'plinko', 'pairs', 'confluence']);
+const UNDERSIGHT_EVENTS = new Set(['forge', 'bench', 'the_floor', 'rewire', 'state_change', 'market', 'plinko', 'pairs', 'confluence', 'spin_class']);
 function undersightOn() { return !!ACTIVE_MODE && ACTIVE_MODE.undersight === true; }
 function cardOfferMult() { return undersightOn() ? UNDERSIGHT_PROTO.cards : 1; }
 function eventOfferWeight(id) { return (undersightOn() && UNDERSIGHT_EVENTS.has(id)) ? UNDERSIGHT_PROTO.cards : 1; }

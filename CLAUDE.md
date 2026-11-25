@@ -6252,7 +6252,56 @@ Measured in headless Chromium at 1440x820 and 420x900 (a real hand, Rich Soil + 
 flows (blue to PIPS, coral to MULT), the score flow 62 squares onto 62 in 550ms, the layer gone and no
 value left hidden after, score 3,150 as banked, no timeline drift, no page errors.
 
-## r854 - Hybrid Approach +8 a hand type (owner)
+## r854 - spinners you spin; Spin Class; Unionize; Eager, Pinned, Mentor (owner)
+- **The wheel is spun by the player** (`evWheel`, js/event-toys.js; css/event-toys.css). `ask()` arms it
+  and resolves with the slot it rests on; a drag turns it under the finger or mouse and letting go
+  with speed throws it; `fling()` throws it for the PLAY key. **It is the one toy NOT handed its
+  result: where it stops is the result.** Input is pointer events with pointer capture,
+  `touch-action: none` on the wheel (a phone would scroll the panel instead), release speed from the
+  last `WHEEL.sampleMs` (90ms) of the drag; under `minFlick` (200 deg/s) it is not a throw ("Spin it
+  harder"). Physics in fixed 1/240s steps (`wheelStep`, also what `wheelPredict` runs): constant plus
+  speed-proportional friction, and a peg at every slot edge that the pointer's flapper clicks over
+  (`sfxSlotTick`, the flapper knocked aside), each taking `pegLoss` (3%) of the speed; under
+  `pegStop` a peg is not passed and the wheel rocks back into its slot. **Hard to aim:** the release
+  speed is scaled by a hidden roll (x0.78 to x1.36), friction is rolled per throw, a slow throw is
+  brought up to a rolled floor (560-780 deg/s), and every throw goes `minTurns` (1.2) turns or more.
+  Those rolls are outcome, so they use Math.random. Measured: one identical 700 deg/s throw 3,000
+  times landed 307 to 448 times on each of 8 slots, 1.86 to 3.62 turns. Reduced motion jumps to the
+  predicted rest. Plinko's pegs own `.evt-peg`; the wheel's are `.evt-wpeg`.
+- **Moved onto it:** Static Bonus (both wheels; `staticKindLanded`) and Grid Spinner (a 16-slot wheel
+  of 0 to 4 in place of the stopping light; `evStopper` has no caller left). Spin to Upgrade is a reel
+  (r752) and is unchanged.
+- **Spin Class** (event `spin_class`, js/events-extra.js; in `UNDERSIGHT_EVENTS`): two wheels, HOW
+  MANY (1 to 4, twice each) and WHAT (one slot per card effect: the deck editor's eight buff rows
+  at event strength and Fodder). Either can be spun again for `SPIN_CLASS.price` (20) credits,
+  +`step` (10) per respin taken. Then choose up to that many cards (`evDeckPicker`) and APPLY.
+- **Unionize** is Org Chart's name (id `org_chart`). Ladder: charges 5 6 7 7 8 8; the 3rd upgrade
+  is `extra` 50% of one more replay (rolled with `_detReplayRand` in calcScore); the last sets
+  `plus` 1 (Sleights on the grid + 1).
+- **Identity Crisis**: the second rank is one above the card's own (the top rank takes the one
+  below) at every version; v6 is 70% only. Unprinted split: rank only 40%, suit only 40%, both 20%.
+- **Fall Sleights** (Bogart, Corporate Ladder): the rows it LEAVES are passed; the row it lands in
+  is not (`r0 .. r1 - 1`).
+- **Three card conditions**, rows in `CARD_STATE_DEFS` (`once: false`, no fuse), read in
+  js/fall-sleights.js, offered by State Change, each with a keyword: **Eager** (common: always in a
+  level's opening deal; `eagerDealSweep`, run from `dragDealSweep`, trades each Eager card in the draw
+  pile with a random ordinary board card), **Pinned** (legendary: played, it stays in its cell;
+  `pinnedKeep` takes it out of the cells a 'play' `removeAndFall` removes, so it never reaches the
+  played pile), **Mentor** (epic: each time it triggers a Trick it primes that Trick; `mentorPrime`
+  reads the banked timeline's card-scoped Trick events in `runHandPriming`). **Dragging** is a state
+  row too now (`cardDragging` reads it); State Change does not sell it.
+Measured in a served headless Chromium at 1440x820 (mouse) and 420x900 (touch pointer events): a 60
+deg/s drag was refused, a 700 deg/s one spun 3 turns and landed in 4s; Static Bonus's second wheel
+and Grid Spinner thrown by PLAY; Spin Class landed both wheels, a respin took L¢20 then quoted
+L¢30, three cards took +25 pips and four took Fodder; both wheels side by side on the phone.
+Bogart falling two rows changed the two rows it left and not the landing row; Unionize 1 / 2 / 3
+replays at v1 / v6 / v6 with the roll; an Eager card in the pile was on the board after the sweep
+(deck 56); a Pinned Mentor card played twice stayed in its cell, out of the played pile, and primed
+Perk Package once a hand. Golden: 838 match. No page errors, no timeline drift.
+
+## r854-r856 numbering
+Two sessions shipped r854 in parallel: the spinners pass (above, on main) and Hybrid Approach +8 with its r855 baseline (below). The merge that joined them is r856.
+## r854 (balance branch) - Hybrid Approach +8 a hand type (owner)
 `BAL.combo_score.mult_per_type` 6 -> 8. Measured with the sim bot (Classic, 9s a hand, 30 runs, 11,089
 hands): a hand sees 3.15 distinct hand types played earlier in its level on average (about 2.5 in levels
 1-10, 4 by level 18; the first hand of a level sees none), so it paid about 19 mult a hand and now about
@@ -6260,5 +6309,5 @@ hands): a hand sees 3.15 distinct hand types played earlier in its level on aver
 does gets more. The Trick Triage page now filters by scope (per card / per hand / other, from the scope
 tag) as well as rarity, with r854's numbers.
 
-## r855 - golden baseline rewritten for r854
+## r855 (balance branch) - golden baseline rewritten for r854
 Only the Hybrid Approach cases moved.

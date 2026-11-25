@@ -192,19 +192,22 @@ const SPINNER_STEP_MS = 56;
 function renderGridSpinner() {
   const s = eventState, body = evBodyEl();
   s.gsLeft = 0; s.gsPhase = 'spin';
-  body.appendChild(evNote('Tap to stop the light on a rank. Increase your row and/or column limits that many times.'));
+  body.appendChild(evNote('Spin the wheel. Increase your row and/or column limits that many times.'));
+  // r854 (owner): the player-spun wheel (evWheel) in place of the stopping light.
   const deal = evShuffle(SPINNER_CARDS.slice());
-  const face = r => r === 'stone' ? '<span class="evt-rank evt-stone">STONE</span>' : `<span class="evt-rank">${r}</span>`;
-  evStopper(deal.map(face), body, { cols: 4, stepMs: SPINNER_STEP_MS, order: evGridPath(4, 4) }).then(i => {
-    s.gsLeft = deal[i] === 'stone' ? 0 : deal[i] === 'A' ? 1 : +deal[i];
-    s.gsPhase = 'grow'; evSkipShown(false);
+  const val = r => r === 'stone' ? 0 : r === 'A' ? 1 : +r;
+  const col = ['#1d1a2c', '#3f74d6', '#1f8f6a', '#c08a1e', '#d9483e'];
+  s.gsWheel = evWheel(deal.map(r => ({ label: String(val(r)), color: col[val(r)], ink: '#fff' })), body, { size: 190 });
+  s.gsWheel.ask().then(i => {
+    s.gsLeft = val(deal[i]);
+    s.gsPhase = 'grow'; evSkipShown(false); evConfirmBtn('DONE', false);
     s.gsRow = evRow(body);
     s.gsNote = document.createElement('div'); body.appendChild(s.gsNote);
-    if (!s.gsLeft) { s.gsRow.innerHTML = '<div class="evt-big lose" style="width:100%">STONE · NOTHING</div>'; s.gsPhase = 'done'; evConfirmBtn('DONE', true); evReveal(s.gsRow); return; }
+    if (!s.gsLeft) { s.gsRow.appendChild(Object.assign(document.createElement('div'), { className: 'evt-big lose', textContent: 'NOTHING' })); s.gsPhase = 'done'; evConfirmBtn('DONE', true); evReveal(s.gsRow); return; }
     spinnerSync();
     evReveal(s.gsRow);
   });
-  evConfirmBtn('DONE', false);
+  evConfirmBtn('SPIN', true);
 }
 function spinnerGrow(id) {
   const s = eventState;
@@ -240,7 +243,7 @@ function spinnerSync() {
   }
   evConfirmBtn('DONE', s.gsPhase === 'done');
 }
-function confirmGridSpinner() { if (eventState.gsPhase === 'done') closeEvent(); }
+function confirmGridSpinner() { const s = eventState; if (s.gsPhase === 'done') closeEvent(); else if (s.gsPhase === 'spin' && s.gsWheel) s.gsWheel.fling(); }
 
 // ══════════════════════════════════════════════
 // STATIC BONUS - flat pips or mult on every hand
@@ -269,42 +272,43 @@ function renderStaticBonus() {
   s.sbPhase = 'spin';
   body.appendChild(evNote(`Two wheels: what buff and how much. Every hand gets this bonus moving forward.${staticPips || staticMult ? ` You have <b>${fmtSigned(staticPips)} pips</b> and <b>${fmtSigned(staticMult)} mult</b> now.` : ''}`));
   const row = document.createElement('div'); row.className = 'evt-pair'; body.appendChild(row);
-  s.sbKind = evWheel(STATIC_KINDS.map(k => ({ label: k.label, color: k.color, ink: '#fff' })), row, { title: 'What buff' });
   s.sbRow = row;
   s.sbOut = document.createElement('div'); body.appendChild(s.sbOut);
+  // r854: both wheels are spun by the player (evWheel.ask); PLAY throws the live one.
+  s.sbWheel = evWheel(STATIC_KINDS.map(k => ({ label: k.label, color: k.color, ink: '#fff' })), row, { title: 'What buff' });
+  s.sbWheel.ask().then(staticKindLanded);
   evConfirmBtn('SPIN', true);
+}
+function staticKindLanded(kindIdx) {
+  const s = eventState, K = STATIC_KINDS[kindIdx];
+  evSkipShown(false);
+  if (!K.kind) {
+    const res = document.createElement('div'); res.className = 'evt-big'; res.textContent = 'NOTHING';
+    s.sbOut.appendChild(res); evReveal(res);
+    s.sbPhase = 'done'; evConfirmBtn('DONE', true);
+    return;
+  }
+  const sg = K.sign > 0 ? '+' : '−';
+  const segs = [0, 1, 2, 0, 1, 2].map(i => ({ label: `${sg}${staticAmount(K.kind, STATIC_STEPS[i])}`,
+    color: K.sign > 0 ? ['#2a6b5a', '#35d59b', '#1f8f6a'][i] : ['#5c1d1d', '#8f2b2b', '#6e2222'][i], ink: '#fff' }));
+  s.sbWheel = evWheel(segs, s.sbRow, { title: `How much ${K.kind}` });
+  evReveal(s.sbRow);
+  s.sbWheel.ask().then(stepIdx => {
+    const n = K.sign * staticAmount(K.kind, STATIC_STEPS[stepIdx % 3]);
+    staticAdd(K.kind, n);
+    const res = document.createElement('div');
+    const paint = v => { res.className = 'evt-big ' + (v > 0 ? 'win' : 'lose'); res.textContent = `${fmtSigned(v)} ${K.kind.toUpperCase()} ON EVERY HAND`; };
+    paint(n);
+    s.sbOut.appendChild(res); evReveal(res);
+    try { (n > 0 ? sfxRewardGood : sfxRewardBad)?.(); } catch (e) {}
+    s.sbPhase = 'done'; evConfirmBtn('DONE', true);
+    evDoubleOrFlip(s.sbOut, n, d => { staticAdd(K.kind, d); }, paint);
+  });
 }
 function confirmStaticBonus() {
   const s = eventState;
   if (s.sbPhase === 'done') { closeEvent(); return; }
-  if (s.sbPhase !== 'spin') return;
-  s.sbPhase = 'busy'; evSkipShown(false); evConfirmBtn('SPIN', false);
-  const kindIdx = Math.floor(Math.random() * STATIC_KINDS.length), K = STATIC_KINDS[kindIdx];
-  const stepIdx = Math.floor(Math.random() * 6), step = STATIC_STEPS[stepIdx % 3];
-  evReveal(s.sbRow);
-  s.sbKind.spin(kindIdx).then(() => {
-    if (!K.kind) {
-      const res = document.createElement('div'); res.className = 'evt-big'; res.textContent = 'NOTHING';
-      s.sbOut.appendChild(res); evReveal(res);
-      s.sbPhase = 'done'; evConfirmBtn('DONE', true);
-      return;
-    }
-    const sg = K.sign > 0 ? '+' : '−';
-    const segs = [0, 1, 2, 0, 1, 2].map(i => ({ label: `${sg}${staticAmount(K.kind, STATIC_STEPS[i])}`,
-      color: K.sign > 0 ? ['#2a6b5a', '#35d59b', '#1f8f6a'][i] : ['#5c1d1d', '#8f2b2b', '#6e2222'][i], ink: '#fff' }));
-    const amt = evWheel(segs, s.sbRow, { title: `How much ${K.kind}` });
-    return _etWait(350).then(() => amt.spin(stepIdx)).then(() => {
-      const n = K.sign * staticAmount(K.kind, step);
-      staticAdd(K.kind, n);
-      const res = document.createElement('div');
-      const paint = v => { res.className = 'evt-big ' + (v > 0 ? 'win' : 'lose'); res.textContent = `${fmtSigned(v)} ${K.kind.toUpperCase()} ON EVERY HAND`; };
-      paint(n);
-      s.sbOut.appendChild(res); evReveal(res);
-      try { (n > 0 ? sfxRewardGood : sfxRewardBad)?.(); } catch (e) {}
-      s.sbPhase = 'done'; evConfirmBtn('DONE', true);
-      evDoubleOrFlip(s.sbOut, n, d => { staticAdd(K.kind, d); }, paint);
-    });
-  });
+  if (s.sbWheel) s.sbWheel.fling();
 }
 
 // ── Double or flip (r590, owner): after a Static Bonus or Lucky Dice result, pay a
@@ -387,7 +391,7 @@ const evFace = c => `${c.rank}${c.suit}`;
 // ── STATE CHANGE: a card state, bought for credits ──
 function stateChangePrice(def) { return priceOf(BAL.state_change[def.tier] || BAL.state_change.rare); }
 function stateChangeOffers() {
-  let pool = Object.keys(CARD_STATE_DEFS).filter(id => id !== 'fleeting').map(id => ({ id, ...CARD_STATE_DEFS[id] }));
+  let pool = Object.keys(CARD_STATE_DEFS).filter(id => id !== 'fleeting' && id !== 'dragging').map(id => ({ id, ...CARD_STATE_DEFS[id] }));
   const out = [];
   for (let i = 0; i < 3 && pool.length; i++) {
     const d = pickEntityByRarity(pool, x => x.tier || 'common');
@@ -492,4 +496,95 @@ function confirmRewire() {
   if (s.rwDone >= REWIRE_TIMES) { closeEvent(); return; }
   const skip = document.getElementById('event-skip'); if (skip) skip.textContent = 'Done';
   rewireBuildPicker();
+}
+
+
+// ══════════════════════════════════════════════
+// SPIN CLASS (r854, owner) - two wheels the player spins: HOW MANY cards (1 to 4,
+// each twice) and WHICH card effect (one slot for each: the deck editor's buff
+// rows and Fodder). Either wheel can be spun again for SPIN_CLASS.price credits,
+// +SPIN_CLASS.step for every respin taken. Then choose that many cards.
+// ══════════════════════════════════════════════
+const SPIN_CLASS = { price: 20, step: 10, counts: [1, 2, 3, 4, 1, 2, 3, 4] };
+const SPIN_CLASS_INK = { pips: '#3f74d6', mult: '#d9483e', focus: '#8a5bd6', time: '#2b2840', replay: '#1f8f6a',
+  xmult: '#a8322a', xpips: '#2a56a8', coins: '#c08a1e', fodder: '#7a2f3a' };
+const SPIN_CLASS_WORD = { pips: 'PIPS', mult: 'MULT', focus: 'FOCUS', time: 'TIME', replay: 'REPLAY',
+  xmult: '×MULT', xpips: '×PIPS', coins: 'L¢', fodder: 'FODDER' };
+function spinClassOps() { return FLOWR_DECK_OPS.filter(o => o.buff || o.fodder); }
+function spinClassCards() { return everyDeckCard().filter(c => c && !c._isSleight && !c._isStone); }
+function spinClassPrice() { return SPIN_CLASS.price + SPIN_CLASS.step * (eventState.spcRespins || 0); }
+function spinClassSay(fx) { return fx.op.fodder ? 'Fodder' : flowrBuffLabel(fx.op.buff, fx.v); }
+function renderSpinClass() {
+  const s = eventState, body = evBodyEl();
+  s.spcPhase = 'spin'; s.spcRespins = 0; s.spcN = null; s.spcFx = null;
+  const ops = spinClassOps();
+  const row = document.createElement('div'); row.className = 'evt-pair spc-pair'; body.appendChild(row);
+  // A phone's panel is too narrow for two full wheels side by side.
+  const narrow = body.clientWidth > 0 && body.clientWidth < 350, wA = narrow ? 122 : 150, wB = narrow ? 136 : 170;
+  s.spcCount = evWheel(SPIN_CLASS.counts.map((n, i) => ({ label: String(n), color: ['#3f74d6', '#1f8f6a', '#c08a1e', '#d9483e'][n - 1], ink: '#fff' })), row, { title: 'How many cards', size: wA });
+  s.spcWhat = evWheel(ops.map(o => ({ label: SPIN_CLASS_WORD[o.id] || o.name, color: SPIN_CLASS_INK[o.id] || '#3a3552', ink: '#fff' })), row, { title: 'What they get', size: wB });
+  s.spcSum = document.createElement('div'); s.spcSum.className = 'spc-sum'; body.appendChild(s.spcSum);
+  s.spcBtns = evRow(body);
+  s.spcStep2 = document.createElement('div'); s.spcStep2.className = 'spc-step2'; body.appendChild(s.spcStep2);
+  const askCount = () => s.spcCount.ask().then(i => { s.spcN = SPIN_CLASS.counts[i]; spinClassSync(); });
+  const askWhat = () => s.spcWhat.ask().then(i => { const op = ops[i]; s.spcFx = { op, v: op.buff ? buffValueFor(op, true) : 1 }; spinClassSync(); });
+  s.spcAsk = { count: askCount, what: askWhat };
+  askCount(); askWhat();
+  spinClassSync();
+}
+function spinClassSync() {
+  const s = eventState;
+  if (s.spcPhase !== 'spin') return;
+  const both = s.spcN != null && !!s.spcFx;
+  s.spcSum.innerHTML = '';
+  s.spcBtns.innerHTML = '';
+  if (!both) { evConfirmBtn('SPIN', true); return; }
+  const big = document.createElement('div'); big.className = 'evt-big win';
+  big.textContent = `${s.spcN} ${s.spcN === 1 ? 'CARD' : 'CARDS'} · ${spinClassSay(s.spcFx).toUpperCase()}`;
+  s.spcSum.appendChild(big);
+  const price = spinClassPrice();
+  const respin = which => {
+    if (coins < price || s.spcPhase !== 'spin') return;
+    coins -= price; updateCoinsUI?.();
+    s.spcRespins++;
+    if (which === 'count') s.spcN = null; else s.spcFx = null;
+    s.spcAsk[which]();
+    spinClassSync();
+  };
+  const b1 = evButton(`RESPIN HOW MANY · ${creditsTxt(price)}`, () => respin('count'), true);
+  const b2 = evButton(`RESPIN WHAT · ${creditsTxt(price)}`, () => respin('what'), true);
+  if (coins < price) { b1.disabled = true; b2.disabled = true; }
+  s.spcBtns.appendChild(b1); s.spcBtns.appendChild(b2);
+  evConfirmBtn('CHOOSE CARDS', true);
+  evReveal(s.spcBtns);
+}
+function confirmSpinClass() {
+  const s = eventState;
+  if (s.spcPhase === 'spin') {
+    if (s.spcN == null || !s.spcFx) {
+      // PLAY throws whichever wheel is still waiting, the count first.
+      if (!(s.spcCount.armed() && s.spcCount.fling())) s.spcWhat.fling();
+      return;
+    }
+    s.spcPhase = 'pick';
+    s.spcBtns.innerHTML = '';
+    const max = Math.min(s.spcN, spinClassCards().length);
+    s.spcStep2.appendChild(evLabel(`CHOOSE ${max === 1 ? '1 CARD' : `UP TO ${max} CARDS`}`));
+    s.picker = evDeckPicker(s.spcStep2, { cards: spinClassCards(), max, ordered: true, onChange: p => setEventConfirm(p.length > 0),
+      blocked: c => (s.spcFx.op.fodder && cardIsFodder(c)) ? 'Already Fodder' : '' });
+    evConfirmBtn('APPLY', false);
+    evReveal(s.spcStep2);
+    return;
+  }
+  if (s.spcPhase !== 'pick' || !s.picker.picks.length) return;
+  const fx = s.spcFx, said = [];
+  s.picker.picks.forEach(pick => {
+    const c = resolveDeckCard(pick); if (!c) return;
+    if (fx.op.fodder) permFodder[cardId(c)] = 1;
+    else enhanceCardKey(cardId(c), { [fx.op.buff.key]: fx.v });
+    said.push(evFace(c));
+  });
+  if (said.length) noteMessage(`${said.join(', ')}: ${spinClassSay(fx)}`, 'var(--gold)');
+  try { sfxRewardTaken?.(); } catch (e) {}
+  closeEvent();
 }

@@ -71,6 +71,9 @@ const KEYWORD_DEFS = [
   { key:'draw',      cls:'kw-play',    terms:['draw','draws','drawn'],
     name:'Draw',     def:'Pull a new card from the deck onto the grid.' },
   // r841 (owner): a card condition.
+  { key:'eager', cls:'kw-play', terms:['eager'], name:'Eager', def:'Always in the opening deal of a level.' },
+  { key:'pinned', cls:'kw-play', terms:['pinned'], name:'Pinned', def:'Played, it stays in its cell.' },
+  { key:'mentor', cls:'kw-play', terms:['mentor'], name:'Mentor', def:'Each time it triggers a Trick, it primes that Trick.' },
   { key:'dragging',  cls:'kw-play',    terms:['dragging'],
     name:'Dragging', def:'Never in the opening deal of a level.' },
   // r781 (owner): priming and forced triggers, said once, here.
