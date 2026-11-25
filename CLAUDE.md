@@ -6229,3 +6229,7 @@ Measured at 1440x820 and 420x900 through `?lab`: a Q1 level-up +5, a Q3 one +15 
   will fly (`hmAim(dir)`: the icon's tip points right as drawn, so up -90, right 0, down 90, left 180;
   inline `rotate` on `.hm-ico`, a .35s transition when the way changes). While it flies (`deathFly`)
   the icon spins two turns and comes to rest aimed at its next way. Reduced motion: no spin.
+
+## r852 - the scythe turned 30 degrees more (owner)
+`hmAim(dir)` adds `HM_AIM_TURN` (30) degrees clockwise to every way (up -60, right 30, down 120,
+left 210). The flight's spin still lands on the new aim. Measured at 1440x820 and 420x900.

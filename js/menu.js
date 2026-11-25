@@ -1,4 +1,4 @@
-const BUILD = "2026-11-25 · r851 · inflation v6 x pips by the quarter; the scythe aims"
+const BUILD = "2026-11-25 · r852 · the scythe turned 30 degrees more"
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

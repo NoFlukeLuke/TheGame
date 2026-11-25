@@ -47,8 +47,10 @@ const HM = {
 const HM_DIRS = [[-1, 0], [0, 1], [1, 0], [0, -1]];   // up, right, down, left
 const HM_ARROW = ['↑', '→', '↓', '←'];
 // r851 (owner): the scythe's blade tip points the way it will fly. The icon's tip
-// points right as drawn, so up is -90, right 0, down 90, left 180.
-function hmAim(dir) { return ((dir | 0) - 1) * 90; }
+// points right as drawn, so up is -90, right 0, down 90, left 180; r852 (owner): each
+// turned a further HM_AIM_TURN degrees clockwise.
+const HM_AIM_TURN = 30;
+function hmAim(dir) { return ((dir | 0) - 1) * 90 + HM_AIM_TURN; }
 
 let hmRounds = {};   // card id -> rounds on the grid so far (SAVE_VARS, reset in startGame)
 let hmSeen = {};     // card id -> 1, the deck horsemen that came onto the grid THIS round
