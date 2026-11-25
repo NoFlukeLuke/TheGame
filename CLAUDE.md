@@ -6259,3 +6259,6 @@ hands): a hand sees 3.15 distinct hand types played earlier in its level on aver
 25, against the common mult-per-hand average of 22. The bot does not steer toward new types; a player who
 does gets more. The Trick Triage page now filters by scope (per card / per hand / other, from the scope
 tag) as well as rarity, with r854's numbers.
+
+## r855 - golden baseline rewritten for r854
+Only the Hybrid Approach cases moved.

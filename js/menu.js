@@ -1,4 +1,4 @@
-const BUILD = "2026-11-25 · r854 · Hybrid Approach +8 mult a hand type"
+const BUILD = "2026-11-25 · r855 · golden baseline for r854"
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
