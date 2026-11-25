@@ -658,6 +658,11 @@ function ptLaunch(a, b, kind, label, color, dur, opts){
   document.body.appendChild(el);
   anim(el, frames, tw);
   anim(el, fades, fw);
+  // r853 (owner): a chip bound for PIPS or MULT ends as squares flowing onto the figure.
+  if(o.pixTo && typeof pxfPlate === 'function' && !pxfReduced()){
+    const tail = (dur - (o.hold || 0)) * PXF_CFG.tail;
+    if(tail >= PXF_CFG.minTail) later(()=>pxfPlate(el, o.pixTo, tail), dur - tail);
+  }
   later(()=>el.remove(), dur + 60);
   return el;
 }
@@ -759,8 +764,10 @@ function dncFly(srcEl, boxEl, label, color, onLand, durOverride, kind, o){
     dur += shift; _hold += shift;
     ptLiveNote(a, b, sz, _hold, dur);
   }
+  // r853: the figure a PIPS or MULT chip's squares flow onto (none under fast forward).
+  const _pixTo = (!dncFF && boxEl.querySelector) ? boxEl.querySelector('#pips-val, #mult-val') : null;
   if(liveB) ptLaunch(a, b, kind, label, color, dur,
-    { scale: _blip, animate: dncAnimate, timeout: dncTimeout, hold: _hold, curve: TALLY_CFG.curve / 100 });
+    { scale: _blip, animate: dncAnimate, timeout: dncTimeout, hold: _hold, curve: TALLY_CFG.curve / 100, pixTo: _pixTo });
   // This particle IS a payout tick - a card's pips, a Trick's pips or mult, a
   // Sleight firing. Bump AFTER dur is read so the speed-up lands on what is
   // still to come, not on the flight that earned it.

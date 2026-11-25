@@ -1,4 +1,4 @@
-const BUILD = "2026-11-25 · r852 · the scythe turned 30 degrees more"
+const BUILD = "2026-11-25 · r853 · pixel flow into SCORE, PIPS and MULT; Death word spaced"
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

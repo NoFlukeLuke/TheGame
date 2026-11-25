@@ -752,6 +752,23 @@ async function pmfFlyToScore(opts) {
   const a = src.getBoundingClientRect();
   const b = target.getBoundingClientRect();
   if (a.width < 2 || b.width < 1) return false;
+  // r853 (owner): in the LEDs look the hand's score leaves as squares and flows onto SCORE.
+  if (pmfLook() === 'leds' && typeof pxfFlow === 'function' && !pxfReduced()) {
+    const val = (src.querySelector && src.querySelector('.subbox-val, .pmf-merged-val')) || src;
+    const shown = (typeof dncScoreShown === 'function') ? dncScoreShown() : (typeof score === 'number' ? score : 0);
+    const odo = target.classList.contains('odo');
+    const A = pxfDotsOf(val, _pmfFlyText), B = pxfDotsOf(target, typeof scoreTxt === 'function' ? scoreTxt(shown) : String(shown), odo ? b : null);
+    if (A.dots.length && B.dots.length) {
+      const dur = Math.max(160, (PMF_CARRY_MS.leds || 620) / speed);
+      val.classList.add('pmf-dots-hide');
+      if (typeof sfxScoreTick === 'function') sfxScoreTick();
+      await pxfFlow(A, B, dur);
+      const box = document.getElementById('score-mid') || document.getElementById('score-center');
+      if (box) { box.classList.remove('box-popping'); void box.offsetWidth; box.classList.add('box-popping'); }
+      if (typeof sfxScoreTick === 'function') sfxScoreTick();
+      return true;
+    }
+  }
 
   const ghost = document.createElement('div');
   ghost.className = 'pmf-ghost pmf-flying';

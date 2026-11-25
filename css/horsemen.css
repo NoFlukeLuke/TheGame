@@ -32,6 +32,8 @@
 /* Death: the scythe's blade points the way it flies (rotate set inline, hmAim);
    it turns to a new way and spins only while it flies (r851). */
 #grid .hm-death .hm-ico { transition: rotate .35s ease-out; }
+/* r853 (owner): the word sits further below the turned scythe. */
+#grid .hm-death .hm-word { margin-top: calc(var(--card-h, 75px) * .08); }
 #grid .hm-card .hm-arrow {
   position: absolute; top: 2px; right: 3px; pointer-events: none;
   font-family: 'Share Tech Mono', monospace; font-weight: 700; line-height: 1;

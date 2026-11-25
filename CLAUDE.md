@@ -6233,3 +6233,21 @@ Measured at 1440x820 and 420x900 through `?lab`: a Q1 level-up +5, a Q3 one +15 
 ## r852 - the scythe turned 30 degrees more (owner)
 `hmAim(dir)` adds `HM_AIM_TURN` (30) degrees clockwise to every way (up -60, right 30, down 120,
 left 210). The flight's spin still lands on the new aim. Measured at 1440x820 and 420x900.
+
+## r853 - pixel flow into SCORE, PIPS and MULT; Death's word sits lower (owner)
+`js/pixel-flow.js` (after js/pmf-merge.js): the score merge's LED carry over the whole display. One
+body-level fixed canvas (`.pxf-layer`, no id, so console mode masks it under the housing), there only
+while squares fly. `pxfDotsOf(el, text, rect)` (a number's squares, the LED matrix's sizing),
+`pxfFlow(A, B, dur)` (each square on its own clock, stepped a square at a time, to a target square;
+resolves on a timer), `pxfPlate(el, to, ms)`.
+- **SCORE**: in the LEDs look `pmfFlyToScore` sends the hand's figure (its tray value, hidden with
+  `.pmf-dots-hide`) as squares onto SCORE's squares (`scoreTxt(dncScoreShown())`; an odometer's box
+  rect) over `PMF_CARRY_MS.leds`; other looks keep the ghost.
+- **Chips**: `ptLaunch` takes `pixTo` (`dncFly` passes `#pips-val` / `#mult-val` in the box, none
+  under fast forward). The last `PXF_CFG.tail` (38%) of the flight after the sit: the label hides,
+  the background fades (`fade` 110ms) and the label's squares flow onto the figure, arriving at the
+  landing. Under `minTail` (140ms) and with reduced motion the plain landing stays.
+- `#grid .hm-death .hm-word` has 8% of the card's height above it.
+Measured in headless Chromium at 1440x820 and 420x900 (a real hand, Rich Soil + Face Value): 12 chip
+flows (blue to PIPS, coral to MULT), the score flow 62 squares onto 62 in 550ms, the layer gone and no
+value left hidden after, score 3,150 as banked, no timeline drift, no page errors.
