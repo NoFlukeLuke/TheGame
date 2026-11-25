@@ -147,7 +147,7 @@ const IMPROVE_PLAN = {
   // Lie Up (r828): +15 pips and +15 mult per card a tier to the 4th; the 5th lets the shape bend 3 times
   lie_up:           t => ({ pips_per_card: 25 + 15 * Math.min(4, t), mult_per_card: 25 + 15 * Math.min(4, t), bends: t >= 5 ? 3 : 2 }),
   // r649: +2 mult a tier to the 4th; the 5th counts credit changes anywhere instead
-  rising_tide:      t => ({ mult: 5 + t, pips: t >= 5 ? 1 : 0 }),   // r850 (owner): +1 an upgrade; v6 pips too
+  rising_tide:      t => ({ mult: 5 + t, xpips: t >= 5 ? 1 : 0 }),   // r850 (owner): +1 an upgrade; r851: v6 x pips = the quarter
   middle_man:       t => ({ mult_per: 3 + 2 * Math.min(t, 4), anywhere: t >= 5 ? 1 : 0 }),
   // ── r625, the owner's epic sheet ──
   // one more prime, then one more rolled rank, alternating; the 5th does both

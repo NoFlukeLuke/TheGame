@@ -6220,3 +6220,12 @@ from the run's start (`negativeTilesTakenRun`).
 - **Firesale** reads "Scales +0.25 mult for every credit lost or spent."
 Measured at 1440x820 and 420x900 through `?lab`: a Q1 level-up +5, a Q3 one +15 (20); v2-v6 sentences
 6 / 7 / 8 / 9 / 10 with pips; a v6 Q2 level-up +20 mult +20 pips; the tooltip led with both. Golden: 838 match.
+
+## r851 - inflation's v6 is x pips by the quarter; the scythe aims and spins only in flight (owner)
+- **inflation** v6 (`IMPROVE_PLAN`: `xpips` 1, mult 10): each hand's pips are multiplied by the
+  quarter (`runQuarterNow()`, x4 in Q4; a `handX` row in js/trick-fx/hand-x.js, xOrder 145). r850's
+  pips by the quarter (`risingTidePips`) is gone. The tooltip leads with "(now +N mult, xQ pips)".
+- **Death's scythe** no longer spins at rest. Its icon is turned so the blade's tip points the way it
+  will fly (`hmAim(dir)`: the icon's tip points right as drawn, so up -90, right 0, down 90, left 180;
+  inline `rotate` on `.hm-ico`, a .35s transition when the way changes). While it flies (`deathFly`)
+  the icon spins two turns and comes to rest aimed at its next way. Reduced motion: no spin.

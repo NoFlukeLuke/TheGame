@@ -1,4 +1,4 @@
-const BUILD = "2026-11-24 · r850 · inflation scales by the quarter; Firesale wording";
+const BUILD = "2026-11-25 · r851 · inflation v6 x pips by the quarter; the scythe aims"
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

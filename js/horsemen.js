@@ -46,6 +46,9 @@ const HM = {
 };
 const HM_DIRS = [[-1, 0], [0, 1], [1, 0], [0, -1]];   // up, right, down, left
 const HM_ARROW = ['↑', '→', '↓', '←'];
+// r851 (owner): the scythe's blade tip points the way it will fly. The icon's tip
+// points right as drawn, so up is -90, right 0, down 90, left 180.
+function hmAim(dir) { return ((dir | 0) - 1) * 90; }
 
 let hmRounds = {};   // card id -> rounds on the grid so far (SAVE_VARS, reset in startGame)
 let hmSeen = {};     // card id -> 1, the deck horsemen that came onto the grid THIS round
@@ -193,7 +196,8 @@ function horsemenFaceHTML(cd) {
   // r727: rounds left on a deck horseman (top-left), none when it stays for good.
   const left = hmRoundsLeft(cd);
   const rounds = isFinite(left) ? `<div class="hm-left" title="Draws left">${left}</div>` : '';
-  return `${bar}${rounds}<div class="hm-ico">${emGlyph(d.icon)}</div>${arrow}<div class="hm-word">${d.name.toUpperCase()}</div>`;
+  const aim = k === 'death' ? ` style="rotate:${hmAim(cd._dir ?? 0)}deg"` : '';
+  return `${bar}${rounds}<div class="hm-ico"${aim}>${emGlyph(d.icon)}</div>${arrow}<div class="hm-word">${d.name.toUpperCase()}</div>`;
 }
 function horsemenFaceClass(cd) {
   return ` hm-card hm-${cd._curseCard}${cd._flown ? ' hm-stuck' : ''}${hmJittering(cd) ? ' hm-jit' : ''}`;
@@ -233,6 +237,7 @@ function deathFly(r, c) {
   if (selected.length) selected = selected.filter(([sr, sc]) => !crushed.some(([rr, cc]) => rr === sr && cc === sc));
   // Where it was drawn, before the data moves it.
   const oldLeft = cellLeft(c) + cardColOffset(c), oldTop = cellTop(r) + cardRowOffset(r);
+  const _oldDir = cd._dir ?? 0;
   gridData[r][c] = null;
   gridData[fr][fc] = cd;
   cd._flown = true; cd._fixed = true;
@@ -244,6 +249,12 @@ function deathFly(r, c) {
   const el = gridEl?.querySelector(`[data-card-id="${cd._id}"]`);
   if (el) {
     const dx = oldLeft - (cellLeft(fc) + cardColOffset(fc)), dy = oldTop - (cellTop(fr) + cardRowOffset(fr));
+    // r851: the scythe spins as it flies and comes to rest aimed at its next way.
+    const em = el.querySelector('.hm-ico .rwd-em');
+    if (em && !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) {
+      const from = hmAim(_oldDir) - hmAim(cd._dir) - 720;
+      em.animate([{ rotate: `${from}deg` }, { rotate: '0deg' }], { duration: HM.death.flyMs + 260, easing: 'cubic-bezier(.2,.6,.3,1)' });
+    }
     el.style.zIndex = '25';
     const a = el.animate([{ translate: `${dx}px ${dy}px` }, { translate: '0 0' }], { duration: HM.death.flyMs, easing: 'cubic-bezier(.5,0,.9,.4)' });
     a.onfinish = () => { el.style.zIndex = ''; };

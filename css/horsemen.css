@@ -29,9 +29,9 @@
   font-family: 'Share Tech Mono', monospace; font-weight: 700; line-height: 1;
   font-size: calc(var(--card-h, 75px) * .18); color: var(--hmc, #fff); text-shadow: 0 0 3px #000, 0 0 1px #000;
 }
-/* Death: the scythe turns; a small arrow says where it flies. */
-#grid .hm-death .hm-ico .rwd-em { animation: hm-spin 3.2s linear infinite; }
-@keyframes hm-spin { to { rotate: 360deg; } }
+/* Death: the scythe's blade points the way it flies (rotate set inline, hmAim);
+   it turns to a new way and spins only while it flies (r851). */
+#grid .hm-death .hm-ico { transition: rotate .35s ease-out; }
 #grid .hm-card .hm-arrow {
   position: absolute; top: 2px; right: 3px; pointer-events: none;
   font-family: 'Share Tech Mono', monospace; font-weight: 700; line-height: 1;

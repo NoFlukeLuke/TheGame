@@ -48,7 +48,7 @@ function trickLiveDesc(trick) {
       case 'feng_shui':      return now(`+${bonusPips_fengshui || 0} pips`);
       case 'sapling':        return now(`${level - 1} levels applied`);
       case 'summit':         return now(`level ${level}`);
-      case 'rising_tide':    return now(`+${risingTideMult || 0} mult${risingTidePips ? `, +${risingTidePips} pips` : ''}`);
+      case 'rising_tide':    return now(`+${risingTideMult || 0} mult${TB('rising_tide').xpips ? `, x${runQuarterNow()} pips` : ''}`);
       case 'employee_month': return roundNow(`hand ${eotmSync().n + 1} of the row: Focus ${1 + eotmFocusExtra()}x`);   // r802
       case 'middle_man':     return now(`+${middleManMult || 0} mult`);
       // r805 (owner): every scaling Trick says what it is worth now.
@@ -402,7 +402,7 @@ function selectTrick(trick, fromTrickFlow = false) {
   if (trick.id === 'feelin_lucky' && !trick._luckyRanks) feelinLuckyRoll(trick);
   rkOnPickup(trick);                                     // r698: a fused Trick takes its part's Editor ranks
   if (trick.id === 'nines_mult') cloudNinePickup();      // r539: brings its own 9s
-  if (trick.id === 'rising_tide') { risingTideMult = 0; risingTidePips = 0; }    // r539: counts from the pick
+  if (trick.id === 'rising_tide') { risingTideMult = 0; }    // r539: counts from the pick
   if (trick.id === 'assembly_line') asmLine = { prev: null, cur: 0 };   // r646: counts from the pick; this round stands in until one ends
   if (trick.id === 'middle_man') middleManMult = 0;      // r649: likewise
   if (trick.id === 'fire_sale') fireSaleMult = 0;        // r722: counts from the pick

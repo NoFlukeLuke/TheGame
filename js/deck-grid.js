@@ -542,7 +542,6 @@ function cleanseRandomCurse() {
 // ── Scaling bonus accumulators ──
 let bonusMult_fives   = 0;
 let bonusMult_nines   = 0;
-let risingTidePips = 0;   // r850: inflation's pips (v6)
 let risingTideMult    = 0;   // Rising Tide (r539): 1-3 mult per level passed while held
 let middleManMult     = 0;   // Middle Man (r649): mult earned by credit changes while held
 let bonusMult_tens    = 0;

@@ -130,7 +130,7 @@ function triggerLevelUp() {
 
   level++;
   // inflation (r850, owner): each level passed while held adds mult (v6: and pips) x the quarter.
-  if (hasTrick('rising_tide')) { const _r = TB('rising_tide'), _q = runQuarterNow(); risingTideMult += _r.mult * _q; if (_r.pips) risingTidePips += _r.mult * _q; }
+  if (hasTrick('rising_tide')) risingTideMult += TB('rising_tide').mult * runQuarterNow();
   // This round's score target, from zero
   // One chokepoint for every mode's curve (js/goal-tuning.js) - it picks the
   // survival curve in Survival/Flow and applies Zen's doubling, and it is what

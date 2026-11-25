@@ -56,3 +56,5 @@ fxDefine('portfolio',       { xLate: true, xOrder: 170, handX: () => {
   }
   return n > 0 ? { multX: 1 + BAL.portfolio.mult_mult_per_card * n } : null;
 } });
+// inflation (r851): at v6 every hand's pips are multiplied by the quarter (x4 in Q4).
+fxDefine('rising_tide',     { xOrder: 145, handX: () => { if (!TB('rising_tide').xpips) return null; const q = runQuarterNow(); return q > 1 ? { pipX: q } : null; } });

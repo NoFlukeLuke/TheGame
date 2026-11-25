@@ -575,7 +575,7 @@ function startGame() {
   if (typeof cardStatesResetRun === 'function') cardStatesResetRun();   // r278
   bonusMult_fives = 0;
   bonusMult_nines = 0;
-  risingTideMult = 0; risingTidePips = 0;
+  risingTideMult = 0;
   middleManMult = 0;
   deluxeOffers = {};
   bonusMult_tens = 0;

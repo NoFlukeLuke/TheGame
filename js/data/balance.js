@@ -163,7 +163,7 @@ const BAL = {
   shop_discount: { per_item: 3, bulk_per_item: 5 },
   reward_skip:   { gold: 20 },   // gold paid for skipping the whole reward grid (shown on the SKIP button)
   wild_side:     { mult_per: 6 },       // +mult per negative reward tile taken this run
-  rising_tide:   { mult: 5, pips: 0 }, // r850: each level passed adds mult x the quarter (v6 pips too)
+  rising_tide:   { mult: 5, xpips: 0 }, // r850: each level passed adds mult x the quarter; r851: v6 x pips = the quarter
   middle_man:    { mult_per: 3, anywhere: 0 },  // r649: mult per credit change in a round; anywhere = between rounds too (the 5th improvement)
   wait_for_it:   { chance_per: 0.03, flow_per: 0.05 },  // +replay chance per negative reward tile taken; in Flow per single-reward level-up, luck-free (r625, a knack)
   greedy_boi:    { selection: 2 },      // +reward-grid selection size (knack)
@@ -583,7 +583,7 @@ const DESC_TEMPLATES = {
   wellspring: 'Scales +{mult_per} mult for every {per_focus} Focus made this run',
   second_hand: 'Every time the clock passes a multiple of 10s, your next hand scores either +{mult} mult or +{pips} pips',
   sediment: 'Scores +{pips_per_interval} pips for every {interval_seconds} seconds elapsed this level',
-  rising_tide: 'Scales +{mult} mult[[pips: and +{mult} pips]] x the quarter every time you pass a level',
+  rising_tide: 'Scales +{mult} mult x the quarter every time you pass a level[[xpips:. Hands score x pips equal to the quarter]]',
   middle_man: 'Scales +{mult_per} mult every time you [[anywhere<1:gain or lose credits during play]][[anywhere:gain or spend credits, anywhere]]',
   ready_set_go: 'A 3-card hand containing a 3, 6 or 9 scores +{mult} mult',
   minute_hand: 'Every time the clock passes a multiple of {interval_seconds}s, your next hand scores ×{mult_mult} mult',
