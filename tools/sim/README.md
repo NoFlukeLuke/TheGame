@@ -242,7 +242,7 @@ not ranked. Medians of the other 103, each Trick alone:
   same Trick: +5 mult per card on one-column hands.
 - Ranked into today's tier sizes, 30 of the 103 stay where they are.
 
-## r835: no curve given is the game's curve; the bot's hands earn the speed bonus again
+## r857: no curve given is the game's curve; the bot's hands earn the speed bonus again
 
 - A sched with no curve of its own (`'{}'`, or only `tiles` / `protocol` / `bossMult`) now plays
   the game's curve, as `{"native":true}` does. It used to read `segments` as undefined and every
@@ -250,4 +250,4 @@ not ranked. Medians of the other 103, each Trick alone:
 - The sim never cleared `firstHandThisRound` (playHand does), so from r789 on every bot hand
   read as its level's first and earned no speed bonus: Focus sat at x1.01 and a level-1 round
   with no Tricks scored 2,500 instead of about 5,800. Every sim figure taken between r789 and
-  r835 is low. The bot now sets it at each round's start and clears it after each hand.
+  r857 is low. The bot now sets it at each round's start and clears it after each hand.
