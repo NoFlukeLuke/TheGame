@@ -1,5 +1,5 @@
 // node runner.js <classic|schedule|flow> <runs> <schedJson> [handTime] [jobs]
-// sched: { native } or { base, roundTo, segments: [[untilLevel, growthPct], ...] },
+// sched: { native } or { base, roundTo, segments: [[untilLevel, growthPct], ...] } (no curve = native),
 // plus bossMult / tiles (schedule). 'survival' is read as 'flow' (r683).
 // jobs (r683): the runs are split over that many processes, default one per core.
 const fs = require('fs');
@@ -19,8 +19,10 @@ function playRuns(n) {
   G.eval(fs.readFileSync(__dirname + '/sim-core.js', 'utf8'));
   G.eval(`SIM_CFG.handTime = ${handTime};`);
 
-  // build goalFn inside the context from the schedule (sched.native uses the game's own curve)
-  if (sched.native) {
+  // build goalFn inside the context from the schedule (sched.native uses the game's own curve).
+  // r835: a sched with no curve of its own ({}, or only tiles / protocol / bossMult) plays the
+  // game's curve too; it used to read SIM_SCHED.segments as undefined and every run threw.
+  if (sched.native || !Array.isArray(sched.segments) || !sched.segments.length || !(sched.base > 0)) {
     G.eval('function SIM_goal(lv) { return goalForLevel(lv); }');
   } else G.eval(`
 var SIM_SCHED = ${JSON.stringify(sched)};

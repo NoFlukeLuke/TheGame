@@ -169,6 +169,7 @@ function SIM_playRound() {
   let clock = roundSeconds;
   let hands = 0, dry = 0, dryActs = 0, fmSum = 0, reshuffles = 0;
   roundStartSeconds = clock;
+  firstHandThisRound = true;   // r835: as triggerLevelUp sets it; a level's first hand earns no speed bonus (r789)
   // r749: the live interval (Meditation, Hyperfocus's 3x), as the game's decay timer reads it.
   let decayMs = (typeof focusDecayIntervalNow === 'function') ? focusDecayIntervalNow()
               : (typeof focusDecayIntervalMs === 'number' && focusDecayIntervalMs > 0) ? focusDecayIntervalMs : 2000;
@@ -208,6 +209,9 @@ function SIM_playRound() {
     if (clock <= 0 || score >= roundGoal) break;
     lastHandTime = Date.now() - SIM_CFG.handTime * 1000;
     try { generateHandFocus(best.hand, best.cells, 0); } catch (e) {}
+    // r835: playHand clears this after a hand; the sim did not, so from r789 on every bot hand
+    // read as the level's first and earned no speed bonus (Focus sat near x1).
+    firstHandThisRound = false;
     // focus decay over the hand's think-time
     focusNodes = Math.max(0, focusNodes - Math.floor(SIM_CFG.handTime * 1000 / decayMs / 2));
     try { fmSum += focusMultiplier(); } catch (e) {}
