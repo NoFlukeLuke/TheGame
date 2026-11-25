@@ -6251,3 +6251,11 @@ resolves on a timer), `pxfPlate(el, to, ms)`.
 Measured in headless Chromium at 1440x820 and 420x900 (a real hand, Rich Soil + Face Value): 12 chip
 flows (blue to PIPS, coral to MULT), the score flow 62 squares onto 62 in 550ms, the layer gone and no
 value left hidden after, score 3,150 as banked, no timeline drift, no page errors.
+
+## r854 - Hybrid Approach +8 a hand type (owner)
+`BAL.combo_score.mult_per_type` 6 -> 8. Measured with the sim bot (Classic, 9s a hand, 30 runs, 11,089
+hands): a hand sees 3.15 distinct hand types played earlier in its level on average (about 2.5 in levels
+1-10, 4 by level 18; the first hand of a level sees none), so it paid about 19 mult a hand and now about
+25, against the common mult-per-hand average of 22. The bot does not steer toward new types; a player who
+does gets more. The Trick Triage page now filters by scope (per card / per hand / other, from the scope
+tag) as well as rarity, with r854's numbers.

@@ -186,7 +186,7 @@ const TRICK_POOL = [
   { id:'spade_flood',    name:'In the Black',         tier:'rare',      tags:['pips','hand','suit','clock','scores'], desc:'All-Spade hands add the remaining level time as pips' },
   { id:'mirror',         name:'Mirror',              tier:'rare',      tags:['retrigger','hand','tricks'], desc:'Tap to tilt left or right; mimics the effect of the Trick it reflects.' },
   // ── Diverse conditions ──
-  { id:'combo_score',    name:'Hybrid Approach',         tier:'common',    desc:'+6 mult for every distinct hand type played this level', tags:['mult','hand','scores'] },
+  { id:'combo_score',    name:'Hybrid Approach',         tier:'common',    desc:'+8 mult for every distinct hand type played this level', tags:['mult','hand','scores'] },
   { id:'move_as_one',    name:'Move as One',         tier:'epic',      retired:true, tags:['retrigger','hand','tricks'], desc:'If 2+ of your Tricks share a keyword, a random Trick sharing that keyword scores its effect a second time each time all of them are triggered' },
   // ── Reward-grid meta (r128) ──
   { id:'more_better',    name:'More Better',         tier:'rare',      tags:['mult','hand','reward','scores','scaling'], desc:'Scales +12 mult every time you select 3+ tiles on a Balance Sheet' },

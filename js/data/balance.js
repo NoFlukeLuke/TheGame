@@ -167,7 +167,7 @@ const BAL = {
   middle_man:    { mult_per: 3, anywhere: 0 },  // r649: mult per credit change in a round; anywhere = between rounds too (the 5th improvement)
   wait_for_it:   { chance_per: 0.03, flow_per: 0.05 },  // +replay chance per negative reward tile taken; in Flow per single-reward level-up, luck-free (r625, a knack)
   greedy_boi:    { selection: 2 },      // +reward-grid selection size (knack)
-  combo_score: { mult_per_type: 6 },
+  combo_score: { mult_per_type: 8 },
   full_house_streak: { focus: 15 },
   blackjack_bonus: { pip_mult: 5 },   // r817 (owner, the averages pass): was x3
   double_bloom: { mult_mult: 2 },   // r817 (owner, the averages pass): was x1.5

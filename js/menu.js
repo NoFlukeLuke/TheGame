@@ -1,4 +1,4 @@
-const BUILD = "2026-11-25 · r853 · pixel flow into SCORE, PIPS and MULT; Death word spaced"
+const BUILD = "2026-11-25 · r854 · Hybrid Approach +8 mult a hand type"
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
