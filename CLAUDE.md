@@ -6268,7 +6268,7 @@ value left hidden after, score 3,150 as banked, no timeline drift, no page error
   Those rolls are outcome, so they use Math.random. Measured: one identical 700 deg/s throw 3,000
   times landed 307 to 448 times on each of 8 slots, 1.86 to 3.62 turns. Reduced motion jumps to the
   predicted rest. Plinko's pegs own `.evt-peg`; the wheel's are `.evt-wpeg`.
-- **Moved onto it:** Static Bonus (both wheels; `staticKindLanded`) and Grid Spinner (a 16-slot wheel
+- **Moved onto it:** Static Bonus (both wheels; `staticKindLanded`). (r855: Grid Spinner keeps its light.) r854 had Grid Spinner (a 16-slot wheel
   of 0 to 4 in place of the stopping light; `evStopper` has no caller left). Spin to Upgrade is a reel
   (r752) and is unchanged.
 - **Spin Class** (event `spin_class`, js/events-extra.js; in `UNDERSIGHT_EVENTS`): two wheels, HOW
@@ -6298,3 +6298,15 @@ Bogart falling two rows changed the two rows it left and not the landing row; Un
 replays at v1 / v6 / v6 with the roll; an Eager card in the pile was on the board after the sweep
 (deck 56); a Pinned Mentor card played twice stayed in its cell, out of the played pile, and primed
 Perk Package once a hand. Golden: 838 match. No page errors, no timeline drift.
+
+## r855 - Grid Spinner's stopping light is back; legendaries and Luck gains halved (owner)
+- **Grid Spinner** (the rows and columns event) is `evStopper` again, as before r854. The player-spun
+  wheel stays on Static Bonus and Spin Class.
+- **Legendaries** are 0.45 in `ENTITY_TIER_W` (was 0.9): about 0.45% of offers at Luck 0. The dev
+  Probabilities table is edited in place, so a browser that typed its own row keeps it.
+- **Every Luck gain is halved and rounded:** the Luck limit's step is 5 (was 10; max still 100), the
+  Balance Sheet's Luck tile gives 3 / 5 / 8 (`REWARD_LUCK_GAINS`, was 5 / 10 / 15; its rarity follows),
+  a Flow boss chain draws at +10 (`FLOWR_BOSS_LUCK`, was 20). Not changed: the -Luck penalty tile
+  (5 / 10 / 15, a loss) and Lucky Dice (a gamble that goes both ways; owner to say).
+Measured at 1440x820 and 420x900: Grid Spinner drew 16 cells and no wheel, a tap stopped the light
+and offered the rows / columns; Luck's step read 5, the tile rolled 3 / 5 / 8. Golden: 838 match.

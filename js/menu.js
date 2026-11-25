@@ -1,4 +1,4 @@
-const BUILD = "2026-11-25 · r854 · spinners you spin; Spin Class; Eager, Pinned, Mentor"
+const BUILD = "2026-11-25 · r855 · Grid Spinner's light is back; legendaries and Luck gains halved"
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
