@@ -1,4 +1,4 @@
-const BUILD = "2026-11-25 · r856 · merge: spinners + Hybrid Approach +8"
+const BUILD = "2026-11-25 · r856 · merge: spinners, legendaries + Hybrid Approach +8"
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

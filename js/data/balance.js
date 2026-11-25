@@ -423,7 +423,7 @@ const ENTITY_TIERS   = ['common', 'rare', 'epic', 'legendary'];
 // r706 (owner): legendaries are found 1% of the time or less (was 1.5). The meta
 // unlock "Legendaries are easier to find" (metaFlag('legendary_find'), js/unlocks.js;
 // parked with the meta shop, dev toggle only) puts back META_LEGENDARY_W.
-const ENTITY_TIER_W  = [71, 22, 5.5, 0.9];
+const ENTITY_TIER_W  = [71, 22, 5.5, 0.45];   // r855 (owner): legendaries halved (was 0.9)
 const META_LEGENDARY_W = 1.5;
 
 // The post-boss PRIZE (boss) grid. It used to cut commons out of every pool and

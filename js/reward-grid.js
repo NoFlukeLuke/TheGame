@@ -196,7 +196,10 @@ function rewardImproveBoost(cats) {
 // the serious ones weigh double.
 const REWARD_LUCK_STEPS = [5, 10, 15];
 function rewardLuckAmt() { return REWARD_LUCK_STEPS[Math.floor(Math.random() * REWARD_LUCK_STEPS.length)]; }
-function rewardLuckTier(n) { return n >= 15 ? 'legendary' : n >= 10 ? 'epic' : 'rare'; }
+// r855 (owner): every Luck GAIN is halved and rounded (3 / 5 / 8); the penalty row keeps 5 / 10 / 15.
+const REWARD_LUCK_GAINS = REWARD_LUCK_STEPS.map(n => Math.round(n / 2));
+function rewardLuckGain() { return REWARD_LUCK_GAINS[Math.floor(Math.random() * REWARD_LUCK_GAINS.length)]; }
+function rewardLuckTier(n) { return n >= REWARD_LUCK_GAINS[2] ? 'legendary' : n >= REWARD_LUCK_GAINS[1] ? 'epic' : 'rare'; }
 function rewardDebuffList() {
   const _luckAmt = rewardLuckAmt;
   const _proj    = computeRoundResources();
@@ -721,7 +724,7 @@ function _generateRewardContent() {
         return t;
       }
       case 'luck': {
-        const n = _luckAmt();
+        const n = rewardLuckGain();
         return { icon: '🍀', label: `+${n} Luck`, tier: _luckTier(n),
                  desc: `Luck ${luckTotal()} → ${luckTotal() + n}. Good chance effects fire more often and better entities turn up. Permanent.`,
                  apply: () => { luckModifiers += n; noteMessage(`+${n} Luck`, 'var(--gold)'); } };

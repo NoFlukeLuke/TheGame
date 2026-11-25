@@ -707,7 +707,7 @@ function flowrArm(queue, counterOpts) {
 //
 // Weights of 1..5 rewards. 1 is zero, which is the guarantee of two.
 const FLOWR_BOSS_COUNTS = [0, 36, 30, 20, 14];
-const FLOWR_BOSS_LUCK   = 20;
+const FLOWR_BOSS_LUCK   = 10;   // r855 (owner): every Luck gain halved (was 20)
 const FLOWR_PICKY_KINDS = new Set(['pick3', 'sleights', 'knacks', 'tricks', 'improve']);
 let flowrBossChain  = false;   // the live chain is a boss payout
 let flowrBossLuckOn = false;   // a pick in that chain is on screen - read by luckTotal()

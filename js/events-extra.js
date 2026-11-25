@@ -192,22 +192,20 @@ const SPINNER_STEP_MS = 56;
 function renderGridSpinner() {
   const s = eventState, body = evBodyEl();
   s.gsLeft = 0; s.gsPhase = 'spin';
-  body.appendChild(evNote('Spin the wheel. Increase your row and/or column limits that many times.'));
-  // r854 (owner): the player-spun wheel (evWheel) in place of the stopping light.
+  body.appendChild(evNote('Tap to stop the light on a rank. Increase your row and/or column limits that many times.'));
+  // r855 (owner): the stopping light is back; r854's wheel is not used here.
   const deal = evShuffle(SPINNER_CARDS.slice());
-  const val = r => r === 'stone' ? 0 : r === 'A' ? 1 : +r;
-  const col = ['#1d1a2c', '#3f74d6', '#1f8f6a', '#c08a1e', '#d9483e'];
-  s.gsWheel = evWheel(deal.map(r => ({ label: String(val(r)), color: col[val(r)], ink: '#fff' })), body, { size: 190 });
-  s.gsWheel.ask().then(i => {
-    s.gsLeft = val(deal[i]);
-    s.gsPhase = 'grow'; evSkipShown(false); evConfirmBtn('DONE', false);
+  const face = r => r === 'stone' ? '<span class="evt-rank evt-stone">STONE</span>' : `<span class="evt-rank">${r}</span>`;
+  evStopper(deal.map(face), body, { cols: 4, stepMs: SPINNER_STEP_MS, order: evGridPath(4, 4) }).then(i => {
+    s.gsLeft = deal[i] === 'stone' ? 0 : deal[i] === 'A' ? 1 : +deal[i];
+    s.gsPhase = 'grow'; evSkipShown(false);
     s.gsRow = evRow(body);
     s.gsNote = document.createElement('div'); body.appendChild(s.gsNote);
-    if (!s.gsLeft) { s.gsRow.appendChild(Object.assign(document.createElement('div'), { className: 'evt-big lose', textContent: 'NOTHING' })); s.gsPhase = 'done'; evConfirmBtn('DONE', true); evReveal(s.gsRow); return; }
+    if (!s.gsLeft) { s.gsRow.innerHTML = '<div class="evt-big lose" style="width:100%">STONE · NOTHING</div>'; s.gsPhase = 'done'; evConfirmBtn('DONE', true); evReveal(s.gsRow); return; }
     spinnerSync();
     evReveal(s.gsRow);
   });
-  evConfirmBtn('SPIN', true);
+  evConfirmBtn('DONE', false);
 }
 function spinnerGrow(id) {
   const s = eventState;
@@ -243,7 +241,7 @@ function spinnerSync() {
   }
   evConfirmBtn('DONE', s.gsPhase === 'done');
 }
-function confirmGridSpinner() { const s = eventState; if (s.gsPhase === 'done') closeEvent(); else if (s.gsPhase === 'spin' && s.gsWheel) s.gsWheel.fling(); }
+function confirmGridSpinner() { if (eventState.gsPhase === 'done') closeEvent(); }
 
 // ══════════════════════════════════════════════
 // STATIC BONUS - flat pips or mult on every hand
