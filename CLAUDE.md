@@ -6322,3 +6322,9 @@ tag) as well as rarity, with r854's numbers.
 
 ## r855 (balance branch) - golden baseline rewritten for r854
 Only the Hybrid Approach cases moved.
+
+## r858 - the Investment's credits option says less; the report shows the return (owner)
+The CREDITS option reads "Invest all your credits until the start of the next quarter to make a
+return. No one can predict the market." (the odds are no longer printed; owner kept the quarter
+payout). The report (`investmentReportMaybe`) prints INITIAL INVESTMENT L¢N, GAINED +L¢N or
+LOST -L¢N, and > RETURN +N% (gain over the stake, rounded). The Trick option is unchanged.

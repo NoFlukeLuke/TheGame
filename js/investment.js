@@ -4,6 +4,8 @@
 //   CREDITS - every credit you hold goes in. When the quarter opens one outcome is
 //             rolled (INVEST.outcomes): +5% a level, +10% a level, +20% a level
 //             (compounding over the levels passed since) or half of it back.
+//             r858 (owner): the odds are not printed ("No one can predict the market");
+//             the report prints the stake, the credits gained or lost, and the % return.
 //   A TRICK - a Trick and an amount. The Trick is switched off until the quarter
 //             opens (altarTrickLocked, read by isTrickDisabledByBoss and the sells).
 //             Every round that starts meanwhile has credits x INVEST.trickPerCoin %
@@ -44,7 +46,6 @@ function renderAltar() {
   eventState.invKind = null; eventState.invTrick = null; eventState.invAmt = coins | 0;
   if (!investmentOfferable()) { body.innerHTML = evEmptyHTML(investment ? 'An investment is already held.' : 'Nothing to invest.'); setEventConfirm(false); return; }
   const q = investQuarter();
-  const [o1, o2, o3, o4] = INVEST.outcomes;
   const pick = (kind) => {
     eventState.invKind = kind;
     body.querySelectorAll('.event-choice.inv-opt').forEach(e => e.classList.toggle('selected', e.dataset.kind === kind));
@@ -52,7 +53,7 @@ function renderAltar() {
     invSync();
   };
   const all = makeChoiceEl({ icon: '🏦', rarity: 'rare', name: `Invest ${creditsTxt(coins)}`, cls: 'inv-opt',
-    desc: `Every credit you hold, until Q${q + 1} opens. Then: ${o1.p}% +${Math.round(o1.rate * 100)}% a level · ${o2.p}% +${Math.round(o2.rate * 100)}% a level · ${o3.p}% +${Math.round(o3.rate * 100)}% a level · ${o4.p}% half back. The levels compound.`,
+    desc: 'Invest all your credits until the start of the next quarter to make a return. No one can predict the market.',
     onClick: () => pick('credits') });
   all.dataset.kind = 'credits';
   body.appendChild(all);
@@ -170,9 +171,12 @@ function investmentReportMaybe(done) {
   const esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
   const lines = [];
   if (rep.kind === 'credits') {
-    lines.push(`${creditsTxt(rep.credits)} INVESTED · ${rep.levels} LEVEL${rep.levels === 1 ? '' : 'S'}`);
-    lines.push(rep.out.half ? 'HALF BACK' : `+${Math.round(rep.out.rate * 100)}% A LEVEL`);
-    lines.push(`&gt; RETURNED ${creditsTxt(rep.amount)}`);
+    // r858 (owner): the stake, what it gained or lost, and that as a percentage.
+    const d = rep.amount - rep.credits;
+    const pct = rep.credits ? Math.round(d / rep.credits * 100) : 0;
+    lines.push(`INITIAL INVESTMENT ${creditsTxt(rep.credits)}`);
+    lines.push(d < 0 ? `LOST -${creditsTxt(-d)}` : `GAINED +${creditsTxt(d)}`);
+    lines.push(`&gt; RETURN ${pct >= 0 ? '+' : ''}${pct}%`);
   } else {
     lines.push(`${esc(rep.name.toUpperCase())} · ${creditsTxt(rep.credits)} · ${rep.rounds} LEVEL${rep.rounds === 1 ? '' : 'S'}`);
     lines.push(rep.ups ? `UPGRADED ${rep.ups === 1 ? 'ONCE' : rep.ups === 2 ? 'TWICE' : rep.ups + ' TIMES'}` : 'NOT UPGRADED');

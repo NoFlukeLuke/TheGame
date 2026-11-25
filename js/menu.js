@@ -1,4 +1,4 @@
-const BUILD = "2026-11-25 · r857 · the sim runs again: no-curve configs, the speed bonus";
+const BUILD = "2026-11-25 · r858 · the Investment: plain credits option, the report shows the return";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
