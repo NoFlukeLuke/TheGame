@@ -617,6 +617,7 @@ Replay, second suit and second rank are event-only (`EVENT_ONLY_OPS`).
 | Grid Spinner (`grid_spinner`) | events-extra.js | stop a light over A A A 2 2 2 3 3 4; place that many rows and columns; past the max, random limits |
 | Static Bonus (`static_bonus`) | events-extra.js | two wheels: pips or mult, quarter x 4/5/6 (x3 for pips); added to every hand's base for the run |
 | Lucky Dice (`luck_dice`) | events-extra.js | (-3..3) x (-2,-1,3,4,5,6) added to Luck |
+| Spin Class (`spin_class`, r854) | events-extra.js | two player-spun wheels: 1-4 cards, and one card effect (each buff row or Fodder); respin either for 20 credits, +10 each; then choose the cards |
 | State Change (`state_change`) | events-extra.js | structural: buy a card state (priced by tier) for a card you choose |
 | Rewire (`rewire`) | events-extra.js | structural: a replay on two cards, or a second suit / rank; costs 2 junk cards |
 

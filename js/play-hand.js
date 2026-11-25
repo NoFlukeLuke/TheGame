@@ -463,7 +463,7 @@ function playHand() {
     const _rc = typeof ruleEvenCredits === 'function' ? ruleEvenCredits(_scoredCells, _handRetrigByCell) : 0;   // r739
     if (_rc > 0) grantEntityCoins(_rc, 'sleight', 'rule_evens');
   }
-  if (typeof orgChartSpend === 'function') orgChartSpend(_scoredCells);   // r841: Org Chart, a charge a hand it replayed in
+  if (typeof orgChartSpend === 'function') orgChartSpend(_scoredCells);   // r841: Unionize, a charge a hand it replayed in
   // r739: Soul Mirror costs seconds when its rank scores (once a hand), and Whetstone sharpens on played cards beside it.
   if (typeof soulMirrorCharge === 'function') soulMirrorCharge(_scoredCells);
   if (typeof feedWhetstones === 'function') feedWhetstones(playedCells.filter(([r, c]) => !gridData[r]?.[c]?._isSleight || gridData[r][c].sleightId !== 'whetstone'));
@@ -1282,6 +1282,8 @@ function runHandPriming(hand, handCells, bankedContrib, bankedLedger) {
       if (!(t._primed > 0)) { t._primed = 0; t._primeSrc = []; }
     });
   }
+  // r854: a Mentor card primes each Trick it triggered (js/fall-sleights.js).
+  if (typeof mentorPrime === 'function') mentorPrime(handCells, bankedLedger);
   // Inspirato: a scored Ace primes the first and last tray Tricks
   // r625: `primes` per hit, and rolled extra ranks (on the Trick, _heartRanks) count as Aces.
   if (hasTrick('wild_heart') && trickTray.length) {

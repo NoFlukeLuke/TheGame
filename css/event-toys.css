@@ -39,20 +39,29 @@
 .evt-land { animation: evt-land .32s ease-out; }
 @keyframes evt-land { 0% { transform: scale(1); } 40% { transform: scale(1.12); } 100% { transform: scale(1); } }
 
-/* wheel */
-.evt-wheel-wrap { position: relative; width: 150px; height: 150px; }
-.evt-wheel { position: absolute; inset: 0; border-radius: 50%;
+/* wheel (r854: the player spins it) */
+.evt-wheel-wrap { position: relative; width: 150px; height: 150px; touch-action: none; user-select: none; -webkit-user-select: none; }
+.evt-armed .evt-wheel-wrap { cursor: var(--cur-pointer, grab); }
+.evt-wheel { position: absolute; inset: 0; border-radius: 50%; will-change: transform;
   box-shadow: 0 0 0 3px #2b2840, 0 0 0 5px rgba(255,255,255,.12), 0 6px 18px rgba(0,0,0,.55); }
-.evt-wl { position: absolute; inset: 0; }
+.evt-armed:not(.evt-grab) .evt-wheel { box-shadow: 0 0 0 3px #2b2840, 0 0 0 5px rgba(255,255,255,.4), 0 6px 18px rgba(0,0,0,.55); }
+.evt-wl { position: absolute; inset: 0; pointer-events: none; }
 .evt-wl span { position: absolute; left: 50%; top: 9px; transform: translateX(-50%);
   font-family: 'Orbitron', sans-serif; font-weight: 800; font-size: 11px; white-space: nowrap; }
-.evt-hub { position: absolute; left: 50%; top: 50%; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%;
+.evt-wheel-many .evt-wl span { font-size: 9px; top: 8px; }
+.evt-wl-won span { text-shadow: 0 0 6px #fff, 0 0 2px #fff; }
+.evt-wpeg { position: absolute; inset: 0; pointer-events: none; }
+.evt-wpeg i { position: absolute; left: 50%; top: 1px; width: 5px; height: 5px; margin-left: -2.5px; border-radius: 50%;
+  background: #f4ecd6; box-shadow: 0 1px 2px rgba(0,0,0,.7); }
+.evt-hub { position: absolute; left: 50%; top: 50%; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%; pointer-events: none;
   background: radial-gradient(circle at 35% 30%, #f4ecd6, #6b6280); box-shadow: 0 2px 5px rgba(0,0,0,.6); }
-.evt-pointer { position: absolute; left: 50%; top: -9px; width: 0; height: 0; margin-left: -9px; z-index: 2;
-  border-left: 9px solid transparent; border-right: 9px solid transparent; border-top: 16px solid var(--cream);
-  filter: drop-shadow(0 2px 2px rgba(0,0,0,.6)); }
+/* The flapper: hinged at its top, knocked aside by every peg. */
+.evt-pointer { position: absolute; left: 50%; top: -11px; width: 0; height: 0; margin-left: -8px; z-index: 2; pointer-events: none;
+  border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 22px solid var(--cream);
+  transform-origin: 50% 0; filter: drop-shadow(0 2px 2px rgba(0,0,0,.6)); }
 .evt-wheel-title { font-family: 'Share Tech Mono', monospace; font-size: 10px; letter-spacing: 2px; color: var(--cream-dim); text-transform: uppercase; }
-.evt-won .evt-wheel { animation: evt-land .32s ease-out; }
+.evt-wheel-hint { font-family: 'Share Tech Mono', monospace; font-size: 10px; letter-spacing: 1px; color: var(--gold); min-height: 12px; text-transform: uppercase; }
+.evt-won .evt-wheel-wrap { animation: evt-land .32s ease-out; }
 
 /* die */
 .evt-die-faces { display: flex; gap: 3px; }
@@ -373,3 +382,8 @@
 .inv-amount .ev-btn { padding: 2px 10px; }
 #event-overlay.ev-console .inv-range { accent-color: var(--am-hi, #ffd36a); }
 #event-overlay.ev-console .inv-amt-read { font-family: inherit; font-size: 15px; color: var(--am, #ffb02e); }
+
+/* Spin Class (r854) */
+.spc-sum { text-align: center; }
+.spc-pair { gap: 10px; flex-wrap: nowrap; }
+.spc-step2 { width: 100%; }

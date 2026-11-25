@@ -383,6 +383,8 @@ async function removeAndFall(removingCells, mode = 'play') {
   // any overlapping falls; the tail counts once when the last card lands.
   if (!_fallHold && typeof crBeforeFall === 'function' && !(typeof crFallSnap !== 'undefined' && crFallSnap)) crBeforeFall();
 
+  // r854: a Pinned card that is played stays where it is (js/fall-sleights.js).
+  if (mode === 'play' && typeof pinnedKeep === 'function') removingCells = pinnedKeep(removingCells);
   const challengeKey = challengeCard ? `${challengeCard.pos[0]}-${challengeCard.pos[1]}` : null;
   removingCells = removingCells.filter(([r,c]) => `${r}-${c}` !== challengeKey);
   const removing = new Set(removingCells.map(([r,c])=>`${r}-${c}`));

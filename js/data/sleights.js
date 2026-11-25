@@ -75,7 +75,7 @@ const SLEIGHT_POOL = [
   { id:'bogart', name:'Bogart', emoji:'🚬', rarity:'common', activation:'passive', durability:4, defaultRank:null, defaultSuit:null, dragging:true, tags:['board','other','suit','position','chance'], desc:'' },
   { id:'corp_ladder', name:'Corporate Ladder', emoji:'🧗', rarity:'common', activation:'passive', durability:4, defaultRank:null, defaultSuit:null, dragging:true, tags:['board','other','run','position','buffed'], desc:'' },
   { id:'identity_crisis', name:'Identity Crisis', emoji:'🎭', rarity:'rare', activation:'on_swap', durability:5, defaultRank:null, defaultSuit:null, tags:['deck','other','swap','chance'], desc:'' },
-  { id:'org_chart', name:'Org Chart', emoji:'🗂️', rarity:'rare', activation:'passive', durability:5, defaultRank:null, defaultSuit:null, tags:['replay','card','position','sleights','scores'], desc:'' },
+  { id:'org_chart', name:'Unionize', emoji:'🗂️', rarity:'rare', activation:'passive', durability:5, defaultRank:null, defaultSuit:null, tags:['replay','card','position','sleights','scores'], desc:'' },
   // r676 (owner; CHALLENGE_REWARDS.md section 7): becomes a random Sleight each round (js/changing.js). Working name.
   { id:'floater',    name:'Floater',      emoji:'🌀', rarity:'epic',   activation:'passive', durability:6, defaultRank:null, defaultSuit:null, tags:['other','chance'], desc:'' },
   // ── Focus-capacity sleights (r104) ──

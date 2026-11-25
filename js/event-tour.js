@@ -100,7 +100,7 @@
   // wheel or a reel, or drop a plinko ball; ?events=id,id,... tours those events
   // in that order. Plain ?events is every live event.
   const TOUR_TOYS = ['luck_dice', 'keep_it', 'hot_streak', 'prize_ladder', 'call_it', 'forge',
-    'static_bonus', 'plinko', 'grid_spinner', 'the_floor', 'the_payline', 'the_draw'];
+    'static_bonus', 'spin_class', 'plinko', 'grid_spinner', 'the_floor', 'the_payline', 'the_draw'];
   function tourIds() {
     const live = liveEventIds();
     const m = location.search.match(/[?&]events=([^&]+)/);
