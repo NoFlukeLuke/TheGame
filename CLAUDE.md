@@ -6359,3 +6359,12 @@ LOST -L¢N, and > RETURN +N% (gain over the stake, rounded). The Trick option is
 `discard_pips` counts `cardsDiscardedRound`, which resets at every level-up in Flow as well (js/level-up.js),
 so r651's Flow half rate (`mult_per_flow` 2) is gone: +4 mult per card discarded this level everywhere.
 Measured in Flow: 3 cards discarded paid +12 mult. Golden: 838 match.
+
+## r861 - the speed setting is scoring only (owner)
+Settings -> Motion -> **Scoring speed** (was Animation speed, same `animSpeed` key and options) sets only
+`DANCE_CFG.norm`: the tally, the cards' fly to the preview (the dance divides it by `dncPace`), triggers,
+chips, the fuse, the rising score. `animSpeedMult()` is fixed at `ANIM_FIXED_SPEED` (2, the row's
+default), so swaps, falls, discards, card looks, tray landings, screen changes, fly-ins and the slot
+reels run at today's default speed whatever the row says. r691's "one speed for everything" is superseded.
+Measured at 1440x820 and 420x900: a swap 1,393ms at 0.5x, 2x and 8x; the tally's norm 0.25 / 1 / 4.
+Focus still speeds the card looks (`caFocusPace('focus2')`, r474), as before.

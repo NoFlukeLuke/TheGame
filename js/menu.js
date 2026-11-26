@@ -1,4 +1,4 @@
-const BUILD = "2026-11-26 · r860 · Waste Specialist pays +4 in Flow too";
+const BUILD = "2026-11-26 · r861 · Scoring speed is the only speed setting; everything else is fixed";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════
