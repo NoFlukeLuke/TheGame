@@ -10,7 +10,7 @@
 //             opens (altarTrickLocked, read by isTrickDisabledByBoss and the sells).
 //             Every round that starts meanwhile has (credits still invested) x
 //             INVEST.trickPerCoin % to improve it (improveEntity, so the improvement
-//             scene plays). r859 (owner): each improvement costs INVEST.upCost (20%)
+//             scene plays). r862 (owner): each improvement costs INVEST.upCost (20%)
 //             of the credits still invested; what is left comes back when the quarter
 //             opens. Not printed anywhere (owner): everything you hold,
 //             INVEST.guaranteeMin or more, is at least one improvement.
@@ -21,7 +21,7 @@
 // them, and the report only reads what was paid.
 const INVEST = {
   trickPerCoin: 2,       // % per credit, each round, to improve the invested Trick
-  upCost: 0.2,           // r859: each improvement takes this share of the credits still invested
+  upCost: 0.2,           // r862: each improvement takes this share of the credits still invested
   guaranteeMin: 10,      // all your credits, this many or more: one improvement at least (unprinted)
   outcomes: [            // the credits roll, weights in `p`
     { p: 60, rate: 0.05 },
@@ -119,7 +119,7 @@ function confirmAltar() {
   closeEvent();
 }
 
-// What one improvement takes from the credits still invested (r859): 20%, at least 1.
+// What one improvement takes from the credits still invested (r862): 20%, at least 1.
 function investUpCost(left) { return left > 0 ? Math.min(left, Math.max(1, Math.round(left * INVEST.upCost))) : 0; }
 
 // ── Every round that starts: the Trick's roll (startRoundTimer, once a level) ──
@@ -128,7 +128,7 @@ function investmentRoundStart() {
   if (!inv || inv.kind !== 'trick' || inv.lastLevel === level) return;
   inv.lastLevel = level; inv.rounds++;
   if (typeof canImprove !== 'function' || !canImprove(inv.trickId)) return;
-  if (inv.left == null) inv.left = inv.credits;   // pre-r859 save: the whole stake is still in
+  if (inv.left == null) inv.left = inv.credits;   // pre-r862 save: the whole stake is still in
   const p = Math.min(100, inv.left * INVEST.trickPerCoin);
   if (Math.random() * 100 < p) {
     inv.ups++;
@@ -156,7 +156,7 @@ function investmentSettle() {
     noteMessage(`Investment: ${creditsTxt(inv.credits)} returned ${creditsTxt(amount)}`);
   } else {
     // The unprinted guarantee: everything you had, INVEST.guaranteeMin or more, improves once at least.
-    if (inv.left == null) inv.left = inv.ups ? 0 : inv.credits;   // pre-r859 save: an upgraded stake was spent
+    if (inv.left == null) inv.left = inv.ups ? 0 : inv.credits;   // pre-r862 save: an upgraded stake was spent
     if (inv.all && inv.credits >= INVEST.guaranteeMin && inv.ups === 0 && typeof canImprove === 'function' && canImprove(inv.trickId)) {
       inv.ups = 1;
       inv.left -= investUpCost(inv.left);

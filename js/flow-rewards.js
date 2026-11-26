@@ -2037,8 +2037,8 @@ const FLOWR_DECK_OPS = [
     desc: 'Pick up to 3 touching cards, then APPLY. Buffed cards score +25 mult.' },
   { id: 'focus',  buff: { key: 'focus',  range: [1, 2, 1],      word: 'Focus'  }, icon: '◉', name: 'Focus Buff',
     desc: 'Pick up to 3 touching cards, then APPLY. Buffed cards grant +1 to +2 Focus when they score.' },
-  { id: 'time',   buff: { key: 'time',   range: [1, 5, 1],      word: 's'      }, icon: '⏱', name: 'Time Buff',
-    desc: 'Pick up to 3 touching cards, then APPLY. Buffed cards rewind the clock 1s to 5s when scored.' },
+  { id: 'time',   buff: { key: 'time',   range: [1, 2, 1],      word: 's'      }, icon: '⏱', name: 'Time Buff',
+    desc: 'Pick up to 3 touching cards, then APPLY. Buffed cards rewind the clock 1s or 2s when scored.' },
   { id: 'replay', buff: { key: 'retrig', range: [1, 2, 1],      word: 'replay' }, icon: '↻', name: 'Replay Buff',
     desc: 'Pick up to 3 touching cards, then APPLY. Buffed cards replay +1 to +2 times.' },
   // r576 (owner): x1.5 flat on every card editor surface. An EVENT buffs harder

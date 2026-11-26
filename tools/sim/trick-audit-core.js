@@ -305,7 +305,7 @@ function AUD_handPause(L, mask, h, runsSoFar, k, onLine) {
   if (h.isFlush && on('deluge')) rw += BAL.deluge.seconds;
   if (on('ninesong') && h.pipSum % 3 === 0 && ((Math.imul(h.mask, 2654435761) >>> 0) % 3) === 0) rw += BAL.ninesong.seconds;
   if (on('magpie')) rw += Math.floor(AUD.cfg.stockHeld / BAL.magpie.actions_per_second);
-  if (on('overtime')) rw += Math.floor(onLine('overtime', h) / 3) * BAL.overtime.seconds_per_3;
+  if (on('overtime')) rw += Math.floor(onLine('overtime', h) / 5) * BAL.overtime.seconds_per_5;
   return [p, rw];
 }
 

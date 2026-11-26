@@ -138,7 +138,7 @@ function crrPend(k, n) {
 function crrPendingApply() {
   const p = crPending; if (!p || p.lv === level || roundEnded) return;
   crPending = null;
-  if (p.secs > 0) rewindTime(p.secs, `⚑ Challenge - rewound ${p.secs}s`);
+  if (p.secs > 0) rewindTime(p.secs, `⚑ Challenge - rewound ${p.secs}s`, null, null, { raiseCap: true });   // r859: a level-start bonus, not under the cap
   else if (p.secs < 0) { roundSeconds = Math.max(1, roundSeconds + p.secs); updateClockUI(); }
   if (p.swaps)    swaps    = Math.max(0, swaps + p.swaps);
   if (p.discards) discards = Math.max(0, discards + p.discards);

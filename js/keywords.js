@@ -224,11 +224,52 @@ function keywordDefsIn(text) {
 //   wireKwMore(root)    one listener, toggling `.kw-open` on the root
 // The chip prints + when closed and - when open, and says how many definitions
 // are behind it - a + over nothing is a control that does nothing.
-function kwMoreHTML(text, cls = '') {
+// r859 (owner): with an entity id, the + has an ↑ beside it that opens the entity's
+// upgrade ladder (upLadderHTML). Both sit in one `.tip-chips` box.
+function kwMoreHTML(text, cls = '', id = null) {
   const n = keywordDefsIn(text).length;
-  if (!n) return '';
-  return `<button class="kw-more ${cls}" aria-label="Show what the highlighted words mean">`
-       + `<span class="kw-more-sign">+</span><span class="kw-more-n">${n}</span></button>`;
+  const up = upMoreHTML(id);
+  if (!n && !up) return '';
+  const kw = n ? `<button class="kw-more ${cls}" aria-label="Show what the highlighted words mean">`
+       + `<span class="kw-more-sign">+</span><span class="kw-more-n">${n}</span></button>` : '';
+  return `<span class="tip-chips">${up}${kw}</span>`;
+}
+
+// ── THE UPGRADE LADDER (r859, owner) ─────────────────────────────────────────
+// The ↑ opens a list of what each version does. A version reads once it has been
+// reached in a run (improveTierSeen, the Builds rule), or is the one held now; the
+// FIRST upgrade (v2) always reads, so a player can tell whether upgrading is worth it.
+// Built only when opened: each row applies the tier for a moment and restores it.
+function upLadderId(id) {
+  if (!id || typeof IMPROVE_PLAN === 'undefined') return null;
+  return (IMPROVE_PLAN[id] || (typeof improveStepsFor === 'function' && improveStepsFor(id))) ? id : null;
+}
+function upMoreHTML(id) {
+  if (!upLadderId(id)) return '';
+  return `<button class="up-more" data-up-id="${String(id).replace(/"/g, '')}" aria-label="Show its upgrades"><span class="up-more-sign">\u2191</span></button>`;
+}
+function upDefsShell(id) { return upLadderId(id) ? `<div class="up-defs"></div>` : ''; }
+function upLadderHTML(id) {
+  const row = () => [typeof TRICK_POOL_ALL !== 'undefined' ? TRICK_POOL_ALL : [], typeof KNACK_POOL !== 'undefined' ? KNACK_POOL : [],
+                     typeof SLEIGHT_POOL !== 'undefined' ? SLEIGHT_POOL : []].map(p => p.find(e => e.id === id)).find(Boolean);
+  const had = Object.prototype.hasOwnProperty.call(entityTier, id), was = entityTierOf(id);
+  const reveal = typeof devRevealAll !== 'undefined' && devRevealAll;
+  const lex = t => (typeof lexProse === 'function') ? lexProse(t) : String(t == null ? '' : t);
+  const out = [];
+  try {
+    for (let t = 0; t <= IMPROVE_MAX_TIER; t++) {
+      const open = t <= 1 || t <= was || reveal || (typeof improveTierSeen === 'function' && improveTierSeen(id, t));
+      if (!open) { out.push(`<div class="up-row up-dim"><b>v${t + 1}</b><span>Not reached yet.</span></div>`); continue; }
+      entityTier[id] = t; applyEntityTiers();
+      const d = (row() || {}).desc || '';
+      const nm = (t === IMPROVE_MAX_TIER && typeof V6_NAMES !== 'undefined' && V6_NAMES[id]) ? `<i>${V6_NAMES[id]}.</i> ` : '';
+      out.push(`<div class="up-row${t === was ? ' up-now' : ''}"><b>v${t + 1}</b><span>${nm}${highlightKeywords(lex(d))}</span></div>`);
+    }
+  } finally {
+    if (had) entityTier[id] = was; else delete entityTier[id];
+    applyEntityTiers();
+  }
+  return `<div class="up-head">UPGRADES</div>` + out.join('');
 }
 // A row may carry `live()` - a sentence read off the run as the card is drawn,
 // so Swap and Discard state the cap you ACTUALLY have and Level says which one
@@ -263,16 +304,32 @@ function kwDefsHTML(text) {
 // is the entity tooltip's case - its rail is a sibling of the card).
 function wireKwMore(root, host = root, onToggle) {
   const btn = (host || root)?.querySelector('.kw-more');
-  if (!btn) return;
-  btn.addEventListener('click', e => {
-    e.stopPropagation();
-    const open = root.classList.toggle('kw-open');
-    const sign = btn.querySelector('.kw-more-sign');
-    if (sign) sign.textContent = open ? '−' : '+';
-    if (typeof onToggle === 'function') onToggle(open);
-  });
-  // The entity tooltip is pointer-events:none in hover mode and the chip is the
-  // one part that is not (see css/tooltip.css), so a pointerdown on it would
-  // otherwise reach the backdrop/board underneath.
-  btn.addEventListener('pointerdown', e => e.stopPropagation());
+  const up = (host || root)?.querySelector('.up-more');
+  const kwSign = (open) => { const sg = btn && btn.querySelector('.kw-more-sign'); if (sg) sg.textContent = open ? '−' : '+'; };
+  if (btn) {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const open = root.classList.toggle('kw-open');
+      kwSign(open);
+      if (open) root.classList.remove('up-open');   // r859: one rail at a time
+      if (typeof onToggle === 'function') onToggle(open);
+    });
+    // The entity tooltip is pointer-events:none in hover mode and the chip is the
+    // one part that is not (see css/tooltip.css), so a pointerdown on it would
+    // otherwise reach the backdrop/board underneath.
+    btn.addEventListener('pointerdown', e => e.stopPropagation());
+  }
+  if (up) {
+    up.addEventListener('click', e => {
+      e.stopPropagation();
+      const open = root.classList.toggle('up-open');
+      if (open) {
+        root.classList.remove('kw-open'); kwSign(false);
+        const box = root.querySelector('.up-defs');
+        if (box) { try { box.innerHTML = upLadderHTML(up.dataset.upId); } catch (err) { box.innerHTML = ''; } }
+      }
+      if (typeof onToggle === 'function') onToggle(open);
+    });
+    up.addEventListener('pointerdown', e => e.stopPropagation());
+  }
 }

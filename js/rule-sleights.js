@@ -49,13 +49,15 @@ function ruleSleightsScan() {
     if (!cd || !cd._isSleight || !RULE_SLEIGHT_IDS.has(cd.sleightId) || cd._ruleLanded) continue;
     cd._ruleLanded = true;
     cd._inert = true;
-    if (cd._usesLeft !== 'infinite') cd._usesLeft = Math.max(0, (cd._usesLeft || 0) - 1);
+    // r859 (owner): In Your Face spends a charge per face card played, not on landing.
+    if (cd._usesLeft !== 'infinite' && cd.sleightId !== 'rule_faces') cd._usesLeft = Math.max(0, (cd._usesLeft || 0) - 1);
+    if (cd.sleightId === 'rule_faces') cd._ruleLife = BAL.rule_faces.life || 60;
     const def = sleightDef(cd), name = def ? def.name : 'Rule';
     const left = cd._usesLeft === 'infinite' ? '' : cd._usesLeft > 0 ? ` (${cd._usesLeft} left)` : ' (its last)';
     let rule = '';
     if (cd.sleightId === 'rule_ranks') { cd._ruleRanks = ruleRollRanks(BAL.rule_ranks.ranks); rule = `${_ruleRanksText(cd._ruleRanks)} replay ${BAL.rule_ranks.replays > 1 ? BAL.rule_ranks.replays + 'x' : 'once'}`; }
     if (cd.sleightId === 'rule_evens') rule = `even cards score +${BAL.rule_evens.focus} Focus${BAL.rule_evens.credits ? ` and ${BAL.rule_evens.credits} credits` : ''}`;
-    if (cd.sleightId === 'rule_faces') rule = `face cards rewind the clock ${BAL.rule_faces.seconds}s`;
+    if (cd.sleightId === 'rule_faces') rule = `face cards rewind the clock ${BAL.rule_faces.seconds}s for ${BAL.rule_faces.life || 60}s`;
     showMessage(`${name} on the board${left}: ${rule} while it stays`, '#cc88ff');
   }
 }
@@ -69,8 +71,9 @@ function ruleRankReplays(rank) {
 // scoring (a card that replays pays again). `retrig` is the hand's replay counts by cell.
 function _ruleCellsPay(cells, retrig, test) {
   let n = 0;
-  (cells || []).forEach(([r, c]) => {
-    const cd = gridData[r]?.[c];
+  (cells || []).forEach(cell => {
+    const [r, c] = cell;
+    const cd = (typeof cellCard === 'function') ? cellCard(cell) : gridData[r]?.[c];   // r859: the hand's own card (r772)
     if (!cd || !cd.rank || cd._isSleight || cd._isStone || (typeof isWildCard === 'function' && isWildCard(cd))) return;
     if (test(cd.rank)) n += (retrig && retrig[r + '-' + c]) || 1;
   });
@@ -90,4 +93,36 @@ function ruleFaceSeconds(cells, retrig) {
 function ruleEvenCredits(cells, retrig) {
   if (!BAL.rule_evens.credits || !ruleSleightOn('rule_evens')) return 0;
   return _ruleCellsPay(cells, retrig, rk => typeof _rankIsEvenRank === 'function' && _rankIsEvenRank(rk)) * BAL.rule_evens.credits;
+}
+
+// ── In Your Face's charges and its 60 seconds (r859, owner) ─────────────────
+// A charge for every face card PLAYED (a replay spends nothing); it leaves the grid
+// after BAL.rule_faces.life live seconds, or once its charges are gone. The leave
+// waits for a still board (the round tick), never inside playHand.
+function ruleFacesSpend(cells) {
+  const cd = ruleSleightOn('rule_faces');
+  if (!cd || cd._usesLeft === 'infinite') return;
+  const n = _ruleCellsPay(cells, null, rk => RULE_FACE_RANKS.includes(rk));
+  if (!n) return;
+  cd._usesLeft = Math.max(0, (cd._usesLeft || 0) - n);
+  if (typeof sleightChargeSpent === 'function') for (let i = 0; i < n; i++) sleightChargeSpent(cd);
+  if (cd._usesLeft <= 0) cd._ruleOut = true;
+}
+function ruleFacesTick() {
+  if (typeof gridData === 'undefined' || !gridData) return;
+  const still = !(typeof falling !== 'undefined' && falling) && !(typeof animating !== 'undefined' && animating)
+    && !(typeof roundEnded !== 'undefined' && roundEnded) && !(typeof mapScreenOpen !== 'undefined' && mapScreenOpen)
+    && !(typeof cascadeRunning === 'function' && cascadeRunning());
+  for (let r = 0; r < gridRows; r++) for (let c = 0; c < gridCols; c++) {
+    const cd = gridData[r]?.[c];
+    if (!cd || !cd._isSleight || cd.sleightId !== 'rule_faces' || !cd._ruleLanded) continue;
+    if (!cd._ruleOut) { cd._ruleLife = (cd._ruleLife ?? (BAL.rule_faces.life || 60)) - 1; if (cd._ruleLife <= 0) cd._ruleOut = true; }
+    if (cd._ruleOut && still) {
+      const name = sleightDef(cd)?.name || 'In Your Face';
+      noteMessage(`${name} leaves the grid`, '#cc88ff');
+      if (typeof discardToPlayed === 'function') discardToPlayed(cd);
+      removeAndFall([[r, c]], 'discard');
+      return;   // one fall at a time
+    }
+  }
 }

@@ -154,7 +154,7 @@ PAYS / SCOPE / WHEN / HOW, rules in its header). Each row's `tags:` is below. Re
 | aces_absorb | Ace Absorb | When an Ace scores, 50% chance to permanently remove one random unscor | deck card rank scaling chance cost |
 | monopoly | Monopoly | When a 15 or a 20 scores, one random adjacent card is forgotten and it | deck card rank position scaling cost |
 | sands_of_time | Sands of Time | Score +pips equal to time remaining ÷ 2 | pips hand clock scores |
-| discard_pips | Compost | +4 mult per card discarded this round (+2 in Flow) | mult hand discard scores |
+| discard_pips | Waste Specialist | +4 mult per card discarded this level | mult hand discard scores |
 | spade_flood | Dark Matter | All-Spade hands add the remaining round time as pips | pips hand suit clock scores |
 | mirror | Mirror | Tap to tilt left or right; mimics the effect of the Trick it reflects. | retrigger hand tricks |
 | combo_score | Combo Score | +6 mult for every distinct hand type played this round | mult hand scores |

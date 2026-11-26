@@ -330,11 +330,33 @@ function timeSrcName(id) {
 // Kept as a function rather than deleted at the call site: it is the one place to
 // reintroduce a ceiling if time builds turn out to run away, and rewindTime's
 // Math.min still reads correctly against Infinity.
-function rewindCeiling() { return Infinity; }
+// r859 (owner): THE REWIND CAP. A rewind cannot take the clock past where it stood
+// when the level started (a boss window is its own level). On the Schedule that is the
+// level's starting time; in Flow, the quarter clock's reading when this level began.
+// Pauses are not touched. Time Theft (epic Knack) lifts it. `rewindCapSecs` is marked
+// by startRoundTimer at a NEW level only (a screen that restarts the timer mid-level keeps
+// it) and is raised by anything that lengthens the level itself (roundTimeLimitGained,
+// a level-start bonus passed as `{ raiseCap: true }`).
+let rewindCapKey = null, rewindCapSecs = Infinity;
+function rewindCapKeyNow() {
+  return (typeof level !== 'undefined' ? level : 0) + ':' + ((typeof bossActive !== 'undefined' && bossActive) ? 'b' : 'l');
+}
+function rewindCapMark() {
+  const k = rewindCapKeyNow();
+  if (k !== rewindCapKey) { rewindCapKey = k; rewindCapSecs = roundSeconds; }
+  else rewindCapSecs = Math.max(rewindCapSecs, roundSeconds);
+}
+function rewindCapRaise(sec) { if (sec > 0 && isFinite(rewindCapSecs)) rewindCapSecs += sec; }
+function rewindCapLifted() { return typeof hasKnack === 'function' && hasKnack('time_theft'); }
+function rewindCeiling() {
+  if (rewindCapLifted() || !isFinite(rewindCapSecs)) return Infinity;
+  return Math.max(rewindCapSecs, roundSeconds);   // never pulls the clock down
+}
+let rewindCapHits = 0;   // the rewind-rule tip asks for it (js/insights.js)
 
 // `srcId` / `srcSource` name the entity that caused the rewind, when the caller
 // knows it, so the FX can fly the symbol from that entity's tray tile (js/payout-fx.js).
-function rewindTime(seconds, label, srcId, srcSource) {
+function rewindTime(seconds, label, srcId, srcSource, opts) {
   if (seconds > 0 && typeof ulBump === 'function') { ulBump('rewinds'); ulBump('rewindsecs', seconds); unlockTimeTouched(seconds); }   // r706
   if (seconds > 0 && typeof perpetualMotionOnTime === 'function') perpetualMotionOnTime();   // r739
   // The Rerun (boss): a coin flip on every rewind. Not speculative - this is only
@@ -352,8 +374,11 @@ function rewindTime(seconds, label, srcId, srcSource) {
   seconds = Math.floor(seconds);
   if (seconds <= 0) return 0;
   const before = roundSeconds;
-  roundSeconds = Math.min(rewindCeiling(), roundSeconds + seconds);
+  const _raise = !!(opts && opts.raiseCap);   // r859: a level-start bonus lengthens the level, cap and all
+  roundSeconds = _raise ? roundSeconds + seconds : Math.min(rewindCeiling(), roundSeconds + seconds);
   const gained = roundSeconds - before;
+  if (_raise) rewindCapRaise(gained);
+  if (gained < seconds && !_raise) { rewindCapHits++; if (gained <= 0) showTimeCost('\u23ea MAX', '#5aa9e6'); }
   if (gained <= 0) return 0;
   rewoundSecondsRound += gained; // Kingfisher scales on seconds rewound this round
   rewindsThisRound++;            // per-round rewind count (time popup)

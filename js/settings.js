@@ -119,8 +119,10 @@ const SETTINGS_DEF = [
   // fly to the preview, the fall, a reward landing in its tray), and the default is slow so
   // a new player sees what happens. 2 is the default; what the old slider called 1 is 2 now,
   // so the scale is halved on the way in: DANCE_CFG.norm = v / 2, animSlow() = 2 / v.
-  { group: 'Motion', id: 'animSpeed', label: 'Animation speed',
-    hint: 'How fast everything animates: hands tallying, cards flying and falling, rewards landing. Higher is faster.',
+  // r861 (owner): the row is the SCORING speed only (the tally, the fly to the preview, the
+  // chips, the fuse). Everything else runs at the 2x figure for good (animSpeedMult).
+  { group: 'Motion', id: 'animSpeed', label: 'Scoring speed',
+    hint: 'How fast a hand scores: cards flying to the preview, triggers, chips and the total. Everything else runs at one fixed speed. Higher is faster.',
     type: 'select', default: '2',
     options: [['0.5', '0.5x'], ['1', '1x'], ['2', '2x'], ['4', '4x'], ['6', '6x'], ['8', '8x']],
     apply: v => { const n = parseFloat(v); if (typeof DANCE_CFG !== 'undefined' && isFinite(n) && n > 0) DANCE_CFG.norm = n / 2; } },
@@ -312,12 +314,11 @@ const SETTINGS_DEF = [
 // the Text speed row.
 const TEXT_TYPE_CPS = 160;
 // r691: the one speed multiplier for every animation outside the tally (the tally reads
-// DANCE_CFG.norm, set by the same row). 4 is what the game ran at before r691; at the
-// shipped default (2) everything runs twice as long as it did, at 8 half as long.
-function animSpeedMult() {
-  const v = parseFloat(typeof SETTINGS !== 'undefined' && SETTINGS && SETTINGS.animSpeed);
-  return (isFinite(v) && v > 0 ? v : 2) / 4;
-}
+// DANCE_CFG.norm, set by the Scoring speed row). r861 (owner): fixed at the row's 2x
+// (ANIM_FIXED_SPEED), whatever the row says: swaps, falls, discards, card looks, rewards
+// landing, screen changes. 4 is what the game ran at before r691.
+const ANIM_FIXED_SPEED = 2;
+function animSpeedMult() { return ANIM_FIXED_SPEED / 4; }
 function animSlow() { return 1 / animSpeedMult(); }
 function textTypeCps() {
   const v = (typeof SETTINGS !== 'undefined' && SETTINGS && SETTINGS.textSpeed) || 'normal';

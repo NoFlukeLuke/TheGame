@@ -44,7 +44,7 @@ function riseGoal() { const t = rise.cap != null ? Math.min(score, rise.cap) : s
 function scoreRiseOwns() { return rise.owns; }
 function riseEl() { return document.getElementById('score-total-num'); }
 
-// The pace the tally runs at (Settings -> Animation speed); the roll keeps step with it.
+// The pace the tally runs at (Settings -> Scoring speed); the roll keeps step with it.
 function risePace() { return (typeof DANCE_CFG !== 'undefined' && DANCE_CFG.norm) || 1; }
 
 // A hand has just been banked into `score`: start the roll, or re-plan a live one.

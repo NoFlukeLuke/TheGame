@@ -117,7 +117,7 @@ function caFocusPace(key) {
   const f = Math.min(4, Math.max(1, caFocusNow() || 1));
   return Math.min(CA_FOCUS_PACE_MAX, 1 + (f - 1) * ((caSpeedCfg[key] || 1) - 1));
 }
-// r691: Settings -> Motion -> Animation speed (animSpeedMult, js/settings.js) scales every look.
+// r691: animSpeedMult (js/settings.js) scales every look; r861 fixes it at the 2x figure.
 function caSpeedNow() { return Math.max(0.05, caSpeedCfg.speed) * caFocusPace('focus2') * (typeof animSpeedMult === 'function' ? animSpeedMult() : 1); }
 const caSlow = () => 1 / caSpeedNow();
 const caWaitRaw = ms => new Promise(r => setTimeout(r, ms));

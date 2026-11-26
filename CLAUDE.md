@@ -6329,12 +6329,55 @@ return. No one can predict the market." (the odds are no longer printed; owner k
 payout). The report (`investmentReportMaybe`) prints INITIAL INVESTMENT L¢N, GAINED +L¢N or
 LOST -L¢N, and > RETURN +N% (gain over the stake, rounded). The Trick option is unchanged.
 
-## r859 - the Investment's Trick option: each upgrade costs 20% of what is still invested (owner)
+## r859 - the rewind cap; Time Theft; the ↑ upgrade ladder; the rewind pass (owner)
+- **The rewind cap** (`rewindCeiling`, js/discard.js): a rewind cannot take the clock past where it stood
+  when the level started (a boss window is its own level). `rewindCapMark()` runs from `startRoundTimer`
+  (not on a resume) and marks `rewindCapSecs` only at a NEW level (`level` + boss), so a screen that
+  restarts the timer mid-level keeps it; `roundTimeLimitGained` and a level-start bonus
+  (`rewindTime(..., { raiseCap: true })`: pending challenge seconds) raise it. A rewind that comes up
+  short counts `rewindCapHits`; one that gains nothing floats "⏪ MAX". Pauses are not capped.
+  **Time Theft** (epic Knack `time_theft`) lifts it. Tips `rewind_cap_flow` / `rewind_cap` (one a mode)
+  fire once something in the run rewinds (`rewindRuleRelevant`). Rain Check in Flow is capped (owner to decide).
+- **A rewind buff is 2s at most, once per source** (`permTimeGain`, js/deck-grid.js; `permTimeSrc` in
+  SAVE_VARS). Every grant goes through it (enhanceCardKey, Naturalist). An entity names itself
+  (`withBuffSource(id, fn)`: Charged Card, Crescents, Naturalist); everything else is source 'other'.
+  Yoked's upgrades no longer scale permTime. Time Buff op 1-2s, Dealer's Choice 2s.
+- **The ↑ in every entity tooltip** (js/keywords.js: `kwMoreHTML(text, cls, id)` now returns a
+  `.tip-chips` box with `upMoreHTML(id)` beside the +; `upDefsShell(id)`; `wireKwMore` wires both, one
+  rail open at a time, `.up-open`). `upLadderHTML(id)` lists v1-v6: a version reads if it is v1 or v2,
+  held now (NOW), or `improveTierSeen`; the rest read "Not reached yet". Built on open only. Wired in
+  the entity tooltip (payload carries `id`), the Trick tray, the Knack strip and the reward grid
+  (`_sleightId` added to Sleight tiles). Builds' ladder also always reads v2.
+- **Numbers (owner):** Déjà Vu rare, 5s +1s a tier; eeruh eeruh 10% / 2s, alternating +2% / +1s, v6 both;
+  Time Slip 5% +2%; Company Time 5s +2s, v6 any Flush (a Flush layer counts); Overtime 1s per 5 cards
+  (`seconds_per_5`); Last Call 15s; In Your Face 1s, 15 charges, a charge per face card played
+  (`ruleFacesSpend`, replays free), leaves the grid after 60 live seconds or at 0 charges
+  (`ruleFacesTick`, round tick, a still board), ladder +3 charges / +15s alternating (mine), v6 the
+  Knack at 3s. Threepeat never rewinds-only twice in a row (`ninesongPick`, `ninesongLastRewind`, silent).
+
+## r860 - Waste Specialist pays +4 in Flow too (owner)
+`discard_pips` counts `cardsDiscardedRound`, which resets at every level-up in Flow as well (js/level-up.js),
+so r651's Flow half rate (`mult_per_flow` 2) is gone: +4 mult per card discarded this level everywhere.
+Measured in Flow: 3 cards discarded paid +12 mult. Golden: 838 match.
+
+## r861 - the speed setting is scoring only (owner)
+Settings -> Motion -> **Scoring speed** (was Animation speed, same `animSpeed` key and options) sets only
+`DANCE_CFG.norm`: the tally, the cards' fly to the preview (the dance divides it by `dncPace`), triggers,
+chips, the fuse, the rising score. `animSpeedMult()` is fixed at `ANIM_FIXED_SPEED` (2, the row's
+default), so swaps, falls, discards, card looks, tray landings, screen changes, fly-ins and the slot
+reels run at today's default speed whatever the row says. r691's "one speed for everything" is superseded.
+Measured at 1440x820 and 420x900: a swap 1,393ms at 0.5x, 2x and 8x; the tally's norm 0.25 / 1 / 4.
+Focus still speeds the card looks (`caFocusPace('focus2')`, r474), as before.
+
+## r862 numbering
+The Investment's Trick option was built as r859 while main shipped its own r859 to r861 (above). The merge that joined them is r862.
+
+## r862 - the Investment's Trick option: each upgrade costs 20% of what is still invested (owner)
 The TRICK option reads "Invest a Trick and some credits. The Trick goes away until next quarter. Until
 then, the Trick has a 2% chance per credit invested of upgrading every level. When the Trick upgrades,
 it costs 20% of your invested credits." (the owner's words, "improving" read as "upgrading" per r831).
 `investment.left` is the credits still invested: each level's chance is left x 2%, and each upgrade
 takes `investUpCost(left)` (`INVEST.upCost` 20% of left, rounded, at least 1), so the chance drops as
 it is spent. When the quarter opens what is left comes back (`investmentSettle`) and the report adds
-"L¢N RETURNED". A pre-r859 save has no `left`: its whole stake counts if it never upgraded, else 0.
+"L¢N RETURNED". A pre-r862 save has no `left`: its whole stake counts if it never upgraded, else 0.
 Measured: L¢40 with four upgrades in a row went 32, 26, 21, 17 and L¢17 came back.

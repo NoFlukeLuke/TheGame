@@ -460,6 +460,7 @@ function playHand() {
     if (_rf > 0 && typeof addFocus === 'function') addFocus(_rf, 'rule_evens', 'sleight');
     const _rs = ruleFaceSeconds(_scoredCells, _handRetrigByCell);
     if (_rs > 0) rewindTime(_rs, `⏪ Face cards - rewound ${_rs}s`, 'rule_faces', 'sleight');
+    if (typeof ruleFacesSpend === 'function') ruleFacesSpend(_scoredCells);   // r859: a charge per face card played
     const _rc = typeof ruleEvenCredits === 'function' ? ruleEvenCredits(_scoredCells, _handRetrigByCell) : 0;   // r739
     if (_rc > 0) grantEntityCoins(_rc, 'sleight', 'rule_evens');
   }
@@ -736,7 +737,8 @@ function playHand() {
   // timeManipRound - doing both would double-count them in the payout's
   // "Time manipulation" row (scoring.js sums the two).
   // Deluge: Flushes rewind the clock
-  if (hand === 'Flush') { const _dl = BAL.deluge.seconds * trickFires('deluge'); if (_dl > 0) rewindTime(_dl, `🌊 ${trickNameOf('deluge')} - rewound ${_dl}s`); }
+  // r859: v6 (any_size) takes a Flush of any size (a flush layer on the hand counts).
+  if (hand === 'Flush' || (BAL.deluge.any_size && hasTrick('deluge') && handLayersFor(hand, handCells).some(n => /^Flush/.test(n)))) { const _dl = BAL.deluge.seconds * trickFires('deluge'); if (_dl > 0) rewindTime(_dl, `🌊 ${trickNameOf('deluge')} - rewound ${_dl}s`); }
   // Overtime (r182): a REWIND, and now routed through the real rewind path.
   // It used to add raw seconds straight onto roundSeconds, which meant it was a
   // rewind that the game did not know was a rewind - it never showed the ⏪
@@ -744,8 +746,8 @@ function playHand() {
   // was not capped at the round length. rewindTime() does all four, and returns
   // 0 during a boss (bosses run their own clock), which is the correct no-op.
   {
-    const _otf = Math.floor(markCount_overtime / 3);
-    const _os = _otf > 0 ? _otf * BAL.overtime.seconds_per_3 * trickFires('overtime') : 0;
+    const _otf = Math.floor(markCount_overtime / 5);   // r859 (owner): per 5 cards (was 3)
+    const _os = _otf > 0 ? _otf * BAL.overtime.seconds_per_5 * trickFires('overtime') : 0;
     if (_os > 0) rewindTime(_os, `⏱ Overtime - rewound ${_os}s`);
   }
   // Right Time: each card scored in its marked line pauses the clock (rewind conversion pending, task #10)
@@ -757,6 +759,8 @@ function playHand() {
       const _ns = BAL.ninesong.seconds * trickFires('ninesong');
       if (_ns > 0) rewindTime(_ns, `🔁 Threepeat - rewound ${_ns}s`);
     }
+    // r859 (owner, silent): a rewind-only outcome never comes twice in a row (js/scoring.js ninesongPick).
+    if (_ps % 3 === 0 && hasTrick('ninesong')) ninesongLastRewind = ninesongPick(handCells) === 0;
   }
   // Blood Diamonds (r346): a hand of EXCLUSIVELY hearts and diamonds - every card one
   // of the two, at least one of each - grants +5 credits but COSTS 10 seconds. Wilds

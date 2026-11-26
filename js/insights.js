@@ -157,6 +157,17 @@ const INSIGHTS = [
     body: 'A replay scores one card again: its pips, its mult and its per-card {Tricks}.',
     when: () => typeof replaysThisRound !== 'undefined' && replaysThisRound > 0 },
 
+  // r859 (owner): the rewind cap, said once you hold something that rewinds (or a rewind
+  // came up short). One tip a mode: Flow's level starts mid-quarter.
+  { id: 'rewind_cap_flow', title: 'Rewinds stop at the level\'s start',
+    anchor: ['#clock-area', '#clock', '#vclock'],
+    body: 'A rewind cannot take the clock past where it stood when this level began.',
+    when: () => typeof flowActive === 'function' && flowActive() && rewindRuleRelevant() },
+  { id: 'rewind_cap', title: 'Rewinds stop at the level\'s start',
+    anchor: ['#clock-area', '#clock', '#vclock'],
+    body: 'A rewind cannot take the clock past the time this level started with.',
+    when: () => !(typeof flowActive === 'function' && flowActive()) && rewindRuleRelevant() },
+
   { id: 'natural_scaling', title: 'That hand family is getting better',
     anchor: ['#hand-name'],
     body: 'Playing hands of one family (sets, runs, flushes) grows every card in that family: more pips on each card, and higher up the mult ladder. RECORDS &rsaquo; Hands shows where each family stands.',
@@ -479,4 +490,19 @@ function devShowInsight(id) {
   showInsight(row);
   if (!had) { insightsSeen.delete(id); _saveInsightsSeen(); }
   insightThisRound--;
+}
+
+// r859: something in the run rewinds the clock (an owned entity whose words say so, or a
+// card on the board with a rewind buff), or a rewind just came up short. Not while
+// Time Theft lifts the cap.
+function rewindRuleRelevant() {
+  if (typeof rewindCapLifted === 'function' && rewindCapLifted()) return false;
+  if (typeof rewindCapHits !== 'undefined' && rewindCapHits > 0) return true;
+  const rw = e => !!e && /rewind/i.test(String(e.desc || ''));
+  if ((typeof trickTray !== 'undefined' ? trickTray : []).some(rw)) return true;
+  if ((typeof acquiredKnacks !== 'undefined' ? acquiredKnacks : []).some(rw)) return true;
+  if (typeof allOwnedSleightCards === 'function' && allOwnedSleightCards().some(c => rw(typeof sleightDef === 'function' ? sleightDef(c) : null))) return true;
+  if (typeof gridData !== 'undefined' && gridData && typeof permTime !== 'undefined')
+    for (const row of gridData) for (const cd of (row || [])) if (cd && cd.rank && permTime[cardId(cd)] > 0) return true;
+  return false;
 }

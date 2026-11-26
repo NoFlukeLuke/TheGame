@@ -444,14 +444,14 @@ function showKnackTooltip(chip, id) {
   const _live = knackLiveDesc(knack);
   const _reveal = _live.slice((knack.desc || '').length);
   tt.innerHTML = `
-    <button class="tt-close" aria-label="Close">✕</button>${kwMoreHTML(knack.desc)}
+    <button class="tt-close" aria-label="Close">✕</button>${kwMoreHTML(knack.desc, '', knack.id)}
     <div class="knack-tooltip-name">${knack.emoji} ${knack.name}</div>${nameSayHTML(knack.name)}
     <div class="knack-tooltip-desc">${colorizeKeywords(knack.desc)}${_reveal}</div>
-    ${kwDefsHTML(knack.desc)}
+    ${kwDefsHTML(knack.desc)}${upDefsShell(knack.id)}
     <div class="knack-tooltip-actions"><button class="knack-tooltip-sell" id="knack-tooltip-sell-btn">Sell ${creditsTxt(_sv)}</button></div>
   `;
   // r288 - the + is the only way to the definitions, on every tooltip.
-  tt.classList.remove('kw-open');
+  tt.classList.remove('kw-open', 'up-open');
   tt.dataset.knackId = id;
   // Keep the bubble open while the pointer is over it (so Sell is clickable); wire once via props.
   tt.onmouseenter = cancelKnackHoverHide;

@@ -57,7 +57,7 @@ function cascadeIs(name) { return !!_casRun && _casRun.spec.name === name; }
 function cascadeQueueMax() { return CAS_CFG.queueMax; }
 
 function _casLerp(pair, t) { return pair[0] + (pair[1] - pair[0]) * Math.max(0, Math.min(1, t)); }
-// The beats follow Settings -> Motion -> Animation speed, within reason: a cascade is meant to be quick.
+// The beats follow the fixed animation speed (animSlow, r861), within reason: a cascade is meant to be quick.
 function _casK() { const s = (typeof animSlow === 'function') ? animSlow() : 1; return Math.max(0.6, Math.min(1.35, s)); }
 function _casStill() { return document.body.classList.contains('reduced-motion'); }
 // Pausable (the pause menu and RECORDS hold it, like the tally).
