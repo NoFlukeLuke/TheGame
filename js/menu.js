@@ -1,4 +1,4 @@
-const BUILD = "2026-11-26 · r862 · the Investment: a Trick upgrade costs 20% of what is still invested";
+const BUILD = "2026-11-26 · r863 · phone: the chain's closing line reads DEAL; Reduce Motion keeps the LED score flow";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

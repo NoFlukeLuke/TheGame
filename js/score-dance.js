@@ -659,7 +659,7 @@ function ptLaunch(a, b, kind, label, color, dur, opts){
   anim(el, frames, tw);
   anim(el, fades, fw);
   // r853 (owner): a chip bound for PIPS or MULT ends as squares flowing onto the figure.
-  if(o.pixTo && typeof pxfPlate === 'function' && !pxfReduced()){
+  if(o.pixTo && typeof pxfPlate === 'function'){   // r863: Reduce Motion keeps the squares (the plain chip moves as much)
     const tail = (dur - (o.hold || 0)) * PXF_CFG.tail;
     if(tail >= PXF_CFG.minTail) later(()=>pxfPlate(el, o.pixTo, tail), dur - tail);
   }

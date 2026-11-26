@@ -38,7 +38,8 @@ function setScreenChange(v) {
   const sel = document.getElementById('dev-screen-change'); if (sel) sel.value = v;
 }
 
-function screenChange(swap) {
+// r863: opts.cmd names the console line (the caller knows whether the chain opens or closes).
+function screenChange(swap, opts) {
   // Console mode only (owner, r536): the move is the hardware explaining itself.
   const off = scLook === 'none' || _scBusy || !(typeof trayMachineOn === 'function' && trayMachineOn())
     || (typeof skipOn === 'function' && skipOn('transitions'))
@@ -46,7 +47,7 @@ function screenChange(swap) {
   if (off) { swap(); return; }
   _scBusy = true;
   const done = () => { _scBusy = false; };
-  try { (scLook === 'console' ? scConsole : scFall)(swap, done); }
+  try { (scLook === 'console' ? scConsole : scFall)(swap, done, opts || {}); }
   catch (e) { done(); swap(); }
 }
 
@@ -138,7 +139,7 @@ function scTypeLine(el, text) {
   if (!cps) { el.textContent = text; return Promise.resolve(); }
   return new Promise(res => { let i = 0; const t = setInterval(() => { i++; el.textContent = text.slice(0, i); if (i >= text.length) { clearInterval(t); res(); } }, 1000 / cps); });
 }
-async function scConsole(swap, done) {
+async function scConsole(swap, done, opts) {
   const S = scStage(), grid = document.getElementById('grid');
   if (!S || !grid) { swap(); done(); return; }
   const k = typeof animSlow === 'function' ? animSlow() : 1;
@@ -146,7 +147,9 @@ async function scConsole(swap, done) {
   const gr = scStageRect(grid, S.st, S.z, S.sr);
   const panel = document.getElementById('flowr-bg'), stack = document.getElementById('flowr-stack');
   const closing = document.body.classList.contains('gp-active') || document.body.classList.contains('grid-screen') || !!grid.querySelector('.gp-opt, .reward-cell');
-  const cmd = closing ? 'DEAL' : 'OPEN REWARDS';
+  // r863: the caller says which; guessing from the board read OPEN REWARDS as the chain closed,
+  // because the last pick has already left the board by then.
+  const cmd = (opts && opts.cmd) || (closing ? 'DEAL' : 'OPEN REWARDS');
   grid.classList.add('sc-falling');
   const line = document.createElement('div'); line.className = 'sc-cmd';
   line.innerHTML = '<b>&gt; </b><span></span><i></i>';

@@ -6381,3 +6381,14 @@ takes `investUpCost(left)` (`INVEST.upCost` 20% of left, rounded, at least 1), s
 it is spent. When the quarter opens what is left comes back (`investmentSettle`) and the report adds
 "L¢N RETURNED". A pre-r862 save has no `left`: its whole stake counts if it never upgraded, else 0.
 Measured: L¢40 with four upgrades in a row went 32, 26, 21, 17 and L¢17 came back.
+
+## r863 - phone: the reward chain's closing line; Reduce Motion keeps the LED flow (owner's bugs)
+- **"> OPEN REWARDS" after every chain** (console screen change): `scConsole` guessed open or close from
+  the board, but by the time `flowrFinish` runs the last pick has left it, so the closing change read
+  OPEN REWARDS instead of DEAL. `screenChange(swap, { cmd })` now takes the word from the caller
+  (`flowrArm`'s first step OPEN REWARDS, `flowrFinish` DEAL); the guess is only a fallback.
+- **The score flew as a plain chip** when the phone's own Reduce Motion is on: `pmfFlyToScore` and the
+  chips' `pixTo` flow asked `pxfReduced()` and fell back to the ghost chip, which moves just as much.
+  Both keep the LED squares now; `pxfReduced` has no reader in the scoring path.
+Measured in headless Chromium at 390x844 (DPR 3, reduced motion) and 1440x820: the score and every chip
+flowed as squares, no ghost; a Flow chain read OPEN REWARDS at its start and DEAL at its end; no page errors.

@@ -685,7 +685,7 @@ function flowrArm(queue, counterOpts) {
   flowrWhenBoardStill(() => {
     if (!flowrQueue) { _release(); return; }   // the run was abandoned while we waited
     // The first step comes in through the machine's screen change (r532).
-    const first = () => (typeof screenChange === 'function' ? screenChange(flowrShowStep) : flowrShowStep());
+    const first = () => (typeof screenChange === 'function' ? screenChange(flowrShowStep, { cmd: 'OPEN REWARDS' }) : flowrShowStep());
     if (n > 1 || counterOpts) flowrPlayCounter(n, () => { first(); _release(); }, counterOpts);
     else { first(); _release(); }
   });
@@ -998,7 +998,7 @@ function flowrFinish() {
     if (gameStartTime !== run || document.getElementById('main-menu-overlay')?.classList.contains('show')) return;
     flowrFinishSwap(_boss);
   };
-  if (typeof screenChange === 'function') screenChange(swap); else swap();
+  if (typeof screenChange === 'function') screenChange(swap, { cmd: 'DEAL' }); else swap();
 }
 function flowrFinishSwap(_boss) {
   if (typeof gridSlotPin === 'function') gridSlotPin(false);

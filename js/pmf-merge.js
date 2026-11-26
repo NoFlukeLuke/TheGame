@@ -753,7 +753,8 @@ async function pmfFlyToScore(opts) {
   const b = target.getBoundingClientRect();
   if (a.width < 2 || b.width < 1) return false;
   // r853 (owner): in the LEDs look the hand's score leaves as squares and flows onto SCORE.
-  if (pmfLook() === 'leds' && typeof pxfFlow === 'function' && !pxfReduced()) {
+  // r863: not dropped for the phone's Reduce Motion: the ghost it fell back to moves just as much.
+  if (pmfLook() === 'leds' && typeof pxfFlow === 'function') {
     const val = (src.querySelector && src.querySelector('.subbox-val, .pmf-merged-val')) || src;
     const shown = (typeof dncScoreShown === 'function') ? dncScoreShown() : (typeof score === 'number' ? score : 0);
     const odo = target.classList.contains('odo');
