@@ -63,7 +63,7 @@ fxDefine('magician',       { handAdd: () => magicianNoSleights() ? { pip: BAL.ma
 // Landfill (r651): +mult per swapped or discarded card this game, plus what a fusion carried.
 fxDefine('landfill',       { handAdd: () => ({ mult: landfillCount() * TB('landfill').mult_per + fusedCarry('landfill', 'mult') }) });
 // Compost: +mult per card discarded this round.
-fxDefine('discard_pips',   { handAdd: () => ({ mult: cardsDiscardedRound * ((typeof flowActive === 'function' && flowActive()) ? BAL.discard_pips.mult_per_flow : BAL.discard_pips.mult_per) }) });
+fxDefine('discard_pips',   { handAdd: () => ({ mult: cardsDiscardedRound * BAL.discard_pips.mult_per }) });
 
 // ── asked below the floor ──
 // Trinity Run: a run holding a 3, 6 or 9.

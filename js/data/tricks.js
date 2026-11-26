@@ -182,7 +182,7 @@ const TRICK_POOL = [
   { id:'monopoly',       name:'Monopoly',            tier:'legendary', tags:['deck','card','rank','position','scaling','cost'], modes:['spectrum'], desc:'When a 15 or a 20 scores, one random adjacent card is forgotten and its bonuses added to it (once per hand)' },
   // ── Situational pip ──
   { id:'sands_of_time',  name:'El Tiempo es Oro',       tier:'rare',      desc:'Score +pips equal to time remaining ÷ 2', tags:['pips','hand','clock','scores'] },
-  { id:'discard_pips',   name:'Waste Specialist',             tier:'common',    tags:['mult','hand','discard','scores'], desc:'+4 mult per card discarded this level (+2 in Flow)' },
+  { id:'discard_pips',   name:'Waste Specialist',             tier:'common',    tags:['mult','hand','discard','scores'], desc:'+4 mult per card discarded this level' },
   { id:'spade_flood',    name:'In the Black',         tier:'rare',      tags:['pips','hand','suit','clock','scores'], desc:'All-Spade hands add the remaining level time as pips' },
   { id:'mirror',         name:'Mirror',              tier:'rare',      tags:['retrigger','hand','tricks'], desc:'Tap to tilt left or right; mimics the effect of the Trick it reflects.' },
   // ── Diverse conditions ──

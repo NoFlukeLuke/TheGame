@@ -63,7 +63,7 @@ const BAL = {
   kindling: { mult_per_streak: 8 },
   spade_flood: { time_div: 1, time_mult: 1, suits: 0 },   // r625: suits 0 all spades / 1 all clubs or spades / 2 any club or spade; time_mult by IMPROVE_PLAN
   sands_of_time: { divisor: 2, flow_divisor: 3 },   // r831 (owner): in Flow the clock left is divided by 3
-  discard_pips: { mult_per: 4, mult_per_flow: 2 },   // r651 (owner): Flow pays the smaller one
+  discard_pips: { mult_per: 4 },   // r860 (owner): one rate; the count is the level's in Flow too
   landfill: { mult_per: 1 },   // r651 (owner): per swapped or discarded card THIS GAME (landfillCount)
   magician: { mult_per_sleight: 6, solo_pips: 50 },   // r635: solo_pips while you own no Sleight
   stand_up: { mult_per_card: 20 },   // r827 (owner): matches Lie Down; was 16 (r817), 12 before
@@ -495,7 +495,7 @@ const DESC_TEMPLATES = {
   overtime:      "Every hand rewinds the clock {seconds_per_5}s for every 5 cards you have scored from this Trick's marked row or column. Resets each level.",
   feng_shui: 'Scales +{pips_per_hand} pips every time you score a hand with a row or column effect',
   sands_of_time: 'Score +pips equal to time remaining ÷ {divisor}[[flow_divisor: (÷ {flow_divisor} in Flow)]]',
-  discard_pips: '+{mult_per} mult per card discarded this level (+{mult_per_flow} in Flow)',
+  discard_pips: '+{mult_per} mult per card discarded this level',
   dark_matter: 'Corrupted cards in a hand add +{pips} pips each',
   combo_score: '+{mult_per_type} mult for every distinct hand type played this level',
   flow_state: 'While focus is ×1.5 or higher, score +{pips_per_card} pips per card',

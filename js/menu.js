@@ -1,4 +1,4 @@
-const BUILD = "2026-11-25 · r859 · the rewind cap, Time Theft, the ↑ upgrade ladder in tooltips, the rewind pass";
+const BUILD = "2026-11-26 · r860 · Waste Specialist pays +4 in Flow too";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

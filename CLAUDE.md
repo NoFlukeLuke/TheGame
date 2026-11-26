@@ -6354,3 +6354,8 @@ LOST -L¢N, and > RETURN +N% (gain over the stake, rounded). The Trick option is
   (`ruleFacesSpend`, replays free), leaves the grid after 60 live seconds or at 0 charges
   (`ruleFacesTick`, round tick, a still board), ladder +3 charges / +15s alternating (mine), v6 the
   Knack at 3s. Threepeat never rewinds-only twice in a row (`ninesongPick`, `ninesongLastRewind`, silent).
+
+## r860 - Waste Specialist pays +4 in Flow too (owner)
+`discard_pips` counts `cardsDiscardedRound`, which resets at every level-up in Flow as well (js/level-up.js),
+so r651's Flow half rate (`mult_per_flow` 2) is gone: +4 mult per card discarded this level everywhere.
+Measured in Flow: 3 cards discarded paid +12 mult. Golden: 838 match.
