@@ -6328,3 +6328,13 @@ The CREDITS option reads "Invest all your credits until the start of the next qu
 return. No one can predict the market." (the odds are no longer printed; owner kept the quarter
 payout). The report (`investmentReportMaybe`) prints INITIAL INVESTMENT L¢N, GAINED +L¢N or
 LOST -L¢N, and > RETURN +N% (gain over the stake, rounded). The Trick option is unchanged.
+
+## r859 - the Investment's Trick option: each upgrade costs 20% of what is still invested (owner)
+The TRICK option reads "Invest a Trick and some credits. The Trick goes away until next quarter. Until
+then, the Trick has a 2% chance per credit invested of upgrading every level. When the Trick upgrades,
+it costs 20% of your invested credits." (the owner's words, "improving" read as "upgrading" per r831).
+`investment.left` is the credits still invested: each level's chance is left x 2%, and each upgrade
+takes `investUpCost(left)` (`INVEST.upCost` 20% of left, rounded, at least 1), so the chance drops as
+it is spent. When the quarter opens what is left comes back (`investmentSettle`) and the report adds
+"L¢N RETURNED". A pre-r859 save has no `left`: its whole stake counts if it never upgraded, else 0.
+Measured: L¢40 with four upgrades in a row went 32, 26, 21, 17 and L¢17 came back.

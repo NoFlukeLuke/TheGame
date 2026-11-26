@@ -1,4 +1,4 @@
-const BUILD = "2026-11-25 · r858 · the Investment: plain credits option, the report shows the return";
+const BUILD = "2026-11-25 · r859 · the Investment: a Trick upgrade costs 20% of what is still invested";
 // ══════════════════════════════════════════════
 // MODES & FEATURE FLAGS
 // ══════════════════════════════════════════════

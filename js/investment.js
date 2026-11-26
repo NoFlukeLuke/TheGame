@@ -8,9 +8,11 @@
 //             the report prints the stake, the credits gained or lost, and the % return.
 //   A TRICK - a Trick and an amount. The Trick is switched off until the quarter
 //             opens (altarTrickLocked, read by isTrickDisabledByBoss and the sells).
-//             Every round that starts meanwhile has credits x INVEST.trickPerCoin %
-//             to improve it (improveEntity, so the improvement scene plays). The
-//             credits are spent. Not printed anywhere (owner): everything you hold,
+//             Every round that starts meanwhile has (credits still invested) x
+//             INVEST.trickPerCoin % to improve it (improveEntity, so the improvement
+//             scene plays). r859 (owner): each improvement costs INVEST.upCost (20%)
+//             of the credits still invested; what is left comes back when the quarter
+//             opens. Not printed anywhere (owner): everything you hold,
 //             INVEST.guaranteeMin or more, is at least one improvement.
 // The result prints on a board screen ("> INVESTMENT") right after the quarter
 // card, or before Flow's post-review rewards, before anything else happens
@@ -19,6 +21,7 @@
 // them, and the report only reads what was paid.
 const INVEST = {
   trickPerCoin: 2,       // % per credit, each round, to improve the invested Trick
+  upCost: 0.2,           // r859: each improvement takes this share of the credits still invested
   guaranteeMin: 10,      // all your credits, this many or more: one improvement at least (unprinted)
   outcomes: [            // the credits roll, weights in `p`
     { p: 60, rate: 0.05 },
@@ -45,7 +48,6 @@ function renderAltar() {
   const body = document.getElementById('event-body');
   eventState.invKind = null; eventState.invTrick = null; eventState.invAmt = coins | 0;
   if (!investmentOfferable()) { body.innerHTML = evEmptyHTML(investment ? 'An investment is already held.' : 'Nothing to invest.'); setEventConfirm(false); return; }
-  const q = investQuarter();
   const pick = (kind) => {
     eventState.invKind = kind;
     body.querySelectorAll('.event-choice.inv-opt').forEach(e => e.classList.toggle('selected', e.dataset.kind === kind));
@@ -59,7 +61,7 @@ function renderAltar() {
   body.appendChild(all);
   const cands = investTrickCandidates();
   const tr = makeChoiceEl({ icon: '📈', rarity: 'epic', name: 'Invest a Trick', cls: 'inv-opt',
-    desc: cands.length ? `A Trick and an amount. The Trick is off until Q${q + 1} opens. Every level that starts before then it has ${INVEST.trickPerCoin}% per credit to upgrade.`
+    desc: cands.length ? `Invest a Trick and some credits. The Trick goes away until next quarter. Until then, the Trick has a ${INVEST.trickPerCoin}% chance per credit invested of upgrading every level. When the Trick upgrades, it costs ${Math.round(INVEST.upCost * 100)}% of your invested credits.`
                        : 'No Trick of yours can upgrade.',
     onClick: () => { if (cands.length) pick('trick'); } });
   tr.dataset.kind = 'trick';
@@ -107,7 +109,7 @@ function confirmAltar() {
     noteMessage(`${creditsTxt(c)} invested until Q${q + 1}`);
   } else if (kind === 'trick' && eventState.invTrick) {
     const t = eventState.invTrick, c = Math.max(1, Math.min(coins | 0, eventState.invAmt | 0));
-    investment = { kind: 'trick', trickId: t.id, name: t.name, credits: c, all: c === (coins | 0), level, q, ups: 0, rounds: 0, lastLevel: level };
+    investment = { kind: 'trick', trickId: t.id, name: t.name, credits: c, left: c, all: c === (coins | 0), level, q, ups: 0, rounds: 0, lastLevel: level };
     coins -= c;
     noteMessage(`${t.name} invested with ${creditsTxt(c)} until Q${q + 1}`);
     if (typeof hideTrickTooltip === 'function') hideTrickTooltip();
@@ -117,15 +119,20 @@ function confirmAltar() {
   closeEvent();
 }
 
+// What one improvement takes from the credits still invested (r859): 20%, at least 1.
+function investUpCost(left) { return left > 0 ? Math.min(left, Math.max(1, Math.round(left * INVEST.upCost))) : 0; }
+
 // ── Every round that starts: the Trick's roll (startRoundTimer, once a level) ──
 function investmentRoundStart() {
   const inv = investment;
   if (!inv || inv.kind !== 'trick' || inv.lastLevel === level) return;
   inv.lastLevel = level; inv.rounds++;
   if (typeof canImprove !== 'function' || !canImprove(inv.trickId)) return;
-  const p = Math.min(100, inv.credits * INVEST.trickPerCoin);
+  if (inv.left == null) inv.left = inv.credits;   // pre-r859 save: the whole stake is still in
+  const p = Math.min(100, inv.left * INVEST.trickPerCoin);
   if (Math.random() * 100 < p) {
     inv.ups++;
+    inv.left -= investUpCost(inv.left);
     if (typeof improveEntity === 'function') improveEntity(inv.trickId);
     if (typeof entityPing === 'function') entityPing('trick', inv.trickId);
     noteMessage(`${inv.name} upgraded (invested)`);
@@ -149,12 +156,16 @@ function investmentSettle() {
     noteMessage(`Investment: ${creditsTxt(inv.credits)} returned ${creditsTxt(amount)}`);
   } else {
     // The unprinted guarantee: everything you had, INVEST.guaranteeMin or more, improves once at least.
+    if (inv.left == null) inv.left = inv.ups ? 0 : inv.credits;   // pre-r859 save: an upgraded stake was spent
     if (inv.all && inv.credits >= INVEST.guaranteeMin && inv.ups === 0 && typeof canImprove === 'function' && canImprove(inv.trickId)) {
       inv.ups = 1;
+      inv.left -= investUpCost(inv.left);
       if (typeof improveEntity === 'function') improveEntity(inv.trickId);
     }
-    rep = { kind: 'trick', name: inv.name, trickId: inv.trickId, credits: inv.credits, ups: inv.ups, rounds: inv.rounds };
-    noteMessage(`Investment: ${inv.name} is back` + (inv.ups ? `, upgraded ${inv.ups === 1 ? 'once' : inv.ups + ' times'}` : ''));
+    const back = Math.max(0, inv.left | 0);
+    coins += back;
+    rep = { kind: 'trick', name: inv.name, trickId: inv.trickId, credits: inv.credits, back, ups: inv.ups, rounds: inv.rounds };
+    noteMessage(`Investment: ${inv.name} is back` + (inv.ups ? `, upgraded ${inv.ups === 1 ? 'once' : inv.ups + ' times'}` : '') + `, ${creditsTxt(back)} returned`);
     if (typeof renderTrickTray === 'function') renderTrickTray();
   }
   if (typeof updateCoinsUI === 'function') updateCoinsUI();
@@ -180,6 +191,7 @@ function investmentReportMaybe(done) {
   } else {
     lines.push(`${esc(rep.name.toUpperCase())} · ${creditsTxt(rep.credits)} · ${rep.rounds} LEVEL${rep.rounds === 1 ? '' : 'S'}`);
     lines.push(rep.ups ? `UPGRADED ${rep.ups === 1 ? 'ONCE' : rep.ups === 2 ? 'TWICE' : rep.ups + ' TIMES'}` : 'NOT UPGRADED');
+    if (rep.back != null) lines.push(`${creditsTxt(rep.back)} RETURNED`);
     lines.push(`&gt; ${esc(rep.name.toUpperCase())} IS BACK`);
   }
   const html = `<div class="inv-wrap">${lines.map((l, i) => `<div class="inv-line${i === lines.length - 1 ? ' inv-last' : ''}">${l}</div>`).join('')}</div>`;
